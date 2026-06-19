@@ -6,7 +6,7 @@ INSTALL := ./install.sh
 
 .DEFAULT_GOAL := help
 .PHONY: help install install-claude install-cursor install-copilot \
-        install-opencode install-pi install-all \
+        install-opencode install-pi install-all install-pocock \
         project-claude project-opencode project-pi \
         uninstall uninstall-all check lint
 
@@ -33,6 +33,9 @@ install-pi: ## Install the skills for Pi (~/.pi/agent/skills)
 
 install-all: ## Install for every supported harness
 	$(INSTALL) all
+
+install-pocock: ## Clone Matt Pocock's companion skills (grill-me, to-prd, to-issues) — MIT
+	$(INSTALL) pocock
 
 project-claude: ## Install for Claude Code into the current project (.claude/skills)
 	$(INSTALL) claude --project

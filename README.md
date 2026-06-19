@@ -178,6 +178,8 @@ canonical and up to date — his repo is MIT-licensed, so cloning and using it i
 permitted (keep his `LICENSE` notice if you copy files):
 
 ```bash
+./install.sh pocock          # git clones his repo (default ~/.matt-pocock-skills)
+# or by hand:
 git clone https://github.com/mattpocock/skills.git
 # his repo ships a `setup-matt-pocock-skills` skill that wires them up
 ```

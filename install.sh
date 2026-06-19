@@ -17,6 +17,7 @@
 #   cursor     .cursor/rules/*.mdc                       (always project-scoped)
 #   copilot    .github/instructions/*.instructions.md    (always project-scoped)
 #   all        install every harness above
+#   pocock     git clone Matt Pocock's companion skills (grill-me, to-prd, to-issues)
 #
 # Options:
 #   --project        install into the current project, not the global user dir
@@ -30,6 +31,7 @@
 #   ./install.sh cursor               # Cursor rules in the current project
 #   ./install.sh opencode --project   # OpenCode, into ./.opencode/skills
 #   ./install.sh all                  # every supported harness
+#   ./install.sh pocock               # clone Matt Pocock's companion skills
 #   ./install.sh claude --uninstall   # remove the global Claude install
 
 set -euo pipefail
@@ -53,7 +55,7 @@ usage() { sed -n '2,40p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
 # --- parse args ---
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    claude|opencode|pi|cursor|copilot|all) HARNESS="$1" ;;
+    claude|opencode|pi|cursor|copilot|all|pocock) HARNESS="$1" ;;
     --project)   PROJECT=1 ;;
     --uninstall) UNINSTALL=1 ;;
     -n|--dry-run) DRYRUN=1 ;;
@@ -126,6 +128,24 @@ applyTo: "docs/**,**/*.md"
   [[ $UNINSTALL -eq 1 ]] || log "Tip: for a repo-wide rule, append the same guidance to .github/copilot-instructions.md."
 }
 
+# --- clone Matt Pocock's MIT-licensed companion skills straight from source ---
+install_pocock() {
+  local dest="${OVERRIDE_DIR:-$HOME/.matt-pocock-skills}"
+  if [[ $UNINSTALL -eq 1 ]]; then run "rm -rf '${dest:?}'"; log "removed $dest"; return; fi
+  log "Companion skills — Matt Pocock (https://github.com/mattpocock/skills, MIT)"
+  if [[ $DRYRUN -eq 1 ]]; then
+    log "  [dry-run] git clone --depth 1 https://github.com/mattpocock/skills.git '$dest'"
+  elif [[ -d "$dest/.git" ]]; then
+    run "git -C '$dest' pull --ff-only"
+    log "updated: $dest"
+  else
+    run "git clone --depth 1 https://github.com/mattpocock/skills.git '$dest'"
+    log "cloned: $dest"
+  fi
+  log "Next: run his 'setup-matt-pocock-skills' skill to wire grill-me / to-prd / to-issues into your tool."
+  log "His repo is MIT-licensed — keep its LICENSE notice if you copy files."
+}
+
 do_harness() {
   case "$1" in
     claude)   install_skills_dir "$HOME/.claude/skills" ".claude/skills" ;;
@@ -133,6 +153,7 @@ do_harness() {
     pi)       install_skills_dir "$HOME/.pi/agent/skills" ".pi/skills" ;;
     cursor)   install_cursor ;;
     copilot)  install_copilot ;;
+    pocock)   install_pocock ;;
   esac
 }
 
