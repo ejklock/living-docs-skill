@@ -35,11 +35,22 @@ Living Docs names a few neighbouring skills in its "Composition with other
 skills" section. They are **not** shipped in this repo, but the people who
 created them are credited here so no one is left uncredited:
 
-- **`grill-me`** — Matt Pocock ([AI Hero](https://www.aihero.dev/) ·
-  [github.com/mattpocock/skills](https://github.com/mattpocock/skills)). The
-  relentless design-interview skill Living Docs leans on before writing a PRD or
-  a load-bearing ADR. The widely-shared `grill-me` skill originates from his
-  skills repo; this project only *references* it.
+- **Matt Pocock's skills** — `grill-me`, and the **PRD / issues approach**
+  ([AI Hero](https://www.aihero.dev/) ·
+  [github.com/mattpocock/skills](https://github.com/mattpocock/skills), MIT).
+  Living Docs *references* his `grill-me` design-interview skill, and its
+  problem-first PRD shape (explicit non-goals / out-of-scope, testable
+  requirements, glossary vocabulary, respect-the-ADRs, PRD → issues) and its
+  vertical-slice issue workflow (tracer-bullet slices, *Blocked by* +
+  *Acceptance criteria*, prefactor-first) are a **kindred influence** from his
+  `to-prd` and `to-issues` skills. Both his skills and ours instrumentalize the
+  same older, named practice — product PRDs, user stories (Cohn; Beck),
+  tracer-bullet vertical slices (Hunt & Thomas, *The Pragmatic Programmer*;
+  Cockburn's *Elephant Carpaccio*), and "make the change easy, then make the easy
+  change" (Kent Beck). Living Docs adds the OKF format, the docs-first
+  byte-identical tracker mirror, append-only / supersede governance, sequential
+  `NNNN` indexing, and the ADR + BDR split. **None of his skills are bundled
+  here** — this is acknowledgement, not vendoring.
 
 ## What is genuinely original here
 

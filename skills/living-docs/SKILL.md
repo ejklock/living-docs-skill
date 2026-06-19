@@ -167,6 +167,7 @@ Almost every doc type here is established prior art; this skill composes and enf
 - **"Living documentation"** is **Cyrille Martraire's** named methodology (*Living Documentation*, 2019) — we adopted the term.
 - **ADR** is **Michael Nygard's** (2011); the structured-markdown form is **MADR**; the *supersede-don't-delete* status convention is the **adr-tools** convention (**Nat Pryce**) — invariant 4 is that convention, not a new rule.
 - **BDR** is **Specification by Example / Given-When-Then** (**Adzic** 2011; **North** 2006) in an ADR-style record (recent third-party coinage, **Zanzal** 2026) — see `rules/bdr-conventions.md`.
+- The **problem-first PRD** and **vertical-slice issue** workflow are a kindred influence from **Matt Pocock's** `to-prd` / `to-issues` skills (github.com/mattpocock/skills, MIT); both instrumentalize older practice — product PRDs, user stories (**Cohn**; **Beck**), tracer-bullet vertical slices (**Hunt & Thomas**; **Cockburn**), and "make the change easy, then make the easy change" (**Beck**). Living-docs adds the OKF format, the docs-first mirror, and supersede governance.
 - The **format** is **OKF**, a published **Google Cloud Platform** standard (v0.1, 2026-06-12), not ours — see the `okf-knowledge-format` skill.
 - Neighbors we converge on: **Diátaxis** (Procida), **arc42** (Starke; Hruschka), **C4** (Brown), and **docs-as-code** (Write the Docs).
 

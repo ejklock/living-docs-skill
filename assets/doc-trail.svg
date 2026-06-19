@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="440" viewBox="0 0 1280 440" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Living Docs doc trail: constitution to PRD to ADR and BDR to issues to code">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d1117"/>
+      <stop offset="1" stop-color="#10141c"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#a371f7"/>
+      <stop offset="1" stop-color="#8A2BE2"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#6e7681"/>
+    </marker>
+  </defs>
+
+  <rect width="1280" height="440" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1280" height="6" fill="url(#accent)"/>
+
+  <!-- header -->
+  <text x="64" y="78" fill="#e6edf3" font-size="40" font-weight="700">Living Docs</text>
+  <text x="64" y="112" fill="#8b949e" font-size="19">Run your project's documentation as a living system — one home per fact, indexed, append-only.</text>
+
+  <!-- edges -->
+  <g stroke="#6e7681" stroke-width="2" fill="none">
+    <!-- constitution -> PRD -->
+    <path d="M260,250 H336" marker-end="url(#arrow)"/>
+    <!-- PRD -> ADR -->
+    <path d="M520,232 C560,232 560,196 600,196" marker-end="url(#arrow)"/>
+    <!-- PRD -> BDR -->
+    <path d="M520,268 C560,268 560,304 600,304" marker-end="url(#arrow)"/>
+    <!-- ADR -> issues -->
+    <path d="M784,196 C824,196 824,232 864,232" marker-end="url(#arrow)"/>
+    <!-- BDR -> issues -->
+    <path d="M784,304 C824,304 824,268 864,268" marker-end="url(#arrow)"/>
+    <!-- issues -> code -->
+    <path d="M1048,250 H1124" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- nodes -->
+  <!-- constitution -->
+  <g>
+    <rect x="64" y="218" width="196" height="64" rx="12" fill="#161b22" stroke="#8A2BE2" stroke-width="2"/>
+    <text x="162" y="247" fill="#e6edf3" font-size="18" font-weight="600" text-anchor="middle">constitution</text>
+    <text x="162" y="268" fill="#8b949e" font-size="12" text-anchor="middle">source of truth</text>
+  </g>
+  <!-- PRD -->
+  <g>
+    <rect x="336" y="218" width="184" height="64" rx="12" fill="#161b22" stroke="#30363d" stroke-width="2"/>
+    <text x="428" y="247" fill="#e6edf3" font-size="18" font-weight="600" text-anchor="middle">PRD</text>
+    <text x="428" y="268" fill="#8b949e" font-size="12" text-anchor="middle">what &amp; why</text>
+  </g>
+  <!-- ADR -->
+  <g>
+    <rect x="600" y="164" width="184" height="64" rx="12" fill="#161b22" stroke="#30363d" stroke-width="2"/>
+    <text x="692" y="193" fill="#e6edf3" font-size="18" font-weight="600" text-anchor="middle">ADR</text>
+    <text x="692" y="214" fill="#8b949e" font-size="12" text-anchor="middle">how it's built</text>
+  </g>
+  <!-- BDR -->
+  <g>
+    <rect x="600" y="272" width="184" height="64" rx="12" fill="#161b22" stroke="#30363d" stroke-width="2"/>
+    <text x="692" y="301" fill="#e6edf3" font-size="18" font-weight="600" text-anchor="middle">BDR</text>
+    <text x="692" y="322" fill="#8b949e" font-size="12" text-anchor="middle">observable behavior</text>
+  </g>
+  <!-- issues -->
+  <g>
+    <rect x="864" y="218" width="184" height="64" rx="12" fill="#161b22" stroke="#30363d" stroke-width="2"/>
+    <text x="956" y="247" fill="#e6edf3" font-size="18" font-weight="600" text-anchor="middle">issues</text>
+    <text x="956" y="268" fill="#8b949e" font-size="12" text-anchor="middle">execution slices</text>
+  </g>
+  <!-- code -->
+  <g>
+    <rect x="1124" y="218" width="92" height="64" rx="12" fill="#161b22" stroke="#3fb950" stroke-width="2"/>
+    <text x="1170" y="247" fill="#e6edf3" font-size="18" font-weight="600" text-anchor="middle">code</text>
+    <text x="1170" y="268" fill="#8b949e" font-size="12" text-anchor="middle">shipped</text>
+  </g>
+
+  <!-- footer chips -->
+  <g font-size="13" fill="#8b949e">
+    <rect x="64" y="372" width="150" height="30" rx="15" fill="#161b22" stroke="#30363d"/>
+    <text x="139" y="392" text-anchor="middle">OKF-formatted</text>
+    <rect x="226" y="372" width="160" height="30" rx="15" fill="#161b22" stroke="#30363d"/>
+    <text x="306" y="392" text-anchor="middle">Mermaid diagrams</text>
+    <rect x="398" y="372" width="150" height="30" rx="15" fill="#161b22" stroke="#30363d"/>
+    <text x="473" y="392" text-anchor="middle">stack-agnostic</text>
+    <rect x="560" y="372" width="300" height="30" rx="15" fill="#161b22" stroke="#30363d"/>
+    <text x="710" y="392" text-anchor="middle">Claude Code · Cursor · Copilot · OpenCode · Pi</text>
+  </g>
+</svg>

@@ -7,6 +7,8 @@
 [![Skill: agent-ready](https://img.shields.io/badge/Skill-agent--ready-success.svg)](#whats-in-the-box)
 [![Works with: Claude Code · Cursor · Copilot · OpenCode · Pi](https://img.shields.io/badge/Works%20with-Claude%20Code%20·%20Cursor%20·%20Copilot%20·%20OpenCode%20·%20Pi-8A2BE2.svg)](#installation)
 
+![Living Docs — the doc trail: constitution → PRD → ADR + BDR → issues → code](assets/doc-trail.svg)
+
 Living Docs is an **AI agent skill** for **documentation-as-code** that keeps a
 codebase's docs in sync with its code. It works with **Claude Code**, **Cursor**,
 **GitHub Copilot**, **OpenCode**, and **Pi** — any agent that loads markdown
@@ -49,6 +51,8 @@ every action from:
 
 These invariants are carried **in YAML frontmatter as a fact contract**, which
 is the genuinely unusual part — see [Provenance](#provenance--honest-attribution).
+
+![The five no-drift invariants of Living Docs](assets/invariants.svg)
 
 ---
 
@@ -100,41 +104,54 @@ bundle's markdown and frontmatter are shaped.**
 ## Installation
 
 These are plain **markdown instruction files** — there is nothing to compile.
-Every agent tool loads instructions from a slightly different place, so installing
-Living Docs is always the same idea: **put the three `skills/` directories where
-your tool discovers instructions, then start a fresh session.** Clone once:
+Installing Living Docs always means the same thing: **put the three `skills/`
+directories (or a generated rule file) where your tool discovers instructions,
+then start a fresh session.** A cross-platform installer and a `Makefile` do this
+for every supported tool. Clone once:
 
 ```bash
 git clone https://github.com/ejklock/living-docs-skill.git
 cd living-docs-skill
 ```
 
-Then follow the section for your tool.
-
-### Claude Code
-
-Native skills support — drop the directories into the skills folder
-(`~/.claude/skills` global, or `.claude/skills` per project):
+### Quick start — `install.sh` / `make`
 
 ```bash
-./install.sh                    # installs the 3 skills to ~/.claude/skills
-./install.sh .claude/skills     # or per-project
+./install.sh                 # Claude Code, global (~/.claude/skills) — the default
+./install.sh cursor          # Cursor rule in the current project
+./install.sh copilot         # GitHub Copilot instruction in the current project
+./install.sh opencode        # OpenCode (~/.config/opencode/skills)
+./install.sh pi              # Pi (~/.pi/agent/skills)
+./install.sh all             # every supported harness at once
 ```
 
-Restart the session. Claude Code auto-discovers each `SKILL.md` and invokes it on
-the triggers in its `description`.
-
-### OpenCode
-
-OpenCode auto-loads `AGENTS.md` (global `~/.config/opencode/AGENTS.md`, or one at
-the project root). Copy the skills and reference them from `AGENTS.md`:
+Useful flags: `--project` (install into the current repo instead of the global
+user dir), `--dir <path>` (custom skills directory), `--uninstall`, `--dry-run`,
+`--help`. The same targets are available via `make`:
 
 ```bash
-mkdir -p ~/.config/opencode/skills
-cp -R skills/* ~/.config/opencode/skills/
+make help            # list every target
+make install         # Claude Code, global
+make install-cursor  # or install-copilot / install-opencode / install-pi / install-all
+make project-claude  # install into the current project
+make uninstall-all   # remove from every harness
+make check           # bash -n + a dry-run of every harness
 ```
 
-Then append to `~/.config/opencode/AGENTS.md` (or the project `AGENTS.md`):
+### Where each tool loads from
+
+| Tool | Mechanism | Default location (global · `--project`) |
+|---|---|---|
+| **Claude Code** | native skills | `~/.claude/skills` · `.claude/skills` |
+| **OpenCode** | skills dir + `AGENTS.md` pointer | `~/.config/opencode/skills` · `.opencode/skills` |
+| **Pi** | skills dir + `AGENTS.md` pointer | `~/.pi/agent/skills` · `.pi/skills` |
+| **Cursor** | project rule | `.cursor/rules/living-docs.mdc` (project-scoped) |
+| **GitHub Copilot** | path-scoped instruction | `.github/instructions/living-docs.instructions.md` (project-scoped) |
+
+For **Cursor** and **Copilot** the installer generates the rule/instruction file
+with the right frontmatter header (`globs` / `applyTo` scoped to `docs/**` and
+`**/*.md`) from `living-docs/SKILL.md`. For **OpenCode** and **Pi**, after the
+skills are copied, reference them once from your `AGENTS.md`:
 
 ```markdown
 ## Living Docs
@@ -142,60 +159,7 @@ Follow the documentation discipline in skills/living-docs/SKILL.md,
 skills/okf-knowledge-format/SKILL.md, and skills/research-artifacts/SKILL.md.
 ```
 
-### Pi
-
-Pi reads project/agent instructions from `AGENTS.md` and its agent directory
-(`~/.pi/agent/`). Same pattern as OpenCode — copy the skills and point Pi's
-instructions at them:
-
-```bash
-mkdir -p ~/.pi/agent/skills
-cp -R skills/* ~/.pi/agent/skills/
-```
-
-Add a pointer in your Pi `AGENTS.md` / system instructions referencing the three
-`SKILL.md` files above.
-
-### GitHub Copilot
-
-Copilot reads repo custom instructions from `.github/`. Use a path-scoped
-instruction file so it applies when touching docs:
-
-```bash
-mkdir -p .github/instructions
-cp skills/living-docs/SKILL.md .github/instructions/living-docs.instructions.md
-```
-
-Add an `applyTo` header at the top of that file so Copilot scopes it:
-
-```markdown
----
-applyTo: "docs/**,**/*.md"
----
-```
-
-For a repo-wide rule instead, append the same guidance to
-`.github/copilot-instructions.md`. (The `rules/` and `templates/` files stay in
-the cloned repo for reference.)
-
-### Cursor
-
-Cursor loads project rules from `.cursor/rules/*.mdc`. Add Living Docs as a rule:
-
-```bash
-mkdir -p .cursor/rules
-cp skills/living-docs/SKILL.md .cursor/rules/living-docs.mdc
-```
-
-Give the `.mdc` file a Cursor rule header so it activates on doc work:
-
-```markdown
----
-description: Living Docs — keep documentation a living system (ADR/BDR/PRD/constitution, no-drift invariants)
-globs: docs/**,**/*.md
-alwaysApply: false
----
-```
+Then restart the session so the tool picks up the skills.
 
 ### Any other tool
 
@@ -203,6 +167,22 @@ Copy `skills/living-docs/`, `skills/okf-knowledge-format/`, and
 `skills/research-artifacts/` into wherever that tool loads instructions from, or
 just read the `SKILL.md` files — they are plain markdown meant to be read by
 humans and agents alike.
+
+### Companion skills (Matt Pocock) — recommended, not bundled
+
+Living Docs *composes with* but does **not** bundle Matt Pocock's skills. His
+`grill-me` (design interview before a load-bearing decision) pairs directly with
+Living Docs, and his `to-prd` / `to-issues` are kindred to the PRD/issues
+workflow here. They are best installed **straight from the source** so they stay
+canonical and up to date — his repo is MIT-licensed, so cloning and using it is
+permitted (keep his `LICENSE` notice if you copy files):
+
+```bash
+git clone https://github.com/mattpocock/skills.git
+# his repo ships a `setup-matt-pocock-skills` skill that wires them up
+```
+
+See [`ATTRIBUTION.md`](ATTRIBUTION.md) for how Living Docs relates to his work.
 
 ---
 
@@ -251,6 +231,15 @@ invariants** carried in frontmatter as a fact contract.
 Full credits and the per-source links are in
 [`ATTRIBUTION.md`](ATTRIBUTION.md) and
 [`references/prior-art-landscape.md`](references/prior-art-landscape.md).
+
+---
+
+## Contributing
+
+Issues and PRs welcome — the project dogfoods its own rules. See
+[`CONTRIBUTING.md`](CONTRIBUTING.md) for the repo layout, the invariants it holds
+itself to, how to refresh the vendored OKF spec, and how to validate a change
+(`make check`).
 
 ---
 
