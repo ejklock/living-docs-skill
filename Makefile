@@ -6,8 +6,8 @@ INSTALL := ./install.sh
 
 .DEFAULT_GOAL := help
 .PHONY: help install install-claude install-cursor install-copilot \
-        install-opencode install-pi install-all install-pocock \
-        project-claude project-opencode project-pi \
+        install-opencode install-codex install-pi install-all install-pocock \
+        project-claude project-opencode project-codex project-pi \
         uninstall uninstall-all check lint
 
 help: ## Show this help
@@ -28,7 +28,10 @@ install-copilot: ## Install the Living Docs instruction for GitHub Copilot (.git
 install-opencode: ## Install the skills for OpenCode (~/.config/opencode/skills)
 	$(INSTALL) opencode
 
-install-pi: ## Install the skills for Pi (~/.pi/agent/skills)
+install-codex: ## Install the skills for Codex (~/.codex/skills)
+	$(INSTALL) codex
+
+install-pi: ## Install the skills for Pi (~/.pi/agent/skills + AGENTS.md)
 	$(INSTALL) pi
 
 install-all: ## Install for every supported harness
@@ -42,6 +45,9 @@ project-claude: ## Install for Claude Code into the current project (.claude/ski
 
 project-opencode: ## Install for OpenCode into the current project (.opencode/skills)
 	$(INSTALL) opencode --project
+
+project-codex: ## Install for Codex into the current project (.codex/skills)
+	$(INSTALL) codex --project
 
 project-pi: ## Install for Pi into the current project (.pi/skills)
 	$(INSTALL) pi --project

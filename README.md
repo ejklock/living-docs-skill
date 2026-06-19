@@ -5,14 +5,14 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Format: OKF](https://img.shields.io/badge/Format-OKF%20v0.1-blue.svg)](skills/okf-knowledge-format/reference/SPEC.md)
 [![Skill: agent-ready](https://img.shields.io/badge/Skill-agent--ready-success.svg)](#whats-in-the-box)
-[![Works with: Claude Code · Cursor · Copilot · OpenCode · Pi](https://img.shields.io/badge/Works%20with-Claude%20Code%20·%20Cursor%20·%20Copilot%20·%20OpenCode%20·%20Pi-8A2BE2.svg)](#installation)
+[![Works with: Claude Code · Cursor · Copilot · OpenCode · Codex · Pi](https://img.shields.io/badge/Works%20with-Claude%20Code%20·%20Cursor%20·%20Copilot%20·%20OpenCode%20·%20Codex%20·%20Pi-8A2BE2.svg)](#installation)
 
 ![Living Docs — the doc trail: constitution → PRD → ADR + BDR → issues → code](assets/doc-trail.svg)
 
 Living Docs is an **AI agent skill** for **documentation-as-code** that keeps a
 codebase's docs in sync with its code. It works with **Claude Code**, **Cursor**,
-**GitHub Copilot**, **OpenCode**, and **Pi** — any agent that loads markdown
-"skills" / instruction files. It is stack-agnostic: it governs *how* docs are
+**GitHub Copilot**, **OpenCode**, **Codex**, and **Pi** — any agent that loads
+markdown "skills" / instruction files. It is stack-agnostic: it governs *how* docs are
 organized and maintained (Architecture Decision Records, Behavior Decision
 Records, PRDs, a constitution, a glossary, living
 [Mermaid](https://mermaid.js.org/) diagrams), never *what* technology a project
@@ -121,7 +121,8 @@ cd living-docs-skill
 ./install.sh cursor          # Cursor rule in the current project
 ./install.sh copilot         # GitHub Copilot instruction in the current project
 ./install.sh opencode        # OpenCode (~/.config/opencode/skills)
-./install.sh pi              # Pi (~/.pi/agent/skills)
+./install.sh codex           # Codex (~/.codex/skills)
+./install.sh pi              # Pi (~/.pi/agent/skills + AGENTS.md)
 ./install.sh all             # every supported harness at once
 ```
 
@@ -132,7 +133,7 @@ user dir), `--dir <path>` (custom skills directory), `--uninstall`, `--dry-run`,
 ```bash
 make help            # list every target
 make install         # Claude Code, global
-make install-cursor  # or install-copilot / install-opencode / install-pi / install-all
+make install-cursor  # or install-copilot / install-opencode / install-codex / install-pi / install-all
 make project-claude  # install into the current project
 make uninstall-all   # remove from every harness
 make check           # bash -n + a dry-run of every harness
@@ -142,16 +143,21 @@ make check           # bash -n + a dry-run of every harness
 
 | Tool | Mechanism | Default location (global · `--project`) |
 |---|---|---|
-| **Claude Code** | native skills | `~/.claude/skills` · `.claude/skills` |
-| **OpenCode** | skills dir + `AGENTS.md` pointer | `~/.config/opencode/skills` · `.opencode/skills` |
-| **Pi** | skills dir + `AGENTS.md` pointer | `~/.pi/agent/skills` · `.pi/skills` |
+| **Claude Code** | native `SKILL.md` skills | `~/.claude/skills` · `.claude/skills` |
+| **OpenCode** | native `SKILL.md` skills (also reads `.claude/skills`) | `~/.config/opencode/skills` · `.opencode/skills` |
+| **Codex** | native `SKILL.md` skills | `~/.codex/skills` · `.codex/skills` |
 | **Cursor** | project rule | `.cursor/rules/living-docs.mdc` (project-scoped) |
 | **GitHub Copilot** | path-scoped instruction | `.github/instructions/living-docs.instructions.md` (project-scoped) |
+| **Pi** | skills dir + `AGENTS.md` pointer | `~/.pi/agent/skills` · `.pi/skills` |
 
-For **Cursor** and **Copilot** the installer generates the rule/instruction file
-with the right frontmatter header (`globs` / `applyTo` scoped to `docs/**` and
-`**/*.md`) from `living-docs/SKILL.md`. For **OpenCode** and **Pi**, after the
-skills are copied, reference them once from your `AGENTS.md`:
+**Claude Code**, **OpenCode**, and **Codex** share the same model: they
+auto-discover folders of `SKILL.md` files from their skills directory, so the
+installer just copies the three skills there (OpenCode additionally reads
+`.claude/skills`, so a Claude install already covers it). For **Cursor** and
+**Copilot** the installer generates the rule/instruction file with the right
+frontmatter header (`globs` / `applyTo` scoped to `docs/**` and `**/*.md`) from
+`living-docs/SKILL.md`. **Pi** has no native skills directory — after the skills
+are copied, reference them once from your `AGENTS.md`:
 
 ```markdown
 ## Living Docs
@@ -253,10 +259,10 @@ and `templates/`) that an AI coding agent loads and follows. Living Docs is a
 skill that teaches the agent how to keep documentation in sync with code.
 
 **Which tools does Living Docs work with?**
-Claude Code (native skills), Cursor (`.cursor/rules`), GitHub Copilot
-(`.github/instructions`), OpenCode and Pi (`AGENTS.md`). Because the skill is
-plain markdown, any agent that reads instruction files can use it. See
-[Installation](#installation).
+Claude Code, OpenCode, and Codex (native `SKILL.md` skills), Cursor
+(`.cursor/rules`), GitHub Copilot (`.github/instructions`), and Pi (`AGENTS.md`).
+Because the skill is plain markdown, any agent that reads instruction files can
+use it. See [Installation](#installation).
 
 **How is this different from a documentation generator or a wiki?**
 Living Docs is not a generator and not a hosting tool. It is a *discipline* — five
@@ -301,7 +307,7 @@ its own upstream license — see [`ATTRIBUTION.md`](ATTRIBUTION.md).
 
 <sub>**Keywords:** living documentation · documentation as code · docs-as-code ·
 AI agent skill · Claude Code skill · Cursor rules · GitHub Copilot instructions ·
-OpenCode · Pi · Architecture Decision Records (ADR) · Behavior Decision Records
+OpenCode · Codex · Pi · Architecture Decision Records (ADR) · Behavior Decision Records
 (BDR) · PRD · project constitution · glossary · Mermaid architecture diagrams ·
 semantic index · Open Knowledge Format (OKF) · knowledge management · technical
 writing · software architecture · markdown documentation · no-drift docs.</sub>

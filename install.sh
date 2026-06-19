@@ -10,18 +10,21 @@
 # Usage:
 #   ./install.sh [harness] [options]
 #
-# Harness (default: claude):
+# Harness (default: claude). Native SKILL.md skills (auto-discovered):
 #   claude     ~/.claude/skills            (or .claude/skills with --project)
 #   opencode   ~/.config/opencode/skills   (or .opencode/skills with --project)
+#   codex      ~/.codex/skills             (or .codex/skills with --project)
+# Generated rule / instruction file (project-scoped):
+#   cursor     .cursor/rules/*.mdc
+#   copilot    .github/instructions/*.instructions.md
+# AGENTS.md-based (copy + reference from AGENTS.md):
 #   pi         ~/.pi/agent/skills          (or .pi/skills with --project)
-#   cursor     .cursor/rules/*.mdc                       (always project-scoped)
-#   copilot    .github/instructions/*.instructions.md    (always project-scoped)
 #   all        install every harness above
 #   pocock     git clone Matt Pocock's companion skills (grill-me, to-prd, to-issues)
 #
 # Options:
 #   --project        install into the current project, not the global user dir
-#   --dir <path>     override the destination skills directory (claude/opencode/pi)
+#   --dir <path>     override the destination skills directory (claude/opencode/codex/pi)
 #   --uninstall      remove a previous Living Docs install for the harness
 #   -n, --dry-run    print what would happen, change nothing
 #   -h, --help       show this help
@@ -55,7 +58,7 @@ usage() { sed -n '2,40p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
 # --- parse args ---
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    claude|opencode|pi|cursor|copilot|all|pocock) HARNESS="$1" ;;
+    claude|opencode|codex|pi|cursor|copilot|all|pocock) HARNESS="$1" ;;
     --project)   PROJECT=1 ;;
     --uninstall) UNINSTALL=1 ;;
     -n|--dry-run) DRYRUN=1 ;;
@@ -150,6 +153,7 @@ do_harness() {
   case "$1" in
     claude)   install_skills_dir "$HOME/.claude/skills" ".claude/skills" ;;
     opencode) install_skills_dir "$HOME/.config/opencode/skills" ".opencode/skills" ;;
+    codex)    install_skills_dir "$HOME/.codex/skills" ".codex/skills" ;;
     pi)       install_skills_dir "$HOME/.pi/agent/skills" ".pi/skills" ;;
     cursor)   install_cursor ;;
     copilot)  install_copilot ;;
@@ -160,7 +164,7 @@ do_harness() {
 log "Living Docs installer — harness: $HARNESS$([[ $PROJECT -eq 1 ]] && echo ' (project)')$([[ $UNINSTALL -eq 1 ]] && echo ' [uninstall]')$([[ $DRYRUN -eq 1 ]] && echo ' [dry-run]')"
 log ""
 if [[ "$HARNESS" == "all" ]]; then
-  for h in claude opencode pi cursor copilot; do log "── $h ──"; do_harness "$h"; log ""; done
+  for h in claude opencode codex pi cursor copilot; do log "── $h ──"; do_harness "$h"; log ""; done
 else
   do_harness "$HARNESS"
 fi
