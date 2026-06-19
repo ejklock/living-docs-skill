@@ -227,8 +227,8 @@ and an implementation-review step that checks code honors the ADRs/BDRs. See the
 [`skills/living-docs/SKILL.md`](skills/living-docs/SKILL.md) for the full map.
 
 > The design-grilling step composes with **`grill-me`** by
-> **Matt Pocock** ([AI Hero](https://www.aihero.dev/)) — referenced, not bundled
-> here. See [`ATTRIBUTION.md`](ATTRIBUTION.md).
+> **Matt Pocock** ([github.com/mattpocock/skills](https://github.com/mattpocock/skills))
+> — referenced, not bundled here. See [`ATTRIBUTION.md`](ATTRIBUTION.md).
 
 ---
 

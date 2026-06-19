@@ -30,10 +30,11 @@ Living Docs names a few neighbouring skills in its "Composition with other
 skills" section. They are **not** shipped in this repo, but the people who
 created them are credited here so no one is left uncredited:
 
-- **`grill-me`** — Matt Pocock ([AI Hero](https://www.aihero.dev/)). The
+- **`grill-me`** — Matt Pocock ([AI Hero](https://www.aihero.dev/) ·
+  [github.com/mattpocock/skills](https://github.com/mattpocock/skills)). The
   relentless design-interview skill Living Docs leans on before writing a PRD or
-  a load-bearing ADR. The wording of the widely-shared `grill-me` skill
-  originates from his AI Hero course; this project only *references* it.
+  a load-bearing ADR. The widely-shared `grill-me` skill originates from his
+  skills repo; this project only *references* it.
 
 ## What is genuinely original here
 
