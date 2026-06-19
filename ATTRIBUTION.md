@@ -22,6 +22,11 @@ repository's MIT license.
 - **ADR (Architecture Decision Record)** — Michael Nygard, *Documenting Architecture Decisions* (2011). The structured-markdown form is **MADR**; the *supersede-don't-delete* status convention is the **adr-tools** convention (Nat Pryce).
 - **BDR (Behavior Decision Record)** — an ADR-style wrapper (third-party coinage, Owen Zanzal, 2026) over **Specification by Example / BDD** (Gojko Adzic, 2011; Dan North, 2006).
 - **OKF (Open Knowledge Format)** — Google Cloud Platform, *Open Knowledge Format — Specification v0.1* (2026).
+- **Mermaid** — the in-repo, text-based diagramming syntax Living Docs uses for
+  all living architecture, data-flow, and sequence diagrams. Created by Knut
+  Sveidqvist and the [mermaid-js](https://github.com/mermaid-js/mermaid)
+  community ([mermaid.js.org](https://mermaid.js.org/)), MIT-licensed. Living
+  Docs only *uses* the syntax; it ships no Mermaid code.
 - **Neighbors we converge on** — Diátaxis (Daniele Procida), arc42 (Gernot Starke; Peter Hruschka), C4 model (Simon Brown), and the docs-as-code movement (Write the Docs).
 
 ## Referenced, not bundled (credit where Living Docs composes with others)

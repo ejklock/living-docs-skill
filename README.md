@@ -5,11 +5,16 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Format: OKF](https://img.shields.io/badge/Format-OKF%20v0.1-blue.svg)](skills/okf-knowledge-format/reference/SPEC.md)
 [![Skill: agent-ready](https://img.shields.io/badge/Skill-agent--ready-success.svg)](#whats-in-the-box)
+[![Works with: Claude Code · Cursor · Copilot · OpenCode · Pi](https://img.shields.io/badge/Works%20with-Claude%20Code%20·%20Cursor%20·%20Copilot%20·%20OpenCode%20·%20Pi-8A2BE2.svg)](#installation)
 
-Living Docs is an **agent skill** (works with Claude Code and any harness that
-loads markdown "skills") that keeps a codebase's documentation in sync with its
-code. It is stack-agnostic: it governs *how* docs are organized and maintained,
-never *what* technology a project uses.
+Living Docs is an **AI agent skill** for **documentation-as-code** that keeps a
+codebase's docs in sync with its code. It works with **Claude Code**, **Cursor**,
+**GitHub Copilot**, **OpenCode**, and **Pi** — any agent that loads markdown
+"skills" / instruction files. It is stack-agnostic: it governs *how* docs are
+organized and maintained (Architecture Decision Records, Behavior Decision
+Records, PRDs, a constitution, a glossary, living
+[Mermaid](https://mermaid.js.org/) diagrams), never *what* technology a project
+uses.
 
 The whole discipline collapses to one spine:
 
@@ -238,12 +243,58 @@ and an implementation-review step that checks code honors the ADRs/BDRs. See the
 "Living documentation" is Cyrille Martraire's named methodology; ADRs are
 Michael Nygard's (supersede-don't-delete is the adr-tools convention); BDRs wrap
 Specification by Example / BDD (Adzic; North); the file format is Google Cloud
-Platform's OKF, vendored verbatim. The only genuinely original part is the
-**composition + the governance invariants** carried in frontmatter as a fact
-contract.
+Platform's OKF, vendored verbatim; the architecture diagrams are
+[Mermaid](https://mermaid.js.org/) (Knut Sveidqvist & the mermaid-js community).
+The only genuinely original part is the **composition + the governance
+invariants** carried in frontmatter as a fact contract.
 
 Full credits and the per-source links are in
 [`ATTRIBUTION.md`](ATTRIBUTION.md) and
+[`references/prior-art-landscape.md`](references/prior-art-landscape.md).
+
+---
+
+## FAQ
+
+**What is an "agent skill"?**
+A skill is a folder of markdown instructions (a `SKILL.md` plus optional `rules/`
+and `templates/`) that an AI coding agent loads and follows. Living Docs is a
+skill that teaches the agent how to keep documentation in sync with code.
+
+**Which tools does Living Docs work with?**
+Claude Code (native skills), Cursor (`.cursor/rules`), GitHub Copilot
+(`.github/instructions`), OpenCode and Pi (`AGENTS.md`). Because the skill is
+plain markdown, any agent that reads instruction files can use it. See
+[Installation](#installation).
+
+**How is this different from a documentation generator or a wiki?**
+Living Docs is not a generator and not a hosting tool. It is a *discipline* — five
+no-drift governance invariants plus a doc trail (constitution → PRD → ADR + BDR →
+issues → code) that an agent enforces while it works. Your docs live in the repo,
+in Git, next to the code.
+
+**What is an ADR / BDR / PRD?**
+An **ADR** (Architecture Decision Record) captures *how* the system is structured
+and why. A **BDR** (Behavior Decision Record) captures *what* the system must
+observably do (Given/When/Then). A **PRD** captures the product/feature
+requirements. Each has a convention file and a starter template under
+[`skills/living-docs/`](skills/living-docs/).
+
+**What is OKF (Open Knowledge Format)?**
+A vendor-neutral format from Google Cloud Platform — markdown with YAML
+frontmatter, a required `type`, reserved `index.md`/`log.md`, and bundle-relative
+links. Living Docs stores every doc as an OKF concept so the corpus stays
+portable and agent-parseable. The spec is vendored under
+[`skills/okf-knowledge-format/`](skills/okf-knowledge-format/).
+
+**Is it tied to a specific language or framework?**
+No. Living Docs is stack-agnostic — it governs documentation organization and
+lifecycle, not your tech stack.
+
+**Did you invent this?**
+No, and the repo says so. Living Docs *composes* established practices (Martraire's
+living documentation, Nygard's ADRs, Specification by Example for BDRs, Google's
+OKF). Full, sourced credits in [`ATTRIBUTION.md`](ATTRIBUTION.md) and
 [`references/prior-art-landscape.md`](references/prior-art-landscape.md).
 
 ---
@@ -254,3 +305,12 @@ Full credits and the per-source links are in
 
 Vendored third-party content under `reference/` directories remains subject to
 its own upstream license — see [`ATTRIBUTION.md`](ATTRIBUTION.md).
+
+---
+
+<sub>**Keywords:** living documentation · documentation as code · docs-as-code ·
+AI agent skill · Claude Code skill · Cursor rules · GitHub Copilot instructions ·
+OpenCode · Pi · Architecture Decision Records (ADR) · Behavior Decision Records
+(BDR) · PRD · project constitution · glossary · Mermaid architecture diagrams ·
+semantic index · Open Knowledge Format (OKF) · knowledge management · technical
+writing · software architecture · markdown documentation · no-drift docs.</sub>
