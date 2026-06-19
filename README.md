@@ -94,23 +94,103 @@ bundle's markdown and frontmatter are shaped.**
 
 ## Installation
 
-These are markdown skills — there is nothing to compile. Drop the skill
-directories where your agent looks for skills.
-
-### Claude Code (and compatible harnesses)
+These are plain **markdown instruction files** — there is nothing to compile.
+Every agent tool loads instructions from a slightly different place, so installing
+Living Docs is always the same idea: **put the three `skills/` directories where
+your tool discovers instructions, then start a fresh session.** Clone once:
 
 ```bash
 git clone https://github.com/ejklock/living-docs-skill.git
 cd living-docs-skill
-./install.sh                    # installs to ~/.claude/skills
-# or target a custom directory:
-./install.sh /path/to/skills
 ```
 
-Restart your session so the skills are picked up, then invoke Living Docs by
-asking your agent to set up or maintain docs (it triggers on writing an
-ADR/PRD/BDR/constitution/issue, defining a glossary term, drawing an
-architecture diagram, or enforcing the no-drift rule).
+Then follow the section for your tool.
+
+### Claude Code
+
+Native skills support — drop the directories into the skills folder
+(`~/.claude/skills` global, or `.claude/skills` per project):
+
+```bash
+./install.sh                    # installs the 3 skills to ~/.claude/skills
+./install.sh .claude/skills     # or per-project
+```
+
+Restart the session. Claude Code auto-discovers each `SKILL.md` and invokes it on
+the triggers in its `description`.
+
+### OpenCode
+
+OpenCode auto-loads `AGENTS.md` (global `~/.config/opencode/AGENTS.md`, or one at
+the project root). Copy the skills and reference them from `AGENTS.md`:
+
+```bash
+mkdir -p ~/.config/opencode/skills
+cp -R skills/* ~/.config/opencode/skills/
+```
+
+Then append to `~/.config/opencode/AGENTS.md` (or the project `AGENTS.md`):
+
+```markdown
+## Living Docs
+Follow the documentation discipline in skills/living-docs/SKILL.md,
+skills/okf-knowledge-format/SKILL.md, and skills/research-artifacts/SKILL.md.
+```
+
+### Pi
+
+Pi reads project/agent instructions from `AGENTS.md` and its agent directory
+(`~/.pi/agent/`). Same pattern as OpenCode — copy the skills and point Pi's
+instructions at them:
+
+```bash
+mkdir -p ~/.pi/agent/skills
+cp -R skills/* ~/.pi/agent/skills/
+```
+
+Add a pointer in your Pi `AGENTS.md` / system instructions referencing the three
+`SKILL.md` files above.
+
+### GitHub Copilot
+
+Copilot reads repo custom instructions from `.github/`. Use a path-scoped
+instruction file so it applies when touching docs:
+
+```bash
+mkdir -p .github/instructions
+cp skills/living-docs/SKILL.md .github/instructions/living-docs.instructions.md
+```
+
+Add an `applyTo` header at the top of that file so Copilot scopes it:
+
+```markdown
+---
+applyTo: "docs/**,**/*.md"
+---
+```
+
+For a repo-wide rule instead, append the same guidance to
+`.github/copilot-instructions.md`. (The `rules/` and `templates/` files stay in
+the cloned repo for reference.)
+
+### Cursor
+
+Cursor loads project rules from `.cursor/rules/*.mdc`. Add Living Docs as a rule:
+
+```bash
+mkdir -p .cursor/rules
+cp skills/living-docs/SKILL.md .cursor/rules/living-docs.mdc
+```
+
+Give the `.mdc` file a Cursor rule header so it activates on doc work:
+
+```markdown
+---
+description: Living Docs — keep documentation a living system (ADR/BDR/PRD/constitution, no-drift invariants)
+globs: docs/**,**/*.md
+alwaysApply: false
+---
+```
 
 ### Any other tool
 
