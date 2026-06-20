@@ -97,6 +97,7 @@ dependencies and the prior-art research that backs its honesty claims:
 | [`references/prior-art-landscape.md`](references/prior-art-landscape.md) | The sourced prior-art analysis. Living Docs is **§2** of this broader study of the system it came from; it is included so every "credit, not invention" claim has a checkable citation. |
 | [`skills/living-docs/scripts/lint-docs.sh`](skills/living-docs/scripts/lint-docs.sh) | The **deterministic checker** for the mechanical invariants — frontmatter/`type`, indexing + reachability, link resolution, supersede integrity. Ships *inside* the skill so an installed agent can run it. *A constraint without an instrument is a vibe*; this is the instrument. Wire it into CI. |
 | [`examples/linkly/`](examples/linkly/) | A worked, **lint-clean** end-to-end corpus (constitution → PRD → ADR + BDR → issue) for a fictional URL shortener — the discipline shown, not just described, and the fixture CI runs `lint-docs` against. |
+| [`enforcement/`](enforcement/) | **Harness-agnostic enforcement** of the linter's **diff-aware ratchet** (`lint-docs.sh --ratchet <ref>` — fails only on *new* violations, grandfathers pre-existing debt): a git **pre-commit hook** (local) and a reusable **GitHub Action** (CI backstop). One CLI at the git/CI boundary covers every harness *and* human commits; a per-harness plugin would be the optional in-loop layer calling the same CLI. |
 
 Each skill is self-describing — open its `SKILL.md` for the full operational
 detail. Living Docs and OKF compose but do not overlap: **Living Docs governs

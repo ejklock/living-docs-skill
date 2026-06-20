@@ -10,12 +10,28 @@ to — one violation per dirty fixture, in the spirit of an arch-gate parity tes
 ## Run
 
 ```bash
-make test-lint-docs        # from the repo root
-# or
+make test-lint-docs        # default-mode fixture/parity corpus
+make test-ratchet          # diff-aware ratchet corpus
+# or directly
 tests/lint-docs/run.sh
+tests/lint-docs/run-ratchet.sh
 ```
 
-The runner exits non-zero if any case misbehaves. CI runs it on every push/PR.
+The runners exit non-zero if any case misbehaves. CI runs both on every push/PR.
+
+## Two corpora
+
+- **`run.sh`** — default whole-bundle mode: clean passes silently, each
+  mechanical violation is caught (one per dirty fixture, table below).
+- **`run-ratchet.sh`** — the **diff-aware ratchet** (`lint-docs.sh --ratchet
+  <ref>`): proves only NEW violations block while pre-existing debt is
+  grandfathered. Each case spins up a throwaway git repo (init → commit a
+  baseline → mutate the working tree), exercising the real `git worktree add`
+  baseline materialization. Cases: `new-blocks` (introduce one violation →
+  exit 1, named), `preexisting-ok` (committed debt + unrelated clean change →
+  exit 0), `fix-passes` (remove a pre-existing violation → exit 0),
+  `baseline-absent` (ratchet against a missing ref → baseline empty, violation
+  counts as new → exit 1, fail-closed).
 
 ## Layout
 

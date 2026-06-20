@@ -1,0 +1,88 @@
+name: Living Docs ratchet
+description: >-
+  Fail a pull request only on NEW Living Docs invariant violations (diff-aware
+  ratchet), grandfathering pre-existing debt. A thin wrapper over the single
+  enforcement CLI lint-docs.sh --ratchet — harness-agnostic, the unbypassable
+  CI backstop that complements the local pre-commit hook.
+
+inputs:
+  bundle:
+    description: "Docs bundle to lint (path relative to the repo root)."
+    required: false
+    default: docs
+  base-ref:
+    description: >-
+      Baseline git ref the ratchet compares against (only violations absent here
+      block). Defaults to the PR base sha (github.event.pull_request.base.sha),
+      falling back to origin/<base-branch>. The merge-base with the head is used
+      when available so only the PR's own delta is judged.
+    required: false
+    default: ""
+  lint-docs:
+    description: >-
+      Path to lint-docs.sh. Defaults to the conventional location shipped by the
+      living-docs skill; override if you vendor it elsewhere.
+    required: false
+    default: skills/living-docs/scripts/lint-docs.sh
+
+runs:
+  using: composite
+  steps:
+    - name: Living Docs diff-aware ratchet
+      shell: bash
+      env:
+        IN_BUNDLE: ${{ inputs.bundle }}
+        IN_BASE_REF: ${{ inputs.base-ref }}
+        IN_LINT: ${{ inputs.lint-docs }}
+        PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+      run: |
+        set -uo pipefail
+
+        LINT="$IN_LINT"
+        if [[ ! -x "$LINT" ]]; then
+          if [[ -f "$LINT" ]]; then
+            chmod +x "$LINT" || true
+          fi
+        fi
+        if [[ ! -x "$LINT" ]]; then
+          echo "::error::living-docs-ratchet: lint-docs.sh not found/executable at '$LINT'." \
+            "Pass the 'lint-docs' input if you vendor it elsewhere."
+          exit 1
+        fi
+
+        if [[ ! -d "$IN_BUNDLE" ]]; then
+          echo "::notice::living-docs-ratchet: no docs bundle at '$IN_BUNDLE' — nothing to enforce."
+          exit 0
+        fi
+
+        # Resolve the baseline ref: explicit input wins, then the PR base sha,
+        # then origin/<base-branch>.
+        BASE="$IN_BASE_REF"
+        if [[ -z "$BASE" ]]; then
+          if [[ -n "${PR_BASE_SHA:-}" ]]; then
+            BASE="$PR_BASE_SHA"
+          elif [[ -n "${PR_BASE_REF:-}" ]]; then
+            BASE="origin/${PR_BASE_REF}"
+          fi
+        fi
+        if [[ -z "$BASE" ]]; then
+          echo "::warning::living-docs-ratchet: could not determine a baseline ref" \
+            "(not a pull_request event?). Treating baseline as empty (all violations are NEW)."
+          BASE="__living_docs_no_baseline__"
+        fi
+
+        # Ensure the base commit is present (checkout with fetch-depth: 0 provides it).
+        if ! git rev-parse --verify --quiet "${BASE}^{commit}" >/dev/null 2>&1; then
+          echo "::warning::living-docs-ratchet: baseline ref '$BASE' not present in checkout." \
+            "Use 'actions/checkout@v4' with 'fetch-depth: 0'. Proceeding (baseline treated as empty)."
+        fi
+
+        # Prefer the merge-base so we judge only the PR's own delta.
+        if git rev-parse --verify --quiet "${BASE}^{commit}" >/dev/null 2>&1; then
+          MB="$(git merge-base "$BASE" HEAD 2>/dev/null || true)"
+          [[ -n "$MB" ]] && BASE="$MB"
+        fi
+
+        echo "living-docs-ratchet: bundle='$IN_BUNDLE' baseline='$BASE'"
+        "$LINT" --ratchet "$BASE" "$IN_BUNDLE"

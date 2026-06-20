@@ -24,6 +24,9 @@ jobs:
       - name: Test — lint-docs.sh fixture/parity corpus
         run: ./tests/lint-docs/run.sh
 
+      - name: Test — lint-docs.sh diff-aware ratchet corpus
+        run: ./tests/lint-docs/run-ratchet.sh
+
       - name: Lint — example docs bundle against the Living Docs invariants
         run: ./skills/living-docs/scripts/lint-docs.sh examples/linkly/docs
 

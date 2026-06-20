@@ -20,9 +20,27 @@
 # mechanical — they stay with the reviewing agent. This script never claims to check them.
 #
 # Usage:  lint-docs.sh [BUNDLE_ROOT]      (default: docs)
+#         lint-docs.sh --ratchet <baseline-ref> [BUNDLE_ROOT]
 #         lint-docs.sh --help
 #
-# Exit:   0 = clean, 1 = violations found, 2 = usage / bundle-not-found error.
+# Default (whole-bundle) mode:
+#   Exit 0 = clean, 1 = ANY violation, 2 = usage / bundle-not-found error.
+#
+# --ratchet <baseline-ref> mode (diff-aware):
+#   Lint the current bundle AND the bundle as of <baseline-ref> (a git ref), then
+#   exit 1 ONLY for violations present now that were ABSENT at baseline (NEW debt
+#   introduced by the change). Pre-existing violations are printed as informational
+#   "(pre-existing)" lines and do NOT fail the run — legacy debt is not held against
+#   the change. This mirrors the diff-aware ratchet the repo's other gates use:
+#   only NEW violations block; pre-existing debt is grandfathered.
+#
+#   These checks are whole-bundle (index reachability, orphan membership, link
+#   resolution, supersede integrity) — they are NOT file-local, so "lint only the
+#   touched files" cannot work. The ratchet therefore compares violation SETS, not
+#   files. The baseline bundle is materialized with `git worktree add` (robust for
+#   a whole directory) and removed afterward. Baseline ref absent / not a git repo /
+#   bundle missing at baseline → the baseline set is treated as EMPTY, so every
+#   current violation is considered NEW (fail-closed, documented in --help).
 
 set -uo pipefail
 
@@ -38,8 +56,9 @@ usage() {
 $PROG — validate the mechanical Living Docs invariants on a docs bundle.
 
 Usage:
-  $PROG [BUNDLE_ROOT]    Lint the bundle (default: ./docs)
-  $PROG --help           Show this help
+  $PROG [BUNDLE_ROOT]               Lint the bundle (default: ./docs)
+  $PROG --ratchet <ref> [BUNDLE]    Diff-aware: fail only on NEW violations vs <ref>
+  $PROG --help                      Show this help
 
 Checks (mechanical invariants only):
   * frontmatter      every non-reserved .md opens with frontmatter + non-empty type
@@ -50,18 +69,50 @@ Checks (mechanical invariants only):
   * links resolve    every local (/… or relative) markdown link points at a file
   * supersede        a 'status: Superseded' record carries a resolvable superseded_by
 
-Exit: 0 clean · 1 violations · 2 usage error.
+Diff-aware ratchet (--ratchet <baseline-ref>):
+  Lints the current bundle and the bundle as of <baseline-ref> (a git ref), and
+  fails (exit 1) ONLY for violations present now that were absent at the baseline —
+  i.e. NEW debt introduced by the change. Pre-existing violations are printed as
+  "(pre-existing)" and do NOT fail the run; a change that adds no new violation
+  passes even if the bundle carries legacy debt. The baseline is materialized with
+  'git worktree add'. If <baseline-ref> is absent, the tree is not a git repo, or
+  the bundle does not exist at the baseline, the baseline is treated as empty
+  (every current violation counts as NEW — fail-closed).
+
+  These checks are whole-bundle, not file-local, so the ratchet compares violation
+  SETS rather than touched files. One CLI enforced at the git boundary (pre-commit)
+  and in CI (a reusable Action) is harness-agnostic: it covers every AI harness AND
+  human commits with one mechanism, instead of a per-harness plugin.
+
+Exit: 0 clean (or no new violations) · 1 violations (or new violations) · 2 usage error.
 EOF
 }
+
+# --- argument parsing -------------------------------------------------------
+
+RATCHET=0
+BASELINE_REF=""
 
 case "${1:-}" in
 	-h | --help)
 		usage
 		exit 0
 		;;
+	--ratchet)
+		RATCHET=1
+		BASELINE_REF="${2:-}"
+		if [[ -z "$BASELINE_REF" ]]; then
+			echo "$PROG: --ratchet requires a <baseline-ref> argument" >&2
+			echo "       e.g. $PROG --ratchet HEAD docs" >&2
+			exit 2
+		fi
+		BUNDLE="${3:-docs}"
+		;;
+	*)
+		BUNDLE="${1:-docs}"
+		;;
 esac
 
-BUNDLE="${1:-docs}"
 BUNDLE="${BUNDLE%/}"
 
 if [[ ! -d "$BUNDLE" ]]; then
@@ -70,11 +121,27 @@ if [[ ! -d "$BUNDLE" ]]; then
 	exit 2
 fi
 
+# --- violation collection ---------------------------------------------------
+#
+# report() does double duty: it prints the human-readable line (as before) and,
+# when capturing for the ratchet, appends a NORMALIZED line to VIOL_LINES so the
+# same violation matches across two different worktrees. Normalization strips the
+# bundle-root prefix from the file path, so 'docs/adr/x.md' and
+# '/tmp/wt.../docs/adr/x.md' compare equal — the comparison key is
+# "<relpath-within-bundle>\t<message>".
+
 VIOLATIONS=0
+QUIET=""
+declare -a VIOL_LINES=()
 report() {
 	# report <file> <message>
-	printf '  %-44s %s\n' "$1" "$2"
+	[[ "$QUIET" != "quiet" ]] && printf '  %-44s %s\n' "$1" "$2"
 	VIOLATIONS=$((VIOLATIONS + 1))
+	# normalized key: drop the bundle prefix so paths are bundle-relative
+	local rel="$1"
+	rel="${rel#"$BUNDLE"/}"
+	rel="${rel#"$BUNDLE"}"
+	VIOL_LINES+=("$rel	$2")
 }
 
 # --- helpers ----------------------------------------------------------------
@@ -148,14 +215,29 @@ links_in() { # links_in <file>
 	grep -oE '\]\([^)]+\)' "$1" 2>/dev/null | sed -E 's/^\]\(//; s/\)$//'
 }
 
-# --- collect the corpus -----------------------------------------------------
+# --- the lint body, as a function so it can run against two trees ------------
+#
+# lint_run <bundle> [quiet]
+#   Lints <bundle>, appending normalized violations to the (caller-owned)
+#   VIOL_LINES array and bumping VIOLATIONS. When the second arg is "quiet" the
+#   per-violation human lines and the "bundle: …" header are suppressed (used for
+#   the baseline tree in ratchet mode — we only need its violation SET). Resets
+#   VIOLATIONS / VIOL_LINES at entry so it is safe to call twice.
 
-mapfile -t ALL_MD < <(find "$BUNDLE" -type f -name '*.md' | sort)
+lint_run() { # lint_run <bundle> [quiet]
+	BUNDLE="${1%/}"
+	QUIET="${2:-}"
+	VIOLATIONS=0
+	VIOL_LINES=()
 
-ROOT_INDEX="$BUNDLE/index.md"
+	local ALL_MD ALL_INDEX ROOT_INDEX
+	mapfile -t ALL_MD < <(find "$BUNDLE" -type f -name '*.md' | sort)
+	ROOT_INDEX="$BUNDLE/index.md"
 
-echo "Living Docs lint — bundle: $BUNDLE"
-echo
+	if [[ "$QUIET" != "quiet" ]]; then
+		echo "Living Docs lint — bundle: $BUNDLE"
+		echo
+	fi
 
 # --- check 1: bundle-root index exists --------------------------------------
 
@@ -283,13 +365,120 @@ for f in "${ALL_MD[@]}"; do
 	fi
 done
 
-# --- verdict ----------------------------------------------------------------
+	LAST_MD_COUNT="${#ALL_MD[@]}"
+}
 
-echo
-if ((VIOLATIONS == 0)); then
-	echo "OK — ${#ALL_MD[@]} docs, no invariant violations."
-	exit 0
+# --- driver -----------------------------------------------------------------
+
+if ((RATCHET == 0)); then
+	# Default whole-bundle mode: lint the current tree, fail on ANY violation.
+	lint_run "$BUNDLE"
+	echo
+	if ((VIOLATIONS == 0)); then
+		echo "OK — ${LAST_MD_COUNT} docs, no invariant violations."
+		exit 0
+	else
+		echo "FAIL — $VIOLATIONS violation(s) across ${LAST_MD_COUNT} docs."
+		exit 1
+	fi
+fi
+
+# --- ratchet mode -----------------------------------------------------------
+#
+# Compare the current bundle's violation SET against the baseline tree's set.
+# Only violations that are NEW (present now, absent at baseline) fail the run.
+
+# 1. lint the CURRENT bundle (verbose) and snapshot its normalized set
+lint_run "$BUNDLE"
+CUR_COUNT="$LAST_MD_COUNT"
+declare -a CUR_VIOL=("${VIOL_LINES[@]}")
+
+# 2. materialize the baseline tree and lint it (quiet) for its set
+declare -a BASE_VIOL=()
+BASELINE_NOTE=""
+WORKTREE=""
+
+cleanup_worktree() {
+	if [[ -n "$WORKTREE" && -d "$WORKTREE" ]]; then
+		git -C "$REPO_TOPLEVEL" worktree remove --force "$WORKTREE" >/dev/null 2>&1 ||
+			rm -rf "$WORKTREE" 2>/dev/null
+	fi
+}
+trap cleanup_worktree EXIT
+
+REPO_TOPLEVEL="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+
+if [[ -z "$REPO_TOPLEVEL" ]]; then
+	BASELINE_NOTE="not a git repository — baseline treated as empty (all violations are NEW)"
+elif ! git -C "$REPO_TOPLEVEL" rev-parse --verify --quiet "$BASELINE_REF^{commit}" >/dev/null 2>&1; then
+	BASELINE_NOTE="baseline ref '$BASELINE_REF' not found — baseline treated as empty (all violations are NEW)"
 else
-	echo "FAIL — $VIOLATIONS violation(s) across ${#ALL_MD[@]} docs."
+	# Where does BUNDLE live relative to the repo root? (so we can find it in the worktree)
+	BUNDLE_ABS="$(cd "$BUNDLE" && pwd)"
+	BUNDLE_REL="${BUNDLE_ABS#"$REPO_TOPLEVEL"/}"
+	if [[ "$BUNDLE_REL" == "$BUNDLE_ABS" ]]; then
+		# bundle is outside the repo — cannot map into the worktree
+		BASELINE_NOTE="bundle is outside the git repo — baseline treated as empty (all violations are NEW)"
+	else
+		WORKTREE="$(mktemp -d "${TMPDIR:-/tmp}/lint-docs-baseline.XXXXXX")"
+		if git -C "$REPO_TOPLEVEL" worktree add --quiet --detach "$WORKTREE" "$BASELINE_REF" >/dev/null 2>&1; then
+			BASE_BUNDLE="$WORKTREE/$BUNDLE_REL"
+			if [[ -d "$BASE_BUNDLE" ]]; then
+				lint_run "$BASE_BUNDLE" quiet
+				BASE_VIOL=("${VIOL_LINES[@]}")
+			else
+				BASELINE_NOTE="bundle '$BUNDLE_REL' did not exist at '$BASELINE_REF' — baseline treated as empty (all violations are NEW)"
+			fi
+		else
+			BASELINE_NOTE="could not check out '$BASELINE_REF' — baseline treated as empty (all violations are NEW)"
+		fi
+	fi
+fi
+
+# 3. set difference: NEW = CUR \ BASE ; pre-existing = CUR ∩ BASE
+declare -A BASE_SET=()
+for v in "${BASE_VIOL[@]:-}"; do
+	[[ -n "$v" ]] && BASE_SET["$v"]=1
+done
+
+declare -a NEW_VIOL=()
+declare -a OLD_VIOL=()
+for v in "${CUR_VIOL[@]:-}"; do
+	[[ -z "$v" ]] && continue
+	if [[ -n "${BASE_SET[$v]:-}" ]]; then
+		OLD_VIOL+=("$v")
+	else
+		NEW_VIOL+=("$v")
+	fi
+done
+
+# 4. report
+echo
+echo "Ratchet — baseline: $BASELINE_REF"
+[[ -n "$BASELINE_NOTE" ]] && echo "  note: $BASELINE_NOTE"
+echo
+
+fmt_viol() { # fmt_viol <normalized-line> <tag>
+	# normalized line is "<relpath>\t<message>"; print it human-readably with a tag
+	local line="$1" tag="$2" rel msg
+	rel="${line%%$'\t'*}"
+	msg="${line#*$'\t'}"
+	printf '  %-7s %-40s %s\n' "$tag" "$rel" "$msg"
+}
+
+if ((${#OLD_VIOL[@]} > 0)); then
+	echo "Pre-existing violations (grandfathered — do NOT block this change):"
+	for v in "${OLD_VIOL[@]}"; do fmt_viol "$v" "[old]"; done
+	echo
+fi
+
+if ((${#NEW_VIOL[@]} > 0)); then
+	echo "NEW violations introduced by this change (these block):"
+	for v in "${NEW_VIOL[@]}"; do fmt_viol "$v" "[NEW]"; done
+	echo
+	echo "FAIL — ${#NEW_VIOL[@]} new violation(s) vs baseline $BASELINE_REF (${#OLD_VIOL[@]} pre-existing, not counted)."
 	exit 1
+else
+	echo "OK — no new violations vs baseline $BASELINE_REF (${#OLD_VIOL[@]} pre-existing, grandfathered)."
+	exit 0
 fi
