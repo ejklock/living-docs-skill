@@ -17,6 +17,12 @@
 #   preexisting-ok    bundle with a committed violation, make an unrelated clean change
 #                     → exit 0 (legacy debt is not held against the change)
 #   fix-passes        remove a pre-existing violation → exit 0
+#   orphan-preexisting-ok  pre-existing ORPHAN (a violation whose message embeds a
+#                     dir-index path) + unrelated clean change → exit 0. This is the
+#                     regression for the worktree-absolute-vs-bundle-relative path bug:
+#                     the orphan message must be bundle-relative so the same violation
+#                     keys identically across the baseline worktree and the current run.
+#   orphan-new-blocks a newly-introduced orphan → exit 1 (the fix must not blunt the ratchet)
 #   baseline-absent   --ratchet against a non-existent ref → baseline empty, current
 #                     violation counts as NEW → exit 1 (fail-closed)
 #
@@ -163,6 +169,56 @@ EOF
 	assert "fix-passes" 0 "$out" "$exit_out" "no new violations"
 }
 
+run_orphan_preexisting_ok() {
+	# An ORPHAN violation embeds a directory-index path in its MESSAGE. That path is
+	# absolute inside the `git worktree add` baseline tree but bundle-relative in the
+	# current run; if the message is not normalized to bundle-relative the SAME orphan
+	# yields different keys across the two trees, so a pre-existing orphan is wrongly
+	# classified [NEW] and the ratchet blocks legacy debt it should grandfather.
+	# This is the case that catches that bug (broken-link/frontmatter messages, used
+	# by the other cases, carry only bundle-relative strings and hid it).
+	local repo out exit_out
+	repo="$(new_repo)"
+	seed_clean_bundle "$repo"
+	# commit a bundle that ALREADY carries an orphan (a concept file not listed in
+	# its directory's index.md) — pre-existing orphan debt
+	cat >"$repo/docs/adr/0002-orphan.md" <<'EOF'
+---
+type: adr
+---
+# Orphaned decision (not listed in adr/index.md)
+EOF
+	git -C "$repo" add -A
+	git -C "$repo" commit -qm "baseline with pre-existing orphan"
+	# make an UNRELATED, clean change in the working tree
+	echo '<!-- unrelated clean edit -->' >>"$repo/docs/index.md"
+	out="$(cd "$repo" && "$LINT" --ratchet HEAD docs 2>&1)"
+	exit_out=$?
+	assert "orphan-preexisting-ok" 0 "$out" "$exit_out" "no new violations"
+	assert "orphan-grandfathered" 0 "$out" "$exit_out" "grandfathered"
+}
+
+run_orphan_new_blocks() {
+	# A NEWLY-introduced orphan must still block (exit 1) — the fix must not blunt
+	# the ratchet, only stop it misclassifying PRE-EXISTING orphans.
+	local repo out exit_out
+	repo="$(new_repo)"
+	seed_clean_bundle "$repo"
+	git -C "$repo" add -A
+	git -C "$repo" commit -qm "clean baseline"
+	# introduce an orphan in the working tree
+	cat >"$repo/docs/adr/0002-orphan.md" <<'EOF'
+---
+type: adr
+---
+# Newly orphaned decision (not listed in adr/index.md)
+EOF
+	out="$(cd "$repo" && "$LINT" --ratchet HEAD docs 2>&1)"
+	exit_out=$?
+	assert "orphan-new-blocks" 1 "$out" "$exit_out" "0002-orphan.md"
+	assert "orphan-new-marked" 1 "$out" "$exit_out" "NEW violations introduced"
+}
+
 run_baseline_absent() {
 	local repo out exit_out
 	repo="$(new_repo)"
@@ -180,6 +236,8 @@ run_baseline_absent() {
 run_new_blocks
 run_preexisting_ok
 run_fix_passes
+run_orphan_preexisting_ok
+run_orphan_new_blocks
 run_baseline_absent
 
 echo
