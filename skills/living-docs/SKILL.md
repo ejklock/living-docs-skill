@@ -1,6 +1,7 @@
 ---
 name: living-docs
 description: Run a project's documentation as a living system — docs-first issues/PRDs, MADR-lite ADRs (supersede, never delete), Behavior Decision Records (BDRs), a project constitution, research artifacts, living Mermaid architecture diagrams, and semantic-index organization where every doc lands in exactly one place and indexes never drift. Use when setting up or maintaining project docs, writing an ADR/PRD/BDR/constitution/issue/research note, defining a term or acronym in the glossary, drawing or updating an architecture/flow/sequence diagram, splitting an oversized doc into an index, or enforcing the no-drift maintenance rule.
+version: "0.1.0"
 metadata:
   type: skill
   layer: procedural
@@ -31,7 +32,20 @@ When in doubt, re-derive the right action from these five. The rules files below
 
 ## Format: OKF-conformant
 
-The five invariants govern *organization and lifecycle*; the **Open Knowledge Format** governs the *file format* so the corpus stays portable and agent-parseable. Every doc in the system is also an OKF concept. Load the `okf-knowledge-format` skill (it vendors the spec) when authoring or checking format. Two rules apply to every concept file:
+The five invariants govern *organization and lifecycle*; the **Open Knowledge Format** governs the *file format* so the corpus stays portable and agent-parseable. Every doc in the system is also an OKF concept. Load the `okf-knowledge-format` skill (it vendors the spec) when authoring or checking format.
+
+> **OKF is a thin, swappable dependency — not a foundation (version risk).** OKF is **v0.1
+> from a single vendor**; a backward-incompatible v0.2 is a real possibility. The invariants
+> above do **not** depend on OKF — they depend only on a small set of frontmatter fields, so an
+> OKF break cannot take the governance layer down with it. Keep the boundary explicit:
+> - **Required by Living Docs** (the fact contract `scripts/lint-docs.sh` enforces): a non-empty
+>   `type`, and `status` + `superseded_by` on superseded records. These are *ours*; they survive
+>   regardless of OKF.
+> - **Inherited from OKF** (format conventions): reserved `index.md`/`log.md`, the bundle-root
+>   `okf_version`, bundle-relative links, the `# References` heading (§8). If OKF changes, only
+>   this row moves — re-pin the version in the `okf-knowledge-format` skill and adjust.
+
+Two rules apply to every concept file:
 
 1. **Frontmatter with a required `type`.** Every non-reserved `.md` doc opens with a YAML frontmatter block whose `type` names the doc kind (`Constitution`, `PRD`, `ADR`, `BDR`, `Issue`, `Context`, `Architecture View`, `Research`, `Reference`). Recommended: `title`, `description`, `tags`, `timestamp`. Living-docs adds producer keys: `status`, `supersedes`, `superseded_by`. **Status moves into frontmatter — no `**Status:**` body line.**
 2. **Reserved files + bundle-relative links.** The bundle root is `docs/`. Directory listings are `index.md` (OKF §6, no frontmatter — except the bundle-root `docs/index.md`, which carries `okf_version: "0.1"`). Optional `log.md` records directory history (§7). Cross-link with `/`-prefixed bundle-relative paths (`/adr/0007-slug.md`); list sources under a `# References` heading (§8), each entry formatted per `rules/citation-conventions.md` — **ABNT NBR 6023 structure, always carrying the link**, with connective labels in the project doc language (default English: `Available at: <URL>. Accessed on: <date>`) per `rules/doc-language.md`.
@@ -132,9 +146,48 @@ Each directory carries its own `index.md` listing (OKF §6, no frontmatter). The
 
 ---
 
+## Agent enforcement (refusal triggers)
+
+The value of this skill is not the discipline — humans abandon "nothing structural without
+its doc" at the first deadline. The value is an **agent that enforces it automatically**. So
+the invariants are not advice; they are **hard stops**. When acting as the agent, do **not**
+report a docs-touching task as complete if any of these hold — fix it or surface it first:
+
+1. **Orphan.** A new or moved concept file is not listed in its directory `index.md` (and that
+   directory is not reachable from the bundle-root `docs/index.md`). *Indexed or it doesn't exist.*
+2. **Stale diagram.** A structural change (schema, module layout, data flow, new component)
+   landed without updating its Mermaid diagram in the **same** change.
+3. **Silent rewrite.** A decision/requirement was edited in place instead of superseded — or a
+   record is `status: Superseded` with no `superseded_by`.
+4. **Untyped doc.** A non-reserved `.md` is missing frontmatter or a non-empty `type`; or an
+   `index.md`/`log.md` carries frontmatter (except the bundle-root `index.md`).
+5. **Broken link.** A bundle-relative (`/…`) or relative link points at a file that does not exist.
+6. **Duplicate home.** The same fact now lives in two files (cross-reference instead).
+
+Triggers **1, 3, 4, 5** are mechanical — run `scripts/lint-docs.sh` (below) and treat a non-zero
+exit as a blocked task, not a warning. Triggers **2** and **6** are semantic (no sound oracle) and
+stay a judgement call: inspect the diff before declaring done.
+
+### lint-docs — the deterministic instrument
+
+`scripts/lint-docs.sh [docs/]` mechanically validates invariants 2, 3, and 4 (the ones a
+machine checks better than prose): frontmatter/`type`, directory-index membership + root
+reachability, link resolution, and supersede integrity. *A constraint without an instrument is a
+vibe* — so the checkable invariants get a checker. Wire it into the project's quality gate / CI;
+a docs PR that fails it does not merge. It does **not** check docs-first mirroring or "one home
+per fact" semantics — those have no sound oracle and stay with the reviewer.
+
+```bash
+./scripts/lint-docs.sh docs          # lint the project's bundle; exit 1 on any violation
+```
+
+A worked, lint-clean corpus lives in [`examples/linkly/`](../../examples/linkly/) — copy its shapes.
+
 ## Quality checks
 
-Before considering a docs change complete:
+Before considering a docs change complete. The frontmatter, indexing, link-resolution, and
+supersede items are enforced by `scripts/lint-docs.sh` — run it rather than eyeballing them; the
+rest are judgement:
 
 - [ ] Every concept doc opens with OKF frontmatter carrying a non-empty `type`; `status` is in frontmatter, not a body line.
 - [ ] Directory listings are `index.md` with no frontmatter (except the bundle-root `docs/index.md` → `okf_version`); cross-links are bundle-relative (`/…`).
@@ -171,4 +224,10 @@ Almost every doc type here is established prior art; this skill composes and enf
 - The **format** is **OKF**, a published **Google Cloud Platform** standard (v0.1, 2026-06-12), not ours — see the `okf-knowledge-format` skill.
 - Neighbors we converge on: **Diátaxis** (Procida), **arc42** (Starke; Hruschka), **C4** (Brown), and **docs-as-code** (Write the Docs).
 
-The genuinely unusual part is the **composition + the governance invariants** (supersede-never-delete + one-home-per-fact + indexed-or-doesn't-exist carried in frontmatter as a fact contract), for which the prior-art research found no prior assembly — not the trail or any individual doc type. Full citations: `../../references/prior-art-landscape.md`.
+The honest claim is **not invention** — arc42 + ADR + C4 + glossary + docs-as-code is the
+informal stack of plenty of mature teams. What this skill adds is the **explicit,
+agent-enforceable packaging** of that stack: the governance invariants
+(supersede-never-delete + one-home-per-fact + indexed-or-doesn't-exist) carried in frontmatter
+as a fact contract *and wired to a deterministic checker* (`scripts/lint-docs.sh`). The
+prior-art research found no prior assembly of that exact governance layer — but the value on
+offer is the enforcement, not the novelty. Full citations: `../../references/prior-art-landscape.md`.

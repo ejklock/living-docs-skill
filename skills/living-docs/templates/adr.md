@@ -36,6 +36,19 @@ We will <the choice, in active voice — specific and testable>.
 **Follow-ups:**
 - <issues spawned, ADRs this may later require>
 
+## Verification
+
+<!-- OPTIONAL — include when this decision must be honored in code, so the doc closes the
+     doc → implement → verify loop an agent (and `implementation-review`) can consume. Omit
+     for a purely advisory record. Keep criteria checkable, not aspirational. -->
+
+**Implementation impact:** <files / modules this decision touches, e.g. `src/store.py`.>
+
+**Verification criteria:**
+- <An observable, checkable condition proving the decision is honored.>
+- <Fitness function: the test / lint / arch-unit assertion that fails if it is violated
+  (see `rules/adr-conventions.md` rule 6).>
+
 # References
 
 <!-- Optional (OKF §8). External sources backing claims in Context. -->

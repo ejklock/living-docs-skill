@@ -1,0 +1,48 @@
+name: Release
+
+# Automated release. Push a semver tag that matches VERSION and every SKILL.md, e.g.:
+#
+#   1. bump VERSION + each skills/*/SKILL.md `version:` to X.Y.Z (kept in sync; gated below)
+#   2. git commit -am "chore: release vX.Y.Z" && git tag vX.Y.Z && git push --tags
+#
+# The workflow verifies the tag agrees with the declared version, lints, packages the
+# skills into a versioned zip, and publishes a GitHub Release with auto-generated notes.
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify tag matches VERSION and every SKILL.md
+        run: ./scripts/check-version.sh "${GITHUB_REF_NAME}"
+
+      - name: Lint — install.sh syntax, dry-run harnesses, docs invariants
+        run: make check
+
+      - name: Package the skills bundle
+        run: |
+          set -euo pipefail
+          name="living-docs-skill-${GITHUB_REF_NAME}"
+          zip -r "${name}.zip" \
+            skills VERSION README.md LICENSE ATTRIBUTION.md \
+            CONTRIBUTING.md install.sh Makefile examples scripts references
+          sha256sum "${name}.zip" > "${name}.zip.sha256"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            living-docs-skill-*.zip
+            living-docs-skill-*.zip.sha256

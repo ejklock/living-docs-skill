@@ -54,10 +54,13 @@ created them are credited here so no one is left uncredited:
 
 ## What is genuinely original here
 
-Only the **composition** and the **governance invariants** — *supersede-never-delete*
-+ *one-home-per-fact* + *indexed-or-it-doesn't-exist*, carried in frontmatter as a
-fact contract. The prior-art research found no prior assembly of that exact
-combination. The individual document types and the doc trail are well-trodden.
+Modest and concrete: the **composition** and the **governance invariants** —
+*supersede-never-delete* + *one-home-per-fact* + *indexed-or-it-doesn't-exist*, carried in
+frontmatter as a fact contract **and wired to a deterministic checker**
+(`skills/living-docs/scripts/lint-docs.sh`). The prior-art research found no prior assembly of that exact
+governance layer — but the claim worth making is **agent-enforceable packaging of
+established practice**, not invention. The individual document types and the doc trail are
+well-trodden, and that is the right choice for a documentation discipline.
 
 See [`references/prior-art-landscape.md`](references/prior-art-landscape.md) for
 the per-source links, access dates, and the full honest novelty assessment.

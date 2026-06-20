@@ -49,8 +49,10 @@ every action from:
    change, new data flow → update the relevant doc *and its diagram* in the
    same change. No "I'll document it later."
 
-These invariants are carried **in YAML frontmatter as a fact contract**, which
-is the genuinely unusual part — see [Provenance](#provenance--honest-attribution).
+These invariants are carried **in YAML frontmatter as a fact contract** and wired
+to a deterministic checker (`skills/living-docs/scripts/lint-docs.sh`). The pitch is **not** novelty —
+arc42 + ADR + C4 + docs-as-code is a well-trodden stack — it is the **explicit,
+agent-enforceable packaging** of it. See [Provenance](#provenance--honest-attribution).
 
 ![The five no-drift invariants of Living Docs](assets/invariants.svg)
 
@@ -93,6 +95,8 @@ dependencies and the prior-art research that backs its honesty claims:
 | [`skills/okf-knowledge-format/`](skills/okf-knowledge-format/) | The **format** standard the docs use — Open Knowledge Format (OKF): markdown + YAML frontmatter, required `type`, reserved `index.md`/`log.md`, bundle-relative links. The OKF spec is **vendored verbatim** from Google Cloud Platform. |
 | [`skills/research-artifacts/`](skills/research-artifacts/) | The research-note format and source discipline that feeds ADRs/PRDs (the `docs/research/` half of the trail). |
 | [`references/prior-art-landscape.md`](references/prior-art-landscape.md) | The sourced prior-art analysis. Living Docs is **§2** of this broader study of the system it came from; it is included so every "credit, not invention" claim has a checkable citation. |
+| [`skills/living-docs/scripts/lint-docs.sh`](skills/living-docs/scripts/lint-docs.sh) | The **deterministic checker** for the mechanical invariants — frontmatter/`type`, indexing + reachability, link resolution, supersede integrity. Ships *inside* the skill so an installed agent can run it. *A constraint without an instrument is a vibe*; this is the instrument. Wire it into CI. |
+| [`examples/linkly/`](examples/linkly/) | A worked, **lint-clean** end-to-end corpus (constitution → PRD → ADR + BDR → issue) for a fictional URL shortener — the discipline shown, not just described, and the fixture CI runs `lint-docs` against. |
 
 Each skill is self-describing — open its `SKILL.md` for the full operational
 detail. Living Docs and OKF compose but do not overlap: **Living Docs governs
@@ -233,8 +237,9 @@ Michael Nygard's (supersede-don't-delete is the adr-tools convention); BDRs wrap
 Specification by Example / BDD (Adzic; North); the file format is Google Cloud
 Platform's OKF, vendored verbatim; the architecture diagrams are
 [Mermaid](https://mermaid.js.org/) (Knut Sveidqvist & the mermaid-js community).
-The only genuinely original part is the **composition + the governance
-invariants** carried in frontmatter as a fact contract.
+None of the doc types are invented here. What is original is modest and concrete: the
+**composition + the governance invariants** carried in frontmatter as a fact contract
+**and enforced by a checker** — the *enforcement*, not the *invention*.
 
 Full credits and the per-source links are in
 [`ATTRIBUTION.md`](ATTRIBUTION.md) and
