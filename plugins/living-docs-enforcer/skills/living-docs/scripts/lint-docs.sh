@@ -150,6 +150,20 @@ is_reserved() { # is_reserved <basename>
 	[[ "$1" == "index.md" || "$1" == "log.md" ]]
 }
 
+# Strip the bundle-root prefix from a path so it is bundle-relative. Used for any
+# path EMBEDDED IN A VIOLATION MESSAGE: report() only normalizes the file column
+# ($1), so an absolute/worktree path baked into the message ($2) would otherwise
+# differ between the current run ('docs/adr') and the ratchet's baseline worktree
+# ('/tmp/wt.../docs/adr'), misclassifying a pre-existing violation as [NEW].
+# Keeping the message itself bundle-relative makes the SAME violation byte-identical
+# across worktrees and also cleans up default-mode output.
+rel_to_bundle() { # rel_to_bundle <path>  → path with the bundle-root prefix dropped
+	local p="$1"
+	p="${p#"$BUNDLE"/}"
+	p="${p#"$BUNDLE"}"
+	printf '%s' "$p"
+}
+
 has_frontmatter() { # has_frontmatter <file>  → 0 if first line is '---'
 	[[ "$(head -n 1 "$1")" == "---" ]]
 }
@@ -283,7 +297,7 @@ for f in "${ALL_MD[@]}"; do
 	dir="$(dirname "$f")"
 	dir_index="$dir/index.md"
 	if [[ ! -f "$dir_index" ]]; then
-		report "$f" "no index.md in its directory ($dir) — orphan (invariant 3)"
+		report "$f" "no index.md in its directory ($(rel_to_bundle "$dir")) — orphan (invariant 3)"
 		continue
 	fi
 	listed=0
@@ -295,7 +309,7 @@ for f in "${ALL_MD[@]}"; do
 			break
 		fi
 	done < <(links_in "$dir_index")
-	((listed == 0)) && report "$f" "not listed in $dir_index — orphan (invariant 3)"
+	((listed == 0)) && report "$f" "not listed in $(rel_to_bundle "$dir_index") — orphan (invariant 3)"
 done
 
 # --- check: every directory index.md is reachable from the bundle root ------
