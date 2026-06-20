@@ -24,6 +24,23 @@ Cover the views the system actually has — don't invent diagrams for their own 
 | **Tool-calling / request flow** | `sequenceDiagram` | How does a request actually execute across actors over time? |
 | **State** | `stateDiagram-v2` | What states does an entity move through? (lifecycles, retention) |
 
+## Per-view instrument binding (which views are checked vs inspection)
+
+"Living — must match code" is only real for a view that has an instrument keeping it honest; the rest rely on the no-drift discipline (inspection), which a constraint-without-an-instrument is a vibe. State, per view, how drift is caught — and prefer a deterministic check where one exists:
+
+| View | Drift caught by | Kind |
+|---|---|---|
+| **Module layout** | a **dependency-conformance check** if your project has one (ArchUnit · dependency-cruiser · Deptrac · import-linter) on a committed ruleset | deterministic |
+| **Data model** | a schema/migration diff or ORM-schema check, where one exists | partial |
+| **Context / module / component** | **distill-from-code** where an oracle exists — generate the view from the dependency graph rather than hand-drawing it, so it cannot drift from the imports it depicts | deterministic where wired |
+| **Process / sequence / state** | the no-drift maintenance rule (review/inspection) — no deterministic oracle | inspection |
+
+Where a deterministic oracle exists, **prefer distilling the view from code** over hand-drawing it; reserve inspection for the views that genuinely have no oracle (the judgement residue), and say so per view rather than asserting "must match code" uniformly. A structural conformance rule SHOULD link back to the **ADR** that motivated it (the rule's ADR is its provenance; the ADR's fitness function is its instrument — `rules/adr-conventions.md` rule 6).
+
+## Completeness checklist (arc42 / C4 / ISO-42010 as vocabulary, not a new index)
+
+The bundle's *index* stays as defined above. Borrow the established frameworks only as a **completeness checklist + shared vocabulary** — not a competing layout: does the architecture cover context/scope, building-block (container/component) structure, runtime/dynamic behavior, deployment, cross-cutting concepts, the decision trail (ADRs), **quality requirements / NFRs** (the quality-attribute scenarios — see `rules/prd-conventions.md`), risks, and glossary? Use **C4** levels (context → container → component) as the zoom vocabulary for the structural views, and **ISO-42010**'s concern→view traceability as the discipline that every stakeholder concern is framed by at least one view. Adopt the names and the checklist; do not import arc42's 12-section template as a parallel index — the existing index, typed views, and ADRs already cover it. Provenance (instrumentalized, not invented): arc42 (STARKE; HRUSCHKA), C4 (BROWN), ISO/IEC/IEEE 42010, Views-and-Beyond (CLEMENTS et al., SEI).
+
 ## Tool-calling / sequence diagrams (when applicable)
 
 When the system's behaviour is best understood as a *conversation between actors over time* — an MCP/tool call, an agent invoking tools, a client→server→DB round trip — use a `sequenceDiagram` to make the flow concrete. Show the actors as participants and each call/return as a message. This is the clearest way to evidence "how it actually works" for tool-driven or multi-actor systems.
