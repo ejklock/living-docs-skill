@@ -4,6 +4,26 @@ A Behavior Decision Record specifies **what a system must observably do** — in
 
 > **Provenance — instrumentalization, not invention.** A BDR's core — observable behavior captured as **Given/When/Then** scenarios written to convert verbatim into the test suite — is **Specification by Example / BDD** (ADZIC, *Specification by Example*, 2011; NORTH, *Introducing BDD*, 2006), not original here. "Behavior Decision Record" as a *named record type* is a recent third-party coinage (ZANZAL, 2026), itself an ADR-style wrapper over Specification by Example; treat it as such, not as an industry standard or a repo invention. Our only addition is binding the scenarios to the pipeline (verbatim → regression suite, mutation-gated). Full citations: `../../../references/prior-art-landscape.md`.
 
+## Why a separate record, not a section of the ADR/PRD
+
+A fair challenge: if a BDR is "Given/When/Then in an ADR-style file", why not make it a
+mandatory *Scenarios* section of the ADR or PRD instead of a new document type with its own
+numbering and directory? The split earns its keep on three counts — if none of them hold for
+your project, **do** fold scenarios into the PRD and skip the genre:
+
+1. **Different lifecycle.** An ADR is settled once and superseded as a whole. Behavior accretes:
+   one capability grows scenarios over many changes, and individual scenarios are amended or
+   superseded independently of the structural decision. Bundling them forces a structural
+   supersede every time an edge case is added.
+2. **Different cardinality.** One PRD spawns many behaviors, and one behavior may serve several
+   PRDs/ADRs. A separate record gives each behavior one home to link to (invariant 2) instead of
+   duplicating scenarios across the docs that touch them.
+3. **It is the test contract.** The scenarios convert *verbatim* into the regression suite and
+   are consumed by `implementation-review`. A standalone, addressable record (`/bdr/NNNN`) is
+   what code, tests, and review all point at — a buried PRD subsection is not.
+
+This is a packaging choice over Specification by Example, not a new method — see Provenance below.
+
 ## Format
 
 Each BDR is an **OKF concept** (`type: BDR`) — see the `okf-knowledge-format` skill. `status` (`Draft` | `Accepted` | `Implemented` | `Superseded`) lives in the frontmatter, not a body line. See `templates/bdr.md`. Core sections:

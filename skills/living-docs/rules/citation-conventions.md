@@ -2,6 +2,15 @@
 
 Every doc that cites sources — **Research** above all, but also any **ADR**/**BDR** that rests on evidence — lists them under a `# References` heading (OKF §8). References follow the **ABNT NBR 6023 structure** and **always carry the link**. The connective **labels** follow the project doc language (default English) — see `rules/doc-language.md`.
 
+> **This is an opinionated house style, not a neutral default — and not part of the
+> stack-agnostic claim.** "Stack-agnostic" means Living Docs governs *how docs live*, not your
+> tech stack; it makes no claim of cultural neutrality, and a citation format is a deliberate
+> choice. ABNT NBR 6023 is the standard used across the authoring ecosystem this skill came
+> from, so it is the standard here. The portable, non-negotiable core is **"always carry the
+> link + access date"** (rule 1) — that is what makes a citation verifiable. The *structure* is
+> a convention: if a project prefers another style (IEEE, APA, plain link + accessed-on), it may
+> pin that instead, keeping rule 1. Don't sell ABNT as neutral; do keep the always-the-link rule.
+
 ## The two iron rules
 
 1. **Always the link.** Every reference to anything with a URL (paper, blog, vendor doc, repo, standard) includes the URL and the access date. A citation without its link is not verifiable — it is hearsay. (For a print-only book with no online edition, the link is omitted; everything else carries it.)

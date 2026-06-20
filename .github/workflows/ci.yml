@@ -1,0 +1,25 @@
+name: CI
+
+# Lint the install script and — the point of the Q6 work — run the Living Docs
+# invariant checker against the example corpus on every push and PR. A docs
+# invariant violation fails the build.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version consistency (VERSION ↔ every SKILL.md)
+        run: ./scripts/check-version.sh
+
+      - name: Lint — install.sh syntax, dry-run harnesses, docs invariants
+        run: make check
