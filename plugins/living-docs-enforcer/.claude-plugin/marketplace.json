@@ -1,0 +1,26 @@
+{
+  "name": "living-docs-enforcer",
+  "owner": {
+    "name": "Evaldo Klock"
+  },
+  "metadata": {
+    "description": "Opt-in commit-boundary enforcement of the Living Docs mechanical invariants.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "living-docs-enforcer",
+      "description": "OPT-IN enforcement of the Living Docs mechanical invariants at the git-commit boundary. Recommended for teams that want the docs floor enforced, not just advised. Bundles the living-docs skill and a PreToolUse hook that runs lint-docs.sh on git commit; enforcement is configurable via LIVING_DOCS_ENFORCE (block|warn).",
+      "source": "./",
+      "version": "0.1.0",
+      "author": {
+        "name": "Evaldo Klock",
+        "url": "https://github.com/ejklock"
+      },
+      "repository": "https://github.com/ejklock/living-docs-skill",
+      "license": "MIT",
+      "keywords": ["documentation", "living-docs", "adr", "lint", "hook", "enforcement", "pre-commit"],
+      "category": "productivity"
+    }
+  ]
+}
