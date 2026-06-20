@@ -21,5 +21,11 @@ jobs:
       - name: Version consistency (VERSION ↔ every SKILL.md)
         run: ./scripts/check-version.sh
 
-      - name: Lint — install.sh syntax, dry-run harnesses, docs invariants
+      - name: Test — lint-docs.sh fixture/parity corpus
+        run: ./tests/lint-docs/run.sh
+
+      - name: Lint — example docs bundle against the Living Docs invariants
+        run: ./skills/living-docs/scripts/lint-docs.sh examples/linkly/docs
+
+      - name: Lint — install.sh syntax, dry-run harnesses, docs invariants (make check)
         run: make check
