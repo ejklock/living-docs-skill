@@ -1,0 +1,79 @@
+# CLAUDE.md — Hard Rules Template
+
+Copy this block into the project's `CLAUDE.md` and fill in the `<placeholders>`. Adapt the table of locations to match the project's actual directory structure.
+
+---
+
+## Doc-trail
+
+Every change follows this chain:
+
+```
+constitution → PRD → ADR (how) + BDR (behavior) → issues → code
+```
+
+No code change skips a link. A PR that changes behavior without a BDR, or architecture without an ADR, is incomplete.
+
+## Locations
+
+Adapt this table to the project's actual paths before committing the rules.
+
+| Artifact | Location |
+|---|---|
+| Constitution | `docs/constitution/` |
+| PRDs | `docs/prd/` |
+| ADRs | `docs/decisions/` |
+| BDRs | `docs/behavior/` |
+| Research | `docs/research/` |
+| Issue drafts | `docs/issues/drafts/` |
+
+---
+
+## Hard rules
+
+### 1. Docs-first change policy
+
+Any change that alters behavior, architecture, flows, endpoints, or schema MUST update the corresponding docs in the same PR. A PR that changes code without updating its affected docs is incomplete and must not be merged.
+
+### 2. Diagrams are always Mermaid
+
+All diagrams in documentation must be Mermaid. Existing ASCII diagrams are converted whenever their containing doc is touched. Never introduce image-based or ASCII diagrams.
+
+### 3. Semantic doc groups with OKF index files
+
+Every directory of documentation is a semantic group and must contain an `index.md` (the OKF reserved listing — no frontmatter, except the bundle-root `docs/index.md`, which declares `okf_version: "0.1"`). Every concept document opens with OKF frontmatter carrying a non-empty `type`; `status` and supersession live in frontmatter, never a body line. Every new document is linked from its group's `index.md` with bundle-relative (`/…`) links, and new groups are linked from the root docs index. No orphan documents. See the `okf-knowledge-format` skill.
+
+### 4. Architectural decisions require an ADR; expected behavior requires a BDR
+
+- A decision that changes structure, dependencies, or technical approach → write an ADR (`docs/decisions/NNNN-slug.md`).
+- A decision that defines or changes what the system must observably do → write or amend a BDR (`docs/behavior/NNNN-slug.md`). Every BDR carries a Mermaid diagram, a textual description, and numbered Given/When/Then scenarios.
+- Research informing decisions goes in `docs/research/` in the OKF format (dated session directory with a `report.md` concept and a `references.md` registry; see the `research-artifacts` skill).
+
+### 5. Issues local-first
+
+Draft the issue as `docs/issues/drafts/NNNN-slug.md` first, linked from the drafts index. Launch on the tracker, stripping the OKF frontmatter so only the body is sent. Backfill the tracker number into the issue's frontmatter (`tracker`) and the index. The local file is the trace; the tracker is execution state.
+
+### 6. No comments in code
+
+Self-documenting names, small single-purpose functions, and extracted variables replace comments. A comment is permitted only for a constraint the code cannot express — a non-obvious external contract, a deliberate workaround with its reason. Never comment to narrate what the code does, restate history, or address a reviewer. No commented-out code.
+
+### 7. All internal artifacts in English
+
+Code, documentation, commit messages, ADRs, BDRs, and issue drafts are written in English. Conversation language follows the user.
+
+### 8. Generated artifact names describe what they do
+
+Migrations, scripts, and auto-named artifacts use descriptive names. For example: `--name <what_it_does>`, never auto-generated whimsical names. The name must let a future reader understand the artifact's purpose without opening it.
+
+### 9. Quality gates — all must pass before merge
+
+All of the following must pass on every PR. No exceptions, no deferrals.
+
+| Gate | Command |
+|---|---|
+| Tests | `<test command>` |
+| Type checking | `<typecheck command>` |
+| Lint at zero warnings | `<lint command at zero warnings>` |
+| Mutation testing (changed code, per file) | `<mutation testing >= N% on changed code, per file>` |
+
+The docs-update rule from rule 1 is also a quality gate: a PR failing the docs check does not merge.

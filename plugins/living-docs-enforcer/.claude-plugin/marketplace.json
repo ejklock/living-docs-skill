@@ -1,0 +1,26 @@
+{
+  "name": "living-docs-enforcer",
+  "owner": {
+    "name": "Evaldo Klock"
+  },
+  "metadata": {
+    "description": "Opt-in, diff-aware commit-boundary enforcement of the Living Docs mechanical invariants.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "living-docs-enforcer",
+      "description": "OPT-IN enforcement of the Living Docs mechanical invariants at the git-commit boundary. Recommended for teams that want the docs floor enforced, not just advised. Bundles a self-contained copy of the living-docs skill and a PreToolUse hook that runs lint-docs.sh in diff-aware --ratchet mode on git commit (blocks NEW violations, grandfathers legacy debt). Default is block; downgrade with LIVING_DOCS_ENFORCE=warn.",
+      "source": "./",
+      "version": "0.1.0",
+      "author": {
+        "name": "Evaldo Klock",
+        "url": "https://github.com/ejklock"
+      },
+      "repository": "https://github.com/ejklock/living-docs-skill",
+      "license": "MIT",
+      "keywords": ["documentation", "living-docs", "adr", "lint", "hook", "enforcement", "pre-commit"],
+      "category": "productivity"
+    }
+  ]
+}

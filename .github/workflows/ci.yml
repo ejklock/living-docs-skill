@@ -30,5 +30,8 @@ jobs:
       - name: Lint — example docs bundle against the Living Docs invariants
         run: ./skills/living-docs/scripts/lint-docs.sh examples/linkly/docs
 
+      - name: Check — plugin's vendored living-docs skill is in sync with the source
+        run: make check-plugin-skill-sync
+
       - name: Lint — install.sh syntax, dry-run harnesses, docs invariants (make check)
         run: make check
