@@ -30,6 +30,20 @@ state it as a solution, grill it first to find the underlying need.>
 1. <Numbered, testable statement.>
 2. <…>
 
+## Quality requirements (NFRs)
+
+Non-functional requirements as **quality-attribute scenarios** (six-part: source →
+stimulus → artifact → environment → response → response-measure), each bound to a
+verifying instrument. A quality requirement without an instrument is a vibe.
+
+| Quality attribute | Scenario (source · stimulus · artifact · environment · response · measure) | Verified by |
+|---|---|---|
+| <e.g. Performance> | <e.g. A client · issues a read · to the API · under 10× peak load · returns successfully · in < 200 ms at p99> | <load test / CI floor / security check / inspection> |
+| <e.g. Availability> | <…> | <…> |
+
+<!-- Measure before committing to the complexity that meets the NFR; lock the measured
+     floor in CI; record the decision + fitness function in an ADR. -->
+
 ## Acceptance criteria
 
 - <Observable condition proving a requirement is met.>

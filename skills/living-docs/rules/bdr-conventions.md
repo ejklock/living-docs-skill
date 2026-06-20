@@ -32,13 +32,15 @@ Each BDR is an **OKF concept** (`type: BDR`) — see the `okf-knowledge-format` 
 - **Behavior diagram** — a Mermaid flowchart or sequence diagram of the full observable flow.
 - **Textual description** — prose of the same behavior, written from the outside (inputs, outputs, side effects, error paths).
 - **Scenarios** — numbered Given/When/Then statements written to convert verbatim into the project's behavioral regression suite.
-- **Related** — links to the PRD, ADR, and issues that this BDR serves.
+- **Test Design** — *how* each behavior is tested: the test matrix (happy / equivalence / boundary / error / property) derived from the scenarios, each row naming what it PROVES and at which level. This is the **single home** for the "how to test" of the behavior; an execution issue links here, never copies the matrix.
+- **Related** — links to the PRD, ADR(s) — including any test-strategy ADR — and issues that this BDR serves.
 
 ## Rules
 
-1. **Every BDR has three required elements: a Mermaid diagram AND a textual description AND numbered Given/When/Then scenarios.** All three are mandatory; no section may be left empty or removed.
+1. **Every BDR has four required elements: a Mermaid diagram AND a textual description AND numbered Given/When/Then scenarios AND a Test Design matrix.** All four are mandatory; no section may be left empty or removed. The Test Design matrix is derived from the scenarios (one G/W/T is one example, not the spec) and every row names what it proves.
 2. **Scenarios are written to convert verbatim into the project's behavioral regression suite.** Use the exact wording a test author would need. Avoid implementation detail; describe what an external observer would verify.
 3. **BDRs answer *what*; ADRs answer *how*.** If the record is about structure, technology choice, or rationale — write an ADR. If it is about observable behavior a user or system can verify — write a BDR.
+3a. **The test of a behavior has one home: the BDR's Test Design.** *What* is tested = the scenarios; *how* it is tested = the Test Design matrix derived from them (both in the BDR). The *why* of a test-strategy choice (a non-default level/technique, or a deviation from your project's standing test bar — a decision with a rejected alternative) is a **test-strategy ADR** (an ordinary ADR carrying `tags: [testing]`, see `rules/adr-conventions.md`), linked from the BDR — not a separate record type, and not duplicated in the matrix. There is deliberately **no "Test Decision Record"**: the need splits cleanly across BDR (what/how) + test-strategy ADR (why) + your CI gate (enforce); the field's direction is "**Any** Decision Record" (one template absorbs domain decisions, MADR 3.0), and "TDR" already names "Technical Debt Record".
 4. **BDRs are spawned (or amended) by a PRD that changes expected behavior.** Every BDR must link to the PRD that produced it. A BDR written without a parent PRD is a sign the PRD is missing.
 5. **Diagrams are Mermaid only.** No ASCII art, no image attachments.
 6. **Numbered sequentially:** `docs/bdr/NNNN-slug.md`. Index in `docs/bdr/index.md` (OKF reserved listing, no frontmatter) with a one-line summary and a link per record.

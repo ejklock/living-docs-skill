@@ -10,6 +10,7 @@ Each PRD is an **OKF concept** (`type: PRD`) — see the `okf-knowledge-format` 
 - **Goals** — what success looks like, as outcomes (not tasks).
 - **Non-goals** — what this explicitly does *not* cover. The most valuable section: it bounds scope and prevents creep.
 - **Requirements** — numbered, testable statements. Each maps to acceptance criteria.
+- **Quality requirements (NFRs)** — non-functional requirements as **quality-attribute scenarios**, each bound to a verifying instrument (see rule 9). This is the home for performance/availability/scale/security requirements; a freeform "should be fast" line is not enough.
 - **Acceptance criteria** — observable conditions that prove the requirement is met.
 - **Open questions** — unresolved decisions, each ideally headed toward an ADR.
 - **Decision log** — links to the ADRs that resolved the open questions.
@@ -28,6 +29,7 @@ A PRD sits **under** the constitution — it specifies a feature within the prod
 6. **Append-only once accepted.** A PRD under active design is editable. Once accepted and being implemented, changes are recorded as amendments or new ADRs — not silent edits to the requirements.
 7. **PRDs spawn issues.** Each requirement becomes one or more issues (see `rules/issue-workflow.md`). The PRD links to them; the issues link back to the PRD.
 8. **Open questions resolve into ADRs (how) or BDRs (behavior).** When an open question is answered with a load-bearing rationale about architecture, write an ADR and link it from the decision log. When the question resolves observable behavior — what the system must do, with Given/When/Then scenarios — write or amend a BDR instead. Both artifact types are spawned by the PRD and link back to it.
+9. **Every NFR is a quality-attribute scenario bound to an instrument.** Write each non-functional requirement in the six-part form — **source → stimulus → artifact → environment → response → response-measure** — so it is falsifiable, e.g. "Under peak load (10× current), a read request returns in < 200 ms at p99." Bind each to its **verifying instrument**: a load test, a CI performance/quality floor, a security check, or — only for the genuine residue — explicit inspection. A quality requirement without an instrument is a vibe; measure before committing to the complexity that meets it, and lock the measured floor in CI. The decision behind an NFR (and the fitness function that enforces it) is recorded in an ADR (`rules/adr-conventions.md` rule 6). Provenance (instrumentalized, not invented): quality-attribute scenarios + ATAM (KAZMAN; KLEIN; CLEMENTS, SEI).
 
 ## Anti-patterns
 

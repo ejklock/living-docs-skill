@@ -54,8 +54,23 @@ suite. Number from 1; do not skip numbers.
 - When <the trigger or action>
 - Then <the observable outcome>
 
+## Test Design
+
+How this behavior is tested — the single home for the **how** (an execution issue links here, never copies). Each Given/When/Then above is *one example, not the spec*: expand each into the matrix below and name what every row PROVES. A row with no "proves" is a smell (likely vacuous).
+
+| Case | Level | Input / scenario | Asserts (observable) | Proves |
+|---|---|---|---|---|
+| Happy path | <unit/integration/e2e> | <the scenario above> | <output/state a caller sees> | success contract on a valid input |
+| Boundary | <…> | <edge: 0 / max / empty / null> | <…> | off-by-one / limit handled |
+| Equivalence | <…> | <one per valid+invalid class> | <…> | each input class handled |
+| Error path | <…> | <failure mode> | <observable error + no side effect> | failure is a contract |
+| Property | <…> | <invariant, e.g. `decode(encode(x))==x`> | <holds over generated inputs> | uncheatable by hardcoding |
+
+Rules: behavior-spec-first (write the test, watch it fail, then implement); assert observable behavior, not internal calls/private fields; mock only out-of-process deps, never the DB. A per-behavior *strategy decision* with a rejected alternative (why this level/technique, or a deviation from the standing bar) is a **test-strategy ADR** linked under Related — not duplicated here.
+
 ## Related
 
 - PRD: [/prd/NNNN-<slug>.md](/prd/NNNN-<slug>.md)
 - ADR: [/adr/NNNN-<slug>.md](/adr/NNNN-<slug>.md)
+- Test-strategy ADR (if any): [/adr/NNNN-<slug>.md](/adr/NNNN-<slug>.md) — the *why* behind a non-default level/technique or a bar deviation.
 - Issues: [/issues/NNNN-<slug>.md](/issues/NNNN-<slug>.md)

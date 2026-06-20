@@ -1,7 +1,7 @@
 ---
 name: living-docs
 description: Run a project's documentation as a living system — docs-first issues/PRDs, MADR-lite ADRs (supersede, never delete), Behavior Decision Records (BDRs), a project constitution, research artifacts, living Mermaid architecture diagrams, and semantic-index organization where every doc lands in exactly one place and indexes never drift. Use when setting up or maintaining project docs, writing an ADR/PRD/BDR/constitution/issue/research note, defining a term or acronym in the glossary, drawing or updating an architecture/flow/sequence diagram, splitting an oversized doc into an index, or enforcing the no-drift maintenance rule.
-version: "0.1.0"
+version: "0.2.0"
 metadata:
   type: skill
   layer: procedural
@@ -71,7 +71,7 @@ flowchart LR
 | **constitution** | Foundational source of truth: what the product is, core data model, non-negotiables. All other docs sit under it. |
 | **PRD** | What the system must do and why — feature/product requirement spec. |
 | **ADR** | How the system is structured — architectural/implementation decision and rationale. |
-| **BDR** | What the system must observably do — inputs, outputs, side effects, Given/When/Then scenarios. |
+| **BDR** | What the system must observably do — inputs, outputs, side effects, Given/When/Then scenarios — **and how each is tested** (the Test Design matrix; single home for "how to test", an execution issue links it). |
 | **issues** | Execution slices — discrete units of work that trace back to ADRs/BDRs. |
 | **code** | Implementation — every behavior, structure, and interface specified above, realized. |
 
@@ -82,7 +82,8 @@ flowchart LR
 - Standing up documentation for a project (creating `docs/` structure, the docs index, ADR/issue/BDR/constitution directories).
 - Writing or editing an **ADR** (an architectural/implementation decision) → load `rules/adr-conventions.md` + `templates/adr.md`.
 - Writing or editing a **PRD** (a product/feature requirement spec) → load `rules/prd-conventions.md` + `templates/prd.md`.
-- Writing or editing a **BDR** (observable behavior — inputs, outputs, Given/When/Then scenarios) → load `rules/bdr-conventions.md` + `templates/bdr.md`.
+- Writing or editing a **BDR** (observable behavior — inputs, outputs, Given/When/Then scenarios, **and the Test Design matrix for how each is tested**) → load `rules/bdr-conventions.md` + `templates/bdr.md`. A test-strategy *decision* (non-default level/technique, bar deviation) is an ADR `tags: [testing]`, not a new record type (no "TDR").
+- Specifying a **non-functional requirement** (performance, availability, security, scale) → a **quality-attribute scenario** bound to an instrument in the **PRD** (`rules/prd-conventions.md` rule 9 + `templates/prd.md`); the decision + fitness function go in an ADR. Not a new doc type.
 - Establishing or amending the **constitution** (foundational scope, data model, non-negotiables) → load `rules/constitution-conventions.md` + `templates/constitution.md`.
 - Creating or editing an **issue/ticket** → load `rules/issue-workflow.md` + `templates/issue.md`.
 - Recording **research** (technology evaluation, external trade-offs) → load the **`research-artifacts`** skill. It owns the OKF research-note format (single file per note, no per-research subfolder), the source discipline, and the research → decision → issue traceable chain, and links back here for the ADR/BDR/issue artifacts. Pairs with the `deep-research` skill.
@@ -198,7 +199,8 @@ rest are judgement:
 - [ ] Superseded ADRs/PRDs/BDRs carry frontmatter `status: Superseded` + `superseded_by: NNNN`; the superseding record sets `supersedes` and links back.
 - [ ] Any structural code change in the same task updated its doc **and its Mermaid diagram(s)**.
 - [ ] Architecture diagrams use Mermaid (in-repo text), match the code, and use context-index vocabulary for node/participant names.
-- [ ] Every BDR has a Mermaid diagram, a textual description, and numbered Given/When/Then scenarios.
+- [ ] Every BDR has a Mermaid diagram, a textual description, numbered Given/When/Then scenarios, **and a Test Design matrix** (each row names what it proves); an execution issue links the matrix rather than copying it.
+- [ ] Every NFR is a quality-attribute scenario in the PRD bound to a verifying instrument (not a freeform "should be fast" line); a structural architecture view names whether it is checked or inspection-only.
 - [ ] The constitution is singular (`docs/constitution.md`) — no NNNN prefix, no index entry.
 - [ ] Each index file's links all resolve (no dangling references).
 - [ ] Docs-first respected: the repo body matches the published tracker/wiki copy.
