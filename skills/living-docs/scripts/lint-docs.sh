@@ -50,6 +50,17 @@ Checks (mechanical invariants only):
   * links resolve    every local (/… or relative) markdown link points at a file
   * supersede        a 'status: Superseded' record carries a resolvable superseded_by
 
+Assumptions / limitations (this is a deterministic checker over a documented input
+shape, not a general markdown/YAML validator):
+  * frontmatter is read as flat, top-level, single-line 'key: value' pairs. Block
+    scalars ('>' / '|') and keys nested under a queried key are not supported; a block
+    scalar supplied for a required key (e.g. type) is reported as a violation.
+  * only inline markdown links '[x](target)' are checked; an optional title and the
+    angle-bracket '<target>' form are handled. Reference-style '[x][ref]' links are
+    not followed.
+  * fenced code blocks (triple-backtick or '~~~') are skipped — links shown inside
+    them are examples, not live links. Indented (4-space) code blocks are not stripped.
+
 Exit: 0 clean · 1 violations · 2 usage error.
 EOF
 }
@@ -87,19 +98,30 @@ has_frontmatter() { # has_frontmatter <file>  → 0 if first line is '---'
 	[[ "$(head -n 1 "$1")" == "---" ]]
 }
 
-fm_value() { # fm_value <file> <key>  → prints trimmed value within frontmatter block
-	awk -v key="$2" '
+fm_value() { # fm_value <file> <key>  → prints the trimmed scalar value within frontmatter
+	# Reads ONLY flat, top-level (column-0), single-line `key: value` pairs — all this
+	# format uses (see --help "Assumptions"). Strips an inline ' # comment' and surrounding
+	# single or double quotes. A nested key under a queried name is ignored (column-0 only);
+	# a block scalar ('>' / '|') or an empty value yields nothing, so the caller reports the
+	# violation instead of silently accepting an unsupported shape.
+	awk -v key="$2" -v apos="'" '
 		NR == 1 && $0 != "---" { exit }
 		NR == 1 { infm = 1; next }
 		infm && $0 == "---" { exit }
-		infm {
-			if ($0 ~ "^" key ":") {
-				sub("^" key ":[[:space:]]*", "")
-				gsub(/^[[:space:]]+|[[:space:]]+$/, "")
-				gsub(/^"|"$/, "")
-				print
-				exit
+		infm && index($0, key ":") == 1 {
+			val = substr($0, length(key) + 2)
+			sub(/^[[:space:]]+/, "", val)
+			first = substr(val, 1, 1)
+			if (first == "\"" || first == apos) {
+				rest = substr(val, 2)
+				p = index(rest, first)
+				if (p > 0) { print substr(rest, 1, p - 1); exit }
 			}
+			sub(/[[:space:]]+#.*$/, "", val)
+			sub(/[[:space:]]+$/, "", val)
+			if (val == "" || val ~ /^[>|][0-9+-]*$/) { print ""; exit }
+			print val
+			exit
 		}
 	' "$1"
 }
@@ -130,6 +152,15 @@ normpath() { # normpath <path>  → prints normalized path
 # or print nothing if the link is external / a pure anchor / unsupported.
 resolve_link() { # resolve_link <file> <target>
 	local file="$1" target="$2"
+	target="${target#"${target%%[![:space:]]*}"}"   # trim leading whitespace
+	if [[ "$target" == "<"* ]]; then
+		# angle-bracket target: the URL is between < and the first > (a title may follow)
+		target="${target#<}"
+		target="${target%%>*}"
+	else
+		# inline target: the URL ends at the first whitespace; drop an optional "title"/'title'
+		target="${target%%[[:space:]]*}"
+	fi
 	target="${target%%#*}"      # drop anchor
 	[[ -z "$target" ]] && return        # pure anchor → in-doc, skip
 	case "$target" in
@@ -143,9 +174,20 @@ resolve_link() { # resolve_link <file> <target>
 	fi
 }
 
-# Print every markdown link target in <file> (the bit inside the parentheses).
+# Strip fenced code blocks (``` / ~~~ regions) so example links shown inside them are not
+# mistaken for live links. Indented (4-space) code blocks are out of scope.
+strip_fences() { # strip_fences <file>
+	awk '
+		/^[[:space:]]*(```|~~~)/ { in_fence = !in_fence; next }
+		!in_fence { print }
+	' "$1"
+}
+
+# Print every inline markdown link target in <file> (the bit inside the parentheses),
+# with fenced code blocks excluded. Reference-style [x][ref] links are NOT extracted
+# (see --help "Assumptions").
 links_in() { # links_in <file>
-	grep -oE '\]\([^)]+\)' "$1" 2>/dev/null | sed -E 's/^\]\(//; s/\)$//'
+	strip_fences "$1" | grep -oE '\]\([^)]+\)' 2>/dev/null | sed -E 's/^\]\(//; s/\)$//'
 }
 
 # --- collect the corpus -----------------------------------------------------

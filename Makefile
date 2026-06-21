@@ -8,7 +8,7 @@ INSTALL := ./install.sh
 .PHONY: help install install-claude install-cursor install-copilot \
         install-opencode install-codex install-pi install-all install-pocock \
         project-claude project-opencode project-codex project-pi \
-        uninstall uninstall-all check lint lint-docs version
+        uninstall uninstall-all check lint lint-docs test-fixtures version
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -58,14 +58,18 @@ uninstall: ## Remove the global Claude Code install
 uninstall-all: ## Remove the install for every supported harness
 	$(INSTALL) all --uninstall
 
-check: version lint-docs ## Check version sync, validate install.sh, dry-run harnesses, lint docs
+check: version lint-docs test-fixtures ## Check version sync, validate install.sh, dry-run harnesses, lint docs, run fixtures
 	bash -n install.sh
 	bash -n skills/living-docs/scripts/lint-docs.sh
+	bash -n skills/living-docs/tests/run.sh
 	bash -n scripts/check-version.sh
 	$(INSTALL) all --dry-run
 
 lint-docs: ## Validate the example docs bundle against the Living Docs invariants
 	./skills/living-docs/scripts/lint-docs.sh examples/linkly/docs
+
+test-fixtures: ## Run the hostile/negative fixtures that guard the lint-docs parsers
+	./skills/living-docs/tests/run.sh
 
 version: ## Assert the release version is consistent across VERSION and every SKILL.md
 	./scripts/check-version.sh
