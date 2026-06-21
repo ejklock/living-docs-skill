@@ -77,12 +77,20 @@ Then review the diff and update the `SKILL.md` rules only if conformance changed
 ## Validating your change
 
 There is no build step — everything is markdown and shell. The checker delegates parsing
-to three tools, so install them first:
+to three tools, so either install them:
 
 ```bash
 # lychee — link validity        https://lychee.cli.rs
 # yq v4 (mikefarah) — frontmatter  https://github.com/mikefarah/yq
 # jq — JSON                      https://jqlang.github.io/jq
+```
+
+…or run it via the self-contained image (no host tools beyond Docker):
+
+```bash
+make lint-docker                                  # build + lint the example corpus
+docker build -f Dockerfile.lint -t living-docs-lint .
+docker run --rm -v "$PWD:/work" living-docs-lint docs   # lint your own ./docs
 ```
 
 Then, before opening a PR:

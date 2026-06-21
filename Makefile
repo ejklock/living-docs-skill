@@ -8,7 +8,8 @@ INSTALL := ./install.sh
 .PHONY: help install install-claude install-cursor install-copilot \
         install-opencode install-codex install-pi install-all install-pocock \
         project-claude project-opencode project-codex project-pi \
-        uninstall uninstall-all check lint lint-docs test-fixtures version
+        uninstall uninstall-all check lint lint-docs test-fixtures version \
+        lint-docker-build lint-docker
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -70,6 +71,12 @@ lint-docs: ## Validate the example docs bundle against the Living Docs invariant
 
 test-fixtures: ## Run the hostile/negative fixtures that guard the lint-docs parsers
 	./skills/living-docs/tests/run.sh
+
+lint-docker-build: ## Build the self-contained linter image (bundles lychee + yq + jq)
+	docker build -f Dockerfile.lint -t living-docs-lint .
+
+lint-docker: lint-docker-build ## Lint the example corpus via Docker (no host tools needed)
+	docker run --rm -v "$(CURDIR):/work" living-docs-lint examples/linkly/docs
 
 version: ## Assert the release version is consistent across VERSION and every SKILL.md
 	./scripts/check-version.sh

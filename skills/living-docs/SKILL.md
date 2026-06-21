@@ -191,6 +191,10 @@ YAML), and **jq** (lychee's JSON). Install all three; the script exits 2 with in
 pointers if any is missing. The OKF structural graph (index membership + reachability)
 is the script's own logic on top.
 
+If you would rather not install the tools, run the checker via its self-contained image
+(needs only Docker): `docker build -f Dockerfile.lint -t living-docs-lint .` then
+`docker run --rm -v "$PWD:/work" living-docs-lint docs`.
+
 A worked, lint-clean corpus lives in [`examples/linkly/`](../../examples/linkly/) — copy its shapes.
 
 ## Quality checks

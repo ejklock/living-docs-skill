@@ -37,3 +37,24 @@ jobs:
 
       - name: Lint — install.sh syntax, dry-run harnesses, docs invariants
         run: make check
+
+  # Verify the self-contained linter image: it must pass the clean corpus and
+  # fail a deliberately-broken fixture. This is the "run with only Docker" option.
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build linter image
+        run: docker build -f Dockerfile.lint -t living-docs-lint .
+
+      - name: Smoke — clean corpus passes (exit 0)
+        run: docker run --rm -v "$PWD:/work" living-docs-lint examples/linkly/docs
+
+      - name: Smoke — a broken fixture fails (exit 1)
+        run: |
+          if docker run --rm -v "$PWD:/work" living-docs-lint \
+               skills/living-docs/tests/fixtures/02-fence-link-dirty/docs; then
+            echo "expected a non-zero exit for the broken fixture" >&2
+            exit 1
+          fi
