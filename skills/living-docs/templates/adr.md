@@ -39,7 +39,7 @@ We will <the choice, in active voice — specific and testable>.
 ## Verification
 
 <!-- OPTIONAL — include when this decision must be honored in code, so the doc closes the
-     doc → implement → verify loop an agent (and `implementation-review`) can consume. Omit
+     doc → implement → verify loop an agent (and any review step) can consume. Omit
      for a purely advisory record. Keep criteria checkable, not aspirational. -->
 
 **Implementation impact:** <files / modules this decision touches, e.g. `src/store.py`.>

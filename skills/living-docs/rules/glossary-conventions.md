@@ -19,7 +19,7 @@ Leave out words any reader of the doc language already knows, and don't restate 
 ## Language (follows the doc-language rule)
 
 - **Definitions are in the project doc language** — default English, or whatever is pinned per `rules/doc-language.md`.
-- **Names stay in their original form.** You do not translate `TaskEnvelope`, `ADR`, or `OKF`. Translate the *explanation*, never the *name*, the *identifier*, or the *acronym headword/expansion*.
+- **Names stay in their original form.** You do not translate `ADR`, `BDR`, or `OKF`. Translate the *explanation*, never the *name*, the *identifier*, or the *acronym headword/expansion*.
 
 ## Format & order
 

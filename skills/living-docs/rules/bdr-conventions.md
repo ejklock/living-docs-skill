@@ -2,7 +2,7 @@
 
 A Behavior Decision Record specifies **what a system must observably do** — inputs, outputs, side effects, and the scenarios that constitute correct operation. A BDR answers *what and observable*; an ADR answers *how is it structured and why*.
 
-> **Provenance — instrumentalization, not invention.** A BDR's core — observable behavior captured as **Given/When/Then** scenarios written to convert verbatim into the test suite — is **Specification by Example / BDD** (ADZIC, *Specification by Example*, 2011; NORTH, *Introducing BDD*, 2006), not original here. "Behavior Decision Record" as a *named record type* is a recent third-party coinage (ZANZAL, 2026), itself an ADR-style wrapper over Specification by Example; treat it as such, not as an industry standard or a repo invention. Our only addition is binding the scenarios to the pipeline (verbatim → regression suite, mutation-gated). Full citations: `../../../references/prior-art-landscape.md`.
+> **Provenance — instrumentalization, not invention.** A BDR's core — observable behavior captured as **Given/When/Then** scenarios written to convert verbatim into the test suite — is **Specification by Example / BDD** (ADZIC, *Specification by Example*, 2011; NORTH, *Introducing BDD*, 2006), not original here. "Behavior Decision Record" as a *named record type* is a recent third-party coinage (ZANZAL, 2026), itself an ADR-style wrapper over Specification by Example; treat it as such, not as an industry standard or a repo invention. Our only addition is binding the scenarios to the test suite (verbatim → regression suite). Full citations: `../../../references/prior-art-landscape.md`.
 
 ## Why a separate record, not a section of the ADR/PRD
 
@@ -19,7 +19,7 @@ your project, **do** fold scenarios into the PRD and skip the genre:
    PRDs/ADRs. A separate record gives each behavior one home to link to (invariant 2) instead of
    duplicating scenarios across the docs that touch them.
 3. **It is the test contract.** The scenarios convert *verbatim* into the regression suite and
-   are consumed by `implementation-review`. A standalone, addressable record (`/bdr/NNNN`) is
+   are consumed by whatever review step verifies the change. A standalone, addressable record (`/bdr/NNNN`) is
    what code, tests, and review all point at — a buried PRD subsection is not.
 
 This is a packaging choice over Specification by Example, not a new method — see Provenance below.
