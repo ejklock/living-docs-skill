@@ -11,6 +11,7 @@ A full, sourced prior-art analysis lives in
 | File | Source | Upstream license |
 |---|---|---|
 | `skills/okf-knowledge-format/reference/SPEC.md` | [GoogleCloudPlatform/knowledge-catalog](https://github.com/GoogleCloudPlatform/knowledge-catalog) — Open Knowledge Format (OKF) spec v0.1 | Governed by the upstream repository's license (Apache-2.0). Provenance and the pinned `sha256` are recorded in `skills/okf-knowledge-format/reference/SPEC.source.md`; refresh with `scripts/update-spec.sh`. |
+| `skills/living-docs/tests/fixtures/09-okf-canonical/docs/` | [GoogleCloudPlatform/knowledge-catalog](https://github.com/GoogleCloudPlatform/knowledge-catalog) — the `okf/bundles/crypto_bitcoin` example bundle | Apache-2.0. Vendored verbatim as a positive parity fixture (our checker must accept the format author's canonical bundle). Provenance in the fixture's `PROVENANCE.md`. |
 
 The OKF spec is vendored **verbatim** so the format rules are usable offline and
 diffable in version control. It is not authored here and is not covered by this

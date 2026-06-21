@@ -57,6 +57,10 @@ run 05-nested-key-trap              1 present "non-empty 'type'"
 # Invariant-4 regression guard — broken superseded_by still fires.
 run 07-supersede-broken            1 present "has no matching record"
 
+# Positive parity — the OKF format author's own canonical bundle must pass clean
+# (vendored from GoogleCloudPlatform/knowledge-catalog; see the fixture's PROVENANCE.md).
+run 09-okf-canonical                0 present "no invariant violations"
+
 echo
 if ((fail == 0)); then
 	echo "All fixtures passed."
