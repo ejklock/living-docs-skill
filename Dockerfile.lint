@@ -32,11 +32,12 @@ RUN curl -fsSL -o /usr/local/bin/yq \
  && chmod +x /usr/local/bin/yq \
  && yq --version | grep -q mikefarah
 
-# lychee — link checker (glibc build; this base has glibc).
+# lychee — link checker. Use the musl (static) build so it does not depend on the base
+# image's glibc version (the gnu build needs GLIBC 2.38+, newer than bookworm's 2.36).
 RUN curl -fsSL -o /tmp/lychee.tgz \
-      "https://github.com/lycheeverse/lychee/releases/download/${LYCHEE_TAG}/lychee-x86_64-unknown-linux-gnu.tar.gz" \
+      "https://github.com/lycheeverse/lychee/releases/download/${LYCHEE_TAG}/lychee-x86_64-unknown-linux-musl.tar.gz" \
  && tar -xzf /tmp/lychee.tgz -C /tmp \
- && install -m 0755 /tmp/lychee-x86_64-unknown-linux-gnu/lychee /usr/local/bin/lychee \
+ && install -m 0755 /tmp/lychee-x86_64-unknown-linux-musl/lychee /usr/local/bin/lychee \
  && rm -rf /tmp/lychee* \
  && lychee --version
 
