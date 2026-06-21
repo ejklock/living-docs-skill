@@ -18,6 +18,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The docs linter delegates parsing to mature tools: lychee (link validity),
+      # yq (frontmatter YAML), jq (parses lychee's JSON). jq and mikefarah/yq v4 are
+      # preinstalled on the ubuntu runner; lychee is installed here.
+      - name: Install lychee
+        uses: taiki-e/install-action@v2
+        with:
+          tool: lychee
+
+      - name: Tool versions
+        run: |
+          lychee --version
+          yq --version
+          jq --version
+
       - name: Version consistency (VERSION ↔ every SKILL.md)
         run: ./scripts/check-version.sh
 

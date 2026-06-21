@@ -41,18 +41,18 @@ run() { # run <name> <expected_exit> <present|absent> <substring>
 echo "lint-docs hostile fixtures"
 echo
 
-# Bug 1 — fenced code blocks are skipped.
+# Links (delegated to lychee): fenced code blocks are skipped; titled / angle-bracket /
+# bare / reference-style links all resolve; broken links of any form are caught.
 run 01-fence-link-clean             0 absent  "broken link"
 run 02-fence-link-dirty             1 present "broken link"
-
-# Bug 2 — titled / angle-bracket / bare links all resolve.
 run 03-link-forms                   0 absent  "broken link"
+run 08-reference-link-broken        1 present "broken link"
 
-# Bug 3 — frontmatter reader: quotes + inline comment read fine;
-#         nested key does not rescue a missing top-level key; block scalar is rejected.
+# Frontmatter (delegated to yq, real YAML): quotes + inline comment read fine; a block
+# scalar is a valid value; a nested key does NOT rescue a missing top-level key.
 run 04-frontmatter-quoted-commented 0 absent  "non-empty 'type'"
+run 06-block-scalar-ok              0 absent  "non-empty 'type'"
 run 05-nested-key-trap              1 present "non-empty 'type'"
-run 06-block-scalar                1 present "non-empty 'type'"
 
 # Invariant-4 regression guard — broken superseded_by still fires.
 run 07-supersede-broken            1 present "has no matching record"

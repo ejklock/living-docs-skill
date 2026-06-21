@@ -185,6 +185,12 @@ per fact" semantics — those have no sound oracle and stay with the reviewer.
 ./scripts/lint-docs.sh docs          # lint the project's bundle; exit 1 on any violation
 ```
 
+It delegates parsing to mature tools (so it is correct, not a hand-rolled markdown/YAML
+parser): **lychee** (link validity, all link forms, `--offline`), **yq** v4 (frontmatter
+YAML), and **jq** (lychee's JSON). Install all three; the script exits 2 with install
+pointers if any is missing. The OKF structural graph (index membership + reachability)
+is the script's own logic on top.
+
 A worked, lint-clean corpus lives in [`examples/linkly/`](../../examples/linkly/) — copy its shapes.
 
 ## Quality checks

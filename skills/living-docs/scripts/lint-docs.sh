@@ -52,17 +52,39 @@ Checks (mechanical invariants only):
 
 Assumptions / limitations (this is a deterministic checker over a documented input
 shape, not a general markdown/YAML validator):
-  * frontmatter is read as flat, top-level, single-line 'key: value' pairs. Block
-    scalars ('>' / '|') and keys nested under a queried key are not supported; a block
-    scalar supplied for a required key (e.g. type) is reported as a violation.
-  * only inline markdown links '[x](target)' are checked; an optional title and the
-    angle-bracket '<target>' form are handled. Reference-style '[x][ref]' links are
-    not followed.
-  * fenced code blocks (triple-backtick or '~~~') are skipped — links shown inside
-    them are examples, not live links. Indented (4-space) code blocks are not stripped.
+Requirements (parsing is delegated to mature tools, not hand-rolled):
+  * lychee   link validity — every markdown link form (inline, titled, angle-bracket,
+             reference-style), code-fence aware, run with --offline (no network)
+  * yq       frontmatter — mikefarah/yq v4, real YAML via --front-matter=extract
+             (quotes, inline comments and block scalars are all parsed correctly)
+  * jq       parses lychee's JSON report
+
+Notes:
+  * link validity covers local files only; external http(s) links are not verified.
+  * the OKF structural graph (directory-index membership + index reachability) is
+    built from the inline links in index.md files.
 
 Exit: 0 clean · 1 violations · 2 usage error.
 EOF
+}
+
+# --- required external tools ------------------------------------------------
+
+require_tools() {
+	local missing=()
+	command -v yq >/dev/null 2>&1 || missing+=("yq (mikefarah v4)")
+	command -v lychee >/dev/null 2>&1 || missing+=("lychee")
+	command -v jq >/dev/null 2>&1 || missing+=("jq")
+	if ((${#missing[@]} > 0)); then
+		echo "$PROG: missing required tool(s): ${missing[*]}" >&2
+		echo "       lychee: https://lychee.cli.rs · yq v4: https://github.com/mikefarah/yq · jq: https://jqlang.github.io/jq" >&2
+		exit 2
+	fi
+	if ! yq --version 2>&1 | grep -q mikefarah; then
+		echo "$PROG: 'yq' must be mikefarah/yq v4 (found: $(yq --version 2>&1 | head -1))." >&2
+		echo "       this checker uses its --front-matter=extract — install from https://github.com/mikefarah/yq" >&2
+		exit 2
+	fi
 }
 
 case "${1:-}" in
@@ -81,6 +103,8 @@ if [[ ! -d "$BUNDLE" ]]; then
 	exit 2
 fi
 
+require_tools
+
 VIOLATIONS=0
 report() {
 	# report <file> <message>
@@ -98,32 +122,11 @@ has_frontmatter() { # has_frontmatter <file>  → 0 if first line is '---'
 	[[ "$(head -n 1 "$1")" == "---" ]]
 }
 
-fm_value() { # fm_value <file> <key>  → prints the trimmed scalar value within frontmatter
-	# Reads ONLY flat, top-level (column-0), single-line `key: value` pairs — all this
-	# format uses (see --help "Assumptions"). Strips an inline ' # comment' and surrounding
-	# single or double quotes. A nested key under a queried name is ignored (column-0 only);
-	# a block scalar ('>' / '|') or an empty value yields nothing, so the caller reports the
-	# violation instead of silently accepting an unsupported shape.
-	awk -v key="$2" -v apos="'" '
-		NR == 1 && $0 != "---" { exit }
-		NR == 1 { infm = 1; next }
-		infm && $0 == "---" { exit }
-		infm && index($0, key ":") == 1 {
-			val = substr($0, length(key) + 2)
-			sub(/^[[:space:]]+/, "", val)
-			first = substr(val, 1, 1)
-			if (first == "\"" || first == apos) {
-				rest = substr(val, 2)
-				p = index(rest, first)
-				if (p > 0) { print substr(rest, 1, p - 1); exit }
-			}
-			sub(/[[:space:]]+#.*$/, "", val)
-			sub(/[[:space:]]+$/, "", val)
-			if (val == "" || val ~ /^[>|][0-9+-]*$/) { print ""; exit }
-			print val
-			exit
-		}
-	' "$1"
+fm_value() { # fm_value <file> <key>  → prints the top-level frontmatter scalar, or empty
+	# Real YAML parsing via mikefarah yq: quotes, inline comments, and block scalars are
+	# all handled correctly; a missing or null key prints empty so the caller reports it.
+	# Callers guard with has_frontmatter, so the document always has a frontmatter block.
+	yq --front-matter=extract "(.${2} // \"\")" "$1" 2>/dev/null
 }
 
 # Normalize a path: collapse '.' and '..' segments. Pure bash (portable).
@@ -174,6 +177,10 @@ resolve_link() { # resolve_link <file> <target>
 	fi
 }
 
+# NOTE: link *validity* is delegated to lychee (see the link check below). The two helpers
+# here exist only to build the OKF *structural graph* — directory-index membership and
+# index→index reachability — from the inline links in index.md files.
+#
 # Strip fenced code blocks (``` / ~~~ regions) so example links shown inside them are not
 # mistaken for live links. Indented (4-space) code blocks are out of scope.
 strip_fences() { # strip_fences <file>
@@ -290,17 +297,25 @@ if [[ -f "$ROOT_INDEX" ]]; then
 	done
 fi
 
-# --- check: every local link resolves ---------------------------------------
+# --- check: every local link resolves (delegated to lychee) -----------------
+# lychee parses every markdown link form (inline / titled / angle-bracket / reference),
+# skips fenced code blocks, and with --offline checks only local files (no network).
+# --root-dir lets bundle-relative '/foo' links resolve against the bundle root.
 
-for f in "${ALL_MD[@]}"; do
-	while IFS= read -r tgt; do
-		resolved="$(resolve_link "$f" "$tgt")"
-		[[ -z "$resolved" ]] && continue
-		if [[ ! -e "$resolved" ]]; then
-			report "$f" "broken link → $tgt"
-		fi
-	done < <(links_in "$f")
-done
+if ((${#ALL_MD[@]} > 0)); then
+	abs_bundle="$(cd "$BUNDLE" && pwd)"
+	ly_json="$(lychee --offline --no-progress --format json \
+		--root-dir "$abs_bundle" "${ALL_MD[@]}" 2>/dev/null || true)"
+	while IFS=$'\t' read -r src url; do
+		[[ -z "$src" ]] && continue
+		src_rel="${src#"$PWD"/}"
+		tgt="${url#file://}"
+		tgt="${tgt#"$abs_bundle"/}"
+		report "$src_rel" "broken link → $tgt"
+	done < <(printf '%s' "$ly_json" | jq -r '
+		(.error_map // {}) | to_entries[] | .key as $src
+		| .value[] | [$src, .url] | @tsv' 2>/dev/null)
+fi
 
 # --- check: supersede integrity (invariant 4) -------------------------------
 

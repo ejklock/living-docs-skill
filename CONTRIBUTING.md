@@ -76,11 +76,21 @@ Then review the diff and update the `SKILL.md` rules only if conformance changed
 
 ## Validating your change
 
-There is no build step — everything is markdown and shell. Before opening a PR:
+There is no build step — everything is markdown and shell. The checker delegates parsing
+to three tools, so install them first:
 
 ```bash
-make check        # bash -n (install.sh + lint-docs.sh), dry-run every harness, lint the example corpus
+# lychee — link validity        https://lychee.cli.rs
+# yq v4 (mikefarah) — frontmatter  https://github.com/mikefarah/yq
+# jq — JSON                      https://jqlang.github.io/jq
+```
+
+Then, before opening a PR:
+
+```bash
+make check        # bash -n, dry-run every harness, lint the example corpus + run the fixtures
 make lint-docs    # just the docs-invariant check on examples/linkly/docs
+make test-fixtures # just the hostile/negative parser fixtures
 ```
 
 `make check` runs the skill's checker (`skills/living-docs/scripts/lint-docs.sh`) against

@@ -6,3 +6,6 @@ type: Reference
 - [a](./bar.md "Title")
 - [b](<./bar.md>)
 - [c](./bar.md)
+- [d][ref]
+
+[ref]: ./bar.md
