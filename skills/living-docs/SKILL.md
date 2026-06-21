@@ -136,14 +136,17 @@ Each directory carries its own `index.md` listing (OKF §6, no frontmatter). The
 
 ## Composition with other skills
 
-- **`grill-me`** — before writing a PRD or a load-bearing ADR, grill the design to surface the real decision and its alternatives. The grilling output becomes the ADR's Context/Consequences.
-- **`improve-codebase-architecture`** — reads the context index and ADRs to find deepening opportunities; emits new ADRs when a candidate is rejected for a load-bearing reason. This skill provides the ADR/context/architecture formats that one consumes.
-- **`research-artifacts`** — owns the research-note format and discipline (a single-file OKF `docs/research/NNNN-<slug>.md` — sequential number leads, date in frontmatter — with a trailing `# References`, plus the cross-research `docs/research/references.md` roll-up, source rules, the research → decision → issue chain). Living-docs delegates all research authoring to it and consumes its output: an accepted recommendation becomes an ADR/BDR here, which spawns issues. The links between the two are bidirectional.
-- **`deep-research`** — gathers and cross-verifies the evidence that lands in `docs/research/`; the `research-artifacts` skill defines how that evidence is formatted, indexed, and referenced from ADRs/PRDs.
-- **`init-codegraph`** — the structural index of *code*; the context index is the human-readable index of *concepts* and the architecture diagrams are the visual index of *structure*. Keep all current.
-- **`wave-execution`** — executes the issues these docs plan, one PR per wave. Wave execution is the implementation phase that consumes the ADRs, BDRs, and issues produced here.
-- **`implementation-review`** — verifies the implementation before it ships. Review checks that the code honors the ADRs and BDRs, and that every specified observable behavior (Given/When/Then) is tested.
+**Bundled in this repo** — installed alongside living-docs:
+
 - **`okf-knowledge-format`** — the portable, exchange-oriented **format** standard (Open Knowledge Format: markdown + YAML frontmatter, required `type`, reserved `index.md`/`log.md`, bundle-relative links, conformance rules). Living-docs governs *which* docs exist and the no-drift discipline; OKF governs *how* a knowledge bundle's markdown and frontmatter are shaped. Author a shareable knowledge corpus — e.g. `docs/context/` vocabulary or a `docs/research/` catalog meant to be consumed by agents or exchanged across orgs — as an OKF bundle so its frontmatter and indexing are spec-conformant. The two compose; they do not overlap.
+- **`research-artifacts`** — owns the research-note format and discipline (a single-file OKF `docs/research/NNNN-<slug>.md` — sequential number leads, date in frontmatter — with a trailing `# References`, plus the cross-research `docs/research/references.md` roll-up, source rules, the research → decision → issue chain). Living-docs delegates all research authoring to it and consumes its output: an accepted recommendation becomes an ADR/BDR here, which spawns issues. The links between the two are bidirectional.
+
+**Optional companions** — these are *not* included in this repo; living-docs works without them, and only composes with them if you happen to have them installed:
+
+- **`grill-me`** ([Matt Pocock's skills](https://github.com/mattpocock/skills), MIT — `make install-pocock`) — before writing a PRD or a load-bearing ADR, grill the design to surface the real decision and its alternatives. The grilling output becomes the ADR's Context/Consequences.
+- A **research-gathering** skill (e.g. a deep-research tool) gathers and cross-verifies the evidence that lands in `docs/research/`; `research-artifacts` defines how that evidence is formatted, indexed, and referenced from ADRs/PRDs.
+- A **code-structure index** (e.g. a codegraph tool) is the structural index of *code*; living-docs' context index is the human-readable index of *concepts* and the architecture diagrams are the visual index of *structure*. Keep all current.
+- An **execution/review** step downstream consumes what these docs plan: it implements the issues and verifies that the code honors the ADRs and BDRs, and that every specified observable behavior (Given/When/Then) is tested.
 
 ---
 
