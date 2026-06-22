@@ -1,0 +1,4 @@
+# The linter image only needs the checker script (COPY in Dockerfile.lint).
+# Keep the build context small.
+.git
+assets

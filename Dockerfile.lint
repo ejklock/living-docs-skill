@@ -1,0 +1,50 @@
+# Living Docs linter — self-contained image.
+#
+# Bundles the checker (skills/living-docs/scripts/lint-docs.sh) with the three tools it
+# delegates parsing to: lychee (links), yq v4 (frontmatter), jq (JSON). This is the
+# "run it without installing anything but Docker" option — the alternative to installing
+# lychee/yq/jq on the host.
+#
+# Build (from the repo root):
+#   docker build -f Dockerfile.lint -t living-docs-lint .
+#
+# Run (mount the project; pass the bundle path, default 'docs'):
+#   docker run --rm -v "$PWD:/work" living-docs-lint docs
+#   docker run --rm -v "$PWD:/work" living-docs-lint path/to/docs
+#
+# Exit code is the linter's: 0 clean · 1 violations · 2 usage/tool error.
+
+FROM debian:bookworm-slim
+
+# Pinned tool versions (bump together; lychee's tag carries the 'lychee-' prefix).
+ARG YQ_VERSION=v4.53.3
+ARG LYCHEE_TAG=lychee-v0.24.2
+
+# bash 4+ (the script's guard), GNU awk/coreutils/grep/sed, jq, and curl for the fetches.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      bash jq gawk grep sed coreutils findutils curl ca-certificates tar \
+ && rm -rf /var/lib/apt/lists/*
+
+# yq — mikefarah/yq v4 (static single binary).
+RUN curl -fsSL -o /usr/local/bin/yq \
+      "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" \
+ && chmod +x /usr/local/bin/yq \
+ && yq --version | grep -q mikefarah
+
+# lychee — link checker. Use the musl (static) build so it does not depend on the base
+# image's glibc version (the gnu build needs GLIBC 2.38+, newer than bookworm's 2.36).
+RUN curl -fsSL -o /tmp/lychee.tgz \
+      "https://github.com/lycheeverse/lychee/releases/download/${LYCHEE_TAG}/lychee-x86_64-unknown-linux-musl.tar.gz" \
+ && tar -xzf /tmp/lychee.tgz -C /tmp \
+ && install -m 0755 /tmp/lychee-x86_64-unknown-linux-musl/lychee /usr/local/bin/lychee \
+ && rm -rf /tmp/lychee* \
+ && lychee --version
+
+# Bake the checker in.
+COPY skills/living-docs/scripts/lint-docs.sh /usr/local/bin/lint-docs
+RUN chmod +x /usr/local/bin/lint-docs
+
+WORKDIR /work
+ENTRYPOINT ["lint-docs"]
+CMD ["docs"]

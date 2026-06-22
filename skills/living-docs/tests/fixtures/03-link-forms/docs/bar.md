@@ -1,0 +1,4 @@
+---
+type: Reference
+---
+# Bar
