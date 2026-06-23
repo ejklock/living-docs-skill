@@ -95,7 +95,7 @@ dependencies and the prior-art research that backs its honesty claims:
 | [`skills/okf-knowledge-format/`](skills/okf-knowledge-format/) | The **format** standard the docs use — Open Knowledge Format (OKF): markdown + YAML frontmatter, required `type`, reserved `index.md`/`log.md`, bundle-relative links. The OKF spec is **vendored verbatim** from Google Cloud Platform. |
 | [`skills/research-artifacts/`](skills/research-artifacts/) | The research-note format and source discipline that feeds ADRs/PRDs (the `docs/research/` half of the trail). |
 | [`references/prior-art-landscape.md`](references/prior-art-landscape.md) | The sourced prior-art analysis — every part of Living Docs (the doc trail, the OKF format, the diagrams, the governance invariants) mapped to its established originator, so every "credit, not invention" claim has a checkable citation. |
-| [`skills/living-docs/scripts/lint-docs.sh`](skills/living-docs/scripts/lint-docs.sh) | The **deterministic checker** for the mechanical invariants — frontmatter/`type`, indexing + reachability, link resolution, supersede integrity. Ships *inside* the skill; delegates parsing to mature tools (**lychee** for links, **yq** v4 for frontmatter, **jq** for JSON) rather than hand-rolling it. *A constraint without an instrument is a vibe*; this is the instrument. Wire it into CI. |
+| [`skills/living-docs/scripts/lint-docs.sh`](skills/living-docs/scripts/lint-docs.sh) | The **deterministic checker** for the mechanical invariants — frontmatter/`type`, indexing + reachability, link resolution, supersede integrity. Ships *inside* the skill; delegates parsing to mature tools (**lychee** for links, **yq** v4 for frontmatter, **jq** for JSON) rather than hand-rolling it. *A constraint without an instrument is a vibe*; this is the instrument. Wire it into CI. No host tools? `make lint-docker` bundles lychee+yq+jq in an image and lints with zero local installs. |
 | [`examples/linkly/`](examples/linkly/) | A worked, **lint-clean** end-to-end corpus (constitution → PRD → ADR + BDR → issue) for a fictional URL shortener — the discipline shown, not just described, and the fixture CI runs `lint-docs` against. |
 
 Each skill is self-describing — open its `SKILL.md` for the full operational
@@ -107,7 +107,7 @@ bundle's markdown and frontmatter are shaped.**
 
 ## Installation
 
-These are plain **markdown instruction files** — there is nothing to compile.
+The skill is plain **markdown instruction files** — nothing to compile or install to use it. The one piece with dependencies is the optional `lint-docs` checker (it uses **lychee**, **yq** v4 and **jq** to parse links and YAML correctly instead of approximately) — and even that needs nothing on your host if you run it via Docker: `make lint-docker`.
 Installing Living Docs always means the same thing: **put the three `skills/`
 directories (or a generated rule file) where your tool discovers instructions,
 then start a fresh session.** A cross-platform installer and a `Makefile` do this
@@ -140,7 +140,11 @@ make install         # Claude Code, global
 make install-cursor  # or install-copilot / install-opencode / install-codex / install-pi / install-all
 make project-claude  # install into the current project
 make uninstall-all   # remove from every harness
-make check           # bash -n + a dry-run of every harness
+make check           # full gate: version sync · lint the example · hostile parser
+                     #   fixtures · bash -n all scripts · dry-run every harness
+make lint-docs       # run the checker against examples/linkly/docs
+make test-fixtures   # run the hostile/negative fixtures guarding the parsers
+make lint-docker     # lint via Docker — bundles lychee+yq+jq, no host tools needed
 ```
 
 ### Where each tool loads from
@@ -251,8 +255,9 @@ Full credits and the per-source links are in
 
 Issues and PRs welcome — the project dogfoods its own rules. See
 [`CONTRIBUTING.md`](CONTRIBUTING.md) for the repo layout, the invariants it holds
-itself to, how to refresh the vendored OKF spec, and how to validate a change
-(`make check`).
+itself to, how to refresh the vendored OKF spec, and how to validate a change —
+`make check` runs the full gate: version sync, the docs linter, the hostile parser
+fixtures, `bash -n` on every script, and a dry-run of every installer.
 
 ---
 
@@ -272,8 +277,10 @@ use it. See [Installation](#installation).
 **How is this different from a documentation generator or a wiki?**
 Living Docs is not a generator and not a hosting tool. It is a *discipline* — five
 no-drift governance invariants plus a doc trail (constitution → PRD → ADR + BDR →
-issues → code) that an agent enforces while it works. Your docs live in the repo,
-in Git, next to the code.
+issues → code). The agent **follows** the discipline as it works; a deterministic
+checker (`lint-docs`) **verifies** the mechanical half when you wire it into CI or
+the agent's loop. Prompt-level guidance plus a machine check — not one pretending
+to be the other. Your docs live in the repo, in Git, next to the code.
 
 **What is an ADR / BDR / PRD?**
 An **ADR** (Architecture Decision Record) captures *how* the system is structured
@@ -288,6 +295,9 @@ frontmatter, a required `type`, reserved `index.md`/`log.md`, and bundle-relativ
 links. Living Docs stores every doc as an OKF concept so the corpus stays
 portable and agent-parseable. The spec is vendored under
 [`skills/okf-knowledge-format/`](skills/okf-knowledge-format/).
+
+**What does the `lint-docs` checker catch — and not catch?**
+It is a deterministic checker over a *documented input shape*, not a general markdown/YAML validator, and its three fragile parsers (link extraction, link resolution, frontmatter reading) are guarded by hostile/negative fixtures (`make test-fixtures`). One known limit: the **structural-graph** checks — directory-index membership and index reachability — read only **inline** links in `index.md`, so a file indexed *solely* via a **reference-style** link (`[x][ref]`) is not yet detected there and would be reported as a false-positive orphan. Link *validity* itself is delegated to **lychee**, which does handle every link form (inline, titled, angle-bracket, and reference-style).
 
 **Is it tied to a specific language or framework?**
 No. Living Docs is stack-agnostic — it governs documentation organization and
