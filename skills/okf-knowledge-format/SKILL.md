@@ -1,7 +1,7 @@
 ---
 name: okf-knowledge-format
 description: Author and validate knowledge as OKF (Open Knowledge Format) bundles — a directory of markdown files with YAML frontmatter, where every concept is one .md file with a REQUIRED `type` field, reserved index.md/log.md files, bundle-relative cross-links, and a permissive conformance model. Use when standing up or maintaining a knowledge bundle/catalog, writing or normalizing a concept document's frontmatter, deciding how to structure markdown knowledge for agents to consume, or checking a corpus against OKF conformance. The canonical spec is vendored under reference/SPEC.md and refreshed from GitHub via scripts/update-spec.sh.
-version: "0.2.0"
+version: "0.3.0"
 metadata:
   type: skill
   layer: procedural

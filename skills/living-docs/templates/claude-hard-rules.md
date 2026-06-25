@@ -4,6 +4,15 @@ Copy this block into the project's `CLAUDE.md` and fill in the `<placeholders>`.
 
 ---
 
+## Living Docs
+
+```
+enforcement: strict   # strict | guided | lite
+onboarded: <YYYY-MM-DD>
+```
+
+The enforcement mode is set once, the first time living-docs runs in this project, and persisted here. `strict` (default) = the doc trail below is mandatory and the agent refuses a structural/behavioral task that ships without its doc; `guided` = the agent asks before skipping a step; `lite` = only the five core invariants are enforced, the doc trail is advisory. To change modes, edit this block. See the living-docs skill → *Enforcement modes*.
+
 ## Doc-trail
 
 Every change follows this chain:
@@ -12,7 +21,7 @@ Every change follows this chain:
 constitution → PRD → ADR (how) + BDR (behavior) → issues → code
 ```
 
-No code change skips a link. A PR that changes behavior without a BDR, or architecture without an ADR, is incomplete.
+No code change skips a link. A PR that changes behavior without a BDR, or architecture without an ADR, is incomplete (subject to the enforcement mode above).
 
 ## Locations
 

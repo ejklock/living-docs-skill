@@ -1,7 +1,7 @@
 ---
 name: living-docs
 description: Run a project's documentation as a living system — docs-first issues/PRDs, MADR-lite ADRs (supersede, never delete), Behavior Decision Records (BDRs), a project constitution, research artifacts, living Mermaid architecture diagrams, and semantic-index organization where every doc lands in exactly one place and indexes never drift. Use when setting up or maintaining project docs, writing an ADR/PRD/BDR/constitution/issue/research note, defining a term or acronym in the glossary, drawing or updating an architecture/flow/sequence diagram, splitting an oversized doc into an index, or enforcing the no-drift maintenance rule.
-version: "0.2.0"
+version: "0.3.0"
 metadata:
   type: skill
   layer: procedural
@@ -80,6 +80,7 @@ flowchart LR
 ## When to invoke
 
 - Standing up documentation for a project (creating `docs/` structure, the docs index, ADR/issue/BDR/constitution directories).
+- **First time living-docs runs in a project** (no `## Living Docs` block in the project guide) → ask the enforcement-mode question and persist the answer → see **Enforcement modes**.
 - Writing or editing an **ADR** (an architectural/implementation decision) → load `rules/adr-conventions.md` + `templates/adr.md`.
 - Writing or editing a **PRD** (a product/feature requirement spec) → load `rules/prd-conventions.md` + `templates/prd.md`.
 - Writing or editing a **BDR** (observable behavior — inputs, outputs, Given/When/Then scenarios, **and the Test Design matrix for how each is tested**) → load `rules/bdr-conventions.md` + `templates/bdr.md`. A test-strategy *decision* (non-default level/technique, bar deviation) is an ADR `tags: [testing]`, not a new record type (no "TDR").
@@ -119,15 +120,16 @@ Each directory carries its own `index.md` listing (OKF §6, no frontmatter). The
 
 ### Setting up living docs in a new project
 
-1. Create the project guide (`CLAUDE.md` or equivalent) with a **Docs index** section and a **Maintenance rule** section (copy the wording from `rules/maintenance-invariant.md`). Use `templates/claude-hard-rules.md` as the starting point for the project guide's hard-rules section — fill in the placeholders before committing.
-2. Create `docs/` with the directories the project needs (`adr/`, `bdr/`, `issues/`, `prd/`, `research/`, `context/`). Seed `docs/constitution.md` from `templates/constitution.md`. Add the bundle-root `docs/index.md` (carrying `okf_version: "0.1"`), and give each directory its own `index.md` listing from day one — even if near-empty.
-3. Seed the context index (`docs/context/index.md`) with whatever domain vocabulary exists, and the glossary (`docs/context/glossary.md`) with the terms and acronyms the docs already assume (`rules/glossary-conventions.md`). Grow both as concepts are named.
-4. Seed the architecture doc (`docs/architecture.md`) with the high-level Mermaid views the system already has. Promote to a `docs/architecture/` directory + index once it grows (`rules/architecture-diagrams.md`).
-5. Record any already-made decisions as ADRs so they are not re-litigated.
+1. **Ask the enforcement-mode question** (see *Enforcement modes* → *First-run question*) before anything else, since no preference is persisted yet. Record the answer as the `## Living Docs` block in the project guide; default to `strict` if the user has no preference.
+2. Create the project guide (`CLAUDE.md` or equivalent) with a **Docs index** section and a **Maintenance rule** section (copy the wording from `rules/maintenance-invariant.md`). Use `templates/claude-hard-rules.md` as the starting point for the project guide's hard-rules section — it already carries the `## Living Docs` enforcement block; fill in the placeholders before committing.
+3. Create `docs/` with the directories the project needs (`adr/`, `bdr/`, `issues/`, `prd/`, `research/`, `context/`). Seed `docs/constitution.md` from `templates/constitution.md`. Add the bundle-root `docs/index.md` (carrying `okf_version: "0.1"`), and give each directory its own `index.md` listing from day one — even if near-empty.
+4. Seed the context index (`docs/context/index.md`) with whatever domain vocabulary exists, and the glossary (`docs/context/glossary.md`) with the terms and acronyms the docs already assume (`rules/glossary-conventions.md`). Grow both as concepts are named.
+5. Seed the architecture doc (`docs/architecture.md`) with the high-level Mermaid views the system already has. Promote to a `docs/architecture/` directory + index once it grows (`rules/architecture-diagrams.md`).
+6. Record any already-made decisions as ADRs so they are not re-litigated.
 
 ### Maintaining living docs (every task)
 
-1. **Before coding:** read the relevant constitution, ADRs, BDRs, and the context index. Decisions there are not to be re-opened casually.
+1. **Before coding:** read the `## Living Docs` enforcement mode from the project guide (if the block is absent, this is the first run — ask the first-run question and persist the answer). Then read the relevant constitution, ADRs, BDRs, and the context index. Decisions there are not to be re-opened casually.
 2. **While working:** if you name a new concept, add it to the context index; if you introduce a new term or acronym, define it once in the glossary. If you make a decision with a load-bearing rationale, write an ADR. If you specify observable behavior, write or amend a BDR.
 3. **In the same change:** update every doc the structural change touches — index rows, **architecture diagrams**, vocabulary. Run the maintenance checklist (`rules/maintenance-invariant.md`).
 4. **Never** leave an index stale, an orphan file unlinked, a diagram contradicting the code, or a superseded decision silently edited.
@@ -150,6 +152,39 @@ Each directory carries its own `index.md` listing (OKF §6, no frontmatter). The
 
 ---
 
+## Enforcement modes
+
+The five invariants above are **always** hard stops — they hold in every project regardless of mode (an orphan file or a silent rewrite is never acceptable). What the *mode* governs is the **doc trail** (constitution → PRD → ADR/BDR → issues → code): how strictly the agent refuses a structural or behavioral change that ships without its decision record.
+
+The mode is chosen **once, by the user, the first time living-docs runs in the project**, and persisted in the project guide. The default is `strict` — the discipline is **opt-out, not opt-in**, because a flow nobody is forced to follow is the flow that rots first.
+
+| Mode | Doc trail | Agent behavior |
+|---|---|---|
+| `strict` (default) | Mandatory | Refuses to report a structural/behavioral task complete without its required doc (PRD/ADR/BDR/issue). Same hard-stop weight as the five invariants. |
+| `guided` | Prompted | Pauses and asks the user before skipping a doc-trail step. The user may waive a step per task; the waiver is not remembered. |
+| `lite` | Advisory | Only the five invariants are hard stops. The doc trail is recommended, never enforced (this is the pre-0.3 behavior). |
+
+### First-run question
+
+When living-docs is invoked in a project and **no enforcement preference is yet persisted** (no `## Living Docs` block in the project guide), ask the user once, *before* doing the work:
+
+> This project hasn't set a living-docs enforcement mode yet. How strictly should the doc trail (PRD → ADR/BDR → issues) be enforced?
+> - **strict** (recommended) — every structural/behavioral change must carry its doc; I'll refuse to call a task done without it.
+> - **guided** — I'll ask before skipping a doc-trail step.
+> - **lite** — only the five invariants are enforced; the doc trail is advice.
+
+Persist the answer immediately in the project guide (`CLAUDE.md`, where it enters context at session start), then proceed:
+
+```
+## Living Docs
+enforcement: strict   # strict | guided | lite
+onboarded: <YYYY-MM-DD>
+```
+
+**Absence of the block is the only first-run signal**; presence of any valid `enforcement` value means onboarded — never ask again, just read it and apply it. To change modes later, the user edits the block.
+
+Doc-trail enforcement is a **judgement** call (there is no sound oracle for "did this change need an ADR"), so it lives with the agent, not with `lint-docs.sh`. The mechanical invariants (frontmatter, indexing, links, supersede) are checked the same way in every mode.
+
 ## Agent enforcement (refusal triggers)
 
 The value of this skill is not the discipline — humans abandon "nothing structural without
@@ -167,10 +202,15 @@ report a docs-touching task as complete if any of these hold — fix it or surfa
    `index.md`/`log.md` carries frontmatter (except the bundle-root `index.md`).
 5. **Broken link.** A bundle-relative (`/…`) or relative link points at a file that does not exist.
 6. **Duplicate home.** The same fact now lives in two files (cross-reference instead).
+7. **Broken doc trail** *(mode-gated — see Enforcement modes)*. A structural change shipped without
+   its ADR, or a behavioral change without its BDR. Under `strict` this is a blocked task — refuse it
+   like an orphan. Under `guided`, pause and ask the user before proceeding. Under `lite` it is
+   advisory only.
 
 Triggers **1, 3, 4, 5** are mechanical — run `scripts/lint-docs.sh` (below) and treat a non-zero
-exit as a blocked task, not a warning. Triggers **2** and **6** are semantic (no sound oracle) and
-stay a judgement call: inspect the diff before declaring done.
+exit as a blocked task, not a warning. Triggers **2**, **6**, and **7** are semantic (no sound oracle)
+and stay a judgement call: inspect the diff before declaring done. Trigger **7** additionally depends
+on the project's enforcement mode.
 
 ### lint-docs — the deterministic instrument
 
