@@ -1,7 +1,7 @@
 ---
 name: living-docs
 description: Run a project's documentation as a living system — docs-first issues/PRDs, MADR-lite ADRs (supersede, never delete), Behavior Decision Records (BDRs), a project constitution, research artifacts, living Mermaid architecture diagrams, and semantic-index organization where every doc lands in exactly one place and indexes never drift. Use when setting up or maintaining project docs, writing an ADR/PRD/BDR/constitution/issue/research note, defining a term or acronym in the glossary, drawing or updating an architecture/flow/sequence diagram, splitting an oversized doc into an index, or enforcing the no-drift maintenance rule.
-version: "0.3.0"
+version: "0.4.0"
 metadata:
   type: skill
   layer: procedural
@@ -81,6 +81,7 @@ flowchart LR
 
 - Standing up documentation for a project (creating `docs/` structure, the docs index, ADR/issue/BDR/constitution directories).
 - **First time living-docs runs in a project** (no `## Living Docs` block in the project guide) → ask the enforcement-mode question and persist the answer → see **Enforcement modes**.
+- **Adopting living-docs in an existing/brownfield project** (decisions already made but undocumented) → follow *Procedure → Adopting living docs in an existing project*: inventory the decisions, **confirm each with the user before recording any ADR**, never back-fill by inference alone.
 - Writing or editing an **ADR** (an architectural/implementation decision) → load `rules/adr-conventions.md` + `templates/adr.md`.
 - Writing or editing a **PRD** (a product/feature requirement spec) → load `rules/prd-conventions.md` + `templates/prd.md`.
 - Writing or editing a **BDR** (observable behavior — inputs, outputs, Given/When/Then scenarios, **and the Test Design matrix for how each is tested**) → load `rules/bdr-conventions.md` + `templates/bdr.md`. A test-strategy *decision* (non-default level/technique, bar deviation) is an ADR `tags: [testing]`, not a new record type (no "TDR").
@@ -125,12 +126,23 @@ Each directory carries its own `index.md` listing (OKF §6, no frontmatter). The
 3. Create `docs/` with the directories the project needs (`adr/`, `bdr/`, `issues/`, `prd/`, `research/`, `context/`). Seed `docs/constitution.md` from `templates/constitution.md`. Add the bundle-root `docs/index.md` (carrying `okf_version: "0.1"`), and give each directory its own `index.md` listing from day one — even if near-empty.
 4. Seed the context index (`docs/context/index.md`) with whatever domain vocabulary exists, and the glossary (`docs/context/glossary.md`) with the terms and acronyms the docs already assume (`rules/glossary-conventions.md`). Grow both as concepts are named.
 5. Seed the architecture doc (`docs/architecture.md`) with the high-level Mermaid views the system already has. Promote to a `docs/architecture/` directory + index once it grows (`rules/architecture-diagrams.md`).
-6. Record any already-made decisions as ADRs so they are not re-litigated.
+6. Record any already-made decisions as ADRs so they are not re-litigated — but **confirm each with the user before recording** (see *Adopting living docs in an existing project*, steps 3–5); never back-fill an ADR by inference alone.
+
+### Adopting living docs in an existing project (brownfield)
+
+An existing codebase already embodies decisions that were never written down. The failure mode here is the agent **back-filling ADRs by inference and presenting them as settled** — recording decisions the user was never asked to confirm. Adoption is therefore an *elicitation* exercise, not a transcription one.
+
+1. **Ask the enforcement-mode question** (first-run) and persist the `## Living Docs` block, exactly as for a new project.
+2. **Scaffold without deciding.** Create `docs/` + each directory's `index.md`, the bundle-root `docs/index.md`, and seed the glossary/context index from vocabulary already present in the **code, the `README`, and the agent guides (`CLAUDE.md` / `AGENTS.md`)**. This is mechanical — no decisions are made here.
+3. **Read the existing context first, then inventory the decisions — as candidates, not records.** Harvest what the project already carries: the code itself, plus the `README`, the agent guides (`CLAUDE.md` / `AGENTS.md`), package manifests, and any design notes or comments. From that, produce a *list* of the load-bearing decisions the project appears to embody (stack, boundaries, data model, key trade-offs). Do **not** write ADRs yet.
+4. **Present the inventory to the user and confirm each.** For every candidate, state the inferred decision and the alternatives it appears to have ruled out, and ask the user to confirm, correct, or discard it — grill the load-bearing ones (`grill-me` if installed). The user owns the decision; the agent only surfaces what the code implies.
+5. **Record only the confirmed decisions as ADRs.** These are origin records — they supersede nothing. Capture the chosen option *and* the rejected alternatives the user confirmed. A candidate the user discards, or one whose rationale nobody actually knows, is **not** invented into an ADR.
+6. **Seed the architecture doc** with the high-level Mermaid views the system already has (`rules/architecture-diagrams.md`), then resume the *Maintaining* loop below.
 
 ### Maintaining living docs (every task)
 
 1. **Before coding:** read the `## Living Docs` enforcement mode from the project guide (if the block is absent, this is the first run — ask the first-run question and persist the answer). Then read the relevant constitution, ADRs, BDRs, and the context index. Decisions there are not to be re-opened casually.
-2. **While working:** if you name a new concept, add it to the context index; if you introduce a new term or acronym, define it once in the glossary. If you make a decision with a load-bearing rationale, write an ADR. If you specify observable behavior, write or amend a BDR.
+2. **While working:** if you name a new concept, add it to the context index; if you introduce a new term or acronym, define it once in the glossary. If you make a decision with a load-bearing rationale, **grill it before recording it** — surface the decision, ≥2 materially-distinct alternatives, and a recommendation to the user (run the `grill-me` companion if installed, else inline), then write an ADR capturing the chosen option *and* the rejected ones. If you specify observable behavior, write or amend a BDR. Never record a decision the user was not asked about (see *Enforcement modes → Mode governs completion, not elicitation*).
 3. **In the same change:** update every doc the structural change touches — index rows, **architecture diagrams**, vocabulary. Run the maintenance checklist (`rules/maintenance-invariant.md`).
 4. **Never** leave an index stale, an orphan file unlinked, a diagram contradicting the code, or a superseded decision silently edited.
 
@@ -145,7 +157,7 @@ Each directory carries its own `index.md` listing (OKF §6, no frontmatter). The
 
 **Optional companions** — these are *not* included in this repo; living-docs works without them, and only composes with them if you happen to have them installed:
 
-- **`grill-me`** ([Matt Pocock's skills](https://github.com/mattpocock/skills), MIT — `make install-pocock`) — before writing a PRD or a load-bearing ADR, grill the design to surface the real decision and its alternatives. The grilling output becomes the ADR's Context/Consequences.
+- **`grill-me`** ([Matt Pocock's skills](https://github.com/mattpocock/skills), MIT — `make install-pocock`) — before writing a PRD or a load-bearing ADR, grill the design to surface the real decision and its alternatives. The grilling output becomes the ADR's Context/Consequences. The *Maintaining* loop (step 2) and the brownfield-adoption procedure invoke this step explicitly; without `grill-me` installed, do the lightweight inline version — state the decision, ≥2 materially-distinct alternatives, and a recommendation, and get the user's call before recording.
 - A **research-gathering** skill (e.g. a deep-research tool) gathers and cross-verifies the evidence that lands in `docs/research/`; `research-artifacts` defines how that evidence is formatted, indexed, and referenced from ADRs/PRDs.
 - A **code-structure index** (e.g. a codegraph tool) is the structural index of *code*; living-docs' context index is the human-readable index of *concepts* and the architecture diagrams are the visual index of *structure*. Keep all current.
 - An **execution/review** step downstream consumes what these docs plan: it implements the issues and verifies that the code honors the ADRs and BDRs, and that every specified observable behavior (Given/When/Then) is tested.
@@ -163,6 +175,12 @@ The mode is chosen **once, by the user, the first time living-docs runs in the p
 | `strict` (default) | Mandatory | Refuses to report a structural/behavioral task complete without its required doc (PRD/ADR/BDR/issue). Same hard-stop weight as the five invariants. |
 | `guided` | Prompted | Pauses and asks the user before skipping a doc-trail step. The user may waive a step per task; the waiver is not remembered. |
 | `lite` | Advisory | Only the five invariants are hard stops. The doc trail is recommended, never enforced (this is the pre-0.3 behavior). |
+
+### Mode governs completion, not elicitation
+
+A frequent misread is that `strict` means "the agent interrogates every decision." It does not. The mode governs **completion enforcement** — whether a structural/behavioral task may be reported done without its doc. It says nothing about *how the decision inside that doc was reached*.
+
+**Decision elicitation (grilling) is a separate, always-on concern**, independent of mode. A load-bearing decision is never recorded from the agent's own inference alone: before writing an ADR/BDR, surface the decision, **≥2 materially-distinct alternatives**, and a recommendation to the user, then record the chosen option **and the rejected ones**. Run the `grill-me` companion (see *Composition*) to drive that interrogation if it is installed; otherwise do the lightweight inline version. **Never write an ADR for a decision the user was never asked about** — in any mode. Mode changes whether you may *ship* without the doc; it never licenses inventing the decision the doc records.
 
 ### First-run question
 

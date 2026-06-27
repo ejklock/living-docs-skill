@@ -11,7 +11,7 @@ enforcement: strict   # strict | guided | lite
 onboarded: <YYYY-MM-DD>
 ```
 
-The enforcement mode is set once, the first time living-docs runs in this project, and persisted here. `strict` (default) = the doc trail below is mandatory and the agent refuses a structural/behavioral task that ships without its doc; `guided` = the agent asks before skipping a step; `lite` = only the five core invariants are enforced, the doc trail is advisory. To change modes, edit this block. See the living-docs skill → *Enforcement modes*.
+The enforcement mode is set once, the first time living-docs runs in this project, and persisted here. `strict` (default) = the doc trail below is mandatory and the agent refuses a structural/behavioral task that ships without its doc; `guided` = the agent asks before skipping a step; `lite` = only the five core invariants are enforced, the doc trail is advisory. To change modes, edit this block. See the living-docs skill → *Enforcement modes*. The mode controls *completion enforcement* only — load-bearing decisions are always grilled and confirmed with you before an ADR/BDR is recorded; the agent never back-fills a decision by inference, in any mode.
 
 ## Doc-trail
 
