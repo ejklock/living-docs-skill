@@ -24,6 +24,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install lychee
+        uses: taiki-e/install-action@v2
+        with:
+          tool: lychee
+
       - name: Verify tag matches VERSION and every SKILL.md
         run: ./scripts/check-version.sh "${GITHUB_REF_NAME}"
 
