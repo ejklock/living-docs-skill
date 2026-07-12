@@ -8,7 +8,7 @@ INSTALL := ./install.sh
 .PHONY: help install install-claude install-cursor install-copilot \
         install-opencode install-codex install-pi install-all install-pocock \
         project-claude project-opencode project-codex project-pi \
-        uninstall uninstall-all check lint lint-docs test-fixtures version \
+        uninstall uninstall-all check lint lint-docs lint-mermaid test-fixtures version \
         lint-docker-build lint-docker
 
 help: ## Show this help
@@ -59,15 +59,19 @@ uninstall: ## Remove the global Claude Code install
 uninstall-all: ## Remove the install for every supported harness
 	$(INSTALL) all --uninstall
 
-check: version lint-docs test-fixtures ## Check version sync, validate install.sh, dry-run harnesses, lint docs, run fixtures
+check: version lint-docs lint-mermaid test-fixtures ## Check version sync, validate install.sh, dry-run harnesses, lint docs, validate mermaid, run fixtures
 	bash -n install.sh
 	bash -n skills/living-docs/scripts/lint-docs.sh
+	bash -n skills/living-docs/scripts/lint-mermaid.sh
 	bash -n skills/living-docs/tests/run.sh
 	bash -n scripts/check-version.sh
 	$(INSTALL) all --dry-run
 
 lint-docs: ## Validate the example docs bundle against the Living Docs invariants
 	./skills/living-docs/scripts/lint-docs.sh examples/linkly/docs
+
+lint-mermaid: ## Validate every fenced mermaid block via the real parser (requires Docker)
+	./skills/living-docs/scripts/lint-mermaid.sh
 
 test-fixtures: ## Run the hostile/negative fixtures that guard the lint-docs parsers
 	./skills/living-docs/tests/run.sh
