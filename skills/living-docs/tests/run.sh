@@ -13,15 +13,14 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LINT="$HERE/../scripts/lint-docs.sh"
+LINT_MERMAID="$HERE/../scripts/lint-mermaid.sh"
 FIXTURES="$HERE/fixtures"
 
 fail=0
 
-run() { # run <name> <expected_exit> <present|absent> <substring>
-	local name="$1" exp="$2" mode="$3" sub="$4"
-	local out rc ok=1
-	out="$("$LINT" "$FIXTURES/$name/docs" 2>&1)"
-	rc=$?
+assert_result() { # assert_result <name> <expected_exit> <present|absent> <substring> <actual_exit> <output>
+	local name="$1" exp="$2" mode="$3" sub="$4" rc="$5" out="$6"
+	local ok=1
 	[[ "$rc" == "$exp" ]] || ok=0
 	if [[ "$mode" == "present" ]]; then
 		grep -qF -- "$sub" <<<"$out" || ok=0
@@ -36,6 +35,22 @@ run() { # run <name> <expected_exit> <present|absent> <substring>
 		printf '%s\n' "$out" | sed 's/^/          | /'
 		fail=1
 	fi
+}
+
+run() { # run <name> <expected_exit> <present|absent> <substring>
+	local name="$1" exp="$2" mode="$3" sub="$4"
+	local out rc
+	out="$("$LINT" "$FIXTURES/$name/docs" 2>&1)"
+	rc=$?
+	assert_result "$name" "$exp" "$mode" "$sub" "$rc" "$out"
+}
+
+run_mermaid() { # run_mermaid <name> <expected_exit> <present|absent> <substring>
+	local name="$1" exp="$2" mode="$3" sub="$4"
+	local out rc
+	out="$("$LINT_MERMAID" "$FIXTURES/$name" 2>&1)"
+	rc=$?
+	assert_result "$name" "$exp" "$mode" "$sub" "$rc" "$out"
 }
 
 echo "lint-docs hostile fixtures"
@@ -60,6 +75,11 @@ run 07-supersede-broken            1 present "has no matching record"
 # Positive parity — the OKF format author's own canonical bundle must pass clean
 # (vendored from GoogleCloudPlatform/knowledge-catalog; see the fixture's PROVENANCE.md).
 run 09-okf-canonical                0 present "no invariant violations"
+
+# lint-mermaid.sh (delegated to the real Mermaid parser via mermaid-cli): a valid flowchart
+# + erDiagram pass clean; a syntactically broken diagram fails with a file:line pointer.
+run_mermaid 10-mermaid-valid        0 absent  "FAIL"
+run_mermaid 11-mermaid-invalid      1 present "doc.md:"
 
 echo
 if ((fail == 0)); then
