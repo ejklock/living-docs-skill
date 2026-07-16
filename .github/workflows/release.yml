@@ -5,8 +5,12 @@ name: Release
 #   1. bump VERSION + each skills/*/SKILL.md `version:` to X.Y.Z (kept in sync; gated below)
 #   2. git commit -am "chore: release vX.Y.Z" && git tag vX.Y.Z && git push --tags
 #
-# The workflow verifies the tag agrees with the declared version, lints, packages the
-# skills into a versioned zip, and publishes a GitHub Release with auto-generated notes.
+# The workflow verifies the tag agrees with the declared version, lints (which now builds
+# the `living-docs` binary natively — see the Rust setup step below), packages the skills
+# into a versioned zip, and publishes a GitHub Release with auto-generated notes. A second
+# job then cross-compiles the `living-docs` binary for each supported target and uploads
+# `living-docs-<target-triple>` + its `.sha256` to the same release — install.sh downloads
+# these by that exact name (asset-naming contract).
 
 on:
   push:
@@ -24,15 +28,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install lychee
-        uses: taiki-e/install-action@v2
-        with:
-          tool: lychee
+      - name: Install Rust 1.96.0 (cli/rust-toolchain.toml)
+        uses: dtolnay/rust-toolchain@1.96.0
 
       - name: Verify tag matches VERSION and every SKILL.md
         run: ./scripts/check-version.sh "${GITHUB_REF_NAME}"
 
-      - name: Lint — install.sh syntax, dry-run harnesses, docs invariants
+      - name: Lint — install.sh syntax, dry-run harnesses, docs invariants (builds living-docs)
         run: make check
 
       - name: Package the skills bundle
@@ -51,3 +53,56 @@ jobs:
           files: |
             living-docs-skill-*.zip
             living-docs-skill-*.zip.sha256
+
+  release-binaries:
+    name: release binary (${{ matrix.target }})
+    needs: release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # aarch64-unknown-linux-gnu cross-compiles from an x86_64 runner and needs a
+      # matching cross linker; the other three targets build natively on their runner.
+      - name: Install aarch64 cross linker
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Install Rust 1.96.0 (cli/rust-toolchain.toml)
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build living-docs for ${{ matrix.target }}
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+        run: cargo build --release --manifest-path cli/Cargo.toml --target ${{ matrix.target }}
+
+      - name: Package asset — living-docs-${{ matrix.target }} (+ .sha256)
+        run: |
+          set -euo pipefail
+          asset="living-docs-${{ matrix.target }}"
+          cp "cli/target/${{ matrix.target }}/release/living-docs" "$asset"
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum "$asset" > "$asset.sha256"
+          else
+            shasum -a 256 "$asset" > "$asset.sha256"
+          fi
+
+      - name: Upload asset to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            living-docs-${{ matrix.target }}
+            living-docs-${{ matrix.target }}.sha256
