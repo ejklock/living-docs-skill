@@ -24,14 +24,14 @@ It also demonstrates three things the prose only asserts:
 - **Indexed or it doesn't exist.** Every file is reachable from
   [`docs/index.md`](linkly/docs/index.md).
 
-### Lint it
+### Check it
 
 The corpus is also the fixture for the skill's checker. From the repo root:
 
 ```bash
-./skills/living-docs/scripts/lint-docs.sh examples/linkly/docs
-# or simply:
-make lint-docs
+living-docs check examples/linkly/docs
+# or, as part of the full gate:
+make check
 ```
 
 It should report `OK` with no violations. CI runs exactly this on every push.

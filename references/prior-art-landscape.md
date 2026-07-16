@@ -42,7 +42,7 @@ No single project unites (a) the living-docs decision trail (constitution → PR
 We invented no methodology. The originality is modest and concrete:
 
 1. **The composition** — the living-docs trail + the OKF format + a cross-harness, single-source skill that installs into Claude Code, Cursor, Copilot, OpenCode, Codex, and Pi.
-2. **The governance invariants** — *supersede-never-delete* + *one-home-per-fact* + *indexed-or-it-doesn't-exist*, carried in frontmatter as a fact contract **and wired to a deterministic checker** (`skills/living-docs/scripts/lint-docs.sh`). The prior-art research found no prior assembly of that exact governance layer.
+2. **The governance invariants** — *supersede-never-delete* + *one-home-per-fact* + *indexed-or-it-doesn't-exist*, carried in frontmatter as a fact contract **and wired to a deterministic checker** (the native `living-docs` binary, `cli/`). The prior-art research found no prior assembly of that exact governance layer.
 
 The claim worth making is **agent-enforceable packaging of established practice**, not invention. Every claim of novelty should be framed as *"a particular defensible composition,"* never as inventing the underlying idea. The individual document types and the doc trail are well-trodden — and that is the right choice for a documentation discipline.
 
