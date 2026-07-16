@@ -5,7 +5,7 @@ okf_version: "0.1"
 # Linkly — Docs
 
 A worked end-to-end Living Docs corpus for a fictional URL shortener. It exists so the
-discipline can be *seen*, not just described, and so `scripts/lint-docs.sh` has a real
+discipline can be *seen*, not just described, and so `living-docs check` has a real
 bundle to run against. Read it top-to-bottom to watch one feature flow down the trail:
 **constitution → PRD → ADR + BDR → issue → code**.
 

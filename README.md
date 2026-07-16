@@ -50,7 +50,7 @@ every action from:
    same change. No "I'll document it later."
 
 These invariants are carried **in YAML frontmatter as a fact contract** and wired
-to a deterministic checker (`skills/living-docs/scripts/lint-docs.sh`). The pitch is **not** novelty —
+to a deterministic checker (the `living-docs` CLI). The pitch is **not** novelty —
 arc42 + ADR + C4 + docs-as-code is a well-trodden stack — it is the **explicit,
 agent-enforceable packaging** of it. See [Provenance](#provenance--honest-attribution).
 
@@ -95,9 +95,9 @@ dependencies and the prior-art research that backs its honesty claims:
 | [`skills/okf-knowledge-format/`](skills/okf-knowledge-format/) | The **format** standard the docs use — Open Knowledge Format (OKF): markdown + YAML frontmatter, required `type`, reserved `index.md`/`log.md`, bundle-relative links. The OKF spec is **vendored verbatim** from Google Cloud Platform. |
 | [`skills/research-artifacts/`](skills/research-artifacts/) | The research-note format and source discipline that feeds ADRs/PRDs (the `docs/research/` half of the trail). |
 | [`references/prior-art-landscape.md`](references/prior-art-landscape.md) | The sourced prior-art analysis — every part of Living Docs (the doc trail, the OKF format, the diagrams, the governance invariants) mapped to its established originator, so every "credit, not invention" claim has a checkable citation. |
-| [`skills/living-docs/scripts/lint-docs.sh`](skills/living-docs/scripts/lint-docs.sh) | The **deterministic checker** for the mechanical invariants — frontmatter/`type`, indexing + reachability, link resolution, supersede integrity. Ships *inside* the skill; delegates parsing to mature tools (**lychee** for links, **yq** v4 for frontmatter, **jq** for JSON) rather than hand-rolling it. *A constraint without an instrument is a vibe*; this is the instrument. Wire it into CI. No host tools? `make lint-docker` bundles lychee+yq+jq in an image and lints with zero local installs. |
-| [`skills/living-docs/scripts/lint-mermaid.sh`](skills/living-docs/scripts/lint-mermaid.sh) | Validates every fenced ```` ```mermaid ```` block against the real Mermaid parser, not a hand-rolled grammar check — it runs each diagram through the pinned upstream **`minlag/mermaid-cli:11.4.2`** Docker image and fails with a `file:line` pointer at the first broken diagram. Requires Docker (daemon reachable); `make lint-mermaid` sweeps every git-tracked `.md` file in the repo. |
-| [`examples/linkly/`](examples/linkly/) | A worked, **lint-clean** end-to-end corpus (constitution → PRD → ADR + BDR → issue) for a fictional URL shortener — the discipline shown, not just described, and the fixture CI runs `lint-docs` against. |
+| [`cli/`](cli/) ([`living-docs check`](cli/)) | The **deterministic checker** for the mechanical invariants — frontmatter/`type`, indexing + reachability, link resolution, supersede integrity. A single self-contained Rust binary: native `serde_yaml` frontmatter parsing and native `pulldown-cmark` link extraction/resolution — no host tools (no lychee/yq/jq) needed. *A constraint without an instrument is a vibe*; this is the instrument. Wire it into CI. Install with `./install.sh cli` or `make cli-install`. |
+| [`cli/`](cli/) (`living-docs check --mermaid-only`) | Validates every fenced ```` ```mermaid ```` block against the real Mermaid parser, not a hand-rolled grammar check — it runs each diagram through the pinned upstream **`minlag/mermaid-cli:11.4.2`** Docker image and fails with a `file:line` pointer at the first broken diagram. Requires Docker (daemon reachable); with no path argument it sweeps every git-tracked `.md` file in the repo. |
+| [`examples/linkly/`](examples/linkly/) | A worked, **lint-clean** end-to-end corpus (constitution → PRD → ADR + BDR → issue) for a fictional URL shortener — the discipline shown, not just described, and the fixture CI runs `living-docs check` against. |
 
 Each skill is self-describing — open its `SKILL.md` for the full operational
 detail. Living Docs and OKF compose but do not overlap: **Living Docs governs
@@ -108,7 +108,7 @@ bundle's markdown and frontmatter are shaped.**
 
 ## Installation
 
-The skill is plain **markdown instruction files** — nothing to compile or install to use it. The one piece with dependencies is the optional `lint-docs` checker (it uses **lychee**, **yq** v4 and **jq** to parse links and YAML correctly instead of approximately) — and even that needs nothing on your host if you run it via Docker: `make lint-docker`. The optional `lint-mermaid` checker needs only **Docker** — it runs every diagram through the pinned upstream mermaid-cli image, no local Mermaid install required.
+The skill is plain **markdown instruction files** — nothing to compile or install to use it. The optional `living-docs` checker is a single self-contained Rust binary with no host-tool dependencies (native frontmatter and link parsing — no lychee/yq/jq); install it with `./install.sh cli` or `make cli-install`. The checker's `--mermaid-only` mode needs only **Docker** — it runs every diagram through the pinned upstream mermaid-cli image, no local Mermaid install required.
 Installing Living Docs always means the same thing: **put the three `skills/`
 directories (or a generated rule file) where your tool discovers instructions,
 then start a fresh session.** A cross-platform installer and a `Makefile` do this
@@ -141,12 +141,12 @@ make install         # Claude Code, global
 make install-cursor  # or install-copilot / install-opencode / install-codex / install-pi / install-all
 make project-claude  # install into the current project
 make uninstall-all   # remove from every harness
-make check           # full gate: version sync · lint the example · validate mermaid ·
-                     #   hostile parser fixtures · bash -n all scripts · dry-run every harness
-make lint-docs       # run the checker against examples/linkly/docs
-make lint-mermaid    # validate every fenced mermaid block via the pinned mermaid-cli image
+make check           # full gate: version sync · living-docs check the example ·
+                     #   validate mermaid · hostile parser fixtures · bash -n all
+                     #   scripts · dry-run every harness
+make build           # build the living-docs binary natively -> cli/target/release/living-docs
+make cli-install     # install the living-docs binary onto PATH (native cargo install)
 make test-fixtures   # run the hostile/negative fixtures guarding the parsers
-make lint-docker     # lint via Docker — bundles lychee+yq+jq, no host tools needed
 ```
 
 ### Where each tool loads from
@@ -280,9 +280,9 @@ use it. See [Installation](#installation).
 Living Docs is not a generator and not a hosting tool. It is a *discipline* — five
 no-drift governance invariants plus a doc trail (constitution → PRD → ADR + BDR →
 issues → code). The agent **follows** the discipline as it works; a deterministic
-checker (`lint-docs`) **verifies** the mechanical half when you wire it into CI or
-the agent's loop. Prompt-level guidance plus a machine check — not one pretending
-to be the other. Your docs live in the repo, in Git, next to the code.
+checker (`living-docs check`) **verifies** the mechanical half when you wire it into
+CI or the agent's loop. Prompt-level guidance plus a machine check — not one
+pretending to be the other. Your docs live in the repo, in Git, next to the code.
 
 **What is an ADR / BDR / PRD?**
 An **ADR** (Architecture Decision Record) captures *how* the system is structured
@@ -298,8 +298,8 @@ links. Living Docs stores every doc as an OKF concept so the corpus stays
 portable and agent-parseable. The spec is vendored under
 [`skills/okf-knowledge-format/`](skills/okf-knowledge-format/).
 
-**What does the `lint-docs` checker catch — and not catch?**
-It is a deterministic checker over a *documented input shape*, not a general markdown/YAML validator, and its three fragile parsers (link extraction, link resolution, frontmatter reading) are guarded by hostile/negative fixtures (`make test-fixtures`). One known limit: the **structural-graph** checks — directory-index membership and index reachability — read only **inline** links in `index.md`, so a file indexed *solely* via a **reference-style** link (`[x][ref]`) is not yet detected there and would be reported as a false-positive orphan. Link *validity* itself is delegated to **lychee**, which does handle every link form (inline, titled, angle-bracket, and reference-style).
+**What does the `living-docs check` checker catch — and not catch?**
+It is a deterministic checker over a *documented input shape*, not a general markdown/YAML validator, and its three fragile parsers (link extraction, link resolution, frontmatter reading) are guarded by hostile/negative fixtures (`make test-fixtures`). One known limit: the **structural-graph** checks — directory-index membership and index reachability — read only **inline** links in `index.md`, so a file indexed *solely* via a **reference-style** link (`[x][ref]`) is not yet detected there and would be reported as a false-positive orphan. Link *validity* itself is checked natively by **pulldown-cmark**, which parses every link form (inline, titled, angle-bracket, reference-style, and images).
 
 **Is it tied to a specific language or framework?**
 No. Living Docs is stack-agnostic — it governs documentation organization and
