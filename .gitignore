@@ -3,3 +3,6 @@
 .idea/
 .vscode/
 .tmp-smoke/
+
+# Local publication / marketing drafts and exported assets — not part of the repo
+/publications/
