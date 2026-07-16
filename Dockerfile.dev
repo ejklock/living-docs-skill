@@ -1,0 +1,28 @@
+# Living Docs CLI — pinned dev/build image (Docker-always dev environment).
+#
+# The host is not assumed to have a Rust toolchain (rustfmt/clippy were missing on the
+# host in earlier slices). This image pins the exact toolchain in cli/rust-toolchain.toml
+# and adds a C toolchain so crates with native deps compile — the `cc` linker step that
+# the old quality-gate image lacked.
+#
+# Never bakes the crate in: the Makefile mounts the repo at /work and runs `cargo ...`
+# against it, so edits on the host are picked up without rebuilding the image.
+#
+# Build (from the repo root):
+#   docker build -f Dockerfile.dev -t living-docs-dev .
+#
+# Run (see the `cli-*` Makefile targets for the full docker run invocation):
+#   docker run --rm -v "$PWD:/work" -w /work living-docs-dev cargo test --manifest-path cli/Cargo.toml
+
+FROM rust:1.96.0-bookworm
+
+# build-essential (gcc + make + libc headers) so crates linking native code compile.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends build-essential \
+ && rm -rf /var/lib/apt/lists/*
+
+# rustfmt + clippy pinned alongside rustc via cli/rust-toolchain.toml; ensure both
+# components are present even if the base image's default profile changes upstream.
+RUN rustup component add rustfmt clippy
+
+WORKDIR /work

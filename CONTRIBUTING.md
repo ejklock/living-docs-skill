@@ -76,35 +76,28 @@ Then review the diff and update the `SKILL.md` rules only if conformance changed
 
 ## Validating your change
 
-There is no build step — everything is markdown and shell. The checker delegates parsing
-to three tools, so either install them:
+There is no build step for the docs themselves — everything is markdown. The one piece with a
+build is the `living-docs` checker: a single self-contained Rust binary, no host tools (no
+lychee/yq/jq) needed. Install it once:
 
 ```bash
-# lychee — link validity        https://lychee.cli.rs
-# yq v4 (mikefarah) — frontmatter  https://github.com/mikefarah/yq
-# jq — JSON                      https://jqlang.github.io/jq
-```
-
-…or run it via the self-contained image (no host tools beyond Docker):
-
-```bash
-make lint-docker                                  # build + lint the example corpus
-docker build -f Dockerfile.lint -t living-docs-lint .
-docker run --rm -v "$PWD:/work" living-docs-lint docs   # lint your own ./docs
+./install.sh cli        # downloads the matching release asset (cargo build-from-source fallback)
+# or:
+make cli-install        # native cargo install
 ```
 
 Then, before opening a PR:
 
 ```bash
-make check        # bash -n, dry-run every harness, lint the example corpus + run the fixtures
-make lint-docs    # just the docs-invariant check on examples/linkly/docs
-make test-fixtures # just the hostile/negative parser fixtures
+make check         # bash -n, dry-run every harness, living-docs check the example corpus,
+                    #   validate mermaid, and run the fixtures
+make test-fixtures # just the hostile/negative parser fixtures (needs Docker for mermaid)
 ```
 
-`make check` runs the skill's checker (`skills/living-docs/scripts/lint-docs.sh`) against
+`make check` runs the `living-docs` checker against
 [`examples/linkly/docs`](examples/) and verifies version sync — the project dogfoods its own
 invariants. If you change a `templates/` or `rules/` shape, update the example to match and keep
-it lint-clean.
+it check-clean.
 
 If you touched `install.sh`, also try a real run into a throwaway directory:
 

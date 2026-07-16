@@ -13,9 +13,9 @@ accept the bundle the format's own authors ship as canonical.
 | Upstream license | Apache-2.0 (see `ATTRIBUTION.md`) |
 
 This is the smallest of the three upstream bundles (crypto_bitcoin / ga4 / stackoverflow);
-all three pass `lint-docs.sh` cleanly. Only one is vendored to keep the repo small.
+all three pass `living-docs check` cleanly. Only one is vendored to keep the repo small.
 
-It also documents the relationship between OKF and Living Docs: `lint-docs.sh` enforces
+It also documents the relationship between OKF and Living Docs: `living-docs check` enforces
 **OKF §9 conformance** (parseable frontmatter, non-empty `type`, reserved-file rules) **plus**
 the stricter Living Docs governance invariants (links resolve, index membership +
 reachability, supersede integrity). OKF's own §9 tells *consumers* to be permissive
