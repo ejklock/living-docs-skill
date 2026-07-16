@@ -38,7 +38,7 @@ The five invariants govern *organization and lifecycle*; the **Open Knowledge Fo
 > from a single vendor**; a backward-incompatible v0.2 is a real possibility. The invariants
 > above do **not** depend on OKF — they depend only on a small set of frontmatter fields, so an
 > OKF break cannot take the governance layer down with it. Keep the boundary explicit:
-> - **Required by Living Docs** (the fact contract `scripts/lint-docs.sh` enforces): a non-empty
+> - **Required by Living Docs** (the fact contract `living-docs check` enforces): a non-empty
 >   `type`, and `status` + `superseded_by` on superseded records. These are *ours*; they survive
 >   regardless of OKF.
 > - **Inherited from OKF** (format conventions): reserved `index.md`/`log.md`, the bundle-root
@@ -201,7 +201,7 @@ onboarded: <YYYY-MM-DD>
 
 **Absence of the block is the only first-run signal**; presence of any valid `enforcement` value means onboarded — never ask again, just read it and apply it. To change modes later, the user edits the block.
 
-Doc-trail enforcement is a **judgement** call (there is no sound oracle for "did this change need an ADR"), so it lives with the agent, not with `lint-docs.sh`. The mechanical invariants (frontmatter, indexing, links, supersede) are checked the same way in every mode.
+Doc-trail enforcement is a **judgement** call (there is no sound oracle for "did this change need an ADR"), so it lives with the agent, not with `living-docs check`. The mechanical invariants (frontmatter, indexing, links, supersede) are checked the same way in every mode.
 
 ## Agent enforcement (refusal triggers)
 
@@ -225,14 +225,14 @@ report a docs-touching task as complete if any of these hold — fix it or surfa
    like an orphan. Under `guided`, pause and ask the user before proceeding. Under `lite` it is
    advisory only.
 
-Triggers **1, 3, 4, 5** are mechanical — run `scripts/lint-docs.sh` (below) and treat a non-zero
+Triggers **1, 3, 4, 5** are mechanical — run `living-docs check` (below) and treat a non-zero
 exit as a blocked task, not a warning. Triggers **2**, **6**, and **7** are semantic (no sound oracle)
 and stay a judgement call: inspect the diff before declaring done. Trigger **7** additionally depends
 on the project's enforcement mode.
 
-### lint-docs — the deterministic instrument
+### living-docs check — the deterministic instrument
 
-`scripts/lint-docs.sh [docs/]` mechanically validates invariants 2, 3, and 4 (the ones a
+`living-docs check [docs/]` mechanically validates invariants 2, 3, and 4 (the ones a
 machine checks better than prose): frontmatter/`type`, directory-index membership + root
 reachability, link resolution, and supersede integrity. *A constraint without an instrument is a
 vibe* — so the checkable invariants get a checker. Wire it into the project's quality gate / CI;
@@ -240,25 +240,23 @@ a docs PR that fails it does not merge. It does **not** check docs-first mirrori
 per fact" semantics — those have no sound oracle and stay with the reviewer.
 
 ```bash
-./scripts/lint-docs.sh docs          # lint the project's bundle; exit 1 on any violation
+living-docs check docs          # check the project's bundle; exit 1 on any violation
 ```
 
-It delegates parsing to mature tools (so it is correct, not a hand-rolled markdown/YAML
-parser): **lychee** (link validity, all link forms, `--offline`), **yq** v4 (frontmatter
-YAML), and **jq** (lychee's JSON). Install all three; the script exits 2 with install
-pointers if any is missing. The OKF structural graph (index membership + reachability)
-is the script's own logic on top.
-
-If you would rather not install the tools, run the checker via its self-contained image
-(needs only Docker): `docker build -f Dockerfile.lint -t living-docs-lint .` then
-`docker run --rm -v "$PWD:/work" living-docs-lint docs`.
+It is a native Rust binary (correct without shelling out to a hand-rolled markdown/YAML
+parser): `serde_yaml` for frontmatter, `pulldown-cmark` for link extraction and resolution
+(every link form — inline, titled, angle-bracket, reference-style, images), and a native
+directory-index/reachability BFS plus supersede-chain walk for the OKF structural graph.
+No host tools to install — install the binary itself via `./install.sh cli` or
+`make cli-install`. Only `living-docs check --mermaid-only` still needs Docker, to render
+and validate Mermaid fences.
 
 A worked, lint-clean corpus lives in [`examples/linkly/`](../../examples/linkly/) — copy its shapes.
 
 ## Quality checks
 
 Before considering a docs change complete. The frontmatter, indexing, link-resolution, and
-supersede items are enforced by `scripts/lint-docs.sh` — run it rather than eyeballing them; the
+supersede items are enforced by `living-docs check` — run it rather than eyeballing them; the
 rest are judgement:
 
 - [ ] Every concept doc opens with OKF frontmatter carrying a non-empty `type`; `status` is in frontmatter, not a body line.
@@ -301,6 +299,6 @@ The honest claim is **not invention** — arc42 + ADR + C4 + glossary + docs-as-
 informal stack of plenty of mature teams. What this skill adds is the **explicit,
 agent-enforceable packaging** of that stack: the governance invariants
 (supersede-never-delete + one-home-per-fact + indexed-or-doesn't-exist) carried in frontmatter
-as a fact contract *and wired to a deterministic checker* (`scripts/lint-docs.sh`). The
+as a fact contract *and wired to a deterministic checker* (`living-docs check`). The
 prior-art research found no prior assembly of that exact governance layer — but the value on
 offer is the enforcement, not the novelty. Full citations: `../../references/prior-art-landscape.md`.

@@ -37,7 +37,7 @@ Adapt the specifics (diagram tooling, context index location) to the project. Th
 ## The instrument (don't eyeball what a script can check)
 
 The orphan, broken-link, untyped-doc, and supersede checks in the list above are mechanical —
-run them, don't re-read prose. `scripts/lint-docs.sh <docs/>` validates them and exits non-zero
+run them, don't re-read prose. `living-docs check <docs/>` validates them and exits non-zero
 on any violation; wire it into the project's CI/quality gate so a structural PR with a docs
 violation cannot merge. *A constraint without an instrument is a vibe.* The stale-diagram and
 one-home-per-fact checks have no sound oracle and stay a reviewer judgement.

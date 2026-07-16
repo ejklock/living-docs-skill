@@ -1,8 +1,10 @@
 name: CI
 
-# Lint the install script and — the point of the Q6 work — run the Living Docs
-# invariant checker against the example corpus on every push and PR. A docs
-# invariant violation fails the build.
+# Runs the native `living-docs` CLI (Rust): fmt/clippy/test via the pinned Docker dev
+# image (Dockerfile.dev, matching cli/rust-toolchain.toml), then `make check` builds
+# the release binary and runs the Living Docs invariant + mermaid checks against the
+# example corpus plus the hostile fixtures, on every push and PR. A formatting issue,
+# lint warning, failing test, or invariant violation fails the build.
 
 on:
   push:
@@ -18,43 +20,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # The docs linter delegates parsing to mature tools: lychee (link validity),
-      # yq (frontmatter YAML), jq (parses lychee's JSON). jq and mikefarah/yq v4 are
-      # preinstalled on the ubuntu runner; lychee is installed here.
-      - name: Install lychee
-        uses: taiki-e/install-action@v2
-        with:
-          tool: lychee
-
-      - name: Tool versions
-        run: |
-          lychee --version
-          yq --version
-          jq --version
-
       - name: Version consistency (VERSION ↔ every SKILL.md)
         run: ./scripts/check-version.sh
 
-      - name: Lint — install.sh syntax, dry-run harnesses, docs invariants
+      - name: cargo fmt --check (cli/, pinned Rust 1.96.0 via Dockerfile.dev)
+        run: make cli-fmt
+
+      - name: cargo clippy --all-targets -- -D warnings (cli/)
+        run: make cli-clippy
+
+      - name: cargo test (cli/)
+        run: make cli-test
+
+      - name: living-docs check — install.sh syntax, docs invariants, mermaid, fixtures
         run: make check
-
-  # Verify the self-contained linter image: it must pass the clean corpus and
-  # fail a deliberately-broken fixture. This is the "run with only Docker" option.
-  docker:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build linter image
-        run: docker build -f Dockerfile.lint -t living-docs-lint .
-
-      - name: Smoke — clean corpus passes (exit 0)
-        run: docker run --rm -v "$PWD:/work" living-docs-lint examples/linkly/docs
-
-      - name: Smoke — a broken fixture fails (exit 1)
-        run: |
-          if docker run --rm -v "$PWD:/work" living-docs-lint \
-               skills/living-docs/tests/fixtures/02-fence-link-dirty/docs; then
-            echo "expected a non-zero exit for the broken fixture" >&2
-            exit 1
-          fi
