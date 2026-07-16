@@ -4,12 +4,29 @@
 SHELL := /bin/bash
 INSTALL := ./install.sh
 
+# Docker-always dev environment for cli/ (Rust). The host is not assumed to have a
+# toolchain — Dockerfile.dev pins the exact version from cli/rust-toolchain.toml, plus
+# rustfmt/clippy/build-essential. Mounts the repo + the host cargo registry (reused
+# across runs) and runs as the host uid:gid so cli/target stays host-owned.
+DEV_IMAGE := living-docs-dev
+DOCKER_CARGO = docker run --rm \
+	-u "$$(id -u):$$(id -g)" \
+	-e HOME=/tmp \
+	-v "$(CURDIR):/work" \
+	-v "$$HOME/.cargo/registry:/usr/local/cargo/registry" \
+	-w /work \
+	$(DEV_IMAGE)
+
+# Native release binary built by `build`; reused by `check`/`test-fixtures` so the
+# invariant checks and hostile fixtures don't each trigger their own compile.
+LIVING_DOCS_BIN := cli/target/release/living-docs
+
 .DEFAULT_GOAL := help
 .PHONY: help install install-claude install-cursor install-copilot \
         install-opencode install-codex install-pi install-all install-pocock \
         project-claude project-opencode project-codex project-pi \
-        uninstall uninstall-all check lint lint-docs lint-mermaid test-fixtures version \
-        lint-docker-build lint-docker
+        uninstall uninstall-all check lint test-fixtures version \
+        cli-dev-image cli-build cli-test cli-fmt cli-clippy build cli-install
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -59,30 +76,49 @@ uninstall: ## Remove the global Claude Code install
 uninstall-all: ## Remove the install for every supported harness
 	$(INSTALL) all --uninstall
 
-check: version lint-docs lint-mermaid test-fixtures ## Check version sync, validate install.sh, dry-run harnesses, lint docs, validate mermaid, run fixtures
+check: version build test-fixtures ## Check version sync, validate install.sh, run Rust tests, living-docs check + mermaid, dry-run harnesses
 	bash -n install.sh
-	bash -n skills/living-docs/scripts/lint-docs.sh
-	bash -n skills/living-docs/scripts/lint-mermaid.sh
-	bash -n skills/living-docs/tests/run.sh
 	bash -n scripts/check-version.sh
+	cargo test --manifest-path cli/Cargo.toml
+	$(LIVING_DOCS_BIN) check examples/linkly/docs
+	$(LIVING_DOCS_BIN) check --mermaid-only
 	$(INSTALL) all --dry-run
 
-lint-docs: ## Validate the example docs bundle against the Living Docs invariants
-	./skills/living-docs/scripts/lint-docs.sh examples/linkly/docs
-
-lint-mermaid: ## Validate every fenced mermaid block via the real parser (requires Docker)
-	./skills/living-docs/scripts/lint-mermaid.sh
-
-test-fixtures: ## Run the hostile/negative fixtures that guard the lint-docs parsers
-	./skills/living-docs/tests/run.sh
-
-lint-docker-build: ## Build the self-contained linter image (bundles lychee + yq + jq)
-	docker build -f Dockerfile.lint -t living-docs-lint .
-
-lint-docker: lint-docker-build ## Lint the example corpus via Docker (no host tools needed)
-	docker run --rm -v "$(CURDIR):/work" living-docs-lint examples/linkly/docs
+test-fixtures: build ## Run the hostile/negative fixtures that guard the check parsers (requires Docker for mermaid)
+	LIVING_DOCS_BIN=$(LIVING_DOCS_BIN) ./skills/living-docs/tests/run.sh
 
 version: ## Assert the release version is consistent across VERSION and every SKILL.md
 	./scripts/check-version.sh
 
 lint: check ## Alias for check
+
+# --- cli/ (Rust) — Docker-always dev targets ---
+# cli-* targets run cargo inside the pinned Dockerfile.dev image. `build`/`cli-install`
+# use the host cargo instead (the "native" path) — see cli/rust-toolchain.toml for the
+# pinned version both paths agree on. NOTE: `install` is already taken by the skill
+# installer above, so the native CLI install target is `cli-install`, not `install`.
+
+cli-dev-image: ## Build the pinned Rust dev image (rustfmt + clippy + build-essential)
+	docker build -f Dockerfile.dev -t $(DEV_IMAGE) .
+
+cli-build: cli-dev-image ## Build the CLI inside the dev image (cargo build)
+	@mkdir -p "$(HOME)/.cargo/registry"
+	$(DOCKER_CARGO) cargo build --manifest-path cli/Cargo.toml
+
+cli-test: cli-dev-image ## Run the CLI test suite inside the dev image
+	@mkdir -p "$(HOME)/.cargo/registry"
+	$(DOCKER_CARGO) cargo test --manifest-path cli/Cargo.toml
+
+cli-fmt: cli-dev-image ## Check CLI formatting inside the dev image (cargo fmt --check)
+	@mkdir -p "$(HOME)/.cargo/registry"
+	$(DOCKER_CARGO) cargo fmt --manifest-path cli/Cargo.toml --check
+
+cli-clippy: cli-dev-image ## Lint the CLI inside the dev image (clippy --all-targets -D warnings)
+	@mkdir -p "$(HOME)/.cargo/registry"
+	$(DOCKER_CARGO) cargo clippy --manifest-path cli/Cargo.toml --all-targets -- -D warnings
+
+build: ## Build the release CLI binary natively (host cargo) -> cli/target/release/living-docs
+	cargo build --release --manifest-path cli/Cargo.toml
+
+cli-install: build ## Install the CLI binary onto PATH natively (host cargo, idempotent)
+	cargo install --path cli --force

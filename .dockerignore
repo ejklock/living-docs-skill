@@ -1,4 +1,6 @@
-# The linter image only needs the checker script (COPY in Dockerfile.lint).
-# Keep the build context small.
+# Keep the build context small for both Dockerfile.lint (checker script only) and
+# Dockerfile.dev (mounts the crate at runtime; the image itself never needs build output).
 .git
 assets
+target/
+cli/target/
