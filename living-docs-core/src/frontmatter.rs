@@ -8,7 +8,15 @@ use std::path::Path;
 /// satisfy the lookup, even if the names match (the "05-nested-key-trap" fixture).
 pub fn read_scalar(path: &Path, key: &str) -> Option<String> {
     let contents = fs::read_to_string(path).ok()?;
-    let block = extract_frontmatter_block(&contents)?;
+    read_scalar_from_str(&contents, key)
+}
+
+/// [`read_scalar`]'s pure counterpart: reads a top-level scalar from
+/// already-read `contents` instead of a filesystem path, so a caller sourcing
+/// content through a [`crate::store::DocStore`] port (which may have no
+/// backing file at all) can parse it without a second frontmatter reader.
+pub fn read_scalar_from_str(contents: &str, key: &str) -> Option<String> {
+    let block = extract_frontmatter_block(contents)?;
     let document: Value = serde_yaml::from_str(block).ok()?;
     let mapping = document.as_mapping()?;
     let value = mapping.get(Value::String(key.to_string()))?;
@@ -70,6 +78,20 @@ mod tests {
     fn empty_scalar_value_returns_none() {
         let path = write_temp_doc("---\ntype:\n---\n# Body\n");
         assert_eq!(read_scalar(&path, "type"), None);
+        let _ = fs::remove_file(&path);
+    }
+
+    #[test]
+    fn read_scalar_and_read_scalar_from_str_agree_on_the_same_document() {
+        let contents = "---\ntype: ADR\nstatus: Proposed\n---\n# Body\n";
+        let path = write_temp_doc(contents);
+
+        assert_eq!(
+            read_scalar(&path, "status"),
+            read_scalar_from_str(contents, "status")
+        );
+        assert_eq!(read_scalar(&path, "status"), Some("Proposed".to_string()));
+
         let _ = fs::remove_file(&path);
     }
 }

@@ -16,11 +16,13 @@ struct Cli {
     #[arg(long, global = true, default_value = "docs")]
     docs_dir: PathBuf,
 
-    /// Which persistence backend `new`/`check`/`export` operate against:
-    /// the local `.md` tree (`fs`, default) or the SQLite/ParadeDB
-    /// read-model (`db`), scoped to a project derived from `--docs-dir`
-    /// (ADR 0007, issue 0006 slice 0006-D2). `index`/`supersede` remain
-    /// `fs`-only regardless of this flag.
+    /// Which persistence backend `new`/`check`/`export`/`index`/`supersede`
+    /// operate against: the local `.md` tree (`fs`, default) or the
+    /// SQLite/ParadeDB read-model (`db`), scoped to a project derived from
+    /// `--docs-dir` (ADR 0007, issue 0006 slices 0006-D2/0006-E). `index`'s
+    /// output artifact (`index.md`) is always written to the filesystem
+    /// regardless of this flag — only the records feeding it move through
+    /// the active backend (ADR 0007: `index.md` is fs-only).
     #[arg(long, global = true, value_enum, default_value = "fs")]
     backend: Backend,
 
@@ -148,8 +150,8 @@ fn main() -> ExitCode {
     match cli.command {
         Command::Next { doc_type } => commands::next::run(&cli.docs_dir, &doc_type),
         Command::New { doc_type, title } => run_new(cli.backend, &cli.docs_dir, &doc_type, &title),
-        Command::Index { doc_type } => commands::index::run(&cli.docs_dir, doc_type),
-        Command::Supersede { old, new } => commands::supersede::run(&cli.docs_dir, &old, &new),
+        Command::Index { doc_type } => run_index(cli.backend, &cli.docs_dir, doc_type),
+        Command::Supersede { old, new } => run_supersede(cli.backend, &cli.docs_dir, &old, &new),
         Command::Check {
             paths,
             mermaid_only,
@@ -170,6 +172,20 @@ fn main() -> ExitCode {
 fn run_new(backend: Backend, docs_dir: &Path, doc_type: &str, title: &str) -> ExitCode {
     match build_backend_store(backend, docs_dir) {
         Ok(store) => commands::new::run(store.as_ref(), docs_dir, doc_type, title),
+        Err(err) => report_failure(&err),
+    }
+}
+
+fn run_index(backend: Backend, docs_dir: &Path, doc_type: Option<String>) -> ExitCode {
+    match build_backend_store(backend, docs_dir) {
+        Ok(store) => commands::index::run(store.as_ref(), docs_dir, doc_type),
+        Err(err) => report_failure(&err),
+    }
+}
+
+fn run_supersede(backend: Backend, docs_dir: &Path, old: &str, new: &str) -> ExitCode {
+    match build_backend_store(backend, docs_dir) {
+        Ok(store) => commands::supersede::run(store.as_ref(), docs_dir, old, new),
         Err(err) => report_failure(&err),
     }
 }

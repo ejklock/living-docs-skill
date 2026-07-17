@@ -280,6 +280,126 @@ fn backend_db_export_is_idempotent_producing_byte_identical_output_on_a_second_r
 }
 
 #[test]
+fn backend_db_supersede_persists_status_and_relation_through_the_port_and_round_trips_on_export() {
+    let docs = temp_dir("supersede-db");
+    let (db_path, db_url) = temp_sqlite_url("supersede-db");
+
+    let old = run_db(&db_url, &docs, &["new", "adr", "Old Decision"]);
+    assert!(old.status.success(), "stderr: {}", stderr_of(&old));
+    let new = run_db(&db_url, &docs, &["new", "adr", "New Decision"]);
+    assert!(new.status.success(), "stderr: {}", stderr_of(&new));
+
+    let supersede_output = run_db(&db_url, &docs, &["supersede", "0001", "0002"]);
+    assert!(
+        supersede_output.status.success(),
+        "stderr: {}",
+        stderr_of(&supersede_output)
+    );
+
+    seed_index_skeleton(&docs, &["0001-old-decision", "0002-new-decision"]);
+    let check_output = run_db(&db_url, &docs, &["check"]);
+    assert!(
+        !stdout_of(&check_output).contains("invariant 4"),
+        "supersede must resolve cleanly for the db backend's own check pass: {}",
+        stdout_of(&check_output)
+    );
+
+    let out_dir = temp_dir("supersede-db-export");
+    fs::remove_dir_all(&out_dir).unwrap();
+    let export_output = run_db(&db_url, &docs, &["export", out_dir.to_str().unwrap()]);
+    assert!(
+        export_output.status.success(),
+        "stderr: {}",
+        stderr_of(&export_output)
+    );
+
+    let old_contents = fs::read_to_string(out_dir.join("adr/0001-old-decision.md")).unwrap();
+    let new_contents = fs::read_to_string(out_dir.join("adr/0002-new-decision.md")).unwrap();
+
+    assert!(
+        old_contents.contains("status: Superseded"),
+        "got: {old_contents}"
+    );
+    assert!(
+        old_contents.contains("superseded_by: 0002"),
+        "got: {old_contents}"
+    );
+    assert!(
+        new_contents.contains("supersedes: 0001"),
+        "got: {new_contents}"
+    );
+
+    let _ = fs::remove_dir_all(&out_dir);
+    cleanup(&docs, &db_path);
+}
+
+#[test]
+fn backend_db_supersede_fails_when_a_record_number_does_not_exist() {
+    let docs = temp_dir("supersede-db-missing");
+    let (db_path, db_url) = temp_sqlite_url("supersede-db-missing");
+
+    let only = run_db(&db_url, &docs, &["new", "adr", "Only Decision"]);
+    assert!(only.status.success(), "stderr: {}", stderr_of(&only));
+
+    let output = run_db(&db_url, &docs, &["supersede", "0001", "0099"]);
+
+    assert!(!output.status.success());
+    assert!(
+        stderr_of(&output).contains("no record found"),
+        "got: {}",
+        stderr_of(&output)
+    );
+
+    cleanup(&docs, &db_path);
+}
+
+#[test]
+fn backend_db_index_regenerates_the_filesystem_index_from_db_records_matching_file_mode_byte_for_byte(
+) {
+    let docs_fs = temp_dir("index-fs");
+    let docs_db = temp_dir("index-db");
+    let (db_path, db_url) = temp_sqlite_url("index-parity");
+
+    assert!(run_fs(&docs_fs, &["new", "adr", "First Decision"])
+        .status
+        .success());
+    assert!(run_fs(&docs_fs, &["new", "adr", "Second Decision"])
+        .status
+        .success());
+    let index_fs = run_fs(&docs_fs, &["index", "adr"]);
+    assert!(
+        index_fs.status.success(),
+        "stderr: {}",
+        stderr_of(&index_fs)
+    );
+
+    assert!(run_db(&db_url, &docs_db, &["new", "adr", "First Decision"])
+        .status
+        .success());
+    assert!(
+        run_db(&db_url, &docs_db, &["new", "adr", "Second Decision"])
+            .status
+            .success()
+    );
+    let index_db = run_db(&db_url, &docs_db, &["index", "adr"]);
+    assert!(
+        index_db.status.success(),
+        "stderr: {}",
+        stderr_of(&index_db)
+    );
+
+    let fs_bytes = fs::read(docs_fs.join("adr/index.md")).expect("fs index.md written");
+    let db_bytes = fs::read(docs_db.join("adr/index.md")).expect("db index.md written");
+    assert_eq!(
+        fs_bytes, db_bytes,
+        "db-mode index output diverges from fs-mode"
+    );
+
+    let _ = fs::remove_dir_all(&docs_fs);
+    cleanup(&docs_db, &db_path);
+}
+
+#[test]
 fn default_backend_new_and_check_reach_the_same_verdict_as_the_explicit_fs_backend() {
     let docs_default = temp_dir("no-flag-regression");
     let docs_explicit = temp_dir("explicit-fs-regression");
