@@ -4,15 +4,23 @@
 //! `source` may be either backend: for a filesystem-backed store this is a
 //! plain copy; for a database-backed store each record is read back
 //! through its own canonical serializer, so the emitted tree is that
-//! backend's byte-stable projection.
+//! backend's byte-stable projection. With `visibility_filter` set (ADR
+//! 0010), only records whose effective visibility is in the set are
+//! materialized — the default-deny allowlist build.
 
+use crate::frontmatter;
 use crate::store::DocStore;
 use std::fs;
 use std::path::Path;
 use std::process::ExitCode;
 
-pub fn export(source: &dyn DocStore, source_root: &Path, out_dir: &Path) -> ExitCode {
-    match export_records(source, source_root, out_dir) {
+pub fn export(
+    source: &dyn DocStore,
+    source_root: &Path,
+    out_dir: &Path,
+    visibility_filter: Option<Vec<String>>,
+) -> ExitCode {
+    match export_records(source, source_root, out_dir, visibility_filter.as_deref()) {
         Ok(count) => {
             println!("Exported {count} record(s) to {}", out_dir.display());
             ExitCode::SUCCESS
@@ -28,12 +36,35 @@ fn export_records(
     source: &dyn DocStore,
     source_root: &Path,
     out_dir: &Path,
+    visibility_filter: Option<&[String]>,
 ) -> Result<usize, String> {
     let paths = source.list(source_root).map_err(|e| e.to_string())?;
+    let mut exported = 0;
     for path in &paths {
-        export_one(source, source_root, path, out_dir)?;
+        if export_one(source, source_root, path, out_dir, visibility_filter)? {
+            exported += 1;
+        }
     }
-    Ok(paths.len())
+    Ok(exported)
+}
+
+/// The default-deny fallback effective visibility for a record whose
+/// frontmatter carries no `visibility` key at all — matches the check-side
+/// (slice 1) and index-side (slice 2) domain, so a record with no
+/// visibility is never exported under an allowlist filter unless `private`
+/// is explicitly named.
+const DEFAULT_VISIBILITY: &str = "private";
+
+fn effective_visibility(contents: &str) -> String {
+    frontmatter::read_scalar_from_str(contents, "visibility")
+        .unwrap_or_else(|| DEFAULT_VISIBILITY.to_string())
+}
+
+fn record_visible(contents: &str, filter: Option<&[String]>) -> bool {
+    match filter {
+        None => true,
+        Some(allowed) => allowed.contains(&effective_visibility(contents)),
+    }
 }
 
 fn export_one(
@@ -41,8 +72,13 @@ fn export_one(
     source_root: &Path,
     path: &Path,
     out_dir: &Path,
-) -> Result<(), String> {
+    visibility_filter: Option<&[String]>,
+) -> Result<bool, String> {
     let contents = source.read(path).map_err(|e| e.to_string())?;
+    if !record_visible(&contents, visibility_filter) {
+        return Ok(false);
+    }
+
     let relative = path.strip_prefix(source_root).map_err(|_| {
         format!(
             "listed path {} is not under the source root {}",
@@ -54,7 +90,8 @@ fn export_one(
     if let Some(parent) = target.parent() {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
-    fs::write(&target, contents).map_err(|e| e.to_string())
+    fs::write(&target, contents).map_err(|e| e.to_string())?;
+    Ok(true)
 }
 
 #[cfg(test)]
@@ -151,7 +188,7 @@ mod tests {
         let store = MapStore { files };
         let out_dir = temp_out_dir("basic");
 
-        let code = export(&store, Path::new("/bundle"), &out_dir);
+        let code = export(&store, Path::new("/bundle"), &out_dir, None);
 
         assert!(exit_code_is_success(code));
         assert_eq!(
@@ -176,10 +213,10 @@ mod tests {
         let store = MapStore { files };
         let out_dir = temp_out_dir("idempotent");
 
-        export(&store, Path::new("/bundle"), &out_dir);
+        export(&store, Path::new("/bundle"), &out_dir, None);
         let first = fs::read(out_dir.join("adr/0001-first.md")).expect("first export written");
 
-        export(&store, Path::new("/bundle"), &out_dir);
+        export(&store, Path::new("/bundle"), &out_dir, None);
         let second = fs::read(out_dir.join("adr/0001-first.md")).expect("second export written");
 
         assert_eq!(first, second, "export is not idempotent");
@@ -194,7 +231,7 @@ mod tests {
         };
         let out_dir = temp_out_dir("empty");
 
-        let code = export(&store, Path::new("/bundle"), &out_dir);
+        let code = export(&store, Path::new("/bundle"), &out_dir, None);
 
         assert!(exit_code_is_success(code));
 
@@ -205,7 +242,7 @@ mod tests {
     fn export_fails_cleanly_when_the_source_store_errors_on_list() {
         let out_dir = temp_out_dir("list-fails");
 
-        let code = export(&FailingListStore, Path::new("/bundle"), &out_dir);
+        let code = export(&FailingListStore, Path::new("/bundle"), &out_dir, None);
 
         assert!(!exit_code_is_success(code));
 
@@ -221,7 +258,7 @@ mod tests {
         };
         let out_dir = temp_out_dir("out-of-root");
 
-        let code = export(&store, Path::new("/bundle"), &out_dir);
+        let code = export(&store, Path::new("/bundle"), &out_dir, None);
 
         assert!(!exit_code_is_success(code));
         assert!(
@@ -235,5 +272,144 @@ mod tests {
 
         let _ = fs::remove_dir_all(&out_dir);
         let _ = fs::remove_dir_all(&escaped_root);
+    }
+
+    fn record_with_visibility(name: &str, visibility_line: &str) -> (PathBuf, String) {
+        (
+            PathBuf::from(format!("/bundle/adr/{name}.md")),
+            format!("---\ntype: ADR\n{visibility_line}---\n# {name}\n"),
+        )
+    }
+
+    #[test]
+    fn export_with_a_visibility_filter_writes_only_matching_records() {
+        let mut files = BTreeMap::new();
+        let (public_path, public_contents) =
+            record_with_visibility("0001-public", "visibility: public\n");
+        let (showcase_path, showcase_contents) =
+            record_with_visibility("0002-showcase", "visibility: showcase\n");
+        let (private_path, private_contents) =
+            record_with_visibility("0003-private", "visibility: private\n");
+        files.insert(public_path, public_contents);
+        files.insert(showcase_path, showcase_contents);
+        files.insert(private_path, private_contents);
+        let store = MapStore { files };
+        let out_dir = temp_out_dir("filtered");
+
+        let code = export(
+            &store,
+            Path::new("/bundle"),
+            &out_dir,
+            Some(vec!["public".to_string(), "showcase".to_string()]),
+        );
+
+        assert!(exit_code_is_success(code));
+        assert!(out_dir.join("adr/0001-public.md").exists());
+        assert!(out_dir.join("adr/0002-showcase.md").exists());
+        assert!(!out_dir.join("adr/0003-private.md").exists());
+
+        let _ = fs::remove_dir_all(&out_dir);
+    }
+
+    #[test]
+    fn export_without_a_visibility_filter_still_writes_every_record() {
+        let mut files = BTreeMap::new();
+        let (public_path, public_contents) =
+            record_with_visibility("0001-public", "visibility: public\n");
+        let (private_path, private_contents) =
+            record_with_visibility("0002-private", "visibility: private\n");
+        files.insert(public_path, public_contents);
+        files.insert(private_path, private_contents);
+        let store = MapStore { files };
+        let out_dir = temp_out_dir("unfiltered");
+
+        let code = export(&store, Path::new("/bundle"), &out_dir, None);
+
+        assert!(exit_code_is_success(code));
+        assert!(out_dir.join("adr/0001-public.md").exists());
+        assert!(out_dir.join("adr/0002-private.md").exists());
+
+        let _ = fs::remove_dir_all(&out_dir);
+    }
+
+    #[test]
+    fn export_default_deny_treats_an_absent_visibility_record_as_private() {
+        let mut files = BTreeMap::new();
+        let (absent_path, absent_contents) = record_with_visibility("0001-absent", "");
+        files.insert(absent_path.clone(), absent_contents.clone());
+        let store = MapStore {
+            files: files.clone(),
+        };
+
+        let out_dir_public = temp_out_dir("default-deny-public");
+        export(
+            &store,
+            Path::new("/bundle"),
+            &out_dir_public,
+            Some(vec!["public".to_string()]),
+        );
+        assert!(!out_dir_public.join("adr/0001-absent.md").exists());
+
+        let out_dir_private = temp_out_dir("default-deny-private");
+        export(
+            &store,
+            Path::new("/bundle"),
+            &out_dir_private,
+            Some(vec!["private".to_string()]),
+        );
+        assert_eq!(
+            fs::read_to_string(out_dir_private.join("adr/0001-absent.md"))
+                .expect("private filter admits the absent-visibility record"),
+            absent_contents
+        );
+
+        let _ = fs::remove_dir_all(&out_dir_public);
+        let _ = fs::remove_dir_all(&out_dir_private);
+    }
+
+    #[test]
+    fn export_with_a_visibility_filter_is_idempotent_byte_identical_on_a_second_run() {
+        let mut files = BTreeMap::new();
+        let (public_path, public_contents) =
+            record_with_visibility("0001-public", "visibility: public\n");
+        files.insert(public_path, public_contents);
+        let store = MapStore { files };
+        let out_dir = temp_out_dir("filtered-idempotent");
+        let filter = || Some(vec!["public".to_string()]);
+
+        export(&store, Path::new("/bundle"), &out_dir, filter());
+        let first = fs::read(out_dir.join("adr/0001-public.md")).expect("first export written");
+
+        export(&store, Path::new("/bundle"), &out_dir, filter());
+        let second = fs::read(out_dir.join("adr/0001-public.md")).expect("second export written");
+
+        assert_eq!(first, second, "filtered export is not idempotent");
+
+        let _ = fs::remove_dir_all(&out_dir);
+    }
+
+    #[test]
+    fn export_with_a_visibility_filter_reports_only_the_written_count() {
+        let mut files = BTreeMap::new();
+        let (public_path, public_contents) =
+            record_with_visibility("0001-public", "visibility: public\n");
+        let (private_path, private_contents) =
+            record_with_visibility("0002-private", "visibility: private\n");
+        files.insert(public_path, public_contents);
+        files.insert(private_path, private_contents);
+        let store = MapStore { files };
+        let out_dir = temp_out_dir("filtered-count");
+
+        let count = export_records(
+            &store,
+            Path::new("/bundle"),
+            &out_dir,
+            Some(&["public".to_string()]),
+        )
+        .expect("export_records should succeed");
+
+        assert_eq!(count, 1);
+
+        let _ = fs::remove_dir_all(&out_dir);
     }
 }
