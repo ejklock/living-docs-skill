@@ -17,6 +17,7 @@ axum = "0.8"
 db-store = { path = "../db-store" }
 living-docs-core = { path = "../living-docs-core" }
 maud = { version = "0.27", features = ["axum"] }
+pulldown-cmark = { version = "=0.13.4", default-features = false, features = ["html"] }
 sea-orm = { version = "1", default-features = false, features = ["sqlx-sqlite", "runtime-tokio-rustls"] }
 serde = { version = "1", features = ["derive"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

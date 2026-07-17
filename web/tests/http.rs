@@ -1,6 +1,6 @@
-//! In-process HTTP assertions for the read-only search page (ADR 0006, issue
-//! 0003 slice S3a): a real request/response round trip via
-//! `tower::ServiceExt::oneshot`, with no bound TCP port.
+//! In-process HTTP assertions for the read-only search and record pages
+//! (ADR 0006, issue 0003 slices S3a-S3b): a real request/response round trip
+//! via `tower::ServiceExt::oneshot`, with no bound TCP port.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -127,6 +127,50 @@ async fn search_with_no_query_renders_only_the_form() {
     let body = body_text(response).await;
     assert!(body.contains("<form"), "got: {body}");
     assert!(!body.contains("Quokka Caching Strategy"), "got: {body}");
+}
+
+#[tokio::test]
+async fn record_route_with_a_seeded_path_returns_the_rendered_body() {
+    let router = seeded_router().await;
+
+    let response = router
+        .oneshot(
+            Request::builder()
+                .uri("/record/adr/0001-quokka-caching.md")
+                .body(Body::empty())
+                .expect("build request"),
+        )
+        .await
+        .expect("router responds");
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = body_text(response).await;
+    assert!(body.contains("Quokka Caching Strategy"), "got: {body}");
+    assert!(
+        body.contains(
+            "<p>We adopt an aggressive quokka caching strategy for search results.</p>"
+        ),
+        "got: {body}"
+    );
+}
+
+#[tokio::test]
+async fn record_route_with_a_missing_path_returns_404_not_500() {
+    let router = seeded_router().await;
+
+    let response = router
+        .oneshot(
+            Request::builder()
+                .uri("/record/adr/9999-missing.md")
+                .body(Body::empty())
+                .expect("build request"),
+        )
+        .await
+        .expect("router responds");
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    let body = body_text(response).await;
+    assert!(body.to_lowercase().contains("not found"), "got: {body}");
 }
 
 #[tokio::test]
