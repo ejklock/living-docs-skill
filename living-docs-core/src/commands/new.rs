@@ -2,14 +2,12 @@ use crate::commands::next::next_number_from_store;
 use crate::paths;
 use crate::store::DocStore;
 use crate::templates;
-use std::fs;
-use std::io;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub fn run(docs_dir: &Path, doc_type: &str, title: &str) -> ExitCode {
-    match scaffold(&FsWalkStore, docs_dir, doc_type, title, &now_iso8601()) {
+pub fn run(store: &dyn DocStore, docs_dir: &Path, doc_type: &str, title: &str) -> ExitCode {
+    match scaffold(store, docs_dir, doc_type, title, &now_iso8601()) {
         Ok(path) => {
             println!("{}", path.display());
             ExitCode::SUCCESS
@@ -38,56 +36,15 @@ fn scaffold(
     let number = next_number_from_store(store, docs_dir, dir_name).map_err(|e| e.to_string())?;
     let target_path = type_dir.join(format!("{number:04}-{}.md", paths::slugify(title)));
 
-    if target_path.exists() {
+    if store.read(&target_path).is_ok() {
         return Err(format!("{} already exists", target_path.display()));
     }
 
-    fs::create_dir_all(&type_dir).map_err(|e| e.to_string())?;
     let filled = fill_frontmatter(template, frontmatter_type, timestamp);
-    fs::write(&target_path, filled).map_err(|e| e.to_string())?;
+    store
+        .write(&target_path, &filled)
+        .map_err(|e| e.to_string())?;
     Ok(target_path)
-}
-
-/// The filesystem-backed [`DocStore`] `scaffold` uses to drive
-/// [`next_number_from_store`] in file mode. `living-docs-core` cannot
-/// depend on the `fs-store` adapter crate — adapters depend on core, never
-/// the reverse — so this mirrors `fs-store::FsStore`'s recursive `.md` walk
-/// locally until issue 0006 slice 0006-D's `--backend` wiring injects a
-/// real store here instead.
-struct FsWalkStore;
-
-impl DocStore for FsWalkStore {
-    fn list(&self, root: &Path) -> io::Result<Vec<PathBuf>> {
-        let mut found = Vec::new();
-        collect_markdown_files(root, &mut found);
-        found.sort();
-        Ok(found)
-    }
-
-    fn read(&self, path: &Path) -> io::Result<String> {
-        fs::read_to_string(path)
-    }
-
-    fn write(&self, path: &Path, contents: &str) -> io::Result<()> {
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        fs::write(path, contents)
-    }
-}
-
-fn collect_markdown_files(dir: &Path, out: &mut Vec<PathBuf>) {
-    let Ok(entries) = fs::read_dir(dir) else {
-        return;
-    };
-    for entry in entries.filter_map(Result::ok) {
-        let path = entry.path();
-        if path.is_dir() {
-            collect_markdown_files(&path, out);
-        } else if path.extension().and_then(|ext| ext.to_str()) == Some("md") {
-            out.push(path);
-        }
-    }
 }
 
 fn unsupported_type_message(doc_type: &str) -> String {
@@ -181,6 +138,9 @@ fn civil_date_from_unix_days(days: i64) -> (i64, u32, u32) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::cell::RefCell;
+    use std::collections::BTreeMap;
+    use std::io;
 
     #[test]
     fn fill_frontmatter_sets_type_status_and_timestamp() {
@@ -244,57 +204,157 @@ mod tests {
         assert!(unsupported_type_message("constitution").contains("constitution"));
     }
 
-    fn temp_docs_dir(label: &str) -> PathBuf {
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system clock before unix epoch")
-            .as_nanos();
-        std::env::temp_dir().join(format!("living-docs-core-new-{label}-{nanos}"))
+    /// A minimal in-memory [`DocStore`] test double, so `scaffold`'s tests
+    /// need no filesystem at all — `living-docs-core` depends on no
+    /// concrete adapter (issue 0006 slice 0006-D2).
+    struct MapStore {
+        files: RefCell<BTreeMap<PathBuf, String>>,
+    }
+
+    impl MapStore {
+        fn new() -> Self {
+            Self {
+                files: RefCell::new(BTreeMap::new()),
+            }
+        }
+
+        fn seeded(seed: &[(&str, &str)]) -> Self {
+            let files = seed
+                .iter()
+                .map(|(path, contents)| (PathBuf::from(path), (*contents).to_string()))
+                .collect();
+            Self {
+                files: RefCell::new(files),
+            }
+        }
+    }
+
+    impl DocStore for MapStore {
+        fn list(&self, root: &Path) -> io::Result<Vec<PathBuf>> {
+            Ok(self
+                .files
+                .borrow()
+                .keys()
+                .filter(|path| path.starts_with(root))
+                .cloned()
+                .collect())
+        }
+
+        fn read(&self, path: &Path) -> io::Result<String> {
+            self.files
+                .borrow()
+                .get(path)
+                .cloned()
+                .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "not found"))
+        }
+
+        fn write(&self, path: &Path, contents: &str) -> io::Result<()> {
+            self.files
+                .borrow_mut()
+                .insert(path.to_path_buf(), contents.to_string());
+            Ok(())
+        }
     }
 
     #[test]
     fn scaffold_allocates_number_one_in_an_empty_type_directory() {
-        let docs_dir = temp_docs_dir("scaffold-first");
+        let store = MapStore::new();
 
         let target = scaffold(
-            &FsWalkStore,
-            &docs_dir,
+            &store,
+            Path::new("/bundle"),
             "adr",
             "First Decision",
             "2026-07-17T00:00:00Z",
         )
         .expect("scaffold should succeed");
 
-        assert_eq!(
-            target.file_name().and_then(|name| name.to_str()),
-            Some("0001-first-decision.md")
-        );
-
-        let _ = fs::remove_dir_all(&docs_dir);
+        assert_eq!(target, PathBuf::from("/bundle/adr/0001-first-decision.md"));
     }
 
     #[test]
     fn scaffold_allocates_max_existing_number_plus_one_through_next_number_from_store() {
-        let docs_dir = temp_docs_dir("scaffold-increment");
-        let type_dir = docs_dir.join("adr");
-        fs::create_dir_all(&type_dir).expect("create type dir");
-        fs::write(type_dir.join("0001-first.md"), "content").expect("seed fixture");
-        fs::write(type_dir.join("0004-fourth.md"), "content").expect("seed fixture");
+        let store = MapStore::seeded(&[
+            ("/bundle/adr/0001-first.md", "content"),
+            ("/bundle/adr/0004-fourth.md", "content"),
+        ]);
 
         let target = scaffold(
-            &FsWalkStore,
-            &docs_dir,
+            &store,
+            Path::new("/bundle"),
             "adr",
             "Fifth Decision",
             "2026-07-17T00:00:00Z",
         )
         .expect("scaffold should succeed");
 
-        assert_eq!(
-            target.file_name().and_then(|name| name.to_str()),
-            Some("0005-fifth-decision.md")
-        );
+        assert_eq!(target, PathBuf::from("/bundle/adr/0005-fifth-decision.md"));
+    }
 
-        let _ = fs::remove_dir_all(&docs_dir);
+    #[test]
+    fn scaffold_persists_the_filled_record_through_the_stores_write_method() {
+        let store = MapStore::new();
+
+        let target = scaffold(
+            &store,
+            Path::new("/bundle"),
+            "adr",
+            "Persisted Decision",
+            "2026-07-17T00:00:00Z",
+        )
+        .expect("scaffold should succeed");
+
+        let persisted = store
+            .read(&target)
+            .expect("scaffold must persist through DocStore::write");
+        assert!(persisted.contains("type: ADR"));
+        assert!(persisted.contains("status: Proposed"));
+        assert!(persisted.contains("timestamp: 2026-07-17T00:00:00Z"));
+    }
+
+    /// `list` deliberately omits the record `read` still serves, simulating
+    /// a store whose enumeration and lookup can disagree — proving the
+    /// clobber guard checks `DocStore::read` directly rather than trusting
+    /// `DocStore::list`'s allocation to have already ruled the path out.
+    struct StaleListingStore {
+        files: BTreeMap<PathBuf, String>,
+    }
+
+    impl DocStore for StaleListingStore {
+        fn list(&self, _root: &Path) -> io::Result<Vec<PathBuf>> {
+            Ok(Vec::new())
+        }
+
+        fn read(&self, path: &Path) -> io::Result<String> {
+            self.files
+                .get(path)
+                .cloned()
+                .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "not found"))
+        }
+
+        fn write(&self, _path: &Path, _contents: &str) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn scaffold_refuses_to_clobber_a_path_the_store_already_serves_even_when_listing_omits_it() {
+        let mut files = BTreeMap::new();
+        files.insert(
+            PathBuf::from("/bundle/adr/0001-first-decision.md"),
+            "existing".to_string(),
+        );
+        let store = StaleListingStore { files };
+
+        let err = scaffold(
+            &store,
+            Path::new("/bundle"),
+            "adr",
+            "First Decision",
+            "2026-07-17T00:00:00Z",
+        )
+        .expect_err("clobbering an existing store record must fail");
+
+        assert!(err.contains("already exists"), "got: {err}");
     }
 }
