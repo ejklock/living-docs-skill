@@ -8,10 +8,10 @@ one slice per fresh context, starting from the skeleton.
 ## Done
 
 * [0001 — Walking skeleton: Cargo workspace + living-docs-core + fs-store + thin cli](0001-workspace-core-skeleton.md) - done · delivered as S0a + S0b1 + S0b2
+* [0002 — Findability: db sync builds a SQLite/FTS5 read-model and living-docs search queries it](0002-findability-search.md) - done · delivered as S2a + S2b + S2c
 
 ## Open
 
-* [0002 — Findability: db sync builds a SQLite/FTS5 read-model and living-docs search queries it](0002-findability-search.md) - open · blocked_by: 0001
 * [0003 — Read-only web view: axum search + record page over the read-model](0003-web-read-only.md) - open · blocked_by: 0002
 * [0004 — ParadeDB (Postgres + BM25) as a selectable db engine alongside SQLite](0004-paradedb-engine.md) - open · blocked_by: 0002, 0007
 * [0005 — projects root + multi-project ingestion and cross-project search](0005-projects-multi-project.md) - open · blocked_by: 0002
