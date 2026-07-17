@@ -2,12 +2,22 @@
 type: Issue
 title: db-mode authoritative authoring — new/index/supersede/check on db-store, lossless .md export
 description: Make the database an authoritative authoring backend (new/index/supersede/check run over db-store), with a lossless .md exporter and check parity against file-mode.
-status: open
+status: done
 labels: [slice, database, authoring, schema]
 blocked_by: [2, 5]
 tracker:
 timestamp: 2026-07-16T00:00:00Z
 ---
+
+> **Delivered** (commits `bd892d8` → `02b41b7`, ADR 0007). Sub-sliced A/B/C1/C2/D1/D2:
+> A schema + EAV tail + dual identity; B canonical serializer + `db-store` `DocStore`
+> read/list; C1 identity-from-path (number ← filename `NNNN`, `concept_id` ← path);
+> C2 `DocStore::write` + backend-agnostic number allocation; D1 `check` reads via the
+> `DocStore` port (backend-faithful); D2 `--backend fs|db` selector, authoritative `new`
+> on db-store, and the `living-docs export` round-trip. **Deferred to a follow-up:**
+> db-mode `index`/`supersede` (still fs-only) — the write port and canonical serializer
+> they need already exist. The lossless round-trip and check-parity fitness functions are
+> green end-to-end.
 
 ## db-mode authoritative authoring
 
