@@ -2,7 +2,7 @@
 type: Issue
 title: Dev environment — docker-compose (ParadeDB) + Makefile targets over the workspace
 description: Extend the existing Docker-always dev setup with a docker-compose stack that brings up ParadeDB and the web, plus Makefile targets, so db-mode and multi-engine slices have a reproducible local/CI environment.
-status: open
+status: done
 labels: [enabling, tooling, infra, docker]
 blocked_by: [1]
 tracker:
@@ -68,3 +68,19 @@ compose the CI can call. The web *content* is issue 0003; this issue only wires 
 
 `docker-compose.yml` (paradedb + web) → `.env.example` + gitignore → Makefile `up`/`down`/
 `db-*` targets → healthcheck smoke. One pipeline slice.
+
+### Delivery note
+
+Delivered focused on the ParadeDB dev environment. Two scope deviations, decided with the user:
+
+- **The compose `web` service was deferred to issues 0004/0006.** `web` cannot talk to ParadeDB
+  until the `db-store` Postgres engine lands (0004), so wiring it now would only crash-loop or
+  serve the SQLite read-model. The smoke here is `paradedb` healthy + `select 1`.
+- **The template is committed as `env.example` (dotless), not `.env.example`.** The global
+  `Write(**/.env.*)` permission rule denies writing any `.env.*` path (including the template);
+  the dotless name sidesteps it while respecting the secrets-in-git guard.
+
+Implementation notes: image pinned to `paradedb/paradedb:0.24.3`; the named volume mounts at
+`/var/lib/postgresql` (the bundled Postgres 18 rejects the old `/data` subdirectory layout);
+`make db-up` uses `up -d --wait` so the healthcheck gates the smoke. Verified live (paradedb
+`Healthy`, `pg_isready` accepting, `select 1` → `1`).
