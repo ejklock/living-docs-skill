@@ -261,19 +261,25 @@ fn db_read_of_an_unknown_path_returns_a_not_found_error() {
 }
 
 #[test]
-fn db_doc_store_write_reports_it_is_deferred_to_slice_0006_c() {
-    let (db_path, db_url) = temp_sqlite_url("write-deferred");
+fn db_doc_store_write_persists_a_new_concept_record_readable_afterward() {
+    let (db_path, db_url) = temp_sqlite_url("write-new-concept");
     let (store, bundle) = concept_corpus();
     setup_synced_db(&db_url, &store, &bundle, "team-a");
 
     let db_store =
         DbDocStore::for_project(&db_url, bundle.clone(), "team-a").expect("open db doc store");
     let target = bundle.join("glossary").join("new-concept.md");
+    let contents =
+        "---\ntype: Glossary\ntitle: New Concept\ndescription: d.\n---\n# New Concept\n\nBody.\n";
 
-    let error = db_store
-        .write(&target, "content")
-        .expect_err("write is not yet implemented");
-    assert!(error.to_string().contains("0006-C"));
+    db_store
+        .write(&target, contents)
+        .expect("write should persist the new record");
+    let markdown = db_store.read(&target).expect("read the written record");
+
+    let reparsed = db_store::record::extract_record(&target, &markdown);
+    let original = db_store::record::extract_record(&target, contents);
+    assert_round_trips(&reparsed, &original);
 
     cleanup_sqlite_file(&db_path);
 }

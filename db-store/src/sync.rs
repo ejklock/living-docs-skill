@@ -15,8 +15,8 @@ use sea_orm::{
 };
 
 use crate::entity::{frontmatter_fields, projects, record_tags, relations, tags};
-use crate::entity::{ActiveModel, Column, Entity as Records};
-use crate::record::{extract_record, is_reserved};
+use crate::entity::{ActiveModel, Column, Entity as Records, Model};
+use crate::record::{extract_record, is_reserved, ExtractedRecord};
 use crate::Result;
 
 /// The slug [`sync`] assigns every record to: the single project every
@@ -155,7 +155,7 @@ async fn insert_record<C: ConnectionTrait>(
 ) -> Result<InsertedRecord> {
     let relative = relative_path(bundle, path);
     let contents = store.read(path).map_err(io_err_to_db_err)?;
-    let extracted = extract_record(path, &contents);
+    let extracted = extract_record(Path::new(&relative), &contents);
     let frontmatter_tail = extracted.frontmatter_tail;
 
     let inserted = ActiveModel {
@@ -293,6 +293,11 @@ fn resolve_target(
     lookup.get(&(dir.to_owned(), number)).copied()
 }
 
+/// The `relations.kind` value every supersede edge carries, whether
+/// resolved by a full sync ([`insert_supersede_relations`]) or a single
+/// write ([`resolve_write_relations`]).
+const SUPERSEDE_RELATION_KIND: &str = "supersede";
+
 async fn insert_supersede_relation<C: ConnectionTrait>(
     conn: &C,
     project_id: i32,
@@ -308,7 +313,7 @@ async fn insert_supersede_relation<C: ConnectionTrait>(
         project_id: ActiveValue::Set(project_id),
         from_record_id: ActiveValue::Set(from_record_id),
         to_record_id: ActiveValue::Set(to_record_id),
-        kind: ActiveValue::Set("supersede".to_owned()),
+        kind: ActiveValue::Set(SUPERSEDE_RELATION_KIND.to_owned()),
         ..Default::default()
     }
     .insert(conn)
@@ -362,6 +367,253 @@ async fn ensure_tag<C: ConnectionTrait>(
     .await?;
 
     cache.insert(name.to_owned(), inserted.id);
+    Ok(inserted.id)
+}
+
+/// Upserts one record by `(project_id, path)` from an already-extracted
+/// write, replacing its frontmatter tail and best-effort re-resolving its
+/// `supersedes`/`superseded_by` relations and tags against the project's
+/// already-persisted records (ADR 0007, issue 0006 slice 0006-C2). Runs in
+/// its own transaction so a mid-write failure leaves no partial row.
+pub(crate) async fn upsert_record(
+    conn: &DatabaseConnection,
+    project_id: i32,
+    path: &str,
+    extracted: ExtractedRecord,
+) -> Result<()> {
+    let txn = conn.begin().await?;
+
+    let record_id = upsert_record_row(&txn, project_id, path, &extracted).await?;
+    replace_frontmatter_tail(&txn, record_id, &extracted.frontmatter_tail).await?;
+    resolve_write_relations(&txn, project_id, path, record_id, &extracted).await?;
+    replace_write_tags(&txn, project_id, record_id, &extracted.tags).await?;
+
+    txn.commit().await?;
+    Ok(())
+}
+
+async fn upsert_record_row<C: ConnectionTrait>(
+    conn: &C,
+    project_id: i32,
+    path: &str,
+    extracted: &ExtractedRecord,
+) -> Result<i32> {
+    match find_record(conn, project_id, path).await? {
+        Some(existing) => update_record_row(conn, existing.id, extracted).await,
+        None => insert_record_row(conn, project_id, path, extracted).await,
+    }
+}
+
+async fn find_record<C: ConnectionTrait>(
+    conn: &C,
+    project_id: i32,
+    path: &str,
+) -> Result<Option<Model>> {
+    Records::find()
+        .filter(Column::ProjectId.eq(project_id))
+        .filter(Column::Path.eq(path))
+        .one(conn)
+        .await
+}
+
+async fn insert_record_row<C: ConnectionTrait>(
+    conn: &C,
+    project_id: i32,
+    path: &str,
+    extracted: &ExtractedRecord,
+) -> Result<i32> {
+    let inserted = ActiveModel {
+        project_id: ActiveValue::Set(project_id),
+        path: ActiveValue::Set(path.to_owned()),
+        doc_type: ActiveValue::Set(extracted.doc_type.clone()),
+        number: ActiveValue::Set(extracted.number),
+        concept_id: ActiveValue::Set(extracted.concept_id.clone()),
+        identity_kind: ActiveValue::Set(extracted.identity_kind.clone()),
+        title: ActiveValue::Set(extracted.title.clone()),
+        description: ActiveValue::Set(extracted.description.clone()),
+        body: ActiveValue::Set(extracted.body.clone()),
+        ..Default::default()
+    }
+    .insert(conn)
+    .await?;
+    Ok(inserted.id)
+}
+
+async fn update_record_row<C: ConnectionTrait>(
+    conn: &C,
+    record_id: i32,
+    extracted: &ExtractedRecord,
+) -> Result<i32> {
+    let model = ActiveModel {
+        id: ActiveValue::Set(record_id),
+        doc_type: ActiveValue::Set(extracted.doc_type.clone()),
+        number: ActiveValue::Set(extracted.number),
+        concept_id: ActiveValue::Set(extracted.concept_id.clone()),
+        identity_kind: ActiveValue::Set(extracted.identity_kind.clone()),
+        title: ActiveValue::Set(extracted.title.clone()),
+        description: ActiveValue::Set(extracted.description.clone()),
+        body: ActiveValue::Set(extracted.body.clone()),
+        ..Default::default()
+    };
+    let updated = model.update(conn).await?;
+    Ok(updated.id)
+}
+
+async fn replace_frontmatter_tail<C: ConnectionTrait>(
+    conn: &C,
+    record_id: i32,
+    tail: &[(String, String)],
+) -> Result<()> {
+    frontmatter_fields::Entity::delete_many()
+        .filter(frontmatter_fields::Column::RecordId.eq(record_id))
+        .exec(conn)
+        .await?;
+    insert_frontmatter_tail(conn, record_id, tail).await
+}
+
+/// Resolves `record_id`'s `supersedes`/`superseded_by` frontmatter against
+/// the project's already-persisted records — not just this write's own
+/// batch, the way [`insert_supersede_relations`] resolves during a full
+/// sync — and links any match. A target that does not (yet) exist is
+/// skipped, not inserted as a dangling relation; the FK is the backstop.
+async fn resolve_write_relations<C: ConnectionTrait>(
+    conn: &C,
+    project_id: i32,
+    path: &str,
+    record_id: i32,
+    extracted: &ExtractedRecord,
+) -> Result<()> {
+    let dir = record_dir(path);
+
+    if let Some(target_id) =
+        resolve_write_target(conn, project_id, &dir, extracted.supersedes.as_deref()).await?
+    {
+        insert_supersede_relation_if_absent(conn, project_id, record_id, target_id).await?;
+    }
+    if let Some(source_id) =
+        resolve_write_target(conn, project_id, &dir, extracted.superseded_by.as_deref()).await?
+    {
+        insert_supersede_relation_if_absent(conn, project_id, source_id, record_id).await?;
+    }
+    Ok(())
+}
+
+async fn resolve_write_target<C: ConnectionTrait>(
+    conn: &C,
+    project_id: i32,
+    dir: &str,
+    raw_target: Option<&str>,
+) -> Result<Option<i32>> {
+    let Some(raw_target) = raw_target else {
+        return Ok(None);
+    };
+    let Some(number) = normalize_number(raw_target) else {
+        return Ok(None);
+    };
+    find_record_id_in_dir(conn, project_id, dir, &number).await
+}
+
+/// The id of the record in `project_id` whose path sits directly under
+/// `dir` and whose `number` matches `zero_padded_number`, mirroring
+/// [`relation_key`]'s sibling-directory resolution but querying persisted
+/// rows instead of one sync run's in-memory batch.
+async fn find_record_id_in_dir<C: ConnectionTrait>(
+    conn: &C,
+    project_id: i32,
+    dir: &str,
+    zero_padded_number: &str,
+) -> Result<Option<i32>> {
+    let Ok(number) = zero_padded_number.parse::<i32>() else {
+        return Ok(None);
+    };
+    let prefix = format!("{dir}/");
+    let candidates = Records::find()
+        .filter(Column::ProjectId.eq(project_id))
+        .filter(Column::Number.eq(number))
+        .all(conn)
+        .await?;
+    Ok(candidates
+        .into_iter()
+        .find(|record| record.path.starts_with(&prefix))
+        .map(|record| record.id))
+}
+
+async fn insert_supersede_relation_if_absent<C: ConnectionTrait>(
+    conn: &C,
+    project_id: i32,
+    from_record_id: i32,
+    to_record_id: i32,
+) -> Result<()> {
+    let exists = relations::Entity::find()
+        .filter(relations::Column::Kind.eq(SUPERSEDE_RELATION_KIND))
+        .filter(relations::Column::FromRecordId.eq(from_record_id))
+        .filter(relations::Column::ToRecordId.eq(to_record_id))
+        .one(conn)
+        .await?
+        .is_some();
+    if exists {
+        return Ok(());
+    }
+    insert_supersede_relation(
+        conn,
+        project_id,
+        &mut HashSet::new(),
+        from_record_id,
+        to_record_id,
+    )
+    .await
+}
+
+/// Replaces `record_id`'s tag links with `tag_names`, creating any tag
+/// `project_id` does not already have. Looks tags up by name against the
+/// database rather than assuming absence the way [`insert_tags`]'s cache
+/// does during a from-empty sync run, so re-writing a record that reuses an
+/// existing project tag does not violate `UNIQUE(project_id, name)`.
+async fn replace_write_tags<C: ConnectionTrait>(
+    conn: &C,
+    project_id: i32,
+    record_id: i32,
+    tag_names: &[String],
+) -> Result<()> {
+    record_tags::Entity::delete_many()
+        .filter(record_tags::Column::RecordId.eq(record_id))
+        .exec(conn)
+        .await?;
+
+    for name in tag_names {
+        let tag_id = find_or_create_tag(conn, project_id, name).await?;
+        record_tags::ActiveModel {
+            record_id: ActiveValue::Set(record_id),
+            tag_id: ActiveValue::Set(tag_id),
+        }
+        .insert(conn)
+        .await?;
+    }
+    Ok(())
+}
+
+async fn find_or_create_tag<C: ConnectionTrait>(
+    conn: &C,
+    project_id: i32,
+    name: &str,
+) -> Result<i32> {
+    if let Some(existing) = tags::Entity::find()
+        .filter(tags::Column::ProjectId.eq(project_id))
+        .filter(tags::Column::Name.eq(name))
+        .one(conn)
+        .await?
+    {
+        return Ok(existing.id);
+    }
+
+    let inserted = tags::ActiveModel {
+        project_id: ActiveValue::Set(project_id),
+        name: ActiveValue::Set(name.to_owned()),
+        ..Default::default()
+    }
+    .insert(conn)
+    .await?;
+
     Ok(inserted.id)
 }
 
