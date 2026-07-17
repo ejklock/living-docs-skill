@@ -218,6 +218,13 @@ fn strip_fences(content: &str) -> String {
 /// Every inline markdown link target (the bit inside the parentheses) in
 /// `path`, fenced code blocks excluded. Reference-style `[x][ref]` links are
 /// not extracted (link *validity* — S5 — will use a real markdown parser).
+///
+/// Reads `path` straight from the filesystem rather than through
+/// `DocStore::read`: `path` here is always an `index.md` (a directory index
+/// or the bundle root), and `index.md`/`log.md` are excluded from the
+/// record domain by design (`db_store::record::is_reserved`) — no backend
+/// ever stores their content, so this traversal has no port to read them
+/// through.
 fn links_in(path: &Path) -> Vec<String> {
     let Ok(content) = fs::read_to_string(path) else {
         return Vec::new();

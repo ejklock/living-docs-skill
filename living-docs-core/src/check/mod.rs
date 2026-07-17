@@ -4,12 +4,20 @@
 //! directory-index membership, bundle-root reachability, supersede-chain
 //! integrity, local link/image validity via `pulldown-cmark`, and (S6)
 //! ```mermaid``` fence validation via the pinned mermaid-cli Docker image.
+//!
+//! Every record's content (`records`, `links`) is read through
+//! `DocStore::read`, so `check` validates whichever backend `run` is given.
+//! `index.md`/`log.md` are excluded from the record domain by design (never
+//! synced to `db-store`, see `db_store::record::is_reserved`), so
+//! `check::graph`'s directory-index parsing reads them straight from disk —
+//! that traversal is documented at its own call site.
 
 mod graph;
 mod links;
 mod mermaid;
 mod records;
 
+use crate::store::DocStore;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -20,7 +28,7 @@ pub fn run_mermaid_only(paths: &[PathBuf]) -> ExitCode {
     mermaid::run_mermaid_only(paths)
 }
 
-pub fn run(store: &dyn crate::store::DocStore, bundle: &Path) -> ExitCode {
+pub fn run(store: &dyn DocStore, bundle: &Path) -> ExitCode {
     if !bundle.is_dir() {
         eprintln!(
             "living-docs check: bundle root not found: {}",
@@ -43,11 +51,11 @@ pub fn run(store: &dyn crate::store::DocStore, bundle: &Path) -> ExitCode {
         reporter.report(&root_index, "missing bundle-root index.md (invariant 3)");
     }
 
-    records::check_frontmatter_and_format(&all_md, &root_index, &mut reporter);
+    records::check_frontmatter_and_format(store, &all_md, &root_index, &mut reporter);
     graph::check_directory_membership(bundle, &all_md, &mut reporter);
     graph::check_reachability(bundle, &root_index, &all_md, &mut reporter);
-    links::check_links(bundle, &all_md, &mut reporter);
-    records::check_supersede_chain(&all_md, &mut reporter);
+    links::check_links(store, bundle, &all_md, &mut reporter);
+    records::check_supersede_chain(store, &all_md, &mut reporter);
 
     if let Some(code) = mermaid::check_bundle(&all_md, &mut reporter) {
         return code;
@@ -122,6 +130,9 @@ impl Reporter {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeMap;
+    use std::io;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
     fn file_name_str_returns_the_basename() {
@@ -133,5 +144,108 @@ mod tests {
         let reporter = Reporter::new();
         let code = reporter.finish(3);
         assert_eq!(format!("{code:?}"), format!("{:?}", ExitCode::SUCCESS));
+    }
+
+    struct MapStore {
+        files: BTreeMap<PathBuf, String>,
+    }
+
+    impl DocStore for MapStore {
+        fn list(&self, root: &Path) -> io::Result<Vec<PathBuf>> {
+            Ok(self
+                .files
+                .keys()
+                .filter(|path| path.starts_with(root))
+                .cloned()
+                .collect())
+        }
+
+        fn read(&self, path: &Path) -> io::Result<String> {
+            self.files
+                .get(path)
+                .cloned()
+                .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "not found"))
+        }
+
+        fn write(&self, _path: &Path, _contents: &str) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    struct ScratchBundle {
+        root: PathBuf,
+    }
+
+    impl ScratchBundle {
+        fn new(label: &str) -> Self {
+            let nanos = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("system clock before unix epoch")
+                .as_nanos();
+            let root = std::env::temp_dir().join(format!("living-docs-check-mod-{label}-{nanos}"));
+            fs::create_dir_all(root.join("adr")).expect("create scratch adr dir");
+            fs::write(
+                root.join("index.md"),
+                "# Index\n\n- [ADRs](/adr/index.md)\n",
+            )
+            .expect("write scratch root index");
+            fs::write(
+                root.join("adr").join("index.md"),
+                "# ADR Index\n\n- [Doc](/adr/0001-doc.md)\n- [Other](/adr/0002-other.md)\n",
+            )
+            .expect("write scratch adr index");
+            Self { root }
+        }
+    }
+
+    impl Drop for ScratchBundle {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.root);
+        }
+    }
+
+    /// A record served only by the store (never written to disk) must still
+    /// pass `check` — proving content reads route through `DocStore::read`
+    /// rather than falling back to `std::fs::read_to_string` at the same
+    /// path.
+    #[test]
+    fn run_reads_record_content_through_the_store_even_when_no_file_backs_it_on_disk() {
+        let bundle = ScratchBundle::new("store-only-record");
+        let mut files = BTreeMap::new();
+        files.insert(
+            bundle.root.join("adr").join("0001-doc.md"),
+            "---\ntype: ADR\n---\n# Doc\n\nBody.\n".to_string(),
+        );
+        let store = MapStore { files };
+
+        let code = run(&store, &bundle.root);
+
+        assert_eq!(format!("{code:?}"), format!("{:?}", ExitCode::SUCCESS));
+    }
+
+    /// A supersede target that a real file on disk would satisfy, but that
+    /// the active store never enumerates, must still fail `check` — proving
+    /// the sibling lookup is driven by the store's own enumeration
+    /// (`DocStore::list`), not a filesystem re-scan.
+    #[test]
+    fn run_reports_a_supersede_target_the_store_omits_even_though_a_same_named_file_exists_on_disk()
+    {
+        let bundle = ScratchBundle::new("store-omits-target");
+        fs::write(
+            bundle.root.join("adr").join("0002-other.md"),
+            "---\ntype: ADR\ntitle: Other\n---\n# Other\n\nBody.\n",
+        )
+        .expect("write on-disk supersede target");
+        let mut files = BTreeMap::new();
+        files.insert(
+            bundle.root.join("adr").join("0001-doc.md"),
+            "---\ntype: ADR\nstatus: Superseded\nsuperseded_by: 0002\n---\n# Doc\n\nBody.\n"
+                .to_string(),
+        );
+        let store = MapStore { files };
+
+        let code = run(&store, &bundle.root);
+
+        assert_ne!(format!("{code:?}"), format!("{:?}", ExitCode::SUCCESS));
     }
 }
