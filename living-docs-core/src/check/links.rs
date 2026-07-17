@@ -7,22 +7,32 @@
 //! `check::graph`: strip the anchor, skip external/mailto/tel targets, join
 //! bundle-relative (leading `/`) against the bundle root and everything else
 //! against the linking file's directory, then normalize and check existence.
+//!
+//! Each linking file's own content is read through `DocStore::read`; the
+//! resolved destination's existence check stays on the filesystem — it may
+//! point at a non-record asset (an image, say) that the `DocStore` port
+//! never models.
 
 use super::graph::{dirname_str, normpath};
 use super::Reporter;
+use crate::store::DocStore;
 use pulldown_cmark::{Event, Parser, Tag};
-use std::fs;
 use std::path::{Path, PathBuf};
 
-pub(crate) fn check_links(bundle: &Path, all_md: &[PathBuf], reporter: &mut Reporter) {
+pub(crate) fn check_links(
+    store: &dyn DocStore,
+    bundle: &Path,
+    all_md: &[PathBuf],
+    reporter: &mut Reporter,
+) {
     let bundle_str = bundle.to_string_lossy();
     for f in all_md {
-        check_file_links(f, &bundle_str, reporter);
+        check_file_links(store, f, &bundle_str, reporter);
     }
 }
 
-fn check_file_links(f: &Path, bundle: &str, reporter: &mut Reporter) {
-    let Ok(content) = fs::read_to_string(f) else {
+fn check_file_links(store: &dyn DocStore, f: &Path, bundle: &str, reporter: &mut Reporter) {
+    let Ok(content) = store.read(f) else {
         return;
     };
     let file_str = f.to_string_lossy();
@@ -79,6 +89,76 @@ fn is_external(target: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeMap;
+    use std::io;
+    use std::process::ExitCode;
+
+    fn exit_code_is_success(code: ExitCode) -> bool {
+        format!("{code:?}") == format!("{:?}", ExitCode::SUCCESS)
+    }
+
+    struct MapStore {
+        files: BTreeMap<PathBuf, String>,
+    }
+
+    impl DocStore for MapStore {
+        fn list(&self, root: &Path) -> io::Result<Vec<PathBuf>> {
+            Ok(self
+                .files
+                .keys()
+                .filter(|path| path.starts_with(root))
+                .cloned()
+                .collect())
+        }
+
+        fn read(&self, path: &Path) -> io::Result<String> {
+            self.files
+                .get(path)
+                .cloned()
+                .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "not found"))
+        }
+
+        fn write(&self, _path: &Path, _contents: &str) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn check_file_links_reads_content_the_store_serves_with_no_disk_backing() {
+        let mut files = BTreeMap::new();
+        files.insert(
+            PathBuf::from("/bundle/adr/0001.md"),
+            "[missing](./0099-missing.md)\n".to_string(),
+        );
+        let store = MapStore { files };
+        let mut reporter = Reporter::new();
+
+        check_file_links(
+            &store,
+            Path::new("/bundle/adr/0001.md"),
+            "/bundle",
+            &mut reporter,
+        );
+
+        assert!(!exit_code_is_success(reporter.finish(1)));
+    }
+
+    #[test]
+    fn check_file_links_is_a_no_op_when_the_store_has_no_content_at_the_path() {
+        let store = MapStore {
+            files: BTreeMap::new(),
+        };
+        let mut reporter = Reporter::new();
+
+        check_file_links(
+            &store,
+            Path::new("/bundle/adr/0001.md"),
+            "/bundle",
+            &mut reporter,
+        );
+
+        assert!(exit_code_is_success(reporter.finish(0)));
+    }
 
     #[test]
     fn link_destinations_ignores_fenced_code_and_extracts_every_link_form() {
