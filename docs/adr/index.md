@@ -11,3 +11,8 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 ## Active
 
 * [0001 — A living-docs CLI that owns the deterministic layer of doc authoring](0001-living-docs-cli.md) - Accepted
+* [0002 — Extract a hexagonal living-docs-core inside a Cargo workspace](0002-hexagonal-core-workspace.md) - Proposed
+* [0003 — Storage backend is config-selected, mutually exclusive, and both modes authoritative](0003-storage-backend-model.md) - Proposed
+* [0004 — db-mode runs on ParadeDB by default with SQLite opt-in, over SeaORM](0004-db-engine-and-data-layer.md) - Proposed
+* [0005 — Normalized DB schema — projects root, typed records with an EAV tail, typed relations](0005-normalized-schema.md) - Proposed
+* [0006 — The web view is a read-only axum server reusing living-docs-core](0006-web-read-only-axum.md) - Proposed
