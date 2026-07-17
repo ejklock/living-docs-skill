@@ -1,13 +1,16 @@
 //! Library surface shared between the `living-docs-web` binary and its
-//! integration tests (ADR 0006, issue 0003 slice S3a): the read-only axum
-//! router and its `GET /` search handler.
+//! integration tests (ADR 0006, issue 0003 slices S3a-S3b): the read-only
+//! axum router, its `GET /` search handler, and its `GET /record/{*path}`
+//! record handler.
 
 pub mod views;
 
-use axum::extract::{Query, State};
+use axum::extract::{Path, Query, State};
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use axum::Router;
-use db_store::SearchHit;
+use db_store::{RecordView, SearchHit};
 use maud::Markup;
 use sea_orm::DatabaseConnection;
 use serde::Deserialize;
@@ -18,11 +21,12 @@ pub struct SearchParams {
     q: Option<String>,
 }
 
-/// Builds the read-only router backed by `conn`. Exposes `GET /` only — no
-/// route here mutates the read-model.
+/// Builds the read-only router backed by `conn`. Exposes `GET /` and
+/// `GET /record/{*path}` only — no route here mutates the read-model.
 pub fn build_router(conn: DatabaseConnection) -> Router {
     Router::new()
         .route("/", get(search_handler))
+        .route("/record/{*path}", get(record_handler))
         .with_state(conn)
 }
 
@@ -46,4 +50,34 @@ async fn search_or_log(conn: &DatabaseConnection, query: &str) -> Vec<SearchHit>
             Vec::new()
         }
     }
+}
+
+async fn record_handler(
+    State(conn): State<DatabaseConnection>,
+    Path(path): Path<String>,
+) -> Response {
+    match record_or_log(&conn, &path).await {
+        Some(record) => {
+            let body_html = render_markdown(&record.body);
+            (StatusCode::OK, views::record_page(&record.title, &body_html)).into_response()
+        }
+        None => (StatusCode::NOT_FOUND, views::not_found()).into_response(),
+    }
+}
+
+async fn record_or_log(conn: &DatabaseConnection, path: &str) -> Option<RecordView> {
+    match db_store::record_by_path(conn, path).await {
+        Ok(record) => record,
+        Err(err) => {
+            eprintln!("record lookup {path:?} failed: {err}");
+            None
+        }
+    }
+}
+
+fn render_markdown(body: &str) -> String {
+    let parser = pulldown_cmark::Parser::new(body);
+    let mut html = String::new();
+    pulldown_cmark::html::push_html(&mut html, parser);
+    html
 }

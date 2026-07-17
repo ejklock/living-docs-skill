@@ -13,14 +13,36 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use living_docs_core::store::SearchIndex;
-use sea_orm::{Database, DatabaseConnection, DbErr};
+use sea_orm::{ColumnTrait, Database, DatabaseConnection, DbErr, EntityTrait, QueryFilter};
 use sea_orm_migration::MigratorTrait;
 
+use entity::{Column, Entity as Records};
 use migration::Migrator;
 
 pub use record::{ExtractedRecord, SearchHit};
 pub use search::search;
 pub use sync::sync;
+
+/// A single record's title and markdown source body, looked up by its
+/// bundle-relative path (ADR 0006, issue 0003 slice S3b).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RecordView {
+    pub title: String,
+    pub body: String,
+}
+
+/// Looks up the record at `path`. Returns `None` when no record exists at
+/// that path — a missing record is not an error.
+pub async fn record_by_path(conn: &DatabaseConnection, path: &str) -> Result<Option<RecordView>> {
+    let record = Records::find()
+        .filter(Column::Path.eq(path))
+        .one(conn)
+        .await?;
+    Ok(record.map(|model| RecordView {
+        title: model.title,
+        body: model.body,
+    }))
+}
 
 /// Result alias for this crate's fallible operations, using SeaORM's own
 /// error type since every failure here originates from the database layer.
@@ -148,6 +170,28 @@ mod tests {
             .expect("system clock before unix epoch")
             .as_nanos();
         std::env::temp_dir().join(format!("living-docs-db-store-test-{label}-{nanos}.db"))
+    }
+
+    #[tokio::test]
+    async fn record_by_path_returns_some_for_a_synced_path_and_none_for_an_unknown_path() {
+        let conn = connect_in_memory().await.expect("connect");
+        migrate(&conn).await.expect("migrate");
+        let (store, bundle) = sync::test_support::seeded_corpus();
+        sync::sync(&conn, &store, &bundle)
+            .await
+            .expect("sync seeded corpus");
+
+        let found = record_by_path(&conn, "adr/0001-quokka-caching.md")
+            .await
+            .expect("query record_by_path")
+            .expect("record exists for the seeded path");
+        assert_eq!(found.title, "Quokka Caching Strategy");
+        assert!(found.body.contains("quokka caching strategy"));
+
+        let missing = record_by_path(&conn, "adr/9999-missing.md")
+            .await
+            .expect("query record_by_path");
+        assert!(missing.is_none());
     }
 
     #[test]
