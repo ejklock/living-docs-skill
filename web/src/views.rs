@@ -100,6 +100,7 @@ mod tests {
             path: path.to_owned(),
             title: title.to_owned(),
             snippet: snippet.to_owned(),
+            project: "docs".to_owned(),
         }
     }
 

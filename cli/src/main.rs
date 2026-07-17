@@ -58,6 +58,11 @@ enum Command {
         /// ParadeDB via `$DATABASE_URL`.
         #[arg(long, value_enum, default_value = "sqlite")]
         engine: Engine,
+        /// Narrow results to one project's slug. Omitted spans every
+        /// project, labeling each hit by the project it belongs to (ADR
+        /// 0005, issue 0005 slice 0005-C1).
+        #[arg(long)]
+        project: Option<String>,
     },
 }
 
@@ -131,7 +136,11 @@ fn main() -> ExitCode {
         Command::Db {
             cmd: DbCmd::Sync { engine, project },
         } => run_db_sync(&cli.docs_dir, engine, project),
-        Command::Search { query, engine } => run_search(&query, engine),
+        Command::Search {
+            query,
+            engine,
+            project,
+        } => run_search(&query, engine, project),
     }
 }
 
@@ -179,7 +188,7 @@ fn derive_project_slug(docs_dir: &Path) -> String {
         .unwrap_or_else(|| DEFAULT_PROJECT_SLUG.to_owned())
 }
 
-fn run_search(query: &str, engine: Engine) -> ExitCode {
+fn run_search(query: &str, engine: Engine, project: Option<String>) -> ExitCode {
     if matches!(engine, Engine::Sqlite) && !Path::new(SQLITE_READ_MODEL_PATH).exists() {
         eprintln!("no index found at {SQLITE_READ_MODEL_PATH}; run: living-docs db sync");
         return ExitCode::FAILURE;
@@ -193,7 +202,7 @@ fn run_search(query: &str, engine: Engine) -> ExitCode {
         Ok(runtime) => runtime,
         Err(err) => return report_failure(&err.to_string()),
     };
-    match runtime.block_on(search_read_model(query, &url)) {
+    match runtime.block_on(search_read_model(query, &url, project.as_deref())) {
         Ok(hits) => {
             print_hits(&hits);
             ExitCode::SUCCESS
@@ -202,14 +211,21 @@ fn run_search(query: &str, engine: Engine) -> ExitCode {
     }
 }
 
-async fn search_read_model(query: &str, url: &str) -> db_store::Result<Vec<db_store::SearchHit>> {
+async fn search_read_model(
+    query: &str,
+    url: &str,
+    project: Option<&str>,
+) -> db_store::Result<Vec<db_store::SearchHit>> {
     let conn = db_store::connect(url).await?;
-    db_store::search(&conn, query).await
+    match project {
+        Some(slug) => db_store::search_in_project(&conn, query, slug).await,
+        None => db_store::search(&conn, query).await,
+    }
 }
 
 fn print_hits(hits: &[db_store::SearchHit]) {
     for hit in hits {
-        println!("{} — {}", hit.path, hit.title);
+        println!("[{}] {} — {}", hit.project, hit.path, hit.title);
         println!("{}", hit.snippet);
     }
 }
