@@ -1,5 +1,7 @@
 use clap::{Parser, Subcommand, ValueEnum};
+use living_docs_core::store::DocStore;
 use living_docs_core::{check, commands, paths};
+use std::io;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -13,6 +15,14 @@ struct Cli {
     /// Root of the docs bundle. Overridable so tests can point at a temp tree.
     #[arg(long, global = true, default_value = "docs")]
     docs_dir: PathBuf,
+
+    /// Which persistence backend `new`/`check`/`export` operate against:
+    /// the local `.md` tree (`fs`, default) or the SQLite/ParadeDB
+    /// read-model (`db`), scoped to a project derived from `--docs-dir`
+    /// (ADR 0007, issue 0006 slice 0006-D2). `index`/`supersede` remain
+    /// `fs`-only regardless of this flag.
+    #[arg(long, global = true, value_enum, default_value = "fs")]
+    backend: Backend,
 
     #[command(subcommand)]
     command: Command,
@@ -44,6 +54,12 @@ enum Command {
         /// Validate only ```mermaid``` fences over `paths`, skipping every other invariant.
         #[arg(long)]
         mermaid_only: bool,
+    },
+    /// Materializes every record the active `--backend` lists back into
+    /// conformant `.md` files under `out_dir` — the lossless round-trip
+    /// fitness function (ADR 0007, issue 0006 slice 0006-D2).
+    Export {
+        out_dir: PathBuf,
     },
     /// Operate on the derived read-model (SQLite/FTS5 by default, or ParadeDB
     /// with `--engine paradedb`).
@@ -91,6 +107,14 @@ enum Engine {
     Paradedb,
 }
 
+/// The persistence backend `new`/`check`/`export` operate against (ADR
+/// 0007, issue 0006 slice 0006-D2).
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum Backend {
+    Fs,
+    Db,
+}
+
 const SQLITE_READ_MODEL_PATH: &str = ".living-docs/index.db";
 const DATABASE_URL_VAR: &str = "DATABASE_URL";
 
@@ -99,12 +123,17 @@ impl Engine {
         self.resolve_url_with(|name| std::env::var(name))
     }
 
+    /// `Sqlite` honors `$DATABASE_URL` when set (accepting a full
+    /// `sqlite://…` value, e.g. a hermetic per-test database), falling back
+    /// to the local read-model path otherwise; `Paradedb` requires
+    /// `$DATABASE_URL` unconditionally.
     fn resolve_url_with(
         self,
         lookup_env: impl Fn(&str) -> Result<String, std::env::VarError>,
     ) -> Result<String, String> {
         match self {
-            Engine::Sqlite => Ok(format!("sqlite://{SQLITE_READ_MODEL_PATH}?mode=rwc")),
+            Engine::Sqlite => Ok(lookup_env(DATABASE_URL_VAR)
+                .unwrap_or_else(|_| format!("sqlite://{SQLITE_READ_MODEL_PATH}?mode=rwc"))),
             Engine::Paradedb => lookup_env(DATABASE_URL_VAR).map_err(|_| {
                 format!(
                     "the paradedb engine requires ${DATABASE_URL_VAR} to be set to a Postgres connection string"
@@ -118,21 +147,15 @@ fn main() -> ExitCode {
     let cli = Cli::parse();
     match cli.command {
         Command::Next { doc_type } => commands::next::run(&cli.docs_dir, &doc_type),
-        Command::New { doc_type, title } => commands::new::run(&cli.docs_dir, &doc_type, &title),
+        Command::New { doc_type, title } => run_new(cli.backend, &cli.docs_dir, &doc_type, &title),
         Command::Index { doc_type } => commands::index::run(&cli.docs_dir, doc_type),
         Command::Supersede { old, new } => commands::supersede::run(&cli.docs_dir, &old, &new),
         Command::Check {
             paths,
             mermaid_only,
         } if mermaid_only => check::run_mermaid_only(&paths),
-        Command::Check { paths, .. } => {
-            let bundle = paths
-                .into_iter()
-                .next()
-                .unwrap_or_else(|| PathBuf::from("docs"));
-            let store = fs_store::FsStore::new();
-            check::run(&store, &bundle)
-        }
+        Command::Check { paths, .. } => run_check(cli.backend, &cli.docs_dir, paths),
+        Command::Export { out_dir } => run_export(cli.backend, &cli.docs_dir, &out_dir),
         Command::Db {
             cmd: DbCmd::Sync { engine, project },
         } => run_db_sync(&cli.docs_dir, engine, project),
@@ -141,6 +164,105 @@ fn main() -> ExitCode {
             engine,
             project,
         } => run_search(&query, engine, project),
+    }
+}
+
+fn run_new(backend: Backend, docs_dir: &Path, doc_type: &str, title: &str) -> ExitCode {
+    match build_backend_store(backend, docs_dir) {
+        Ok(store) => commands::new::run(store.as_ref(), docs_dir, doc_type, title),
+        Err(err) => report_failure(&err),
+    }
+}
+
+fn run_check(backend: Backend, docs_dir: &Path, paths: Vec<PathBuf>) -> ExitCode {
+    let bundle = check_bundle(backend, docs_dir, paths);
+    match build_backend_store(backend, &bundle) {
+        Ok(store) => check::run(store.as_ref(), &bundle),
+        Err(err) => report_failure(&err),
+    }
+}
+
+/// The db backend has no notion of `check`'s `[BUNDLE_ROOT]` positional
+/// argument — its `DocStore` is scoped to `--docs-dir` at construction — so
+/// it always checks `docs_dir`, ignoring `paths`; the fs backend keeps its
+/// existing `lint-docs.sh`-compatible behavior unchanged.
+fn check_bundle(backend: Backend, docs_dir: &Path, paths: Vec<PathBuf>) -> PathBuf {
+    match backend {
+        Backend::Db => docs_dir.to_path_buf(),
+        Backend::Fs => paths
+            .into_iter()
+            .next()
+            .unwrap_or_else(|| PathBuf::from("docs")),
+    }
+}
+
+fn run_export(backend: Backend, docs_dir: &Path, out_dir: &Path) -> ExitCode {
+    match build_backend_store(backend, docs_dir) {
+        Ok(store) => commands::export::export(store.as_ref(), docs_dir, out_dir),
+        Err(err) => report_failure(&err),
+    }
+}
+
+fn build_backend_store(backend: Backend, root: &Path) -> Result<Box<dyn DocStore>, String> {
+    match backend {
+        Backend::Fs => Ok(Box::new(fs_store::FsStore::new())),
+        Backend::Db => build_db_doc_store(root).map(|store| Box::new(store) as Box<dyn DocStore>),
+    }
+}
+
+/// Opens (migrating if needed) the db backend's connection, bootstraps
+/// `root`'s project if this is its first use, then hands back a
+/// [`db_store::DbDocStore`] scoped to it — the `--backend db` counterpart
+/// of [`fs_store::FsStore::new`].
+fn build_db_doc_store(root: &Path) -> Result<db_store::DbDocStore, String> {
+    let url = Engine::Sqlite.resolve_url()?;
+    let project_slug = derive_project_slug(root);
+    let runtime = build_runtime().map_err(|e| e.to_string())?;
+    runtime
+        .block_on(prepare_db_project(&url, root, &project_slug))
+        .map_err(|e| e.to_string())?;
+    db_store::DbDocStore::for_project(&url, root.to_path_buf(), &project_slug)
+        .map_err(|e| e.to_string())
+}
+
+/// Ensures `project_slug` exists before a [`db_store::DbDocStore`] is
+/// constructed over it — its constructor only looks an existing project up,
+/// it never creates one. Bootstraps via an [`EmptyStore`] rather than
+/// [`fs_store::FsStore`] so a first `--backend db` call never silently
+/// ingests whatever `.md` files happen to sit under `root`; only ever
+/// creates the project shell (never clears an existing one, since it is
+/// skipped entirely once found).
+async fn prepare_db_project(url: &str, root: &Path, project_slug: &str) -> db_store::Result<()> {
+    let conn = db_store::connect(url).await?;
+    db_store::migrate(&conn).await?;
+    let existing = db_store::list_projects(&conn).await?;
+    if existing.iter().any(|project| project.slug == project_slug) {
+        return Ok(());
+    }
+    db_store::sync_project(&conn, &EmptyStore, root, project_slug)
+        .await
+        .map(|_| ())
+}
+
+/// A [`DocStore`] with no records, used only to bootstrap a fresh project
+/// row for `--backend db` (via [`db_store::sync_project`]) without
+/// ingesting anything from disk.
+struct EmptyStore;
+
+impl DocStore for EmptyStore {
+    fn list(&self, _root: &Path) -> io::Result<Vec<PathBuf>> {
+        Ok(Vec::new())
+    }
+
+    fn read(&self, _path: &Path) -> io::Result<String> {
+        Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            "empty store carries no records",
+        ))
+    }
+
+    fn write(&self, _path: &Path, _contents: &str) -> io::Result<()> {
+        Ok(())
     }
 }
 
@@ -246,11 +368,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn engine_sqlite_resolves_to_the_local_read_model_url() {
+    fn engine_sqlite_resolves_to_the_local_read_model_url_when_database_url_is_unset() {
         let url = Engine::Sqlite
-            .resolve_url_with(|_| Ok("unused".to_owned()))
+            .resolve_url_with(|_| Err(std::env::VarError::NotPresent))
             .expect("sqlite url always resolves");
         assert_eq!(url, format!("sqlite://{SQLITE_READ_MODEL_PATH}?mode=rwc"));
+    }
+
+    #[test]
+    fn engine_sqlite_honors_database_url_when_set() {
+        let url = Engine::Sqlite
+            .resolve_url_with(|_| Ok("sqlite:///tmp/hermetic.db?mode=rwc".to_owned()))
+            .expect("sqlite url resolves from the override");
+        assert_eq!(url, "sqlite:///tmp/hermetic.db?mode=rwc");
     }
 
     #[test]
@@ -288,5 +418,42 @@ mod tests {
     fn derive_project_slug_falls_back_to_default_when_docs_dir_has_no_final_component() {
         assert_eq!(derive_project_slug(Path::new("/")), DEFAULT_PROJECT_SLUG);
         assert_eq!(derive_project_slug(Path::new("")), DEFAULT_PROJECT_SLUG);
+    }
+
+    #[test]
+    fn check_bundle_uses_docs_dir_for_the_db_backend_ignoring_paths() {
+        let bundle = check_bundle(
+            Backend::Db,
+            Path::new("/repo/docs"),
+            vec![PathBuf::from("/ignored")],
+        );
+        assert_eq!(bundle, PathBuf::from("/repo/docs"));
+    }
+
+    #[test]
+    fn check_bundle_uses_the_first_path_argument_for_the_fs_backend() {
+        let bundle = check_bundle(
+            Backend::Fs,
+            Path::new("/repo/docs"),
+            vec![PathBuf::from("/bundle")],
+        );
+        assert_eq!(bundle, PathBuf::from("/bundle"));
+    }
+
+    #[test]
+    fn check_bundle_defaults_to_docs_for_the_fs_backend_when_no_paths_are_given() {
+        let bundle = check_bundle(Backend::Fs, Path::new("/repo/docs"), Vec::new());
+        assert_eq!(bundle, PathBuf::from("docs"));
+    }
+
+    #[test]
+    fn empty_store_lists_no_records_and_refuses_every_read() {
+        let store = EmptyStore;
+        assert!(store
+            .list(Path::new("/bundle"))
+            .expect("empty store lists successfully")
+            .is_empty());
+        assert!(store.read(Path::new("/bundle/adr/0001-x.md")).is_err());
+        assert!(store.write(Path::new("/bundle/adr/0001-x.md"), "x").is_ok());
     }
 }
