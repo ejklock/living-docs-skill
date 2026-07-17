@@ -2,7 +2,7 @@
 type: Issue
 title: Read-only web view — axum search + record page over the read-model
 description: Serve a read-only, server-rendered axum web view that searches the read-model and renders a record, reusing living-docs-core — the browser-observable surface of findability.
-status: open
+status: done
 labels: [slice, web, findability]
 blocked_by: [2]
 tracker:
