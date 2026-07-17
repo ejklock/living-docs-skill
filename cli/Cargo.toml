@@ -10,6 +10,4 @@ path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
-serde = { version = "1", features = ["derive"] }
-serde_yaml = "0.9"
-pulldown-cmark = { version = "=0.13.4", default-features = false }
+living-docs-core = { path = "../living-docs-core" }
