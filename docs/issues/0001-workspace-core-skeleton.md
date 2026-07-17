@@ -2,7 +2,7 @@
 type: Issue
 title: Walking skeleton — Cargo workspace + living-docs-core + fs-store + thin cli
 description: Extract the standalone cli crate into a workspace with a hexagonal core and an fs-store adapter, preserving all current behavior, and wire CI — the runnable foundation every later slice stacks on.
-status: open
+status: done
 labels: [slice, skeleton, refactor]
 blocked_by: []
 tracker:
