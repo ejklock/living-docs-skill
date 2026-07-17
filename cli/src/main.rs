@@ -81,6 +81,13 @@ enum Command {
         #[command(subcommand)]
         cmd: DbCmd,
     },
+    /// Fails closed when an exported bundle leaks a private doc, or a
+    /// dangling link to a doc withheld from the bundle (ADR 0010 leak gate,
+    /// part 1 — always inspects a materialized filesystem bundle, regardless
+    /// of `--backend`).
+    LeakGate {
+        bundle: PathBuf,
+    },
     /// Full-text search the derived read-model, ranked best-match-first.
     Search {
         query: String,
@@ -194,6 +201,7 @@ fn main() -> ExitCode {
             out_dir,
             visibility,
         } => run_export(cli.backend, &cli.docs_dir, &out_dir, visibility),
+        Command::LeakGate { bundle } => run_leak_gate(&bundle),
         Command::Db {
             cmd: DbCmd::Sync { engine, project },
         } => run_db_sync(&cli.docs_dir, engine, project),
@@ -263,6 +271,12 @@ fn run_export(
         Ok(store) => commands::export::export(store.as_ref(), docs_dir, out_dir, visibility),
         Err(err) => report_failure(&err),
     }
+}
+
+/// Always inspects a materialized filesystem bundle — a bundle is a directory
+/// tree `export` already wrote, not a `--backend`-selectable projection.
+fn run_leak_gate(bundle: &Path) -> ExitCode {
+    commands::leak_gate::run(&fs_store::FsStore::new(), bundle)
 }
 
 fn build_backend_store(backend: Backend, root: &Path) -> Result<Box<dyn DocStore>, String> {
