@@ -17,3 +17,6 @@
 /node_modules/
 /test-results/
 /playwright-report/
+
+# Dev-env docker-compose secrets (issue 0007) — only env.example is committed
+/.env
