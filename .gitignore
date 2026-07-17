@@ -1,5 +1,8 @@
 .DS_Store
 *.log
+
+# Rust workspace build output
+/target
 .idea/
 .vscode/
 .tmp-smoke/

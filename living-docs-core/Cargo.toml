@@ -1,0 +1,14 @@
+[package]
+name = "living-docs-core"
+version = "0.1.0"
+edition = "2021"
+description = "Deterministic domain layer of Living Docs authoring (ADR 0001)."
+
+[lib]
+name = "living_docs_core"
+path = "src/lib.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+pulldown-cmark = { version = "=0.13.4", default-features = false }

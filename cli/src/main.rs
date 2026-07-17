@@ -1,10 +1,5 @@
-mod check;
-mod commands;
-mod frontmatter;
-mod paths;
-mod templates;
-
 use clap::{Parser, Subcommand};
+use living_docs_core::{check, commands};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
