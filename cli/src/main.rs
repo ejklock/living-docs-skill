@@ -134,8 +134,9 @@ impl Engine {
         lookup_env: impl Fn(&str) -> Result<String, std::env::VarError>,
     ) -> Result<String, String> {
         match self {
-            Engine::Sqlite => Ok(lookup_env(DATABASE_URL_VAR)
-                .unwrap_or_else(|_| format!("sqlite://{SQLITE_READ_MODEL_PATH}?mode=rwc"))),
+            Engine::Sqlite => {
+                Ok(lookup_env(DATABASE_URL_VAR).unwrap_or_else(|_| default_sqlite_url()))
+            }
             Engine::Paradedb => lookup_env(DATABASE_URL_VAR).map_err(|_| {
                 format!(
                     "the paradedb engine requires ${DATABASE_URL_VAR} to be set to a Postgres connection string"
@@ -143,6 +144,23 @@ impl Engine {
             }),
         }
     }
+}
+
+/// The connection string `Engine::Sqlite` resolves to when `$DATABASE_URL`
+/// is unset — the single source of truth for what "the default local
+/// SQLite backend" means, shared by [`Engine::resolve_url_with`] and
+/// [`is_default_local_sqlite`].
+fn default_sqlite_url() -> String {
+    format!("sqlite://{SQLITE_READ_MODEL_PATH}?mode=rwc")
+}
+
+/// True only when `engine`/`url` is the default local SQLite backend
+/// (`Engine::Sqlite` with `$DATABASE_URL` unset), the one case where the
+/// `.living-docs/index.db` file existence check in [`run_search`] is a
+/// reliable signal — a `Sqlite` engine pointed at an overridden URL, or
+/// `Paradedb`, may have no local file at all yet still have a valid index.
+fn is_default_local_sqlite(engine: Engine, url: &str) -> bool {
+    matches!(engine, Engine::Sqlite) && url == default_sqlite_url()
 }
 
 fn main() -> ExitCode {
@@ -327,15 +345,15 @@ fn derive_project_slug(docs_dir: &Path) -> String {
 }
 
 fn run_search(query: &str, engine: Engine, project: Option<String>) -> ExitCode {
-    if matches!(engine, Engine::Sqlite) && !Path::new(SQLITE_READ_MODEL_PATH).exists() {
-        eprintln!("no index found at {SQLITE_READ_MODEL_PATH}; run: living-docs db sync");
-        return ExitCode::FAILURE;
-    }
-
     let url = match engine.resolve_url() {
         Ok(url) => url,
         Err(err) => return report_failure(&err),
     };
+    if is_default_local_sqlite(engine, &url) && !Path::new(SQLITE_READ_MODEL_PATH).exists() {
+        eprintln!("no index found at {SQLITE_READ_MODEL_PATH}; run: living-docs db sync");
+        return ExitCode::FAILURE;
+    }
+
     let runtime = match build_runtime() {
         Ok(runtime) => runtime,
         Err(err) => return report_failure(&err.to_string()),
@@ -460,6 +478,30 @@ mod tests {
     fn check_bundle_defaults_to_docs_for_the_fs_backend_when_no_paths_are_given() {
         let bundle = check_bundle(Backend::Fs, Path::new("/repo/docs"), Vec::new());
         assert_eq!(bundle, PathBuf::from("docs"));
+    }
+
+    #[test]
+    fn is_default_local_sqlite_is_true_for_sqlite_with_the_default_url() {
+        assert!(is_default_local_sqlite(
+            Engine::Sqlite,
+            &default_sqlite_url()
+        ));
+    }
+
+    #[test]
+    fn is_default_local_sqlite_is_false_for_sqlite_with_an_overridden_url() {
+        assert!(!is_default_local_sqlite(
+            Engine::Sqlite,
+            "sqlite:///tmp/hermetic.db?mode=rwc"
+        ));
+    }
+
+    #[test]
+    fn is_default_local_sqlite_is_false_for_paradedb_even_with_the_default_sqlite_url_string() {
+        assert!(!is_default_local_sqlite(
+            Engine::Paradedb,
+            &default_sqlite_url()
+        ));
     }
 
     #[test]

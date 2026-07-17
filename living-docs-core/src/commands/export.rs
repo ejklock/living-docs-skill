@@ -43,7 +43,13 @@ fn export_one(
     out_dir: &Path,
 ) -> Result<(), String> {
     let contents = source.read(path).map_err(|e| e.to_string())?;
-    let relative = path.strip_prefix(source_root).unwrap_or(path);
+    let relative = path.strip_prefix(source_root).map_err(|_| {
+        format!(
+            "listed path {} is not under the source root {}",
+            path.display(),
+            source_root.display()
+        )
+    })?;
     let target = out_dir.join(relative);
     if let Some(parent) = target.parent() {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
@@ -94,6 +100,24 @@ mod tests {
 
         fn read(&self, _path: &Path) -> io::Result<String> {
             Err(io::Error::new(io::ErrorKind::NotFound, "unused"))
+        }
+
+        fn write(&self, _path: &Path, _contents: &str) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    struct OutOfRootStore {
+        listed_path: PathBuf,
+    }
+
+    impl DocStore for OutOfRootStore {
+        fn list(&self, _root: &Path) -> io::Result<Vec<PathBuf>> {
+            Ok(vec![self.listed_path.clone()])
+        }
+
+        fn read(&self, _path: &Path) -> io::Result<String> {
+            Ok("---\ntype: ADR\n---\n# Escaped\n".to_string())
         }
 
         fn write(&self, _path: &Path, _contents: &str) -> io::Result<()> {
@@ -186,5 +210,30 @@ mod tests {
         assert!(!exit_code_is_success(code));
 
         let _ = fs::remove_dir_all(&out_dir);
+    }
+
+    #[test]
+    fn export_fails_and_writes_nothing_when_a_listed_path_escapes_source_root() {
+        let escaped_root = temp_out_dir("escaped-record");
+        let escaped_path = escaped_root.join("adr/0001-escaped.md");
+        let store = OutOfRootStore {
+            listed_path: escaped_path.clone(),
+        };
+        let out_dir = temp_out_dir("out-of-root");
+
+        let code = export(&store, Path::new("/bundle"), &out_dir);
+
+        assert!(!exit_code_is_success(code));
+        assert!(
+            !escaped_path.exists(),
+            "export must not write outside out_dir via an absolute-path fallback"
+        );
+        assert!(
+            !out_dir.exists(),
+            "export must not create out_dir at all when every listed path escapes source_root"
+        );
+
+        let _ = fs::remove_dir_all(&out_dir);
+        let _ = fs::remove_dir_all(&escaped_root);
     }
 }
