@@ -3,6 +3,13 @@
 //! ADR 0005 issue 0005 slice 0005-B; dual typed identity + EAV frontmatter
 //! tail ADR 0007 issue 0006 slice 0006-A). Every function here takes
 //! already-read file contents; none touches the filesystem.
+//!
+//! [`ExtractedRecord`] and the [`NUMBER_IDENTITY_KIND`]/
+//! [`CONCEPT_IDENTITY_KIND`] constants are shared with
+//! [`crate::serialize::to_canonical_markdown`] (issue 0006 slice 0006-B),
+//! which is this module's inverse: whatever [`extract_record`] parses out
+//! of a `.md` file, `to_canonical_markdown` reconstructs from an
+//! `ExtractedRecord` back into one.
 
 use std::path::Path;
 
