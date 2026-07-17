@@ -1,8 +1,8 @@
-//! `living-docs leak-gate <bundle>`: fails closed on ADR 0010's first two
-//! leak classes over an already-exported bundle directory — a private (or
-//! visibility-absent) doc that leaked into the bundle, and a link from a
-//! published doc to a target withheld from the bundle. The secret/PII regex
-//! class is a follow-up slice.
+//! `living-docs leak-gate <bundle>`: fails closed on ADR 0010's three leak
+//! classes over an already-exported bundle directory — a private (or
+//! visibility-absent) doc that leaked into the bundle, a link from a
+//! published doc to a target withheld from the bundle, and a doc carrying a
+//! high-signal secret or an email address (PII).
 //!
 //! The dangling-link scan reuses `check::links`'s destination extraction and
 //! resolution rather than re-implementing it, so the two invariants ("does
@@ -15,8 +15,10 @@ use crate::check::file_name_str;
 use crate::check::links::{link_destinations, resolve_destination};
 use crate::frontmatter;
 use crate::store::DocStore;
+use regex::Regex;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::sync::OnceLock;
 
 pub fn run(store: &dyn DocStore, bundle: &Path) -> ExitCode {
     let all_md = store.list(bundle).unwrap_or_default();
@@ -26,6 +28,7 @@ pub fn run(store: &dyn DocStore, bundle: &Path) -> ExitCode {
     for path in &all_md {
         collect_private_present_violation(store, path, &mut violations);
         collect_dangling_link_violations(store, path, &bundle_str, &mut violations);
+        collect_secret_violations(store, path, &mut violations);
     }
 
     report(violations)
@@ -91,6 +94,110 @@ fn collect_dangling_link_violations(
                 format!("link to withheld doc -> {target}"),
             ));
         }
+    }
+}
+
+/// A leak class the secret/PII scan can flag. Kept as a closed enum (rather
+/// than a bare `&str` label) so `mask` can switch on how much of a match is
+/// safe to surface without re-parsing the class from its own report text.
+#[derive(Clone, Copy)]
+enum SecretClass {
+    PemPrivateKey,
+    AwsAccessKeyId,
+    SecretAssignment,
+    Email,
+}
+
+impl SecretClass {
+    fn label(self) -> &'static str {
+        match self {
+            SecretClass::PemPrivateKey => "PEM private-key block",
+            SecretClass::AwsAccessKeyId => "AWS access key id",
+            SecretClass::SecretAssignment => "secret/token/password assignment",
+            SecretClass::Email => "email address (PII)",
+        }
+    }
+}
+
+/// The secret/PII pattern set (ADR 0010): a small, high-signal set of
+/// regexes compiled once. This is heuristic and advisory, not exhaustive —
+/// it targets the shapes most likely to leak (PEM key material, AWS access
+/// key ids, quoted secret/token/password/api_key assignments, and email
+/// addresses) and is versioned alongside ADR 0010 rather than grown ad hoc.
+fn secret_patterns() -> &'static [(SecretClass, Regex)] {
+    static PATTERNS: OnceLock<Vec<(SecretClass, Regex)>> = OnceLock::new();
+    PATTERNS.get_or_init(|| {
+        vec![
+            (
+                SecretClass::PemPrivateKey,
+                Regex::new(r"-----BEGIN [A-Z ]*PRIVATE KEY-----").expect("valid pem regex"),
+            ),
+            (
+                SecretClass::AwsAccessKeyId,
+                Regex::new(r"AKIA[0-9A-Z]{16}").expect("valid aws access key regex"),
+            ),
+            (
+                SecretClass::SecretAssignment,
+                Regex::new(
+                    r#"(?i)(secret|token|password|api[_-]?key)\s*[:=]\s*["'][^"']{16,}["']"#,
+                )
+                .expect("valid secret-assignment regex"),
+            ),
+            (
+                SecretClass::Email,
+                Regex::new(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+                    .expect("valid email regex"),
+            ),
+        ]
+    })
+}
+
+/// Masks a matched secret/PII value so the gate never echoes it verbatim —
+/// a leak gate that prints the secret it caught would itself be a leak
+/// vector. Key material and secret assignments are fully redacted; an AWS
+/// key id keeps only its public `AKIA` prefix; an email keeps its first
+/// character and domain so the report stays locatable without exposing the
+/// full address.
+fn mask(class: SecretClass, matched: &str) -> String {
+    match class {
+        SecretClass::Email => mask_email(matched),
+        SecretClass::AwsAccessKeyId => mask_keeping_prefix(matched, 4),
+        SecretClass::PemPrivateKey | SecretClass::SecretAssignment => "[redacted]".to_string(),
+    }
+}
+
+fn mask_keeping_prefix(value: &str, keep: usize) -> String {
+    let mut chars = value.chars();
+    let prefix: String = chars.by_ref().take(keep).collect();
+    let masked_len = chars.count();
+    format!("{prefix}{}", "*".repeat(masked_len))
+}
+
+fn mask_email(email: &str) -> String {
+    let Some((local, domain)) = email.split_once('@') else {
+        return "[redacted]".to_string();
+    };
+    let first = local.chars().next().unwrap_or('*');
+    format!("{first}***@{domain}")
+}
+
+fn collect_secret_violations(
+    store: &dyn DocStore,
+    path: &Path,
+    violations: &mut Vec<(PathBuf, String)>,
+) {
+    let Ok(contents) = store.read(path) else {
+        return;
+    };
+    for (class, pattern) in secret_patterns() {
+        let Some(found) = pattern.find(&contents) else {
+            continue;
+        };
+        let masked = mask(*class, found.as_str());
+        violations.push((
+            path.to_path_buf(),
+            format!("{} detected (masked: {masked})", class.label()),
+        ));
     }
 }
 
@@ -297,5 +404,161 @@ mod tests {
         let code = run(&store, &bundle.root);
 
         assert!(exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_fails_when_a_doc_contains_a_pem_private_key_block() {
+        let bundle = TempBundle::new("pem-private-key");
+        let mut files = BTreeMap::new();
+        files.insert(
+            bundle.root.join("adr").join("0001-key.md"),
+            "---\ntype: ADR\nvisibility: public\n---\n-----BEGIN RSA PRIVATE KEY-----\nMIIBOgIBAAJBAK...\n-----END RSA PRIVATE KEY-----\n"
+                .to_string(),
+        );
+        let store = MapStore { files };
+
+        let code = run(&store, &bundle.root);
+
+        assert!(!exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_fails_when_a_doc_contains_an_aws_access_key_id() {
+        let bundle = TempBundle::new("aws-access-key");
+        let mut files = BTreeMap::new();
+        files.insert(
+            bundle.root.join("adr").join("0001-key.md"),
+            "---\ntype: ADR\nvisibility: public\n---\nAKIAABCDEFGHIJKLMNOP\n".to_string(),
+        );
+        let store = MapStore { files };
+
+        let code = run(&store, &bundle.root);
+
+        assert!(!exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_fails_when_a_doc_contains_a_secret_assignment() {
+        let bundle = TempBundle::new("secret-assignment");
+        let mut files = BTreeMap::new();
+        files.insert(
+            bundle.root.join("adr").join("0001-key.md"),
+            "---\ntype: ADR\nvisibility: public\n---\napi_key = \"sk_\x6cive_abcdefghijklmnopqrstuvwxyz\"\n"
+                .to_string(),
+        );
+        let store = MapStore { files };
+
+        let code = run(&store, &bundle.root);
+
+        assert!(!exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_fails_when_a_doc_contains_an_email_address() {
+        let bundle = TempBundle::new("email-pii");
+        let mut files = BTreeMap::new();
+        files.insert(
+            bundle.root.join("adr").join("0001-contact.md"),
+            "---\ntype: ADR\nvisibility: public\n---\nContact jane.doe@example.com for details.\n"
+                .to_string(),
+        );
+        let store = MapStore { files };
+
+        let code = run(&store, &bundle.root);
+
+        assert!(!exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_masks_the_matched_secret_value_in_the_reported_message() {
+        let bundle = TempBundle::new("secret-masking");
+        let doc_path = bundle.root.join("adr").join("0001-key.md");
+        let raw_secret = "sk_\x6cive_abcdefghijklmnopqrstuvwxyz";
+        let mut files = BTreeMap::new();
+        files.insert(
+            doc_path.clone(),
+            format!("---\ntype: ADR\nvisibility: public\n---\napi_key = \"{raw_secret}\"\n"),
+        );
+        let store = MapStore { files };
+        let mut violations = Vec::new();
+
+        collect_secret_violations(&store, &doc_path, &mut violations);
+
+        assert_eq!(violations.len(), 1);
+        assert_eq!(violations[0].0, doc_path);
+        assert!(!violations[0].1.contains(raw_secret));
+    }
+
+    #[test]
+    fn leak_gate_masks_the_local_part_of_a_reported_email_address() {
+        let bundle = TempBundle::new("email-masking");
+        let doc_path = bundle.root.join("adr").join("0001-contact.md");
+        let mut files = BTreeMap::new();
+        files.insert(doc_path.clone(), "jane.doe@example.com\n".to_string());
+        let store = MapStore { files };
+        let mut violations = Vec::new();
+
+        collect_secret_violations(&store, &doc_path, &mut violations);
+
+        assert_eq!(violations.len(), 1);
+        assert!(!violations[0].1.contains("jane.doe@example.com"));
+        assert!(violations[0].1.contains("example.com"));
+    }
+
+    #[test]
+    fn leak_gate_secret_scan_does_not_false_fail_on_ordinary_prose_mentioning_password() {
+        let bundle = TempBundle::new("secret-scan-no-false-positive");
+        let mut files = BTreeMap::new();
+        files.insert(
+            bundle.root.join("adr").join("0001-doc.md"),
+            "---\ntype: ADR\nvisibility: public\n---\n# Doc\n\nThe password field must not be left empty, and reviewers should reach the team through the support channel if something looks wrong.\n"
+                .to_string(),
+        );
+        let store = MapStore { files };
+
+        let code = run(&store, &bundle.root);
+
+        assert!(exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_composes_private_doc_dangling_link_and_secret_leak_classes() {
+        let bundle = TempBundle::new("compose-classes");
+        let private_path = bundle.root.join("adr").join("0001-private.md");
+        let link_path = bundle.root.join("adr").join("0002-link.md");
+        let secret_path = bundle.root.join("adr").join("0003-secret.md");
+
+        let mut files = BTreeMap::new();
+        files.insert(
+            private_path.clone(),
+            "---\ntype: ADR\nvisibility: private\n---\n# Private\n".to_string(),
+        );
+        files.insert(
+            link_path.clone(),
+            "---\ntype: ADR\nvisibility: public\n---\n# Link\n\n[missing](./0099-missing.md)\n"
+                .to_string(),
+        );
+        files.insert(
+            secret_path.clone(),
+            "---\ntype: ADR\nvisibility: public\n---\nAKIAABCDEFGHIJKLMNOP\n".to_string(),
+        );
+        let store = MapStore { files };
+        let bundle_str = bundle.root.to_string_lossy();
+        let mut violations = Vec::new();
+
+        for path in [&private_path, &link_path, &secret_path] {
+            collect_private_present_violation(&store, path, &mut violations);
+            collect_dangling_link_violations(&store, path, &bundle_str, &mut violations);
+            collect_secret_violations(&store, path, &mut violations);
+        }
+
+        assert!(violations.iter().any(|(_, m)| m.contains("private")));
+        assert!(violations.iter().any(|(_, m)| m.contains("withheld")));
+        assert!(violations
+            .iter()
+            .any(|(_, m)| m.contains("AWS access key id")));
+
+        let code = run(&store, &bundle.root);
+        assert!(!exit_code_is_success(code));
     }
 }
