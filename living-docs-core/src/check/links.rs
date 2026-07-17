@@ -49,7 +49,7 @@ fn check_file_links(store: &dyn DocStore, f: &Path, bundle: &str, reporter: &mut
 /// Every `Link`/`Image` destination `pulldown-cmark` finds, in document order.
 /// Fenced code blocks are parsed as `CodeBlock` events, so example links shown
 /// inside them never surface here.
-fn link_destinations(content: &str) -> Vec<String> {
+pub(crate) fn link_destinations(content: &str) -> Vec<String> {
     Parser::new(content)
         .filter_map(|event| match event {
             Event::Start(Tag::Link { dest_url, .. } | Tag::Image { dest_url, .. }) => {
@@ -62,7 +62,7 @@ fn link_destinations(content: &str) -> Vec<String> {
 
 /// Resolves a raw destination to a normalized local path, or `None` if it's
 /// external / a pure anchor / unsupported.
-fn resolve_destination(file: &str, raw_dest: &str, bundle: &str) -> Option<String> {
+pub(crate) fn resolve_destination(file: &str, raw_dest: &str, bundle: &str) -> Option<String> {
     let target = strip_anchor(raw_dest);
     if target.is_empty() || is_external(target) {
         return None;

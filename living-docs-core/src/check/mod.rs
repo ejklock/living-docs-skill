@@ -13,7 +13,7 @@
 //! that traversal is documented at its own call site.
 
 mod graph;
-mod links;
+pub(crate) mod links;
 mod mermaid;
 mod records;
 
