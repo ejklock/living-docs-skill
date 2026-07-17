@@ -92,6 +92,24 @@ fn check_concept_file(f: &Path, contents: &str, reporter: &mut Reporter) {
     if frontmatter_scalar(contents, "type").is_none() {
         reporter.report(f, "frontmatter has no non-empty 'type'");
     }
+    if let Some(visibility) = frontmatter_scalar(contents, "visibility") {
+        if !is_valid_visibility(&visibility) {
+            reporter.report(
+                f,
+                format!(
+                    "invalid visibility '{visibility}' (allowed: private|public|showcase; absent means private)"
+                ),
+            );
+        }
+    }
+}
+
+/// Domain check for a *present* `visibility` value (ADR 0009). Absence is
+/// handled upstream by the `Option` branch in `check_concept_file` and never
+/// reaches this predicate — default-deny means an absent field is always
+/// valid, so only a present value needs validating against the domain.
+fn is_valid_visibility(value: &str) -> bool {
+    matches!(value, "private" | "public" | "showcase")
 }
 
 /// A `status: Superseded` record (case-insensitive) needs a non-empty
@@ -262,6 +280,123 @@ mod tests {
         check_supersede_chain(&store, &all_md, &mut reporter);
 
         assert!(!exit_code_is_success(reporter.finish(1)));
+    }
+
+    #[test]
+    fn check_frontmatter_and_format_accepts_a_valid_visibility_value() {
+        let mut files = BTreeMap::new();
+        files.insert(
+            PathBuf::from("/bundle/adr/0001-title.md"),
+            "---\ntype: ADR\nvisibility: public\n---\n# Title\n".to_string(),
+        );
+        let store = MapStore { files };
+        let all_md = vec![PathBuf::from("/bundle/adr/0001-title.md")];
+        let root_index = PathBuf::from("/bundle/index.md");
+        let mut reporter = Reporter::new();
+
+        check_frontmatter_and_format(&store, &all_md, &root_index, &mut reporter);
+
+        assert!(exit_code_is_success(reporter.finish(1)));
+    }
+
+    #[test]
+    fn check_frontmatter_and_format_reports_a_misspelled_visibility_value() {
+        let mut files = BTreeMap::new();
+        files.insert(
+            PathBuf::from("/bundle/adr/0001-title.md"),
+            "---\ntype: ADR\nvisibility: pubic\n---\n# Title\n".to_string(),
+        );
+        let store = MapStore { files };
+        let all_md = vec![PathBuf::from("/bundle/adr/0001-title.md")];
+        let root_index = PathBuf::from("/bundle/index.md");
+        let mut reporter = Reporter::new();
+
+        check_frontmatter_and_format(&store, &all_md, &root_index, &mut reporter);
+
+        let code = reporter.finish(1);
+        assert!(!exit_code_is_success(code));
+    }
+
+    #[test]
+    fn check_frontmatter_and_format_reports_the_offending_value_and_allowed_domain() {
+        let mut files = BTreeMap::new();
+        files.insert(
+            PathBuf::from("/bundle/adr/0001-title.md"),
+            "---\ntype: ADR\nvisibility: pubic\n---\n# Title\n".to_string(),
+        );
+        let store = MapStore { files };
+        let all_md = vec![PathBuf::from("/bundle/adr/0001-title.md")];
+        let root_index = PathBuf::from("/bundle/index.md");
+        let mut reporter = Reporter::new();
+
+        check_frontmatter_and_format(&store, &all_md, &root_index, &mut reporter);
+
+        let messages: Vec<&str> = reporter
+            .violations
+            .iter()
+            .map(|(_, message)| message.as_str())
+            .collect();
+        assert!(messages
+            .iter()
+            .any(|message| message.contains("invalid visibility 'pubic'")));
+        assert!(messages
+            .iter()
+            .any(|message| message
+                .contains("allowed: private|public|showcase; absent means private")));
+    }
+
+    #[test]
+    fn check_frontmatter_and_format_treats_absent_visibility_as_silent_pass() {
+        let mut files = BTreeMap::new();
+        files.insert(
+            PathBuf::from("/bundle/adr/0001-title.md"),
+            "---\ntype: ADR\n---\n# Title\n".to_string(),
+        );
+        let store = MapStore { files };
+        let all_md = vec![PathBuf::from("/bundle/adr/0001-title.md")];
+        let root_index = PathBuf::from("/bundle/index.md");
+        let mut reporter = Reporter::new();
+
+        check_frontmatter_and_format(&store, &all_md, &root_index, &mut reporter);
+
+        assert!(exit_code_is_success(reporter.finish(1)));
+    }
+
+    #[test]
+    fn check_frontmatter_and_format_treats_absent_visibility_as_silent_pass_on_an_untyped_doc() {
+        let mut files = BTreeMap::new();
+        files.insert(
+            PathBuf::from("/bundle/adr/0001-title.md"),
+            "---\ntitle: No type here\n---\n# Title\n".to_string(),
+        );
+        let store = MapStore { files };
+        let all_md = vec![PathBuf::from("/bundle/adr/0001-title.md")];
+        let root_index = PathBuf::from("/bundle/index.md");
+        let mut reporter = Reporter::new();
+
+        check_frontmatter_and_format(&store, &all_md, &root_index, &mut reporter);
+
+        let messages: Vec<&str> = reporter
+            .violations
+            .iter()
+            .map(|(_, message)| message.as_str())
+            .collect();
+        assert!(messages
+            .iter()
+            .any(|message| message.contains("non-empty 'type'")));
+        assert!(!messages
+            .iter()
+            .any(|message| message.contains("visibility")));
+    }
+
+    #[test]
+    fn is_valid_visibility_accepts_exactly_the_domain_values() {
+        assert!(is_valid_visibility("private"));
+        assert!(is_valid_visibility("public"));
+        assert!(is_valid_visibility("showcase"));
+        assert!(!is_valid_visibility("Public"));
+        assert!(!is_valid_visibility("pubic"));
+        assert!(!is_valid_visibility(""));
     }
 
     #[test]
