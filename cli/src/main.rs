@@ -63,7 +63,8 @@ fn main() -> ExitCode {
                 .into_iter()
                 .next()
                 .unwrap_or_else(|| PathBuf::from("docs"));
-            check::run(&bundle)
+            let store = fs_store::FsStore::new();
+            check::run(&store, &bundle)
         }
     }
 }

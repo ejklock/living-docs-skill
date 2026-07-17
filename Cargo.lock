@@ -156,6 +156,7 @@ name = "living-docs"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "fs-store",
  "living-docs-core",
 ]
 

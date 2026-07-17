@@ -20,7 +20,7 @@ pub fn run_mermaid_only(paths: &[PathBuf]) -> ExitCode {
     mermaid::run_mermaid_only(paths)
 }
 
-pub fn run(bundle: &Path) -> ExitCode {
+pub fn run(store: &dyn crate::store::DocStore, bundle: &Path) -> ExitCode {
     if !bundle.is_dir() {
         eprintln!(
             "living-docs check: bundle root not found: {}",
@@ -32,7 +32,7 @@ pub fn run(bundle: &Path) -> ExitCode {
         return ExitCode::from(2);
     }
 
-    let all_md = collect_md_files(bundle);
+    let all_md = store.list(bundle).unwrap_or_default();
     let root_index = bundle.join("index.md");
     let mut reporter = Reporter::new();
 
