@@ -1,6 +1,7 @@
-//! Pure frontmatter/body extraction feeding [`crate::sync::sync`] (ADR 0004,
-//! issue 0002 slice S2b). Every function here takes already-read file
-//! contents; none touches the filesystem.
+//! Pure frontmatter/body extraction feeding [`crate::sync::sync_project`]
+//! (ADR 0004, issue 0002 slice S2b; supersedes/superseded_by/tags parsing
+//! ADR 0005 issue 0005 slice 0005-B). Every function here takes already-read
+//! file contents; none touches the filesystem.
 
 use std::path::Path;
 
@@ -16,7 +17,11 @@ pub struct SearchHit {
 }
 
 /// The fields extracted from a doc record's raw contents, ready to insert
-/// into the `records` table.
+/// into the `records` table. `supersedes`/`superseded_by` carry the raw
+/// `NNNN` frontmatter value (unresolved to a record id — that resolution
+/// happens against a project's other records in
+/// [`crate::sync::sync_project`]); `tags` is the frontmatter's `tags`
+/// sequence, empty when absent.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExtractedRecord {
     pub doc_type: String,
@@ -24,6 +29,9 @@ pub struct ExtractedRecord {
     pub title: String,
     pub description: String,
     pub body: String,
+    pub supersedes: Option<String>,
+    pub superseded_by: Option<String>,
+    pub tags: Vec<String>,
 }
 
 /// True for the two reserved filenames that carry no OKF frontmatter and are
@@ -49,6 +57,9 @@ pub fn extract_record(path: &Path, contents: &str) -> ExtractedRecord {
     let title = frontmatter_scalar(frontmatter.as_ref(), "title")
         .or_else(|| first_heading(&body))
         .unwrap_or_else(|| filename_stem(path));
+    let supersedes = frontmatter_scalar(frontmatter.as_ref(), "supersedes");
+    let superseded_by = frontmatter_scalar(frontmatter.as_ref(), "superseded_by");
+    let tags = frontmatter_sequence(frontmatter.as_ref(), "tags");
 
     ExtractedRecord {
         doc_type,
@@ -56,6 +67,9 @@ pub fn extract_record(path: &Path, contents: &str) -> ExtractedRecord {
         title,
         description,
         body,
+        supersedes,
+        superseded_by,
+        tags,
     }
 }
 
@@ -73,6 +87,21 @@ fn frontmatter_scalar(frontmatter: Option<&Value>, key: &str) -> Option<String> 
     let mapping = frontmatter?.as_mapping()?;
     let value = mapping.get(Value::String(key.to_owned()))?;
     scalar_to_string(value)
+}
+
+/// Reads `key` as a YAML sequence of scalars (the `tags: [a, b]` shape),
+/// returning an empty vector when the key is absent or not a sequence.
+fn frontmatter_sequence(frontmatter: Option<&Value>, key: &str) -> Vec<String> {
+    let Some(mapping) = frontmatter.and_then(Value::as_mapping) else {
+        return Vec::new();
+    };
+    let Some(sequence) = mapping
+        .get(Value::String(key.to_owned()))
+        .and_then(Value::as_sequence)
+    else {
+        return Vec::new();
+    };
+    sequence.iter().filter_map(scalar_to_string).collect()
 }
 
 fn scalar_to_string(value: &Value) -> Option<String> {
@@ -181,6 +210,37 @@ mod tests {
         let extracted = extract_record(Path::new("/bundle/issues/0006-findability.md"), contents);
 
         assert_eq!(extracted.identity, Some("findability".to_owned()));
+    }
+
+    #[test]
+    fn extract_record_reads_supersedes_superseded_by_and_tags() {
+        let contents = "---\ntype: ADR\nsupersedes: 0001\nsuperseded_by: 0003\ntags: [caching, performance]\n---\nBody.\n";
+        let extracted = extract_record(Path::new("/bundle/adr/0002-improved.md"), contents);
+
+        assert_eq!(extracted.supersedes, Some("0001".to_owned()));
+        assert_eq!(extracted.superseded_by, Some("0003".to_owned()));
+        assert_eq!(
+            extracted.tags,
+            vec!["caching".to_owned(), "performance".to_owned()]
+        );
+    }
+
+    #[test]
+    fn extract_record_defaults_missing_supersede_fields_and_tags_to_empty() {
+        let contents = "---\ntype: ADR\nsupersedes:\nsuperseded_by:\ntags: []\n---\nBody.\n";
+        let extracted = extract_record(Path::new("/bundle/adr/0001-first.md"), contents);
+
+        assert_eq!(extracted.supersedes, None);
+        assert_eq!(extracted.superseded_by, None);
+        assert!(extracted.tags.is_empty());
+    }
+
+    #[test]
+    fn extract_record_defaults_tags_to_empty_when_the_key_is_absent() {
+        let contents = "---\ntype: ADR\n---\nBody.\n";
+        let extracted = extract_record(Path::new("/bundle/adr/0004-no-tags.md"), contents);
+
+        assert!(extracted.tags.is_empty());
     }
 
     #[test]

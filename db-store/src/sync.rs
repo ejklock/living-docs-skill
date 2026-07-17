@@ -1,58 +1,93 @@
 //! Full-rebuild sync from a [`living_docs_core::store::DocStore`] into the
 //! `records` read-model, plus its backend-native search index (ADR 0004,
 //! issue 0002 slice S2b; ParadeDB branch issue 0004 slice 0004-B;
-//! default-project assignment issue 0005 slice 0005-A).
+//! default-project assignment issue 0005 slice 0005-A; per-project ingestion
+//! + relations/tags issue 0005 slice 0005-B).
 
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use living_docs_core::store::DocStore;
+use sea_orm::sea_query::Query;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DatabaseConnection, DbBackend,
     DbErr, EntityTrait, QueryFilter, Statement, TransactionTrait,
 };
 
-use crate::entity::projects;
-use crate::entity::{ActiveModel, Entity as Records};
+use crate::entity::{projects, record_tags, relations, tags};
+use crate::entity::{ActiveModel, Column, Entity as Records};
 use crate::record::{extract_record, is_reserved};
 use crate::Result;
 
-/// The slug every synced record is assigned to until per-project ingestion
-/// (`db sync --project <slug>`) lands in issue 0005 slice 0005-B.
+/// The slug [`sync`] assigns every record to: the single project every
+/// caller that does not (yet) think in terms of named projects keeps
+/// syncing into, unchanged since issue 0005 slice 0005-A.
 const DEFAULT_PROJECT_SLUG: &str = "default";
 
-/// Rebuilds the `records` table and its backend-native search index from
-/// every non-reserved `.md` doc `store` lists under `bundle`, in one
-/// transaction. Idempotent: running twice over an unchanged corpus yields
-/// identical rows, since the table is fully cleared before repopulating.
-/// Every inserted record is assigned to the single default project (upserted
-/// by slug on first use). Returns the number of records inserted.
+/// Rebuilds the single default project's records exactly as slice 0005-A
+/// did, for every caller that has not been upgraded to name a project.
+/// Equivalent to `sync_project(conn, store, bundle, "default")`.
 pub async fn sync(conn: &DatabaseConnection, store: &dyn DocStore, bundle: &Path) -> Result<usize> {
+    sync_project(conn, store, bundle, DEFAULT_PROJECT_SLUG).await
+}
+
+/// Rebuilds `project_slug`'s slice of the `records`/`relations`/`tags`/
+/// `record_tags` tables and the backend-native search index, from every
+/// non-reserved `.md` doc `store` lists under `bundle`, in one transaction.
+/// Idempotent: running twice over an unchanged corpus yields identical rows
+/// for this project. Only this project's rows are cleared first — a
+/// re-sync never touches another project's records, relations, or tags.
+/// The project is upserted by `project_slug` (rooted at `bundle` on first
+/// use). Insertion is two-pass: every record lands first, then each
+/// record's `supersedes`/`superseded_by` frontmatter is resolved against
+/// its *own* project's just-inserted records and tags are attached — a
+/// target that does not resolve within the project is skipped, not
+/// inserted as a dangling relation. Returns the number of records inserted.
+pub async fn sync_project(
+    conn: &DatabaseConnection,
+    store: &dyn DocStore,
+    bundle: &Path,
+    project_slug: &str,
+) -> Result<usize> {
     let paths = store.list(bundle).map_err(io_err_to_db_err)?;
     let txn = conn.begin().await?;
 
-    let project_id = ensure_default_project(&txn, bundle).await?;
-    Records::delete_many().exec(&txn).await?;
+    let project_id = ensure_project(&txn, project_slug, bundle).await?;
+    clear_project(&txn, project_id).await?;
 
-    let mut count = 0usize;
+    let mut inserted = Vec::new();
     for path in paths {
         if is_reserved(&path) {
             continue;
         }
-        insert_record(&txn, store, bundle, &path, project_id).await?;
-        count += 1;
+        inserted.push(insert_record(&txn, store, bundle, &path, project_id).await?);
     }
+    let count = inserted.len();
+
+    insert_supersede_relations(&txn, project_id, &inserted).await?;
+    insert_tags(&txn, project_id, &inserted).await?;
 
     rebuild_search_index(&txn).await?;
     txn.commit().await?;
     Ok(count)
 }
 
-/// Finds the default project by its stable slug, inserting it (rooted at
-/// `bundle`) the first time `sync` runs against a fresh database. Returns
-/// the project's id either way.
-async fn ensure_default_project<C: ConnectionTrait>(conn: &C, bundle: &Path) -> Result<i32> {
+/// A single record just inserted this sync run, carrying the frontmatter
+/// slice_id 0005-B needs to resolve relations and tags in the following
+/// passes.
+struct InsertedRecord {
+    id: i32,
+    relative_path: String,
+    supersedes: Option<String>,
+    superseded_by: Option<String>,
+    tags: Vec<String>,
+}
+
+/// Finds `slug`'s project, inserting it (rooted at `bundle`) the first time
+/// a sync targets it. Returns the project's id either way.
+async fn ensure_project<C: ConnectionTrait>(conn: &C, slug: &str, bundle: &Path) -> Result<i32> {
     if let Some(existing) = projects::Entity::find()
-        .filter(projects::Column::Slug.eq(DEFAULT_PROJECT_SLUG))
+        .filter(projects::Column::Slug.eq(slug))
         .one(conn)
         .await?
     {
@@ -60,8 +95,8 @@ async fn ensure_default_project<C: ConnectionTrait>(conn: &C, bundle: &Path) -> 
     }
 
     let inserted = projects::ActiveModel {
-        slug: ActiveValue::Set(DEFAULT_PROJECT_SLUG.to_owned()),
-        name: ActiveValue::Set(DEFAULT_PROJECT_SLUG.to_owned()),
+        slug: ActiveValue::Set(slug.to_owned()),
+        name: ActiveValue::Set(slug.to_owned()),
         root_path: ActiveValue::Set(Some(bundle.to_string_lossy().into_owned())),
         ..Default::default()
     }
@@ -71,24 +106,60 @@ async fn ensure_default_project<C: ConnectionTrait>(conn: &C, bundle: &Path) -> 
     Ok(inserted.id)
 }
 
+/// Deletes `project_id`'s rows from `record_tags`, `relations`, `tags`, and
+/// `records`, in FK-safe order, leaving every other project's rows intact.
+async fn clear_project<C: ConnectionTrait>(conn: &C, project_id: i32) -> Result<()> {
+    delete_record_tags_for_project(conn, project_id).await?;
+    relations::Entity::delete_many()
+        .filter(relations::Column::ProjectId.eq(project_id))
+        .exec(conn)
+        .await?;
+    tags::Entity::delete_many()
+        .filter(tags::Column::ProjectId.eq(project_id))
+        .exec(conn)
+        .await?;
+    Records::delete_many()
+        .filter(Column::ProjectId.eq(project_id))
+        .exec(conn)
+        .await?;
+    Ok(())
+}
+
+/// `record_tags` carries no `project_id` of its own, so scoping its delete
+/// to `project_id` goes through the owning record. Built with SeaORM's
+/// query builder (`in_subquery`), not a raw placeholder, so it renders
+/// `?`/`$1` correctly on both SQLite and Postgres/ParadeDB.
+async fn delete_record_tags_for_project<C: ConnectionTrait>(
+    conn: &C,
+    project_id: i32,
+) -> Result<()> {
+    let project_record_ids = Query::select()
+        .column(Column::Id)
+        .from(Records)
+        .and_where(Column::ProjectId.eq(project_id))
+        .to_owned();
+
+    record_tags::Entity::delete_many()
+        .filter(record_tags::Column::RecordId.in_subquery(project_record_ids))
+        .exec(conn)
+        .await
+        .map(|_| ())
+}
+
 async fn insert_record<C: ConnectionTrait>(
     conn: &C,
     store: &dyn DocStore,
     bundle: &Path,
     path: &Path,
     project_id: i32,
-) -> Result<()> {
-    let relative = path
-        .strip_prefix(bundle)
-        .unwrap_or(path)
-        .to_string_lossy()
-        .into_owned();
+) -> Result<InsertedRecord> {
+    let relative = relative_path(bundle, path);
     let contents = store.read(path).map_err(io_err_to_db_err)?;
     let extracted = extract_record(path, &contents);
 
-    ActiveModel {
+    let inserted = ActiveModel {
         project_id: ActiveValue::Set(project_id),
-        path: ActiveValue::Set(relative),
+        path: ActiveValue::Set(relative.clone()),
         doc_type: ActiveValue::Set(extracted.doc_type),
         identity: ActiveValue::Set(extracted.identity),
         title: ActiveValue::Set(extracted.title),
@@ -99,7 +170,172 @@ async fn insert_record<C: ConnectionTrait>(
     .insert(conn)
     .await?;
 
+    Ok(InsertedRecord {
+        id: inserted.id,
+        relative_path: relative,
+        supersedes: extracted.supersedes,
+        superseded_by: extracted.superseded_by,
+        tags: extracted.tags,
+    })
+}
+
+fn relative_path(bundle: &Path, path: &Path) -> String {
+    path.strip_prefix(bundle)
+        .unwrap_or(path)
+        .to_string_lossy()
+        .into_owned()
+}
+
+/// Resolves every inserted record's `supersedes`/`superseded_by` target
+/// against this same sync run's other records and inserts one
+/// `kind = "supersede"` relation per resolved link. A record that declares
+/// both sides of the same link (the common case left by
+/// `living-docs supersede`) yields exactly one row, not two.
+async fn insert_supersede_relations<C: ConnectionTrait>(
+    conn: &C,
+    project_id: i32,
+    inserted: &[InsertedRecord],
+) -> Result<()> {
+    let lookup = build_relation_lookup(inserted);
+    let mut seen = HashSet::new();
+
+    for record in inserted {
+        let dir = record_dir(&record.relative_path);
+
+        if let Some(target_id) = record
+            .supersedes
+            .as_deref()
+            .and_then(|raw| resolve_target(&lookup, &dir, raw))
+        {
+            insert_supersede_relation(conn, project_id, &mut seen, record.id, target_id).await?;
+        }
+
+        if let Some(source_id) = record
+            .superseded_by
+            .as_deref()
+            .and_then(|raw| resolve_target(&lookup, &dir, raw))
+        {
+            insert_supersede_relation(conn, project_id, &mut seen, source_id, record.id).await?;
+        }
+    }
+
     Ok(())
+}
+
+/// Maps `(sibling directory, zero-padded NNNN)` to a record id, mirroring
+/// how `living_docs_core::check::records` resolves a `supersedes`/
+/// `superseded_by` target to a sibling `<NNNN>-*.md` file.
+fn build_relation_lookup(inserted: &[InsertedRecord]) -> HashMap<(String, String), i32> {
+    inserted
+        .iter()
+        .filter_map(|record| relation_key(&record.relative_path).map(|key| (key, record.id)))
+        .collect()
+}
+
+fn relation_key(relative_path: &str) -> Option<(String, String)> {
+    let path = Path::new(relative_path);
+    let dir = path.parent()?.to_string_lossy().into_owned();
+    let number = numeric_prefix(path.file_name()?.to_str()?)?;
+    Some((dir, number))
+}
+
+fn numeric_prefix(filename: &str) -> Option<String> {
+    let stem = filename.strip_suffix(".md")?;
+    let digits: String = stem.chars().take_while(char::is_ascii_digit).collect();
+    normalize_number(&digits)
+}
+
+fn normalize_number(raw: &str) -> Option<String> {
+    let parsed: u32 = raw.trim().parse().ok()?;
+    Some(format!("{parsed:04}"))
+}
+
+fn record_dir(relative_path: &str) -> String {
+    Path::new(relative_path)
+        .parent()
+        .map(|parent| parent.to_string_lossy().into_owned())
+        .unwrap_or_default()
+}
+
+fn resolve_target(
+    lookup: &HashMap<(String, String), i32>,
+    dir: &str,
+    raw_target: &str,
+) -> Option<i32> {
+    let number = normalize_number(raw_target)?;
+    lookup.get(&(dir.to_owned(), number)).copied()
+}
+
+async fn insert_supersede_relation<C: ConnectionTrait>(
+    conn: &C,
+    project_id: i32,
+    seen: &mut HashSet<(i32, i32)>,
+    from_record_id: i32,
+    to_record_id: i32,
+) -> Result<()> {
+    if !seen.insert((from_record_id, to_record_id)) {
+        return Ok(());
+    }
+
+    relations::ActiveModel {
+        project_id: ActiveValue::Set(project_id),
+        from_record_id: ActiveValue::Set(from_record_id),
+        to_record_id: ActiveValue::Set(to_record_id),
+        kind: ActiveValue::Set("supersede".to_owned()),
+        ..Default::default()
+    }
+    .insert(conn)
+    .await?;
+
+    Ok(())
+}
+
+/// Upserts each inserted record's tags by `(project_id, name)` and links
+/// them via `record_tags`. Safe against the `UNIQUE(project_id, name)`
+/// constraint because [`clear_project`] already emptied this project's tags
+/// before either pass runs, so a name is inserted at most once per run.
+async fn insert_tags<C: ConnectionTrait>(
+    conn: &C,
+    project_id: i32,
+    inserted: &[InsertedRecord],
+) -> Result<()> {
+    let mut tag_ids: HashMap<String, i32> = HashMap::new();
+
+    for record in inserted {
+        for name in &record.tags {
+            let tag_id = ensure_tag(conn, project_id, &mut tag_ids, name).await?;
+            record_tags::ActiveModel {
+                record_id: ActiveValue::Set(record.id),
+                tag_id: ActiveValue::Set(tag_id),
+            }
+            .insert(conn)
+            .await?;
+        }
+    }
+
+    Ok(())
+}
+
+async fn ensure_tag<C: ConnectionTrait>(
+    conn: &C,
+    project_id: i32,
+    cache: &mut HashMap<String, i32>,
+    name: &str,
+) -> Result<i32> {
+    if let Some(&id) = cache.get(name) {
+        return Ok(id);
+    }
+
+    let inserted = tags::ActiveModel {
+        project_id: ActiveValue::Set(project_id),
+        name: ActiveValue::Set(name.to_owned()),
+        ..Default::default()
+    }
+    .insert(conn)
+    .await?;
+
+    cache.insert(name.to_owned(), inserted.id);
+    Ok(inserted.id)
 }
 
 /// Rebuilds the backend-native search index over `records`. SQLite's FTS5
@@ -172,6 +408,23 @@ pub(crate) mod test_support {
             UNRELATED_DOC.to_owned(),
         );
         files.insert(bundle.join("index.md"), "# Index\n".to_owned());
+        (MemoryStore { files }, bundle)
+    }
+
+    /// A single-record corpus at `bundle_root`, always relative-pathed
+    /// `adr/0001-quokka-caching.md` regardless of `bundle_root` — lets a
+    /// test sync two different projects that each carry a record at the
+    /// same relative path, to exercise project-scoped path lookups.
+    pub(crate) fn single_record_corpus_at(
+        bundle_root: &str,
+        title: &str,
+    ) -> (MemoryStore, PathBuf) {
+        let bundle = PathBuf::from(bundle_root);
+        let doc = format!(
+            "---\ntype: ADR\ntitle: {title}\ndescription: d.\nstatus: Accepted\n---\n# {title}\n\nBody.\n"
+        );
+        let mut files = BTreeMap::new();
+        files.insert(bundle.join("adr").join("0001-quokka-caching.md"), doc);
         (MemoryStore { files }, bundle)
     }
 }
@@ -274,5 +527,32 @@ mod tests {
         rebuild_search_index(&conn)
             .await
             .expect("postgres rebuild is a no-op that never issues SQL");
+    }
+
+    #[tokio::test]
+    async fn sync_project_upserts_a_named_project_and_scopes_records_to_it() {
+        let conn = connect_in_memory().await.expect("connect");
+        migrate(&conn).await.expect("migrate");
+        let (store, bundle) = seeded_corpus();
+
+        let count = sync_project(&conn, &store, &bundle, "team-a")
+            .await
+            .expect("sync_project");
+
+        assert_eq!(count, 2);
+        let project = projects::Entity::find()
+            .filter(projects::Column::Slug.eq("team-a"))
+            .one(&conn)
+            .await
+            .expect("query project")
+            .expect("sync_project upserts the named project");
+        let records = all_records(&conn).await;
+        assert_eq!(records.len(), 2);
+        let stored = Records::find()
+            .filter(Column::ProjectId.eq(project.id))
+            .all(&conn)
+            .await
+            .expect("query records for project");
+        assert_eq!(stored.len(), 2);
     }
 }

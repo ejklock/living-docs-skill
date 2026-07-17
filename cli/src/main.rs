@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand, ValueEnum};
-use living_docs_core::{check, commands};
+use living_docs_core::{check, commands, paths};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -63,12 +63,18 @@ enum Command {
 
 #[derive(Subcommand)]
 enum DbCmd {
-    /// Rebuild the read-model from every doc `--docs-dir` lists.
+    /// Rebuild the read-model from every doc `--docs-dir` lists, scoped to
+    /// one named project (ADR 0005, issue 0005 slice 0005-B).
     Sync {
         /// Which database backend to sync into: the local SQLite/FTS5 file,
         /// or ParadeDB via `$DATABASE_URL`.
         #[arg(long, value_enum, default_value = "sqlite")]
         engine: Engine,
+        /// The project slug to sync into. Defaults to a slug derived from
+        /// `--docs-dir`'s own directory name, keeping single-project usage
+        /// working without naming a project explicitly.
+        #[arg(long)]
+        project: Option<String>,
     },
 }
 
@@ -123,34 +129,54 @@ fn main() -> ExitCode {
             check::run(&store, &bundle)
         }
         Command::Db {
-            cmd: DbCmd::Sync { engine },
-        } => run_db_sync(&cli.docs_dir, engine),
+            cmd: DbCmd::Sync { engine, project },
+        } => run_db_sync(&cli.docs_dir, engine, project),
         Command::Search { query, engine } => run_search(&query, engine),
     }
 }
 
-fn run_db_sync(docs_dir: &Path, engine: Engine) -> ExitCode {
+fn run_db_sync(docs_dir: &Path, engine: Engine, project: Option<String>) -> ExitCode {
     let url = match engine.resolve_url() {
         Ok(url) => url,
         Err(err) => return report_failure(&err),
     };
+    let project_slug = project.unwrap_or_else(|| derive_project_slug(docs_dir));
     let runtime = match build_runtime() {
         Ok(runtime) => runtime,
         Err(err) => return report_failure(&err.to_string()),
     };
-    match runtime.block_on(sync_read_model(docs_dir, &url)) {
+    match runtime.block_on(sync_read_model(docs_dir, &url, &project_slug)) {
         Ok(count) => {
-            println!("Indexed {count} records.");
+            println!("Indexed {count} records. (project: {project_slug})");
             ExitCode::SUCCESS
         }
         Err(err) => report_failure(&err.to_string()),
     }
 }
 
-async fn sync_read_model(docs_dir: &Path, url: &str) -> db_store::Result<usize> {
+async fn sync_read_model(
+    docs_dir: &Path,
+    url: &str,
+    project_slug: &str,
+) -> db_store::Result<usize> {
     let conn = db_store::connect(url).await?;
     db_store::migrate(&conn).await?;
-    db_store::sync(&conn, &fs_store::FsStore::new(), docs_dir).await
+    db_store::sync_project(&conn, &fs_store::FsStore::new(), docs_dir, project_slug).await
+}
+
+const DEFAULT_PROJECT_SLUG: &str = "default";
+
+/// Derives a stable project slug from `docs_dir`'s own final path
+/// component when `--project` is omitted, so repeated syncs of the same
+/// bundle land in the same project. Falls back to `"default"` when
+/// `docs_dir` has no usable final component (e.g. `.` or `/`).
+fn derive_project_slug(docs_dir: &Path) -> String {
+    docs_dir
+        .file_name()
+        .and_then(|name| name.to_str())
+        .map(paths::slugify)
+        .filter(|slug| !slug.is_empty())
+        .unwrap_or_else(|| DEFAULT_PROJECT_SLUG.to_owned())
 }
 
 fn run_search(query: &str, engine: Engine) -> ExitCode {
@@ -225,5 +251,26 @@ mod tests {
             .resolve_url_with(|_| Err(std::env::VarError::NotPresent))
             .expect_err("paradedb url resolution fails without DATABASE_URL");
         assert!(err.contains(DATABASE_URL_VAR), "got: {err}");
+    }
+
+    #[test]
+    fn derive_project_slug_uses_the_docs_dir_final_component() {
+        assert_eq!(derive_project_slug(Path::new("/repo/docs")), "docs");
+        assert_eq!(
+            derive_project_slug(Path::new("/repo/client-docs")),
+            "client-docs"
+        );
+    }
+
+    #[test]
+    fn derive_project_slug_is_stable_across_repeated_calls_on_the_same_dir() {
+        let docs_dir = Path::new("/repo/docs");
+        assert_eq!(derive_project_slug(docs_dir), derive_project_slug(docs_dir));
+    }
+
+    #[test]
+    fn derive_project_slug_falls_back_to_default_when_docs_dir_has_no_final_component() {
+        assert_eq!(derive_project_slug(Path::new("/")), DEFAULT_PROJECT_SLUG);
+        assert_eq!(derive_project_slug(Path::new("")), DEFAULT_PROJECT_SLUG);
     }
 }
