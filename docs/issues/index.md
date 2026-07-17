@@ -13,7 +13,8 @@ one slice per fresh context, starting from the skeleton.
 * [0007 — Dev environment: docker-compose (ParadeDB) + Makefile targets](0007-docker-compose-dev-env.md) - done · web service deferred to 0004/0006
 * [0004 — ParadeDB (Postgres + BM25) as a selectable db engine alongside SQLite](0004-paradedb-engine.md) - done · delivered as 0004-A + 0004-B + 0004-C
 * [0005 — projects root + multi-project ingestion and cross-project search](0005-projects-multi-project.md) - done · delivered as 0005-A + 0005-B + 0005-C1 + 0005-C2
+* [0006 — db-mode authoritative authoring + lossless .md export](0006-db-mode-authoring.md) - done · delivered as 0006-A/B/C1/C2/D1/D2 (index/supersede db-mode deferred)
 
 ## Open
 
-* [0006 — db-mode authoritative authoring + lossless .md export](0006-db-mode-authoring.md) - open · blocked_by: 0002, 0005 (both done — ready)
+_None — backlog clear._
