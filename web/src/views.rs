@@ -1,16 +1,24 @@
 //! maud rendering for the read-only search and record pages (ADR 0006, issue
-//! 0003 slices S3a-S3b). Every value reflected from user input is rendered
-//! through maud's auto-escaping `Markup`, never string-concatenated into
-//! HTML. The record body is the sole exception: it is pre-rendered from the
-//! local corpus's markdown source (not user input) via pulldown-cmark, then
-//! injected as-is through `PreEscaped`.
+//! 0003 slices S3a-S3b; project filter ADR 0005 issue 0005 slice 0005-C2).
+//! Every value reflected from user input is rendered through maud's
+//! auto-escaping `Markup`, never string-concatenated into HTML. The record
+//! body is the sole exception: it is pre-rendered from the local corpus's
+//! markdown source (not user input) via pulldown-cmark, then injected as-is
+//! through `PreEscaped`.
 
-use db_store::SearchHit;
+use db_store::{ProjectView, SearchHit};
 use maud::{html, Markup, PreEscaped};
 
-/// Renders the full search page: the search form plus, when a query was
-/// submitted, either the ranked results or an explicit empty-state message.
-pub fn search_page(query: Option<&str>, hits: &[SearchHit]) -> Markup {
+/// Renders the full search page: the search form (with its project filter)
+/// plus, when a query was submitted, either the ranked results or an
+/// explicit empty-state message. `selected_project` is the slug currently
+/// narrowing the search, preserved in the form on re-render.
+pub fn search_page(
+    query: Option<&str>,
+    selected_project: Option<&str>,
+    projects: &[ProjectView],
+    hits: &[SearchHit],
+) -> Markup {
     html! {
         html {
             head {
@@ -18,7 +26,7 @@ pub fn search_page(query: Option<&str>, hits: &[SearchHit]) -> Markup {
             }
             body {
                 h1 { "living-docs search" }
-                (search_form(query))
+                (search_form(query, selected_project, projects))
                 @if let Some(query) = query {
                     (search_results(hits, query))
                 }
@@ -27,11 +35,31 @@ pub fn search_page(query: Option<&str>, hits: &[SearchHit]) -> Markup {
     }
 }
 
-fn search_form(query: Option<&str>) -> Markup {
+fn search_form(
+    query: Option<&str>,
+    selected_project: Option<&str>,
+    projects: &[ProjectView],
+) -> Markup {
     html! {
         form action="/" method="get" {
             input type="search" name="q" value=(query.unwrap_or_default()) placeholder="Search docs…";
+            (project_filter(selected_project, projects))
             button type="submit" { "Search" }
+        }
+    }
+}
+
+fn project_filter(selected_project: Option<&str>, projects: &[ProjectView]) -> Markup {
+    html! {
+        select name="project" {
+            option value="" selected[selected_project.is_none()] { "All projects" }
+            @for project in projects {
+                option
+                    value=(project.slug)
+                    selected[selected_project == Some(project.slug.as_str())] {
+                    (project.name)
+                }
+            }
         }
     }
 }
@@ -45,6 +73,7 @@ fn search_results(hits: &[SearchHit], query: &str) -> Markup {
                 @for hit in hits {
                     li {
                         a href=(record_href(&hit.path)) { (hit.title) }
+                        span class="project-label" { (hit.project) }
                         p { (hit.snippet) }
                     }
                 }
@@ -95,18 +124,25 @@ pub fn not_found() -> Markup {
 mod tests {
     use super::*;
 
-    fn hit(path: &str, title: &str, snippet: &str) -> SearchHit {
+    fn hit(path: &str, title: &str, snippet: &str, project: &str) -> SearchHit {
         SearchHit {
             path: path.to_owned(),
             title: title.to_owned(),
             snippet: snippet.to_owned(),
-            project: "docs".to_owned(),
+            project: project.to_owned(),
+        }
+    }
+
+    fn project(slug: &str, name: &str) -> ProjectView {
+        ProjectView {
+            slug: slug.to_owned(),
+            name: name.to_owned(),
         }
     }
 
     #[test]
     fn search_page_without_a_query_renders_only_the_form() {
-        let markup = search_page(None, &[]);
+        let markup = search_page(None, None, &[], &[]);
 
         let rendered = markup.into_string();
         assert!(rendered.contains("<form"));
@@ -120,9 +156,10 @@ mod tests {
             "adr/0001-quokka-caching.md",
             "Quokka Caching Strategy",
             "an aggressive [quokka] caching strategy",
+            "docs",
         )];
 
-        let rendered = search_page(Some("<script>"), &hits).into_string();
+        let rendered = search_page(Some("<script>"), None, &[], &hits).into_string();
 
         assert!(rendered.contains("href=\"/record/adr/0001-quokka-caching.md\""));
         assert!(rendered.contains("Quokka Caching Strategy"));
@@ -132,10 +169,58 @@ mod tests {
 
     #[test]
     fn search_page_with_no_hits_renders_the_empty_state_message() {
-        let rendered = search_page(Some("zzzznomatch"), &[]).into_string();
+        let rendered = search_page(Some("zzzznomatch"), None, &[], &[]).into_string();
 
         assert!(rendered.contains("empty-state"));
         assert!(rendered.contains("No results for &quot;zzzznomatch&quot;."));
+    }
+
+    #[test]
+    fn search_page_renders_a_project_filter_listing_every_project_plus_an_all_option() {
+        let projects = vec![project("team-a", "Team A"), project("team-b", "Team B")];
+
+        let rendered = search_page(None, None, &projects, &[]).into_string();
+
+        assert!(rendered.contains("<select name=\"project\""));
+        assert!(rendered.contains("value=\"\""));
+        assert!(rendered.contains("All projects"));
+        assert!(rendered.contains("value=\"team-a\""));
+        assert!(rendered.contains("Team A"));
+        assert!(rendered.contains("value=\"team-b\""));
+        assert!(rendered.contains("Team B"));
+    }
+
+    #[test]
+    fn search_page_preserves_the_selected_project_as_the_marked_option() {
+        let projects = vec![project("team-a", "Team A"), project("team-b", "Team B")];
+
+        let rendered = search_page(None, Some("team-b"), &projects, &[]).into_string();
+
+        assert!(rendered.contains("<option value=\"team-b\" selected>Team B</option>"));
+        assert!(rendered.contains("<option value=\"team-a\">Team A</option>"));
+    }
+
+    #[test]
+    fn search_page_with_no_project_selected_marks_all_projects_selected() {
+        let projects = vec![project("team-a", "Team A")];
+
+        let rendered = search_page(None, None, &projects, &[]).into_string();
+
+        assert!(rendered.contains("<option value=\"\" selected>All projects</option>"));
+        assert!(rendered.contains("<option value=\"team-a\">Team A</option>"));
+    }
+
+    #[test]
+    fn search_page_labels_each_hit_with_its_project() {
+        let hits = vec![
+            hit("adr/0001-a.md", "Title A", "snippet a", "team-a"),
+            hit("adr/0002-b.md", "Title B", "snippet b", "team-b"),
+        ];
+
+        let rendered = search_page(Some("caching"), None, &[], &hits).into_string();
+
+        assert!(rendered.contains("<span class=\"project-label\">team-a</span>"));
+        assert!(rendered.contains("<span class=\"project-label\">team-b</span>"));
     }
 
     #[test]
