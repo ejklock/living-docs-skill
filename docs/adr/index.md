@@ -17,3 +17,4 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0005 — Normalized DB schema — projects root, typed records with an EAV tail, typed relations](0005-normalized-schema.md) - Proposed
 * [0006 — The web view is a read-only axum server reusing living-docs-core](0006-web-read-only-axum.md) - Proposed
 * [0007 — db-mode authoring data model and lossless export contract](0007-db-mode-authoring-data-model-and-lossless-export-contract.md) - Proposed
+* [0008 — BDR carries a required Contract section (public API + agent tool schemas)](0008-bdr-contract-section.md) - Accepted

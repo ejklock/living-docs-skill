@@ -268,7 +268,7 @@ rest are judgement:
 - [ ] Superseded ADRs/PRDs/BDRs carry frontmatter `status: Superseded` + `superseded_by: NNNN`; the superseding record sets `supersedes` and links back.
 - [ ] Any structural code change in the same task updated its doc **and its Mermaid diagram(s)**.
 - [ ] Architecture diagrams use Mermaid (in-repo text), match the code, and use context-index vocabulary for node/participant names.
-- [ ] Every BDR has a Mermaid diagram, a textual description, numbered Given/When/Then scenarios, **and a Test Design matrix** (each row names what it proves); an execution issue links the matrix rather than copying it.
+- [ ] Every BDR has a Mermaid diagram, a textual description, **a Contract section** (public signatures + agent tool schemas, observable-only), numbered Given/When/Then scenarios, **and a Test Design matrix** (each row names what it proves); an execution issue links the matrix rather than copying it.
 - [ ] Every NFR is a quality-attribute scenario in the PRD bound to a verifying instrument (not a freeform "should be fast" line); a structural architecture view names whether it is checked or inspection-only.
 - [ ] The constitution is singular (`docs/constitution.md`) — no NNNN prefix, no index entry.
 - [ ] Each index file's links all resolve (no dangling references).

@@ -55,7 +55,7 @@ Every directory of documentation is a semantic group and must contain an `index.
 ### 4. Architectural decisions require an ADR; expected behavior requires a BDR
 
 - A decision that changes structure, dependencies, or technical approach → write an ADR (`docs/decisions/NNNN-slug.md`).
-- A decision that defines or changes what the system must observably do → write or amend a BDR (`docs/behavior/NNNN-slug.md`). Every BDR carries a Mermaid diagram, a textual description, and numbered Given/When/Then scenarios.
+- A decision that defines or changes what the system must observably do → write or amend a BDR (`docs/behavior/NNNN-slug.md`). Every BDR carries a Mermaid diagram, a textual description, a Contract section (public signatures + agent tool schemas, observable-only), numbered Given/When/Then scenarios, and a Test Design matrix.
 - Research informing decisions goes in `docs/research/` in the OKF format (dated session directory with a `report.md` concept and a `references.md` registry; see the `research-artifacts` skill).
 
 ### 5. Issues local-first
