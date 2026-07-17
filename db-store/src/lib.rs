@@ -24,7 +24,7 @@ use migration::Migrator;
 
 pub use record::{ExtractedRecord, SearchHit};
 pub use search::search;
-pub use sync::sync;
+pub use sync::{sync, sync_project};
 
 /// A single record's title and markdown source body, looked up by its
 /// bundle-relative path (ADR 0006, issue 0003 slice S3b).
@@ -34,17 +34,42 @@ pub struct RecordView {
     pub body: String,
 }
 
-/// Looks up the record at `path`. Returns `None` when no record exists at
-/// that path — a missing record is not an error.
+/// Looks up the record at `path`, spanning every project. Returns `None`
+/// when no record exists at that path. `path` is now unique only within a
+/// project (`UNIQUE(project_id, path)`, ADR 0005 issue 0005 slice 0005-A),
+/// so once a second project exists this can match an arbitrary one of
+/// several same-path records; callers that know their project should use
+/// [`record_by_path_in_project`] instead. Kept unscoped for the web front,
+/// which is not project-aware until issue 0005 slice 0005-C.
 pub async fn record_by_path(conn: &DatabaseConnection, path: &str) -> Result<Option<RecordView>> {
     let record = Records::find()
         .filter(Column::Path.eq(path))
         .one(conn)
         .await?;
-    Ok(record.map(|model| RecordView {
+    Ok(record.map(record_to_view))
+}
+
+/// Looks up the record at `path` within `project_id` only. Returns `None`
+/// when no record exists at that path in that project (ADR 0005, issue
+/// 0005 slice 0005-B).
+pub async fn record_by_path_in_project(
+    conn: &DatabaseConnection,
+    project_id: i32,
+    path: &str,
+) -> Result<Option<RecordView>> {
+    let record = Records::find()
+        .filter(Column::ProjectId.eq(project_id))
+        .filter(Column::Path.eq(path))
+        .one(conn)
+        .await?;
+    Ok(record.map(record_to_view))
+}
+
+fn record_to_view(model: entity::Model) -> RecordView {
+    RecordView {
         title: model.title,
         body: model.body,
-    }))
+    }
 }
 
 /// Result alias for this crate's fallible operations, using SeaORM's own
@@ -150,7 +175,7 @@ impl SearchIndex for DbSearchIndex {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sea_orm::{ConnectionTrait, Statement};
+    use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, Statement};
 
     async fn table_names(conn: &DatabaseConnection) -> Vec<String> {
         let statement = Statement::from_string(
@@ -231,6 +256,48 @@ mod tests {
             .await
             .expect("query record_by_path");
         assert!(missing.is_none());
+    }
+
+    #[tokio::test]
+    async fn record_by_path_in_project_scopes_to_one_project_when_two_share_a_path() {
+        let conn = connect_in_memory().await.expect("connect");
+        migrate(&conn).await.expect("migrate");
+
+        let (store_a, bundle_a) =
+            sync::test_support::single_record_corpus_at("/bundle-a", "Team A Title");
+        sync::sync_project(&conn, &store_a, &bundle_a, "team-a")
+            .await
+            .expect("sync team-a");
+        let (store_b, bundle_b) =
+            sync::test_support::single_record_corpus_at("/bundle-b", "Team B Title");
+        sync::sync_project(&conn, &store_b, &bundle_b, "team-b")
+            .await
+            .expect("sync team-b");
+
+        let project_a = entity::projects::Entity::find()
+            .filter(entity::projects::Column::Slug.eq("team-a"))
+            .one(&conn)
+            .await
+            .expect("query team-a project")
+            .expect("team-a project exists");
+        let project_b = entity::projects::Entity::find()
+            .filter(entity::projects::Column::Slug.eq("team-b"))
+            .one(&conn)
+            .await
+            .expect("query team-b project")
+            .expect("team-b project exists");
+
+        let found_a = record_by_path_in_project(&conn, project_a.id, "adr/0001-quokka-caching.md")
+            .await
+            .expect("query record_by_path_in_project for team-a")
+            .expect("team-a has a record at this path");
+        assert_eq!(found_a.title, "Team A Title");
+
+        let found_b = record_by_path_in_project(&conn, project_b.id, "adr/0001-quokka-caching.md")
+            .await
+            .expect("query record_by_path_in_project for team-b")
+            .expect("team-b has a record at this path");
+        assert_eq!(found_b.title, "Team B Title");
     }
 
     #[test]
