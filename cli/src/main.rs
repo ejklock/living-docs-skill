@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 use living_docs_core::{check, commands};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 #[derive(Parser)]
@@ -45,7 +45,24 @@ enum Command {
         #[arg(long)]
         mermaid_only: bool,
     },
+    /// Operate on the derived SQLite/FTS5 read-model at `.living-docs/index.db`.
+    Db {
+        #[command(subcommand)]
+        cmd: DbCmd,
+    },
+    /// Full-text search the derived read-model, ranked best-match-first.
+    Search {
+        query: String,
+    },
 }
+
+#[derive(Subcommand)]
+enum DbCmd {
+    /// Rebuild the read-model from every doc `--docs-dir` lists.
+    Sync,
+}
+
+const READ_MODEL_PATH: &str = ".living-docs/index.db";
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
@@ -66,5 +83,69 @@ fn main() -> ExitCode {
             let store = fs_store::FsStore::new();
             check::run(&store, &bundle)
         }
+        Command::Db { cmd: DbCmd::Sync } => run_db_sync(&cli.docs_dir),
+        Command::Search { query } => run_search(&query),
     }
+}
+
+fn run_db_sync(docs_dir: &Path) -> ExitCode {
+    let runtime = match build_runtime() {
+        Ok(runtime) => runtime,
+        Err(err) => return report_failure(&err.to_string()),
+    };
+    match runtime.block_on(sync_read_model(docs_dir)) {
+        Ok(count) => {
+            println!("Indexed {count} records.");
+            ExitCode::SUCCESS
+        }
+        Err(err) => report_failure(&err.to_string()),
+    }
+}
+
+async fn sync_read_model(docs_dir: &Path) -> db_store::Result<usize> {
+    let conn = db_store::connect(Path::new(READ_MODEL_PATH)).await?;
+    db_store::migrate(&conn).await?;
+    db_store::sync(&conn, &fs_store::FsStore::new(), docs_dir).await
+}
+
+fn run_search(query: &str) -> ExitCode {
+    if !Path::new(READ_MODEL_PATH).exists() {
+        eprintln!("no index found at {READ_MODEL_PATH}; run: living-docs db sync");
+        return ExitCode::FAILURE;
+    }
+
+    let runtime = match build_runtime() {
+        Ok(runtime) => runtime,
+        Err(err) => return report_failure(&err.to_string()),
+    };
+    match runtime.block_on(search_read_model(query)) {
+        Ok(hits) => {
+            print_hits(&hits);
+            ExitCode::SUCCESS
+        }
+        Err(err) => report_failure(&err.to_string()),
+    }
+}
+
+async fn search_read_model(query: &str) -> db_store::Result<Vec<db_store::SearchHit>> {
+    let conn = db_store::connect(Path::new(READ_MODEL_PATH)).await?;
+    db_store::search(&conn, query).await
+}
+
+fn print_hits(hits: &[db_store::SearchHit]) {
+    for hit in hits {
+        println!("{} — {}", hit.path, hit.title);
+        println!("{}", hit.snippet);
+    }
+}
+
+fn build_runtime() -> std::io::Result<tokio::runtime::Runtime> {
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+}
+
+fn report_failure(message: &str) -> ExitCode {
+    eprintln!("error: {message}");
+    ExitCode::FAILURE
 }
