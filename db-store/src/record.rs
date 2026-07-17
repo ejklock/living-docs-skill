@@ -1,11 +1,37 @@
 //! Pure frontmatter/body extraction feeding [`crate::sync::sync_project`]
 //! (ADR 0004, issue 0002 slice S2b; supersedes/superseded_by/tags parsing
-//! ADR 0005 issue 0005 slice 0005-B). Every function here takes already-read
-//! file contents; none touches the filesystem.
+//! ADR 0005 issue 0005 slice 0005-B; dual typed identity + EAV frontmatter
+//! tail ADR 0007 issue 0006 slice 0006-A). Every function here takes
+//! already-read file contents; none touches the filesystem.
 
 use std::path::Path;
 
 use serde_yaml::Value;
+
+/// The `identity_kind` discriminator for a sequentially numbered doc
+/// (`NNNN`, e.g. adr/bdr/prd/issue).
+pub const NUMBER_IDENTITY_KIND: &str = "number";
+
+/// The `identity_kind` discriminator for a path-identified OKF concept doc.
+pub const CONCEPT_IDENTITY_KIND: &str = "concept";
+
+/// Frontmatter `type` values that carry a sequential `NNNN` identity rather
+/// than a `concept_id` (ADR 0007 decision 2).
+const NUMBERED_DOC_TYPES: [&str; 4] = ["adr", "bdr", "prd", "issue"];
+
+/// Frontmatter keys that already have a universal typed column or dedicated
+/// handling elsewhere, and therefore never land in the EAV
+/// [`ExtractedRecord::frontmatter_tail`] (ADR 0007 decision 1).
+const TYPED_FRONTMATTER_KEYS: [&str; 8] = [
+    "type",
+    "title",
+    "description",
+    "number",
+    "concept_id",
+    "supersedes",
+    "superseded_by",
+    "tags",
+];
 
 /// A single ranked full-text search hit: the record's bundle-relative path,
 /// its title, an FTS5 snippet highlighting the matched term, and the slug of
@@ -21,21 +47,29 @@ pub struct SearchHit {
 }
 
 /// The fields extracted from a doc record's raw contents, ready to insert
-/// into the `records` table. `supersedes`/`superseded_by` carry the raw
-/// `NNNN` frontmatter value (unresolved to a record id — that resolution
-/// happens against a project's other records in
+/// into the `records` table. `identity_kind` is derived from `doc_type`
+/// (ADR 0007 decision 2): a numbered type (adr/bdr/prd/issue) carries
+/// `number` with `concept_id` left `None`, every other type carries
+/// `concept_id` with `number` left `None`. `supersedes`/`superseded_by`
+/// carry the raw `NNNN` frontmatter value (unresolved to a record id — that
+/// resolution happens against a project's other records in
 /// [`crate::sync::sync_project`]); `tags` is the frontmatter's `tags`
-/// sequence, empty when absent.
+/// sequence, empty when absent. `frontmatter_tail` is every remaining
+/// frontmatter key with no typed column, in source encounter order, ready
+/// to insert into `frontmatter_fields` with the index as `ordinal`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExtractedRecord {
     pub doc_type: String,
-    pub identity: Option<String>,
+    pub number: Option<i32>,
+    pub concept_id: Option<String>,
+    pub identity_kind: String,
     pub title: String,
     pub description: String,
     pub body: String,
     pub supersedes: Option<String>,
     pub superseded_by: Option<String>,
     pub tags: Vec<String>,
+    pub frontmatter_tail: Vec<(String, String)>,
 }
 
 /// True for the two reserved filenames that carry no OKF frontmatter and are
@@ -55,8 +89,7 @@ pub fn extract_record(path: &Path, contents: &str) -> ExtractedRecord {
     let body = strip_frontmatter(contents).to_owned();
 
     let doc_type = frontmatter_scalar(frontmatter.as_ref(), "type").unwrap_or_default();
-    let identity = frontmatter_scalar(frontmatter.as_ref(), "number")
-        .or_else(|| frontmatter_scalar(frontmatter.as_ref(), "concept_id"));
+    let (number, concept_id, identity_kind) = extract_identity(frontmatter.as_ref(), &doc_type);
     let description = frontmatter_scalar(frontmatter.as_ref(), "description").unwrap_or_default();
     let title = frontmatter_scalar(frontmatter.as_ref(), "title")
         .or_else(|| first_heading(&body))
@@ -64,17 +97,61 @@ pub fn extract_record(path: &Path, contents: &str) -> ExtractedRecord {
     let supersedes = frontmatter_scalar(frontmatter.as_ref(), "supersedes");
     let superseded_by = frontmatter_scalar(frontmatter.as_ref(), "superseded_by");
     let tags = frontmatter_sequence(frontmatter.as_ref(), "tags");
+    let frontmatter_tail = extract_frontmatter_tail(frontmatter.as_ref());
 
     ExtractedRecord {
         doc_type,
-        identity,
+        number,
+        concept_id,
+        identity_kind,
         title,
         description,
         body,
         supersedes,
         superseded_by,
         tags,
+        frontmatter_tail,
     }
+}
+
+/// Classifies `doc_type` into `identity_kind` (ADR 0007 decision 2) and
+/// reads exactly the matching identity field from `frontmatter`, leaving
+/// the other one `None`.
+fn extract_identity(
+    frontmatter: Option<&Value>,
+    doc_type: &str,
+) -> (Option<i32>, Option<String>, String) {
+    if is_numbered_doc_type(doc_type) {
+        let number = frontmatter_scalar(frontmatter, "number").and_then(|raw| raw.parse().ok());
+        (number, None, NUMBER_IDENTITY_KIND.to_owned())
+    } else {
+        let concept_id = frontmatter_scalar(frontmatter, "concept_id");
+        (None, concept_id, CONCEPT_IDENTITY_KIND.to_owned())
+    }
+}
+
+fn is_numbered_doc_type(doc_type: &str) -> bool {
+    NUMBERED_DOC_TYPES.contains(&doc_type.to_lowercase().as_str())
+}
+
+/// Every frontmatter key with no typed column, in source encounter order
+/// (ADR 0007 decision 1). Relies on `serde_yaml::Mapping` preserving the
+/// document's key order.
+fn extract_frontmatter_tail(frontmatter: Option<&Value>) -> Vec<(String, String)> {
+    let Some(mapping) = frontmatter.and_then(Value::as_mapping) else {
+        return Vec::new();
+    };
+
+    mapping
+        .iter()
+        .filter_map(|(key, value)| {
+            let key = key.as_str()?;
+            if TYPED_FRONTMATTER_KEYS.contains(&key) {
+                return None;
+            }
+            scalar_to_string(value).map(|value| (key.to_owned(), value))
+        })
+        .collect()
 }
 
 fn frontmatter_block(contents: &str) -> Option<&str> {
@@ -158,10 +235,38 @@ mod tests {
         let extracted = extract_record(Path::new("/bundle/adr/0001-quokka-caching.md"), contents);
 
         assert_eq!(extracted.doc_type, "ADR");
-        assert_eq!(extracted.identity, Some("1".to_owned()));
+        assert_eq!(extracted.number, Some(1));
+        assert_eq!(extracted.concept_id, None);
+        assert_eq!(extracted.identity_kind, NUMBER_IDENTITY_KIND);
         assert_eq!(extracted.title, "Quokka Caching");
         assert_eq!(extracted.description, "Adopt quokka caching.");
         assert_eq!(extracted.body, "# 0001. Quokka Caching\n\nBody text.\n");
+    }
+
+    #[test]
+    fn extract_record_assigns_the_concept_identity_kind_to_a_non_numbered_doc_type() {
+        let contents =
+            "---\ntype: Glossary\nconcept_id: findability\n---\n# Findability\n\nBody.\n";
+        let extracted = extract_record(Path::new("/bundle/glossary/findability.md"), contents);
+
+        assert_eq!(extracted.identity_kind, CONCEPT_IDENTITY_KIND);
+        assert_eq!(extracted.concept_id, Some("findability".to_owned()));
+        assert_eq!(extracted.number, None);
+    }
+
+    #[test]
+    fn extract_record_assigns_the_number_identity_kind_to_every_numbered_doc_type() {
+        for doc_type in ["ADR", "BDR", "PRD", "Issue"] {
+            let contents = format!("---\ntype: {doc_type}\nnumber: 7\n---\nBody.\n");
+            let extracted = extract_record(Path::new("/bundle/adr/0007-numbered.md"), &contents);
+
+            assert_eq!(
+                extracted.identity_kind, NUMBER_IDENTITY_KIND,
+                "{doc_type} must classify as the number identity kind"
+            );
+            assert_eq!(extracted.number, Some(7));
+            assert_eq!(extracted.concept_id, None);
+        }
     }
 
     #[test]
@@ -186,7 +291,8 @@ mod tests {
         let extracted = extract_record(Path::new("/bundle/adr/0004-no-extras.md"), contents);
 
         assert_eq!(extracted.description, "");
-        assert_eq!(extracted.identity, None);
+        assert_eq!(extracted.number, None);
+        assert_eq!(extracted.concept_id, None);
     }
 
     #[test]
@@ -209,11 +315,39 @@ mod tests {
     }
 
     #[test]
-    fn extract_record_prefers_concept_id_over_missing_number() {
+    fn extract_record_ignores_a_concept_id_stray_on_a_numbered_doc_type() {
         let contents = "---\ntype: Issue\nconcept_id: findability\n---\nBody.\n";
         let extracted = extract_record(Path::new("/bundle/issues/0006-findability.md"), contents);
 
-        assert_eq!(extracted.identity, Some("findability".to_owned()));
+        assert_eq!(extracted.identity_kind, NUMBER_IDENTITY_KIND);
+        assert_eq!(extracted.number, None);
+        assert_eq!(
+            extracted.concept_id, None,
+            "concept_id is not the identity field for a numbered doc type"
+        );
+    }
+
+    #[test]
+    fn extract_record_tail_excludes_typed_and_relation_keys_in_source_order() {
+        let contents = "---\ntype: ADR\ntitle: Tailed\ndescription: d.\nnumber: 1\nstatus: Accepted\nsupersedes:\nsuperseded_by:\ntags: [a]\ntracker: JIRA-1\ntimestamp: 2026-07-17T00:00:00Z\n---\nBody.\n";
+        let extracted = extract_record(Path::new("/bundle/adr/0001-tailed.md"), contents);
+
+        assert_eq!(
+            extracted.frontmatter_tail,
+            vec![
+                ("status".to_owned(), "Accepted".to_owned()),
+                ("tracker".to_owned(), "JIRA-1".to_owned()),
+                ("timestamp".to_owned(), "2026-07-17T00:00:00Z".to_owned()),
+            ]
+        );
+    }
+
+    #[test]
+    fn extract_record_tail_is_empty_when_only_typed_keys_are_present() {
+        let contents = "---\ntype: ADR\ntitle: No Tail\ndescription: d.\nnumber: 1\n---\nBody.\n";
+        let extracted = extract_record(Path::new("/bundle/adr/0002-no-tail.md"), contents);
+
+        assert!(extracted.frontmatter_tail.is_empty());
     }
 
     #[test]

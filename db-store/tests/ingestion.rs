@@ -1,17 +1,24 @@
 //! Per-project ingestion fitness tests (ADR 0005, issue 0005 slice
-//! 0005-B): supersede frontmatter yields a `relations` row linking the two
-//! records, `tags` frontmatter yields `tags`/`record_tags` rows, every row
-//! carries the right `project_id`, and re-syncing one project never touches
-//! another project's records, relations, or tags (no server required).
+//! 0005-B; dual typed identity + EAV frontmatter tail ADR 0007 issue 0006
+//! slice 0006-A): supersede frontmatter yields a `relations` row linking
+//! the two records, `tags` frontmatter yields `tags`/`record_tags` rows,
+//! every row carries the right `project_id`, every record carries a typed
+//! identity matching its `identity_kind`, the non-typed frontmatter keys
+//! land in the ordered `frontmatter_fields` tail, and re-syncing one
+//! project never touches another project's records, relations, or tags (no
+//! server required).
 
 use std::collections::BTreeMap;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use db_store::entity::{projects, record_tags, records, relations, tags};
+use db_store::entity::{frontmatter_fields, projects, record_tags, records, relations, tags};
 use db_store::{connect_in_memory, migrate, sync_project};
 use living_docs_core::store::DocStore;
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
+    QueryOrder,
+};
 
 struct MemoryStore {
     files: BTreeMap<PathBuf, String>,
@@ -67,6 +74,35 @@ fn single_tagged_record_corpus(bundle_root: &str) -> (MemoryStore, PathBuf) {
     (MemoryStore { files }, bundle)
 }
 
+const NUMBERED_DOC: &str = "---\ntype: ADR\ntitle: Numbered Decision\ndescription: d.\nnumber: 1\nstatus: Accepted\n---\n# 0001. Numbered Decision\n\nBody.\n";
+const CONCEPT_DOC: &str = "---\ntype: Glossary\ntitle: Findability\ndescription: d.\nconcept_id: findability\nstatus: Active\n---\n# Findability\n\nBody.\n";
+
+fn dual_identity_corpus(bundle_root: &str) -> (MemoryStore, PathBuf) {
+    let bundle = PathBuf::from(bundle_root);
+    let mut files = BTreeMap::new();
+    files.insert(
+        bundle.join("adr").join("0001-numbered-decision.md"),
+        NUMBERED_DOC.to_owned(),
+    );
+    files.insert(
+        bundle.join("glossary").join("findability.md"),
+        CONCEPT_DOC.to_owned(),
+    );
+    (MemoryStore { files }, bundle)
+}
+
+const TAILED_DOC: &str = "---\ntype: ADR\ntitle: Tailed Decision\ndescription: d.\nnumber: 1\nstatus: Accepted\nlabels: important\nblocked_by: 0002\ntracker: JIRA-42\ntimestamp: 2026-07-17T00:00:00Z\n---\n# 0001. Tailed Decision\n\nBody.\n";
+
+fn tailed_record_corpus(bundle_root: &str) -> (MemoryStore, PathBuf) {
+    let bundle = PathBuf::from(bundle_root);
+    let mut files = BTreeMap::new();
+    files.insert(
+        bundle.join("adr").join("0001-tailed-decision.md"),
+        TAILED_DOC.to_owned(),
+    );
+    (MemoryStore { files }, bundle)
+}
+
 async fn connected_and_migrated() -> DatabaseConnection {
     let conn = connect_in_memory()
         .await
@@ -85,6 +121,10 @@ async fn project_by_slug(conn: &DatabaseConnection, slug: &str) -> projects::Mod
 }
 
 async fn record_id(conn: &DatabaseConnection, project_id: i32, path: &str) -> i32 {
+    record_by_path(conn, project_id, path).await.id
+}
+
+async fn record_by_path(conn: &DatabaseConnection, project_id: i32, path: &str) -> records::Model {
     records::Entity::find()
         .filter(records::Column::ProjectId.eq(project_id))
         .filter(records::Column::Path.eq(path))
@@ -92,7 +132,18 @@ async fn record_id(conn: &DatabaseConnection, project_id: i32, path: &str) -> i3
         .await
         .expect("query record")
         .unwrap_or_else(|| panic!("record at {path} was not synced into project {project_id}"))
-        .id
+}
+
+async fn frontmatter_tail_for(
+    conn: &DatabaseConnection,
+    record_id: i32,
+) -> Vec<frontmatter_fields::Model> {
+    frontmatter_fields::Entity::find()
+        .filter(frontmatter_fields::Column::RecordId.eq(record_id))
+        .order_by_asc(frontmatter_fields::Column::Ordinal)
+        .all(conn)
+        .await
+        .expect("query frontmatter_fields")
 }
 
 async fn record_ids_for_project(conn: &DatabaseConnection, project_id: i32) -> Vec<i32> {
@@ -243,5 +294,128 @@ async fn resyncing_one_project_does_not_touch_another_projects_rows() {
         relations_a.len(),
         1,
         "team-a's supersede relation must survive its own re-sync"
+    );
+}
+
+#[tokio::test]
+async fn a_numbered_doc_type_carries_the_number_identity_with_a_null_concept_id() {
+    let conn = connected_and_migrated().await;
+    let (store, bundle) = dual_identity_corpus("/bundle-dual-identity-number");
+
+    sync_project(&conn, &store, &bundle, "team-a")
+        .await
+        .expect("sync team-a");
+
+    let project = project_by_slug(&conn, "team-a").await;
+    let record = record_by_path(&conn, project.id, "adr/0001-numbered-decision.md").await;
+
+    assert_eq!(record.identity_kind, "number");
+    assert_eq!(record.number, Some(1));
+    assert_eq!(record.concept_id, None);
+}
+
+#[tokio::test]
+async fn a_concept_doc_type_carries_the_concept_identity_with_a_null_number() {
+    let conn = connected_and_migrated().await;
+    let (store, bundle) = dual_identity_corpus("/bundle-dual-identity-concept");
+
+    sync_project(&conn, &store, &bundle, "team-a")
+        .await
+        .expect("sync team-a");
+
+    let project = project_by_slug(&conn, "team-a").await;
+    let record = record_by_path(&conn, project.id, "glossary/findability.md").await;
+
+    assert_eq!(record.identity_kind, "concept");
+    assert_eq!(record.concept_id, Some("findability".to_owned()));
+    assert_eq!(record.number, None);
+}
+
+#[tokio::test]
+async fn frontmatter_tail_excludes_typed_and_relation_keys_and_preserves_ordinal_order() {
+    let conn = connected_and_migrated().await;
+    let (store, bundle) = tailed_record_corpus("/bundle-tail");
+
+    sync_project(&conn, &store, &bundle, "team-a")
+        .await
+        .expect("sync team-a");
+
+    let project = project_by_slug(&conn, "team-a").await;
+    let record = record_by_path(&conn, project.id, "adr/0001-tailed-decision.md").await;
+    let tail = frontmatter_tail_for(&conn, record.id).await;
+
+    let ordered: Vec<(&str, &str)> = tail
+        .iter()
+        .map(|field| (field.key.as_str(), field.value.as_str()))
+        .collect();
+    assert_eq!(
+        ordered,
+        vec![
+            ("status", "Accepted"),
+            ("labels", "important"),
+            ("blocked_by", "0002"),
+            ("tracker", "JIRA-42"),
+            ("timestamp", "2026-07-17T00:00:00Z"),
+        ],
+        "the tail must reconstruct in source encounter order by ascending ordinal"
+    );
+    assert!(
+        tail.iter()
+            .all(|field| field.key != "type" && field.key != "title" && field.key != "description"),
+        "type/title/description are typed columns and must not appear in the tail"
+    );
+}
+
+fn assert_foreign_key_violation(error: sea_orm::DbErr) {
+    let message = error.to_string().to_lowercase();
+    assert!(
+        message.contains("foreign key"),
+        "expected a foreign key violation, got: {error}"
+    );
+}
+
+#[tokio::test]
+async fn inserting_a_frontmatter_field_for_a_nonexistent_record_is_refused_by_the_foreign_key() {
+    let conn = connected_and_migrated().await;
+
+    let result = frontmatter_fields::ActiveModel {
+        record_id: ActiveValue::Set(999_999),
+        key: ActiveValue::Set("status".to_owned()),
+        value: ActiveValue::Set("Accepted".to_owned()),
+        ordinal: ActiveValue::Set(0),
+        ..Default::default()
+    }
+    .insert(&conn)
+    .await;
+
+    assert_foreign_key_violation(
+        result.expect_err("a frontmatter_fields row referencing a missing record must fail"),
+    );
+}
+
+#[tokio::test]
+async fn deleting_a_record_cascades_to_its_frontmatter_fields_rows() {
+    let conn = connected_and_migrated().await;
+    let (store, bundle) = tailed_record_corpus("/bundle-cascade");
+
+    sync_project(&conn, &store, &bundle, "team-a")
+        .await
+        .expect("sync team-a");
+
+    let project = project_by_slug(&conn, "team-a").await;
+    let record = record_by_path(&conn, project.id, "adr/0001-tailed-decision.md").await;
+    assert!(
+        !frontmatter_tail_for(&conn, record.id).await.is_empty(),
+        "the record must have tail rows before it is deleted"
+    );
+
+    records::Entity::delete_by_id(record.id)
+        .exec(&conn)
+        .await
+        .expect("delete the record");
+
+    assert!(
+        frontmatter_tail_for(&conn, record.id).await.is_empty(),
+        "ON DELETE CASCADE must remove the record's frontmatter_fields rows"
     );
 }

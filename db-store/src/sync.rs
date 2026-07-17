@@ -14,7 +14,7 @@ use sea_orm::{
     DbErr, EntityTrait, QueryFilter, Statement, TransactionTrait,
 };
 
-use crate::entity::{projects, record_tags, relations, tags};
+use crate::entity::{frontmatter_fields, projects, record_tags, relations, tags};
 use crate::entity::{ActiveModel, Column, Entity as Records};
 use crate::record::{extract_record, is_reserved};
 use crate::Result;
@@ -156,12 +156,15 @@ async fn insert_record<C: ConnectionTrait>(
     let relative = relative_path(bundle, path);
     let contents = store.read(path).map_err(io_err_to_db_err)?;
     let extracted = extract_record(path, &contents);
+    let frontmatter_tail = extracted.frontmatter_tail;
 
     let inserted = ActiveModel {
         project_id: ActiveValue::Set(project_id),
         path: ActiveValue::Set(relative.clone()),
         doc_type: ActiveValue::Set(extracted.doc_type),
-        identity: ActiveValue::Set(extracted.identity),
+        number: ActiveValue::Set(extracted.number),
+        concept_id: ActiveValue::Set(extracted.concept_id),
+        identity_kind: ActiveValue::Set(extracted.identity_kind),
         title: ActiveValue::Set(extracted.title),
         description: ActiveValue::Set(extracted.description),
         body: ActiveValue::Set(extracted.body),
@@ -170,6 +173,8 @@ async fn insert_record<C: ConnectionTrait>(
     .insert(conn)
     .await?;
 
+    insert_frontmatter_tail(conn, inserted.id, &frontmatter_tail).await?;
+
     Ok(InsertedRecord {
         id: inserted.id,
         relative_path: relative,
@@ -177,6 +182,28 @@ async fn insert_record<C: ConnectionTrait>(
         superseded_by: extracted.superseded_by,
         tags: extracted.tags,
     })
+}
+
+/// Inserts one `frontmatter_fields` row per tail entry, `ordinal` set to
+/// its position in `tail` so the tail reconstructs by ascending `ordinal`
+/// in the same order it was encountered in the source frontmatter.
+async fn insert_frontmatter_tail<C: ConnectionTrait>(
+    conn: &C,
+    record_id: i32,
+    tail: &[(String, String)],
+) -> Result<()> {
+    for (ordinal, (key, value)) in tail.iter().enumerate() {
+        frontmatter_fields::ActiveModel {
+            record_id: ActiveValue::Set(record_id),
+            key: ActiveValue::Set(key.clone()),
+            value: ActiveValue::Set(value.clone()),
+            ordinal: ActiveValue::Set(ordinal as i32),
+            ..Default::default()
+        }
+        .insert(conn)
+        .await?;
+    }
+    Ok(())
 }
 
 fn relative_path(bundle: &Path, path: &Path) -> String {
