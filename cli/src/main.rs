@@ -68,6 +68,12 @@ enum Command {
     /// fitness function (ADR 0007, issue 0006 slice 0006-D2).
     Export {
         out_dir: PathBuf,
+        /// Restrict the exported set to records whose effective visibility
+        /// (frontmatter `visibility`, or `private` when absent —
+        /// default-deny, ADR 0010) is in this comma-separated set. Omitted:
+        /// every record exports, unchanged from today's behavior.
+        #[arg(long, value_delimiter = ',')]
+        visibility: Option<Vec<String>>,
     },
     /// Operate on the derived read-model (SQLite/FTS5 by default, or ParadeDB
     /// with `--engine paradedb`).
@@ -184,7 +190,10 @@ fn main() -> ExitCode {
             mermaid_only,
         } if mermaid_only => check::run_mermaid_only(&paths),
         Command::Check { paths, .. } => run_check(cli.backend, &cli.docs_dir, paths),
-        Command::Export { out_dir } => run_export(cli.backend, &cli.docs_dir, &out_dir),
+        Command::Export {
+            out_dir,
+            visibility,
+        } => run_export(cli.backend, &cli.docs_dir, &out_dir, visibility),
         Command::Db {
             cmd: DbCmd::Sync { engine, project },
         } => run_db_sync(&cli.docs_dir, engine, project),
@@ -244,9 +253,14 @@ fn check_bundle(backend: Backend, docs_dir: &Path, paths: Vec<PathBuf>) -> PathB
     }
 }
 
-fn run_export(backend: Backend, docs_dir: &Path, out_dir: &Path) -> ExitCode {
+fn run_export(
+    backend: Backend,
+    docs_dir: &Path,
+    out_dir: &Path,
+    visibility: Option<Vec<String>>,
+) -> ExitCode {
     match build_backend_store(backend, docs_dir) {
-        Ok(store) => commands::export::export(store.as_ref(), docs_dir, out_dir),
+        Ok(store) => commands::export::export(store.as_ref(), docs_dir, out_dir, visibility),
         Err(err) => report_failure(&err),
     }
 }
