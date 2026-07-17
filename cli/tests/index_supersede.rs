@@ -156,8 +156,8 @@ fn index_uses_a_minimal_title_preamble_on_a_fresh_file() {
 }
 
 #[test]
-fn index_non_adr_type_is_a_single_listing_without_a_status_split() {
-    let docs = temp_dir("non-adr-single");
+fn index_prd_and_bdr_split_active_above_superseded_like_adr() {
+    let docs = temp_dir("prd-bdr-split");
     write_record(&docs, "prd", "0001-draft.md", "Draft Feature", "Draft");
     write_record(
         &docs,
@@ -166,19 +166,151 @@ fn index_non_adr_type_is_a_single_listing_without_a_status_split() {
         "Implemented Feature",
         "Implemented",
     );
+    write_record(&docs, "prd", "0003-old.md", "Old Feature", "Superseded");
+    write_record(
+        &docs,
+        "bdr",
+        "0001-current.md",
+        "Current Behavior",
+        "Accepted",
+    );
+    write_record(
+        &docs,
+        "bdr",
+        "0002-retired.md",
+        "Retired Behavior",
+        "Deprecated",
+    );
 
-    let output = run_index(&docs, Some("prd"));
-    assert!(output.status.success());
+    let prd_output = run_index(&docs, Some("prd"));
+    assert!(prd_output.status.success());
+    let bdr_output = run_index(&docs, Some("bdr"));
+    assert!(bdr_output.status.success());
 
-    let contents = fs::read_to_string(docs.join("prd/index.md")).unwrap();
-    assert!(!contents.contains("## Active"), "got: {contents}");
-    assert!(!contents.contains("## Superseded"), "got: {contents}");
+    let prd_contents = fs::read_to_string(docs.join("prd/index.md")).unwrap();
+    let active_heading = prd_contents
+        .find("## Active")
+        .expect("missing ## Active heading");
+    let superseded_heading = prd_contents
+        .find("## Superseded")
+        .expect("missing ## Superseded heading");
+    assert!(active_heading < superseded_heading, "got: {prd_contents}");
     assert!(
-        contents.contains("* [0001 — Draft Feature](0001-draft.md) - Draft"),
+        prd_contents.contains("* [0001 — Draft Feature](0001-draft.md) - Draft"),
+        "got: {prd_contents}"
+    );
+    assert!(
+        prd_contents.contains("* [0002 — Implemented Feature](0002-done.md) - Implemented"),
+        "got: {prd_contents}"
+    );
+    let draft_row = prd_contents.find("0001-draft.md").unwrap();
+    let implemented_row = prd_contents.find("0002-done.md").unwrap();
+    let old_row = prd_contents.find("0003-old.md").unwrap();
+    assert!(draft_row < superseded_heading && implemented_row < superseded_heading);
+    assert!(old_row > superseded_heading, "got: {prd_contents}");
+
+    let bdr_contents = fs::read_to_string(docs.join("bdr/index.md")).unwrap();
+    let bdr_active_heading = bdr_contents
+        .find("## Active")
+        .expect("missing ## Active heading");
+    let bdr_superseded_heading = bdr_contents
+        .find("## Superseded")
+        .expect("missing ## Superseded heading");
+    let current_row = bdr_contents.find("0001-current.md").unwrap();
+    let retired_row = bdr_contents.find("0002-retired.md").unwrap();
+    assert!(bdr_active_heading < current_row && current_row < bdr_superseded_heading);
+    assert!(retired_row > bdr_superseded_heading, "got: {bdr_contents}");
+
+    let _ = fs::remove_dir_all(&docs);
+}
+
+#[test]
+fn index_issue_splits_open_above_closed_with_case_insensitive_done() {
+    let docs = temp_dir("issue-split");
+    write_record(&docs, "issues", "0001-brewing.md", "Brewing Issue", "open");
+    write_record(
+        &docs,
+        "issues",
+        "0002-finished.md",
+        "Finished Issue",
+        "done",
+    );
+    write_record(
+        &docs,
+        "issues",
+        "0003-also-finished.md",
+        "Also Finished Issue",
+        "Done",
+    );
+
+    let output = run_index(&docs, Some("issue"));
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let contents = fs::read_to_string(docs.join("issues/index.md")).unwrap();
+    let open_heading = contents.find("## Open").expect("missing ## Open heading");
+    let closed_heading = contents
+        .find("## Closed")
+        .expect("missing ## Closed heading");
+    assert!(open_heading < closed_heading, "got: {contents}");
+
+    let open_row = contents.find("0001-brewing.md").unwrap();
+    let closed_row = contents.find("0002-finished.md").unwrap();
+    let closed_row_case = contents.find("0003-also-finished.md").unwrap();
+    assert!(
+        open_heading < open_row && open_row < closed_heading,
+        "got: {contents}"
+    );
+    assert!(closed_row > closed_heading, "got: {contents}");
+    assert!(closed_row_case > closed_heading, "got: {contents}");
+
+    let _ = fs::remove_dir_all(&docs);
+}
+
+#[test]
+fn index_migrates_a_legacy_done_open_issues_index_to_open_closed() {
+    let docs = temp_dir("issue-migration");
+    let issue_dir = docs.join("issues");
+    fs::create_dir_all(&issue_dir).unwrap();
+    let legacy_preamble = "# Issues\n\nA hand-written intro paragraph that must survive.\n\n";
+    fs::write(
+        issue_dir.join("index.md"),
+        format!(
+            "{legacy_preamble}## Done\n\n* [0002 — Old Row](0002-old-row.md) - closed\n\n## Open\n\n* [0001 — Old Row](0001-old-row.md) - open\n"
+        ),
+    )
+    .unwrap();
+    write_record(&docs, "issues", "0001-active.md", "Active Issue", "open");
+    write_record(
+        &docs,
+        "issues",
+        "0002-finished.md",
+        "Finished Issue",
+        "done",
+    );
+
+    let output = run_index(&docs, Some("issue"));
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let contents = fs::read_to_string(issue_dir.join("index.md")).unwrap();
+    assert!(contents.starts_with(legacy_preamble), "got: {contents}");
+    assert!(!contents.contains("## Done"), "got: {contents}");
+    assert!(!contents.contains("stale"), "got: {contents}");
+    assert!(contents.contains("## Open"), "got: {contents}");
+    assert!(contents.contains("## Closed"), "got: {contents}");
+    assert!(
+        contents.contains("* [0001 — Active Issue](0001-active.md) - open"),
         "got: {contents}"
     );
     assert!(
-        contents.contains("* [0002 — Implemented Feature](0002-done.md) - Implemented"),
+        contents.contains("* [0002 — Finished Issue](0002-finished.md) - done"),
         "got: {contents}"
     );
 
