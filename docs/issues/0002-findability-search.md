@@ -2,7 +2,7 @@
 type: Issue
 title: Findability — db sync builds a SQLite/FTS5 read-model and living-docs search queries it
 description: Add a derived SQLite + FTS5 read-model built from the .md corpus and a `living-docs search` command that returns ranked hits — the first observable delivery of the North Star.
-status: open
+status: done
 labels: [slice, search, findability]
 blocked_by: [1]
 tracker:
