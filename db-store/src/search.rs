@@ -25,14 +25,17 @@ pub async fn search(conn: &DatabaseConnection, query: &str) -> Result<Vec<Search
         DbBackend::MySql => return Err(unsupported_backend_err()),
     };
 
-    Ok(rows
-        .into_iter()
-        .map(|row| SearchHit {
-            path: row.path,
-            title: row.title,
-            snippet: row.snippet,
-        })
-        .collect())
+    Ok(rows.into_iter().map(row_to_hit).collect())
+}
+
+/// Projects a raw `SearchRow` (shared by both the SQLite and Postgres
+/// branches) into the public `SearchHit` shape.
+fn row_to_hit(row: SearchRow) -> SearchHit {
+    SearchHit {
+        path: row.path,
+        title: row.title,
+        snippet: row.snippet,
+    }
 }
 
 async fn sqlite_search(conn: &DatabaseConnection, query: &str) -> Result<Vec<SearchRow>> {
