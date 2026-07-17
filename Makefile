@@ -4,6 +4,12 @@
 SHELL := /bin/bash
 INSTALL := ./install.sh
 
+# Dev-env docker-compose (issue 0007): pulls POSTGRES_USER/POSTGRES_DB/PG_PORT from .env
+# into the targets below. The leading `-` makes a missing .env non-fatal (docker compose
+# itself also reads .env for ${VAR} substitution in docker-compose.yml).
+-include .env
+export
+
 # Docker-always dev environment for cli/ (Rust). The host is not assumed to have a
 # toolchain — Dockerfile.dev pins the exact version from cli/rust-toolchain.toml, plus
 # rustfmt/clippy/build-essential. Mounts the repo + the host cargo registry (reused
@@ -26,7 +32,8 @@ LIVING_DOCS_BIN := cli/target/release/living-docs
         install-opencode install-codex install-pi install-all install-pocock \
         project-claude project-opencode project-codex project-pi \
         uninstall uninstall-all check lint test-fixtures version \
-        cli-dev-image cli-build cli-test cli-fmt cli-clippy build cli-install
+        cli-dev-image cli-build cli-test cli-fmt cli-clippy build cli-install \
+        up down db-up db-psql db-logs db-test
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -122,3 +129,24 @@ build: ## Build the release CLI binary natively (host cargo) -> cli/target/relea
 
 cli-install: build ## Install the CLI binary onto PATH natively (host cargo, idempotent)
 	cargo install --path cli --force
+
+# Provisions the ParadeDB (Postgres + BM25) service from ADR 0004 for local db-mode work.
+# The compose `web` service is deferred to issues 0004/0006.
+
+up: ## Start every compose service in the background
+	docker compose up -d
+
+down: ## Stop compose services (the named paradedb-data volume is kept)
+	docker compose down
+
+db-up: ## Start only the paradedb service and block until its healthcheck passes
+	docker compose up -d --wait paradedb
+
+db-psql: ## Open a psql shell against the composed paradedb service
+	docker compose exec paradedb psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
+
+db-logs: ## Follow the paradedb service logs
+	docker compose logs -f paradedb
+
+db-test: db-up ## Run the workspace test suite against the composed DB (Postgres-specific cases land in issue 0004)
+	DATABASE_URL=$(DATABASE_URL) cargo test --manifest-path cli/Cargo.toml
