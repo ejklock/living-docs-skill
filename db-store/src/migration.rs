@@ -12,7 +12,11 @@ pub struct Migrator;
 
 impl MigratorTrait for Migrator {
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
-        vec![Box::new(CreateRecords), Box::new(CreateMultiProjectSchema)]
+        vec![
+            Box::new(CreateRecords),
+            Box::new(CreateMultiProjectSchema),
+            Box::new(CreateAuthoringSchema),
+        ]
     }
 }
 
@@ -119,6 +123,149 @@ impl MigrationTrait for CreateMultiProjectSchema {
             .await?;
         CreateRecords.up(manager).await
     }
+}
+
+/// Replaces `records.identity` with typed `number`/`concept_id` columns
+/// plus a non-null `identity_kind` discriminator, and adds the ordered
+/// `frontmatter_fields` EAV tail table (ADR 0007, issue 0006 slice 0006-A).
+/// Like [`CreateMultiProjectSchema`], the `records` recreation is
+/// destructive by design: the table is a derived read-model, rebuilt in
+/// full by [`crate::sync::sync`].
+struct CreateAuthoringSchema;
+
+impl MigrationName for CreateAuthoringSchema {
+    fn name(&self) -> &str {
+        "m20260717_000003_create_authoring_schema"
+    }
+}
+
+#[async_trait::async_trait]
+impl MigrationTrait for CreateAuthoringSchema {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        drop_search_index(manager).await?;
+        manager
+            .drop_table(Table::drop().table(Records::Table).to_owned())
+            .await?;
+        create_authoring_records_table(manager).await?;
+        create_search_index(manager).await?;
+        create_frontmatter_fields_table(manager).await
+    }
+
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_table(Table::drop().table(FrontmatterFields::Table).to_owned())
+            .await?;
+        drop_search_index(manager).await?;
+        manager
+            .drop_table(Table::drop().table(Records::Table).to_owned())
+            .await?;
+        create_records_table(manager).await?;
+        create_search_index(manager).await
+    }
+}
+
+/// Creates `records` with the typed `number`/`concept_id`/`identity_kind`
+/// identity columns in place of the single polymorphic `identity` column,
+/// keeping the same `project_id` foreign key and `UNIQUE(project_id, path)`
+/// index as [`create_records_table`].
+async fn create_authoring_records_table(manager: &SchemaManager<'_>) -> Result<(), DbErr> {
+    manager
+        .create_table(
+            Table::create()
+                .table(Records::Table)
+                .if_not_exists()
+                .col(
+                    ColumnDef::new(Records::Id)
+                        .integer()
+                        .not_null()
+                        .auto_increment()
+                        .primary_key(),
+                )
+                .col(ColumnDef::new(Records::ProjectId).integer().not_null())
+                .col(ColumnDef::new(Records::Path).text().not_null())
+                .col(
+                    ColumnDef::new(Records::DocType)
+                        .text()
+                        .not_null()
+                        .default(""),
+                )
+                .col(ColumnDef::new(Records::Number).integer())
+                .col(ColumnDef::new(Records::ConceptId).text())
+                .col(
+                    ColumnDef::new(Records::IdentityKind)
+                        .text()
+                        .not_null()
+                        .default(""),
+                )
+                .col(ColumnDef::new(Records::Title).text().not_null().default(""))
+                .col(
+                    ColumnDef::new(Records::Description)
+                        .text()
+                        .not_null()
+                        .default(""),
+                )
+                .col(ColumnDef::new(Records::Body).text().not_null().default(""))
+                .foreign_key(
+                    ForeignKey::create()
+                        .name("fk_records_project")
+                        .from(Records::Table, Records::ProjectId)
+                        .to(Projects::Table, Projects::Id),
+                )
+                .to_owned(),
+        )
+        .await?;
+
+    manager
+        .create_index(
+            Index::create()
+                .name("idx_records_project_path")
+                .table(Records::Table)
+                .col(Records::ProjectId)
+                .col(Records::Path)
+                .unique()
+                .to_owned(),
+        )
+        .await
+}
+
+/// Creates the ordered EAV frontmatter tail: one row per non-typed
+/// frontmatter key, scoped to its record via `record_id` and cascaded on
+/// the record's delete so a record's tail never outlives it.
+async fn create_frontmatter_fields_table(manager: &SchemaManager<'_>) -> Result<(), DbErr> {
+    manager
+        .create_table(
+            Table::create()
+                .table(FrontmatterFields::Table)
+                .if_not_exists()
+                .col(
+                    ColumnDef::new(FrontmatterFields::Id)
+                        .integer()
+                        .not_null()
+                        .auto_increment()
+                        .primary_key(),
+                )
+                .col(
+                    ColumnDef::new(FrontmatterFields::RecordId)
+                        .integer()
+                        .not_null(),
+                )
+                .col(ColumnDef::new(FrontmatterFields::Key).text().not_null())
+                .col(ColumnDef::new(FrontmatterFields::Value).text().not_null())
+                .col(
+                    ColumnDef::new(FrontmatterFields::Ordinal)
+                        .integer()
+                        .not_null(),
+                )
+                .foreign_key(
+                    ForeignKey::create()
+                        .name("fk_frontmatter_fields_record")
+                        .from(FrontmatterFields::Table, FrontmatterFields::RecordId)
+                        .to(Records::Table, Records::Id)
+                        .on_delete(ForeignKeyAction::Cascade),
+                )
+                .to_owned(),
+        )
+        .await
 }
 
 async fn create_projects_table(manager: &SchemaManager<'_>) -> Result<(), DbErr> {
@@ -370,9 +517,22 @@ enum Records {
     Path,
     DocType,
     Identity,
+    Number,
+    ConceptId,
+    IdentityKind,
     Title,
     Description,
     Body,
+}
+
+#[derive(DeriveIden)]
+enum FrontmatterFields {
+    Table,
+    Id,
+    RecordId,
+    Key,
+    Value,
+    Ordinal,
 }
 
 #[derive(DeriveIden)]
