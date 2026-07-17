@@ -8,12 +8,16 @@ use std::path::Path;
 use serde_yaml::Value;
 
 /// A single ranked full-text search hit: the record's bundle-relative path,
-/// its title, and an FTS5 snippet highlighting the matched term.
+/// its title, an FTS5 snippet highlighting the matched term, and the slug of
+/// the project it belongs to (ADR 0005, issue 0005 slice 0005-C1). Every
+/// hit carries `project` regardless of whether the search that produced it
+/// was scoped to one project or spanned all of them.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SearchHit {
     pub path: String,
     pub title: String,
     pub snippet: String,
+    pub project: String,
 }
 
 /// The fields extracted from a doc record's raw contents, ready to insert
@@ -244,11 +248,12 @@ mod tests {
     }
 
     #[test]
-    fn search_hit_carries_path_title_and_snippet() {
+    fn search_hit_carries_path_title_snippet_and_project() {
         let hit = SearchHit {
             path: "adr/0001-quokka-caching.md".to_owned(),
             title: "Quokka Caching".to_owned(),
             snippet: "an aggressive [quokka] caching strategy".to_owned(),
+            project: "team-a".to_owned(),
         };
 
         assert_eq!(
@@ -256,5 +261,6 @@ mod tests {
             PathBuf::from("adr/0001-quokka-caching.md").to_string_lossy()
         );
         assert!(hit.snippet.contains("[quokka]"));
+        assert_eq!(hit.project, "team-a");
     }
 }

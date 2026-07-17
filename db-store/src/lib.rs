@@ -23,7 +23,7 @@ use entity::{Column, Entity as Records};
 use migration::Migrator;
 
 pub use record::{ExtractedRecord, SearchHit};
-pub use search::search;
+pub use search::{search, search_in_project};
 pub use sync::{sync, sync_project};
 
 /// A single record's title and markdown source body, looked up by its
