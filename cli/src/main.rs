@@ -38,6 +38,12 @@ enum Command {
     },
     Index {
         doc_type: Option<String>,
+        /// Restrict the rendered index to records whose effective visibility
+        /// (frontmatter `visibility`, or `private` when absent — default-deny,
+        /// ADR 0009) is in this comma-separated set. Omitted: every record
+        /// renders, unchanged from today's dev view.
+        #[arg(long, value_delimiter = ',')]
+        visibility: Option<Vec<String>>,
     },
     Supersede {
         old: String,
@@ -168,7 +174,10 @@ fn main() -> ExitCode {
     match cli.command {
         Command::Next { doc_type } => commands::next::run(&cli.docs_dir, &doc_type),
         Command::New { doc_type, title } => run_new(cli.backend, &cli.docs_dir, &doc_type, &title),
-        Command::Index { doc_type } => run_index(cli.backend, &cli.docs_dir, doc_type),
+        Command::Index {
+            doc_type,
+            visibility,
+        } => run_index(cli.backend, &cli.docs_dir, doc_type, visibility),
         Command::Supersede { old, new } => run_supersede(cli.backend, &cli.docs_dir, &old, &new),
         Command::Check {
             paths,
@@ -194,9 +203,14 @@ fn run_new(backend: Backend, docs_dir: &Path, doc_type: &str, title: &str) -> Ex
     }
 }
 
-fn run_index(backend: Backend, docs_dir: &Path, doc_type: Option<String>) -> ExitCode {
+fn run_index(
+    backend: Backend,
+    docs_dir: &Path,
+    doc_type: Option<String>,
+    visibility: Option<Vec<String>>,
+) -> ExitCode {
     match build_backend_store(backend, docs_dir) {
-        Ok(store) => commands::index::run(store.as_ref(), docs_dir, doc_type),
+        Ok(store) => commands::index::run(store.as_ref(), docs_dir, doc_type, visibility),
         Err(err) => report_failure(&err),
     }
 }

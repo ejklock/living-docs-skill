@@ -18,9 +18,21 @@ fn temp_dir(label: &str) -> PathBuf {
 }
 
 fn run_index(docs: &Path, doc_type: Option<&str>) -> Output {
+    run_index_with_visibility(docs, doc_type, None)
+}
+
+fn run_index_with_visibility(
+    docs: &Path,
+    doc_type: Option<&str>,
+    visibility: Option<&str>,
+) -> Output {
     let mut args = vec!["--docs-dir", docs.to_str().unwrap(), "index"];
     if let Some(t) = doc_type {
         args.push(t);
+    }
+    if let Some(v) = visibility {
+        args.push("--visibility");
+        args.push(v);
     }
     living_docs()
         .args(args)
@@ -40,6 +52,22 @@ fn write_record(docs: &Path, dir: &str, filename: &str, title: &str, status: &st
     fs::create_dir_all(&type_dir).unwrap();
     let contents = format!(
         "---\ntype: ADR\ntitle: {title}\nstatus: {status}\nsupersedes:\nsuperseded_by:\ntags: []\ntimestamp: 2026-07-14T00:00:00Z\n---\n\n# {title}\n\n## Context\n\n<placeholder text>\n"
+    );
+    fs::write(type_dir.join(filename), contents).unwrap();
+}
+
+fn write_record_with_visibility(
+    docs: &Path,
+    dir: &str,
+    filename: &str,
+    title: &str,
+    status: &str,
+    visibility: &str,
+) {
+    let type_dir = docs.join(dir);
+    fs::create_dir_all(&type_dir).unwrap();
+    let contents = format!(
+        "---\ntype: ADR\ntitle: {title}\nstatus: {status}\nvisibility: {visibility}\nsupersedes:\nsuperseded_by:\ntags: []\ntimestamp: 2026-07-14T00:00:00Z\n---\n\n# {title}\n\n## Context\n\n<placeholder text>\n"
     );
     fs::write(type_dir.join(filename), contents).unwrap();
 }
@@ -360,6 +388,136 @@ fn index_without_a_type_regenerates_every_supported_type_present() {
 
     assert!(docs.join("adr/index.md").exists());
     assert!(docs.join("prd/index.md").exists());
+
+    let _ = fs::remove_dir_all(&docs);
+}
+
+#[test]
+fn index_with_visibility_filter_lists_only_matching_visibility_records() {
+    let docs = temp_dir("visibility-filter");
+    write_record_with_visibility(
+        &docs,
+        "adr",
+        "0001-public.md",
+        "Public Decision",
+        "Accepted",
+        "public",
+    );
+    write_record_with_visibility(
+        &docs,
+        "adr",
+        "0002-private.md",
+        "Private Decision",
+        "Accepted",
+        "private",
+    );
+    write_record(
+        &docs,
+        "adr",
+        "0003-absent.md",
+        "Absent Decision",
+        "Accepted",
+    );
+
+    let output = run_index_with_visibility(&docs, Some("adr"), Some("public,showcase"));
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let contents = fs::read_to_string(docs.join("adr/index.md")).unwrap();
+    assert!(contents.contains("0001-public.md"), "got: {contents}");
+    assert!(!contents.contains("0002-private.md"), "got: {contents}");
+    assert!(!contents.contains("0003-absent.md"), "got: {contents}");
+
+    let _ = fs::remove_dir_all(&docs);
+}
+
+#[test]
+fn index_without_visibility_flag_lists_every_record_regardless_of_visibility() {
+    let docs = temp_dir("visibility-unset");
+    write_record_with_visibility(
+        &docs,
+        "adr",
+        "0001-public.md",
+        "Public Decision",
+        "Accepted",
+        "public",
+    );
+    write_record_with_visibility(
+        &docs,
+        "adr",
+        "0002-private.md",
+        "Private Decision",
+        "Accepted",
+        "private",
+    );
+    write_record(
+        &docs,
+        "adr",
+        "0003-absent.md",
+        "Absent Decision",
+        "Accepted",
+    );
+
+    let output = run_index(&docs, Some("adr"));
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let contents = fs::read_to_string(docs.join("adr/index.md")).unwrap();
+    assert!(contents.contains("0001-public.md"), "got: {contents}");
+    assert!(contents.contains("0002-private.md"), "got: {contents}");
+    assert!(contents.contains("0003-absent.md"), "got: {contents}");
+
+    let _ = fs::remove_dir_all(&docs);
+}
+
+#[test]
+fn index_visibility_private_filter_includes_absent_visibility_records() {
+    let docs = temp_dir("visibility-default-deny");
+    write_record_with_visibility(
+        &docs,
+        "adr",
+        "0001-public.md",
+        "Public Decision",
+        "Accepted",
+        "public",
+    );
+    write_record(
+        &docs,
+        "adr",
+        "0002-absent.md",
+        "Absent Decision",
+        "Accepted",
+    );
+
+    let private_output = run_index_with_visibility(&docs, Some("adr"), Some("private"));
+    assert!(private_output.status.success());
+    let private_contents = fs::read_to_string(docs.join("adr/index.md")).unwrap();
+    assert!(
+        private_contents.contains("0002-absent.md"),
+        "got: {private_contents}"
+    );
+    assert!(
+        !private_contents.contains("0001-public.md"),
+        "got: {private_contents}"
+    );
+
+    let public_output = run_index_with_visibility(&docs, Some("adr"), Some("public"));
+    assert!(public_output.status.success());
+    let public_contents = fs::read_to_string(docs.join("adr/index.md")).unwrap();
+    assert!(
+        !public_contents.contains("0002-absent.md"),
+        "got: {public_contents}"
+    );
+    assert!(
+        public_contents.contains("0001-public.md"),
+        "got: {public_contents}"
+    );
 
     let _ = fs::remove_dir_all(&docs);
 }
