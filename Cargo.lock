@@ -833,8 +833,10 @@ name = "living-docs"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "db-store",
  "fs-store",
  "living-docs-core",
+ "tokio",
 ]
 
 [[package]]

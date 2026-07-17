@@ -10,5 +10,7 @@ path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
+db-store = { path = "../db-store" }
 fs-store = { path = "../fs-store" }
 living-docs-core = { path = "../living-docs-core" }
+tokio = { version = "1", features = ["rt", "macros"] }

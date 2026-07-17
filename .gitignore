@@ -7,5 +7,8 @@
 .vscode/
 .tmp-smoke/
 
+# Derived SQLite/FTS5 read-model (ADR 0004, issue 0002) — rebuilt via `db sync`
+.living-docs/
+
 # Local publication / marketing drafts and exported assets — not part of the repo
 /publications/
