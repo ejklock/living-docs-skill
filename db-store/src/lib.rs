@@ -13,7 +13,10 @@ use std::io;
 use std::path::PathBuf;
 
 use living_docs_core::store::SearchIndex;
-use sea_orm::{ColumnTrait, Database, DatabaseConnection, DbErr, EntityTrait, QueryFilter};
+use sea_orm::{
+    ColumnTrait, ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr, EntityTrait,
+    QueryFilter,
+};
 use sea_orm_migration::MigratorTrait;
 
 use entity::{Column, Entity as Records};
@@ -52,6 +55,9 @@ pub type Result<T> = std::result::Result<T, DbErr>;
 /// scheme (`sqlite://…` or `postgres://…`, ADR 0004 issue 0004). For a
 /// SQLite file URL, creates any missing parent directories before handing
 /// the URL to SeaORM unchanged; other schemes are passed straight through.
+/// A SQLite connection has `PRAGMA foreign_keys` enabled so the multi-project
+/// FK constraints (ADR 0005 issue 0005 slice 0005-A) are enforced; Postgres
+/// enforces foreign keys natively and needs no such step.
 pub async fn connect(url: &str) -> Result<DatabaseConnection> {
     if let Some(path) = sqlite_file_path(url) {
         if let Some(parent) = path
@@ -61,7 +67,22 @@ pub async fn connect(url: &str) -> Result<DatabaseConnection> {
             std::fs::create_dir_all(parent).map_err(|err| DbErr::Custom(err.to_string()))?;
         }
     }
-    Database::connect(url).await
+    let conn = Database::connect(url).await?;
+    enable_sqlite_foreign_keys(&conn).await?;
+    Ok(conn)
+}
+
+/// Turns on SQLite's foreign-key enforcement for `conn`, a no-op on every
+/// other backend. SeaORM defaults a SQLite connection pool to a single
+/// connection unless told otherwise, so one `PRAGMA` here covers every query
+/// this connection ever runs.
+async fn enable_sqlite_foreign_keys(conn: &DatabaseConnection) -> Result<()> {
+    if conn.get_database_backend() != DbBackend::Sqlite {
+        return Ok(());
+    }
+    conn.execute_unprepared("PRAGMA foreign_keys = ON")
+        .await
+        .map(|_| ())
 }
 
 /// Extracts the filesystem path from a SQLite file URL (`sqlite://<path>`,
@@ -73,10 +94,13 @@ fn sqlite_file_path(url: &str) -> Option<PathBuf> {
     (!path.is_empty()).then(|| PathBuf::from(path))
 }
 
-/// Opens an in-memory SQLite connection for tests. State is discarded once
+/// Opens an in-memory SQLite connection for tests, with
+/// `PRAGMA foreign_keys` enabled (see [`connect`]). State is discarded once
 /// the returned connection is dropped.
 pub async fn connect_in_memory() -> Result<DatabaseConnection> {
-    Database::connect("sqlite::memory:").await
+    let conn = Database::connect("sqlite::memory:").await?;
+    enable_sqlite_foreign_keys(&conn).await?;
+    Ok(conn)
 }
 
 /// Applies every pending migration to `conn`, creating the `records` table
