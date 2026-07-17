@@ -1,0 +1,27 @@
+[package]
+name = "web"
+version = "0.1.0"
+edition = "2021"
+description = "Read-only axum web view over the SQLite/FTS5 read-model (ADR 0006, issue 0003)."
+
+[lib]
+name = "web"
+path = "src/lib.rs"
+
+[[bin]]
+name = "living-docs-web"
+path = "src/main.rs"
+
+[dependencies]
+axum = "0.8"
+db-store = { path = "../db-store" }
+living-docs-core = { path = "../living-docs-core" }
+maud = { version = "0.27", features = ["axum"] }
+sea-orm = { version = "1", default-features = false, features = ["sqlx-sqlite", "runtime-tokio-rustls"] }
+serde = { version = "1", features = ["derive"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+[dev-dependencies]
+fs-store = { path = "../fs-store" }
+http-body-util = "0.1"
+tower = { version = "0.5", features = ["util"] }
