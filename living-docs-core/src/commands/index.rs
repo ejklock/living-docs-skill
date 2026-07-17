@@ -7,14 +7,19 @@ use std::process::ExitCode;
 
 const SUPPORTED_TYPES: [&str; 4] = ["adr", "bdr", "prd", "issue"];
 
-pub fn run(store: &dyn DocStore, docs_dir: &Path, doc_type: Option<String>) -> ExitCode {
+pub fn run(
+    store: &dyn DocStore,
+    docs_dir: &Path,
+    doc_type: Option<String>,
+    visibility_filter: Option<Vec<String>>,
+) -> ExitCode {
     let types: Vec<String> = match doc_type {
         Some(t) => vec![t],
         None => SUPPORTED_TYPES.iter().map(|t| t.to_string()).collect(),
     };
 
     for doc_type in &types {
-        if let Err(message) = regenerate(store, docs_dir, doc_type) {
+        if let Err(message) = regenerate(store, docs_dir, doc_type, visibility_filter.as_deref()) {
             eprintln!("living-docs index: {message}");
             return ExitCode::from(2);
         }
@@ -29,10 +34,18 @@ pub fn run(store: &dyn DocStore, docs_dir: &Path, doc_type: Option<String>) -> E
 /// the records feeding its body are read through `store`, meaning a db-mode
 /// run regenerates the filesystem `index.md` from the records in the
 /// database.
-fn regenerate(store: &dyn DocStore, docs_dir: &Path, doc_type: &str) -> Result<(), String> {
+fn regenerate(
+    store: &dyn DocStore,
+    docs_dir: &Path,
+    doc_type: &str,
+    visibility_filter: Option<&[String]>,
+) -> Result<(), String> {
     let dir_name = paths::dir_for(doc_type).ok_or_else(|| unsupported_type_message(doc_type))?;
     let type_dir = docs_dir.join(dir_name);
-    let records = collect_records(store, docs_dir, &type_dir)?;
+    let records: Vec<Record> = collect_records(store, docs_dir, &type_dir)?
+        .into_iter()
+        .filter(|record| record_visible(record, visibility_filter))
+        .collect();
 
     let index_path = type_dir.join("index.md");
     let existing = fs::read_to_string(&index_path).unwrap_or_default();
@@ -52,6 +65,23 @@ struct Record {
     title: String,
     status: String,
     filename: String,
+    visibility: String,
+}
+
+/// The default-deny fallback effective visibility for a record whose
+/// frontmatter carries no `visibility` key at all.
+const DEFAULT_VISIBILITY: &str = "private";
+
+/// True when `record` belongs in the rendered index under `filter`: every
+/// record passes when `filter` is `None` (today's unfiltered dev view, ADR
+/// 0009), otherwise only a record whose effective visibility is a member of
+/// `filter` passes — default-deny, so an absent-visibility record is only
+/// included when `filter` explicitly names `"private"`.
+fn record_visible(record: &Record, filter: Option<&[String]>) -> bool {
+    match filter {
+        None => true,
+        Some(allowed) => allowed.contains(&record.visibility),
+    }
 }
 
 /// Every `NNNN-*.md` record directly under `type_dir`, sorted ascending by
@@ -83,11 +113,14 @@ fn record_from_path(store: &dyn DocStore, path: &Path) -> Option<Record> {
     let contents = store.read(path).ok()?;
     let title = frontmatter::read_scalar_from_str(&contents, "title").unwrap_or_default();
     let status = frontmatter::read_scalar_from_str(&contents, "status").unwrap_or_default();
+    let visibility = frontmatter::read_scalar_from_str(&contents, "visibility")
+        .unwrap_or_else(|| DEFAULT_VISIBILITY.to_string());
     Some(Record {
         number,
         title,
         status,
         filename,
+        visibility,
     })
 }
 
@@ -190,6 +223,7 @@ fn render_row(record: &Record) -> String {
         title,
         filename,
         status,
+        visibility: _,
     } = record;
     format!("* [{number:04} — {title}]({filename}) - {status}")
 }
@@ -268,6 +302,7 @@ mod tests {
             title: "My Title".to_string(),
             status: "Proposed".to_string(),
             filename: "0007-my-title.md".to_string(),
+            visibility: "private".to_string(),
         };
         assert_eq!(
             render_row(&record),
@@ -354,12 +389,14 @@ mod tests {
                 title: "Old".to_string(),
                 status: "Superseded".to_string(),
                 filename: "0001-old.md".to_string(),
+                visibility: "private".to_string(),
             },
             Record {
                 number: 2,
                 title: "Current".to_string(),
                 status: "Accepted".to_string(),
                 filename: "0002-current.md".to_string(),
+                visibility: "private".to_string(),
             },
         ];
 
@@ -378,6 +415,7 @@ mod tests {
             title: "Only".to_string(),
             status: "open".to_string(),
             filename: "0001-only.md".to_string(),
+            visibility: "private".to_string(),
         }];
 
         let body = render_partitioned(&records, "Open", "Closed", is_open_status);
@@ -465,5 +503,84 @@ mod tests {
             .expect("collect_records should succeed on an empty store");
 
         assert!(records.is_empty());
+    }
+
+    #[test]
+    fn collect_records_defaults_to_private_when_visibility_is_absent() {
+        let mut files = BTreeMap::new();
+        files.insert(
+            PathBuf::from("/bundle/adr/0001-first.md"),
+            "---\ntype: ADR\ntitle: First\nstatus: Accepted\n---\n# First\n".to_string(),
+        );
+        let store = MapStore { files };
+
+        let records = collect_records(&store, Path::new("/bundle"), &PathBuf::from("/bundle/adr"))
+            .expect("collect_records should succeed");
+
+        assert_eq!(records[0].visibility, "private");
+    }
+
+    #[test]
+    fn collect_records_reads_an_explicit_visibility_value() {
+        let mut files = BTreeMap::new();
+        files.insert(
+            PathBuf::from("/bundle/adr/0001-first.md"),
+            "---\ntype: ADR\ntitle: First\nstatus: Accepted\nvisibility: public\n---\n# First\n"
+                .to_string(),
+        );
+        let store = MapStore { files };
+
+        let records = collect_records(&store, Path::new("/bundle"), &PathBuf::from("/bundle/adr"))
+            .expect("collect_records should succeed");
+
+        assert_eq!(records[0].visibility, "public");
+    }
+
+    fn record_with_visibility(visibility: &str) -> Record {
+        Record {
+            number: 1,
+            title: "Title".to_string(),
+            status: "Accepted".to_string(),
+            filename: "0001-title.md".to_string(),
+            visibility: visibility.to_string(),
+        }
+    }
+
+    #[test]
+    fn record_visible_passes_every_record_when_the_filter_is_none() {
+        assert!(record_visible(&record_with_visibility("private"), None));
+        assert!(record_visible(&record_with_visibility("public"), None));
+    }
+
+    #[test]
+    fn record_visible_excludes_a_record_outside_the_filter_set() {
+        let filter = vec!["public".to_string(), "showcase".to_string()];
+        assert!(!record_visible(
+            &record_with_visibility("private"),
+            Some(&filter)
+        ));
+    }
+
+    #[test]
+    fn record_visible_includes_a_record_inside_the_filter_set() {
+        let filter = vec!["public".to_string(), "showcase".to_string()];
+        assert!(record_visible(
+            &record_with_visibility("public"),
+            Some(&filter)
+        ));
+        assert!(record_visible(
+            &record_with_visibility("showcase"),
+            Some(&filter)
+        ));
+    }
+
+    #[test]
+    fn record_visible_default_deny_only_admits_private_when_explicitly_requested() {
+        let private_filter = vec!["private".to_string()];
+        let public_filter = vec!["public".to_string()];
+        let absent_visibility = record_with_visibility(DEFAULT_VISIBILITY);
+
+        assert!(record_visible(&absent_visibility, Some(&private_filter)));
+        assert!(!record_visible(&absent_visibility, Some(&public_filter)));
     }
 }
