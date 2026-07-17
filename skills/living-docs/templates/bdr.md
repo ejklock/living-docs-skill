@@ -37,6 +37,25 @@ observable flow. Use Mermaid only — no images, no ASCII art.>
 outputs, side effects, error paths. Write as if the code does not exist yet — what an
 observer would verify by watching the running system.>
 
+## Contract
+
+The observable surface that realizes this behavior — public signatures and, for agentic
+systems, agent tool schemas. Name the contract a caller or agent sees; keep internal call
+sequences and private helpers out (those are the ADR's *how*). Signatures and schemas only.
+Omit the table that does not apply — but never the section.
+
+**Public API** — the functions/methods/classes a caller invokes:
+
+| Symbol | Signature | Realizes |
+|---|---|---|
+| `Type::method` | `fn method(&self, arg: T) -> Result<R, E>` | <which scenario / outcome> |
+
+**Agent tools** (agentic systems only) — the function-calling surface:
+
+| Tool | Input schema | Output / effect | Realizes |
+|---|---|---|---|
+| `tool_name` | `{ field: type }` | `{ field: type }` / side effect | <which scenario / outcome> |
+
 ## Scenarios
 
 Each scenario is written to convert verbatim into the project's behavioral regression
