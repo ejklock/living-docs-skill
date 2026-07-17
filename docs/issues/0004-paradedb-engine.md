@@ -2,7 +2,7 @@
 type: Issue
 title: ParadeDB (Postgres + BM25) as a selectable db engine alongside SQLite
 description: Add ParadeDB/Postgres with BM25 search as a second db engine behind the SearchIndex/DocStore ports, selectable by config, with the CRUD proven on both engines.
-status: open
+status: done
 labels: [slice, database, paradedb, search]
 blocked_by: [2, 7]
 tracker:
@@ -58,3 +58,26 @@ not new capabilities on top of search.
 
 Sub-slices at dispatch: (a) engine config + SeaORM Postgres backend; (b) `bm25` migration;
 (c) BM25 search path + dual-engine matrix. Each demoable via the search command.
+
+### Delivery note
+
+Delivered as three slices (commits cdb06fd, cc6fd51, 3088e1f):
+
+- **0004-A** — engine-selection seam: `connect(url: &str)` lets SeaORM infer the backend from
+  the URL scheme; both `sqlx-sqlite` and `sqlx-postgres` are compiled in for runtime
+  selection; a CLI `--engine {sqlite|paradedb}` flag maps to a URL (paradedb sources
+  `$DATABASE_URL`). The web crate was adapted to the new signature (stays on the SQLite
+  read-model; web-on-Postgres remains deferred to 0006).
+- **0004-B** — per-engine migration + sync: the `records` table is created via SchemaManager
+  (portable); the full-text index branches on the backend — SQLite keeps the FTS5 virtual
+  table, ParadeDB creates `pg_search` + a `records_bm25` bm25 index. sync's rebuild is a
+  no-op on Postgres (bm25 auto-indexes).
+- **0004-C** — BM25 search + dual-engine matrix: `search` branches on the backend; the
+  ParadeDB path uses a parameterized `paradedb.boolean`/`paradedb.match` BM25 query ranked by
+  `paradedb.score`. A dual-engine test seeds a corpus through the real `sync()` path — the
+  SQLite case runs in-memory with no server, the Postgres case runs when
+  `LIVING_DOCS_TEST_PG_URL` is set.
+
+Fitness functions green: dual-engine CRUD suite passes on both engines; a seeded corpus
+returns ADR 0003 for `supersede` on BM25 (ParadeDB) and FTS5 (SQLite); db-mode on SQLite runs
+with no server process. Verified live against ParadeDB 0.24.3.
