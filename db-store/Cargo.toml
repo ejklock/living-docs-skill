@@ -1,0 +1,18 @@
+[package]
+name = "db-store"
+version = "0.1.0"
+edition = "2021"
+description = "SQLite/FTS5 read-model adapter (ADR 0004, issue 0002)."
+
+[lib]
+name = "db_store"
+path = "src/lib.rs"
+
+[dependencies]
+living-docs-core = { path = "../living-docs-core" }
+sea-orm = { version = "1", default-features = false, features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
+sea-orm-migration = { version = "1", default-features = false, features = ["sqlx-sqlite", "runtime-tokio-rustls"] }
+async-trait = "0.1"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt", "macros"] }
