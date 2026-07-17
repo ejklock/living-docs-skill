@@ -1,13 +1,15 @@
-use crate::commands::next::next_number;
+use crate::commands::next::next_number_from_store;
 use crate::paths;
+use crate::store::DocStore;
 use crate::templates;
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn run(docs_dir: &Path, doc_type: &str, title: &str) -> ExitCode {
-    match scaffold(docs_dir, doc_type, title, &now_iso8601()) {
+    match scaffold(&FsWalkStore, docs_dir, doc_type, title, &now_iso8601()) {
         Ok(path) => {
             println!("{}", path.display());
             ExitCode::SUCCESS
@@ -20,6 +22,7 @@ pub fn run(docs_dir: &Path, doc_type: &str, title: &str) -> ExitCode {
 }
 
 fn scaffold(
+    store: &dyn DocStore,
     docs_dir: &Path,
     doc_type: &str,
     title: &str,
@@ -32,7 +35,7 @@ fn scaffold(
         .expect("dir_for and template_for cover the same doc types");
 
     let type_dir = docs_dir.join(dir_name);
-    let number = next_number(docs_dir, dir_name).map_err(|e| e.to_string())?;
+    let number = next_number_from_store(store, docs_dir, dir_name).map_err(|e| e.to_string())?;
     let target_path = type_dir.join(format!("{number:04}-{}.md", paths::slugify(title)));
 
     if target_path.exists() {
@@ -43,6 +46,48 @@ fn scaffold(
     let filled = fill_frontmatter(template, frontmatter_type, timestamp);
     fs::write(&target_path, filled).map_err(|e| e.to_string())?;
     Ok(target_path)
+}
+
+/// The filesystem-backed [`DocStore`] `scaffold` uses to drive
+/// [`next_number_from_store`] in file mode. `living-docs-core` cannot
+/// depend on the `fs-store` adapter crate — adapters depend on core, never
+/// the reverse — so this mirrors `fs-store::FsStore`'s recursive `.md` walk
+/// locally until issue 0006 slice 0006-D's `--backend` wiring injects a
+/// real store here instead.
+struct FsWalkStore;
+
+impl DocStore for FsWalkStore {
+    fn list(&self, root: &Path) -> io::Result<Vec<PathBuf>> {
+        let mut found = Vec::new();
+        collect_markdown_files(root, &mut found);
+        found.sort();
+        Ok(found)
+    }
+
+    fn read(&self, path: &Path) -> io::Result<String> {
+        fs::read_to_string(path)
+    }
+
+    fn write(&self, path: &Path, contents: &str) -> io::Result<()> {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::write(path, contents)
+    }
+}
+
+fn collect_markdown_files(dir: &Path, out: &mut Vec<PathBuf>) {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.filter_map(Result::ok) {
+        let path = entry.path();
+        if path.is_dir() {
+            collect_markdown_files(&path, out);
+        } else if path.extension().and_then(|ext| ext.to_str()) == Some("md") {
+            out.push(path);
+        }
+    }
 }
 
 fn unsupported_type_message(doc_type: &str) -> String {
@@ -197,5 +242,59 @@ mod tests {
     #[test]
     fn unsupported_type_message_names_the_offending_type() {
         assert!(unsupported_type_message("constitution").contains("constitution"));
+    }
+
+    fn temp_docs_dir(label: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock before unix epoch")
+            .as_nanos();
+        std::env::temp_dir().join(format!("living-docs-core-new-{label}-{nanos}"))
+    }
+
+    #[test]
+    fn scaffold_allocates_number_one_in_an_empty_type_directory() {
+        let docs_dir = temp_docs_dir("scaffold-first");
+
+        let target = scaffold(
+            &FsWalkStore,
+            &docs_dir,
+            "adr",
+            "First Decision",
+            "2026-07-17T00:00:00Z",
+        )
+        .expect("scaffold should succeed");
+
+        assert_eq!(
+            target.file_name().and_then(|name| name.to_str()),
+            Some("0001-first-decision.md")
+        );
+
+        let _ = fs::remove_dir_all(&docs_dir);
+    }
+
+    #[test]
+    fn scaffold_allocates_max_existing_number_plus_one_through_next_number_from_store() {
+        let docs_dir = temp_docs_dir("scaffold-increment");
+        let type_dir = docs_dir.join("adr");
+        fs::create_dir_all(&type_dir).expect("create type dir");
+        fs::write(type_dir.join("0001-first.md"), "content").expect("seed fixture");
+        fs::write(type_dir.join("0004-fourth.md"), "content").expect("seed fixture");
+
+        let target = scaffold(
+            &FsWalkStore,
+            &docs_dir,
+            "adr",
+            "Fifth Decision",
+            "2026-07-17T00:00:00Z",
+        )
+        .expect("scaffold should succeed");
+
+        assert_eq!(
+            target.file_name().and_then(|name| name.to_str()),
+            Some("0005-fifth-decision.md")
+        );
+
+        let _ = fs::remove_dir_all(&docs_dir);
     }
 }

@@ -2,8 +2,9 @@
 //! 0002). Slice S2a landed the schema foundation (connect + migrate). Slice
 //! S2b adds the idempotent full-rebuild `sync`, ranked FTS5 `search`, and the
 //! `SearchIndex` port implementation. CLI wiring lands in S2c. Slice 0006-B
-//! adds the canonical [`serialize`] module and [`DbDocStore`], the `DocStore`
-//! port's read-side adapter (ADR 0007).
+//! adds the canonical [`serialize`] module and [`DbDocStore`]'s read side.
+//! Slice 0006-C2 adds [`DbDocStore::write`] (ADR 0007), completing the
+//! `DocStore` port.
 
 pub mod entity;
 pub mod migration;
@@ -208,18 +209,17 @@ impl SearchIndex for DbSearchIndex {
 const DEFAULT_PROJECT_SLUG: &str = "default";
 
 /// Synchronous `DocStore` adapter over this crate's read-model (ADR 0007,
-/// issue 0006 slice 0006-B). Bridges the async SeaORM connection onto the
-/// sync `DocStore` port exactly like [`DbSearchIndex`]: a dedicated
+/// issue 0006 slices 0006-B/0006-C2). Bridges the async SeaORM connection
+/// onto the sync `DocStore` port exactly like [`DbSearchIndex`]: a dedicated
 /// current-thread runtime owns the connection and every trait method
 /// `block_on`s through it, so `DbDocStore` never assumes an ambient async
 /// context. Scoped to one project and one `root`, both fixed at
-/// construction — `list`/`read` join/strip against `root` rather than the
-/// `DocStore` trait's per-call argument, because every record's stored
-/// `path` is relative to the one bundle its project was synced from, and
-/// `write` is implemented in slice 0006-C; until then it returns an
-/// `io::Error` naming the deferral rather than panicking, so a `DbDocStore`
-/// built for read-only use (`check`, the future `export`) keeps compiling
-/// and working.
+/// construction — `list`/`read`/`write` join/strip against `root` rather
+/// than the `DocStore` trait's per-call argument, because every record's
+/// stored `path` is relative to the one bundle its project was synced from.
+/// `write` parses the canonical markdown it is given, upserts the record by
+/// `(project_id, path)`, and best-effort resolves its relations/tags
+/// against the project's already-persisted records.
 pub struct DbDocStore {
     conn: DatabaseConnection,
     runtime: tokio::runtime::Runtime,
@@ -251,6 +251,15 @@ impl DbDocStore {
             project_id,
         })
     }
+
+    /// `path` relative to this store's `root`, the identity `read`/`write`
+    /// key every record by (project-relative, never bundle-joined).
+    fn relative_path(&self, path: &Path) -> String {
+        path.strip_prefix(&self.root)
+            .unwrap_or(path)
+            .to_string_lossy()
+            .into_owned()
+    }
 }
 
 async fn find_project_id(conn: &DatabaseConnection, slug: &str) -> Result<i32> {
@@ -272,11 +281,7 @@ impl DocStore for DbDocStore {
     }
 
     fn read(&self, path: &Path) -> io::Result<String> {
-        let relative = path
-            .strip_prefix(&self.root)
-            .unwrap_or(path)
-            .to_string_lossy()
-            .into_owned();
+        let relative = self.relative_path(path);
         let record = self
             .runtime
             .block_on(load_record(&self.conn, self.project_id, &relative))
@@ -287,11 +292,46 @@ impl DocStore for DbDocStore {
         Ok(serialize::to_canonical_markdown(&record))
     }
 
-    fn write(&self, _path: &Path, _contents: &str) -> io::Result<()> {
-        Err(io::Error::other(
-            "DbDocStore::write is implemented in slice 0006-C",
-        ))
+    fn write(&self, path: &Path, contents: &str) -> io::Result<()> {
+        let relative = self.relative_path(path);
+        let extracted = record::extract_record(Path::new(&relative), contents);
+        validate_identity(&relative, &extracted)?;
+        self.runtime
+            .block_on(sync::upsert_record(
+                &self.conn,
+                self.project_id,
+                &relative,
+                extracted,
+            ))
+            .map_err(io::Error::other)
     }
+}
+
+/// Refuses a write whose `identity_kind` does not carry exactly one of
+/// `number`/`concept_id` (ADR 0007's XOR invariant) — e.g. a numbered doc
+/// type whose filename lacks a valid `NNNN` prefix, so
+/// [`record::extract_record`] yielded no `number` at all.
+fn validate_identity(path: &str, extracted: &ExtractedRecord) -> io::Result<()> {
+    let satisfies_xor = match extracted.identity_kind.as_str() {
+        record::NUMBER_IDENTITY_KIND => {
+            extracted.number.is_some() && extracted.concept_id.is_none()
+        }
+        record::CONCEPT_IDENTITY_KIND => {
+            extracted.concept_id.is_some() && extracted.number.is_none()
+        }
+        _ => false,
+    };
+    if satisfies_xor {
+        return Ok(());
+    }
+    Err(io::Error::new(
+        io::ErrorKind::InvalidInput,
+        format!(
+            "{path}: identity_kind '{}' requires exactly one of number/concept_id \
+             (number={:?}, concept_id={:?})",
+            extracted.identity_kind, extracted.number, extracted.concept_id
+        ),
+    ))
 }
 
 async fn list_record_paths(conn: &DatabaseConnection, project_id: i32) -> Result<Vec<String>> {
