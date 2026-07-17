@@ -1,12 +1,14 @@
 //! Per-project ingestion fitness tests (ADR 0005, issue 0005 slice
 //! 0005-B; dual typed identity + EAV frontmatter tail ADR 0007 issue 0006
-//! slice 0006-A): supersede frontmatter yields a `relations` row linking
-//! the two records, `tags` frontmatter yields `tags`/`record_tags` rows,
-//! every row carries the right `project_id`, every record carries a typed
-//! identity matching its `identity_kind`, the non-typed frontmatter keys
-//! land in the ordered `frontmatter_fields` tail, and re-syncing one
-//! project never touches another project's records, relations, or tags (no
-//! server required).
+//! slice 0006-A; identity sourced from the record's path rather than
+//! frontmatter, issue 0006 slice 0006-C1): supersede frontmatter yields a
+//! `relations` row linking the two records, `tags` frontmatter yields
+//! `tags`/`record_tags` rows, every row carries the right `project_id`,
+//! every record carries a typed identity matching its `identity_kind` and
+//! derived from its path, the non-typed frontmatter keys land in the
+//! ordered `frontmatter_fields` tail, and re-syncing one project never
+//! touches another project's records, relations, or tags (no server
+//! required).
 
 use std::collections::BTreeMap;
 use std::io;
@@ -74,8 +76,8 @@ fn single_tagged_record_corpus(bundle_root: &str) -> (MemoryStore, PathBuf) {
     (MemoryStore { files }, bundle)
 }
 
-const NUMBERED_DOC: &str = "---\ntype: ADR\ntitle: Numbered Decision\ndescription: d.\nnumber: 1\nstatus: Accepted\n---\n# 0001. Numbered Decision\n\nBody.\n";
-const CONCEPT_DOC: &str = "---\ntype: Glossary\ntitle: Findability\ndescription: d.\nconcept_id: findability\nstatus: Active\n---\n# Findability\n\nBody.\n";
+const NUMBERED_DOC: &str = "---\ntype: ADR\ntitle: Numbered Decision\ndescription: d.\nstatus: Accepted\n---\n# 0001. Numbered Decision\n\nBody.\n";
+const CONCEPT_DOC: &str = "---\ntype: Glossary\ntitle: Findability\ndescription: d.\nstatus: Active\n---\n# Findability\n\nBody.\n";
 
 fn dual_identity_corpus(bundle_root: &str) -> (MemoryStore, PathBuf) {
     let bundle = PathBuf::from(bundle_root);
@@ -91,7 +93,7 @@ fn dual_identity_corpus(bundle_root: &str) -> (MemoryStore, PathBuf) {
     (MemoryStore { files }, bundle)
 }
 
-const TAILED_DOC: &str = "---\ntype: ADR\ntitle: Tailed Decision\ndescription: d.\nnumber: 1\nstatus: Accepted\nlabels: important\nblocked_by: 0002\ntracker: JIRA-42\ntimestamp: 2026-07-17T00:00:00Z\n---\n# 0001. Tailed Decision\n\nBody.\n";
+const TAILED_DOC: &str = "---\ntype: ADR\ntitle: Tailed Decision\ndescription: d.\nstatus: Accepted\nlabels: important\nblocked_by: 0002\ntracker: JIRA-42\ntimestamp: 2026-07-17T00:00:00Z\n---\n# 0001. Tailed Decision\n\nBody.\n";
 
 fn tailed_record_corpus(bundle_root: &str) -> (MemoryStore, PathBuf) {
     let bundle = PathBuf::from(bundle_root);
@@ -310,14 +312,18 @@ async fn a_numbered_doc_type_carries_the_number_identity_with_a_null_concept_id(
     let record = record_by_path(&conn, project.id, "adr/0001-numbered-decision.md").await;
 
     assert_eq!(record.identity_kind, "number");
-    assert_eq!(record.number, Some(1));
+    assert_eq!(
+        record.number,
+        Some(1),
+        "the number must come from the filename's NNNN prefix, not a number: frontmatter key"
+    );
     assert_eq!(record.concept_id, None);
 }
 
 #[tokio::test]
 async fn a_concept_doc_type_carries_the_concept_identity_with_a_null_number() {
     let conn = connected_and_migrated().await;
-    let (store, bundle) = dual_identity_corpus("/bundle-dual-identity-concept");
+    let (store, bundle) = dual_identity_corpus("");
 
     sync_project(&conn, &store, &bundle, "team-a")
         .await
@@ -327,7 +333,11 @@ async fn a_concept_doc_type_carries_the_concept_identity_with_a_null_number() {
     let record = record_by_path(&conn, project.id, "glossary/findability.md").await;
 
     assert_eq!(record.identity_kind, "concept");
-    assert_eq!(record.concept_id, Some("findability".to_owned()));
+    assert_eq!(
+        record.concept_id,
+        Some("glossary/findability".to_owned()),
+        "the concept_id must come from the record's path, not a concept_id: frontmatter key"
+    );
     assert_eq!(record.number, None);
 }
 

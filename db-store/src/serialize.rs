@@ -3,29 +3,30 @@
 //! 0006-B). Pure: takes an already-assembled [`ExtractedRecord`] and renders
 //! frontmatter text in the fixed canonical field order; no I/O, no database
 //! access. `crate::lib::DbDocStore::read` assembles the `ExtractedRecord`
-//! from the read-model and hands it here.
+//! from the read-model and hands it here. Emits no `number:`/`concept_id:`
+//! frontmatter line (issue 0006 slice 0006-C1, lesson 3706): identity is
+//! carried by the record's path alone, never by a frontmatter field.
 
-use crate::record::{ExtractedRecord, CONCEPT_IDENTITY_KIND, NUMBER_IDENTITY_KIND};
+use crate::record::ExtractedRecord;
 
 const STATUS_KEY: &str = "status";
 const TRACKER_KEY: &str = "tracker";
 const TIMESTAMP_KEY: &str = "timestamp";
 
 /// Reconstructs `record` as canonical markdown: a `---`-fenced frontmatter
-/// block in the fixed field order — `type`, the typed identity
-/// (`number`/`concept_id`), `title`, `description`, `status` (if present in
-/// the tail), `supersedes`, `superseded_by`, `tags`, the remaining
-/// frontmatter tail by ascending ordinal, `tracker` (if present), then
-/// `timestamp` (if present) — followed by a blank line and the body.
-/// Re-parsing the output through [`crate::record::extract_record`]
-/// reproduces every field `extract_record` reads (ADR 0007 decision 3): the
-/// serializer's canonical order is a fixed point for a record already
-/// shaped this way, not a byte-for-byte match of arbitrary hand-authored
-/// source.
+/// block in the fixed field order — `type`, `title`, `description`,
+/// `status` (if present in the tail), `supersedes`, `superseded_by`, `tags`,
+/// the remaining frontmatter tail by ascending ordinal, `tracker` (if
+/// present), then `timestamp` (if present) — followed by a blank line and
+/// the body. The typed identity (`number`/`concept_id`) is never emitted:
+/// it is carried by the record's path, not its frontmatter. Re-parsing the
+/// output through [`crate::record::extract_record`] reproduces every field
+/// `extract_record` reads (ADR 0007 decision 3): the serializer's canonical
+/// order is a fixed point for a record already shaped this way, not a
+/// byte-for-byte match of arbitrary hand-authored source.
 pub fn to_canonical_markdown(record: &ExtractedRecord) -> String {
     let mut lines = Vec::new();
     lines.push(format!("type: {}", format_scalar(&record.doc_type)));
-    push_identity(&mut lines, record);
     lines.push(format!("title: {}", format_scalar(&record.title)));
     lines.push(format!(
         "description: {}",
@@ -40,26 +41,6 @@ pub fn to_canonical_markdown(record: &ExtractedRecord) -> String {
     push_tail_key(&mut lines, record, TIMESTAMP_KEY);
 
     format!("---\n{}\n---\n\n{}", lines.join("\n"), record.body)
-}
-
-/// Emits `number:` for a [`NUMBER_IDENTITY_KIND`] record or `concept_id:`
-/// for a [`CONCEPT_IDENTITY_KIND`] one — whichever of the two identity
-/// fields the record actually carries — and nothing for a record with
-/// neither.
-fn push_identity(lines: &mut Vec<String>, record: &ExtractedRecord) {
-    match record.identity_kind.as_str() {
-        NUMBER_IDENTITY_KIND => {
-            if let Some(number) = record.number {
-                lines.push(format!("number: {number}"));
-            }
-        }
-        CONCEPT_IDENTITY_KIND => {
-            if let Some(concept_id) = &record.concept_id {
-                lines.push(format!("concept_id: {}", format_scalar(concept_id)));
-            }
-        }
-        _ => {}
-    }
 }
 
 fn push_optional(lines: &mut Vec<String>, key: &str, value: Option<&str>) {
@@ -136,7 +117,7 @@ fn needs_quoting(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::record::extract_record;
+    use crate::record::{extract_record, CONCEPT_IDENTITY_KIND, NUMBER_IDENTITY_KIND};
     use std::path::Path;
 
     fn numbered_record() -> ExtractedRecord {
@@ -171,7 +152,6 @@ mod tests {
             markdown,
             "---\n\
              type: ADR\n\
-             number: 1\n\
              title: Tailed Decision\n\
              description: d.\n\
              status: Accepted\n\
@@ -186,6 +166,7 @@ mod tests {
              # 0001. Tailed Decision\n\n\
              Body.\n"
         );
+        assert!(!markdown.contains("number:"));
     }
 
     /// Asserts the round-trip fields ADR 0007 decision 3 / issue 0006 AC B1
@@ -213,7 +194,7 @@ mod tests {
         let record = numbered_record();
 
         let markdown = to_canonical_markdown(&record);
-        let reparsed = extract_record(Path::new("/bundle/adr/0001-tailed.md"), &markdown);
+        let reparsed = extract_record(Path::new("adr/0001-tailed.md"), &markdown);
 
         assert_round_trips(&reparsed, &record);
     }
@@ -223,7 +204,7 @@ mod tests {
         let record = ExtractedRecord {
             doc_type: "Glossary".to_owned(),
             number: None,
-            concept_id: Some("findability".to_owned()),
+            concept_id: Some("glossary/findability".to_owned()),
             identity_kind: CONCEPT_IDENTITY_KIND.to_owned(),
             title: "Findability".to_owned(),
             description: "The ease of locating a doc.".to_owned(),
@@ -235,7 +216,7 @@ mod tests {
         };
 
         let markdown = to_canonical_markdown(&record);
-        let reparsed = extract_record(Path::new("/bundle/glossary/findability.md"), &markdown);
+        let reparsed = extract_record(Path::new("glossary/findability.md"), &markdown);
 
         assert_round_trips(&reparsed, &record);
     }
@@ -286,7 +267,7 @@ mod tests {
         let markdown = to_canonical_markdown(&record);
 
         assert!(markdown.contains("title: \"Caching: A Deep Dive\""));
-        let reparsed = extract_record(Path::new("/bundle/adr/0002-caching.md"), &markdown);
+        let reparsed = extract_record(Path::new("adr/0002-caching.md"), &markdown);
         assert_eq!(reparsed.title, "Caching: A Deep Dive");
     }
 }
