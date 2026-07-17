@@ -148,5 +148,5 @@ db-psql: ## Open a psql shell against the composed paradedb service
 db-logs: ## Follow the paradedb service logs
 	docker compose logs -f paradedb
 
-db-test: db-up ## Run the workspace test suite against the composed DB (Postgres-specific cases land in issue 0004)
-	DATABASE_URL=$(DATABASE_URL) cargo test --manifest-path cli/Cargo.toml
+db-test: db-up ## Run the db-store dual-engine test suite against the composed DB
+	LIVING_DOCS_TEST_PG_URL=$(DATABASE_URL) cargo test --manifest-path db-store/Cargo.toml

@@ -1,7 +1,7 @@
-//! Ranked full-text search over the `records_fts` index (ADR 0004, issue
-//! 0002 slice S2b).
+//! Ranked full-text search over the backend-native index (ADR 0004, issue
+//! 0002 slice S2b; ParadeDB BM25 branch issue 0004 slice 0004-C).
 
-use sea_orm::{ConnectionTrait, DatabaseConnection, FromQueryResult, Statement};
+use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, DbErr, FromQueryResult, Statement};
 
 use crate::record::SearchHit;
 use crate::Result;
@@ -13,9 +13,29 @@ struct SearchRow {
     snippet: String,
 }
 
-/// Runs an FTS5 `MATCH` query against `records_fts`, returning hits ranked
-/// best-match-first. A query matching no record returns an empty vector.
+/// Runs a ranked full-text query against the backend-native search index,
+/// returning hits best-match-first. A query matching no record returns an
+/// empty vector. SQLite matches via FTS5's `MATCH` operator over
+/// `records_fts`; Postgres matches via `pg_search`'s BM25 `@@@` operator over
+/// the `records_bm25` index.
 pub async fn search(conn: &DatabaseConnection, query: &str) -> Result<Vec<SearchHit>> {
+    let rows = match conn.get_database_backend() {
+        DbBackend::Sqlite => sqlite_search(conn, query).await?,
+        DbBackend::Postgres => postgres_search(conn, query).await?,
+        DbBackend::MySql => return Err(unsupported_backend_err()),
+    };
+
+    Ok(rows
+        .into_iter()
+        .map(|row| SearchHit {
+            path: row.path,
+            title: row.title,
+            snippet: row.snippet,
+        })
+        .collect())
+}
+
+async fn sqlite_search(conn: &DatabaseConnection, query: &str) -> Result<Vec<SearchRow>> {
     let statement = Statement::from_sql_and_values(
         conn.get_database_backend(),
         "SELECT r.path AS path, r.title AS title, \
@@ -27,15 +47,30 @@ pub async fn search(conn: &DatabaseConnection, query: &str) -> Result<Vec<Search
         [query.into()],
     );
 
-    let rows = SearchRow::find_by_statement(statement).all(conn).await?;
-    Ok(rows
-        .into_iter()
-        .map(|row| SearchHit {
-            path: row.path,
-            title: row.title,
-            snippet: row.snippet,
-        })
-        .collect())
+    SearchRow::find_by_statement(statement).all(conn).await
+}
+
+async fn postgres_search(conn: &DatabaseConnection, query: &str) -> Result<Vec<SearchRow>> {
+    let statement = Statement::from_sql_and_values(
+        DbBackend::Postgres,
+        "SELECT path, title, paradedb.snippet(body) AS snippet \
+         FROM records \
+         WHERE id @@@ paradedb.boolean(should => ARRAY[\
+         paradedb.match('title', $1), \
+         paradedb.match('body', $1), \
+         paradedb.match('description', $1)\
+         ]) \
+         ORDER BY paradedb.score(id) DESC",
+        [query.into()],
+    );
+
+    SearchRow::find_by_statement(statement).all(conn).await
+}
+
+/// The error returned when a search runs against a backend this crate does
+/// not support (only SQLite and Postgres are compiled in).
+fn unsupported_backend_err() -> DbErr {
+    DbErr::Custom("db-store only supports the sqlite and postgres backends".to_owned())
 }
 
 #[cfg(test)]
