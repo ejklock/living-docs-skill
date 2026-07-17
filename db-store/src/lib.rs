@@ -15,10 +15,11 @@ use std::path::PathBuf;
 use living_docs_core::store::SearchIndex;
 use sea_orm::{
     ColumnTrait, ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr, EntityTrait,
-    QueryFilter,
+    QueryFilter, QueryOrder,
 };
 use sea_orm_migration::MigratorTrait;
 
+use entity::projects::{Column as ProjectColumn, Entity as Projects};
 use entity::{Column, Entity as Records};
 use migration::Migrator;
 
@@ -69,6 +70,33 @@ fn record_to_view(model: entity::Model) -> RecordView {
     RecordView {
         title: model.title,
         body: model.body,
+    }
+}
+
+/// A single project's slug and display name, as listed for the web front's
+/// project filter (ADR 0005, issue 0005 slice 0005-C2).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProjectView {
+    pub slug: String,
+    pub name: String,
+}
+
+/// Lists every project, ordered by name, for the web front's project filter
+/// (ADR 0005, issue 0005 slice 0005-C2). Built entirely from the SeaORM
+/// query builder so it runs unchanged on both the sqlite and postgres
+/// backends (lesson 3696: no raw per-engine SQL here).
+pub async fn list_projects(conn: &DatabaseConnection) -> Result<Vec<ProjectView>> {
+    let projects = Projects::find()
+        .order_by_asc(ProjectColumn::Name)
+        .all(conn)
+        .await?;
+    Ok(projects.into_iter().map(project_to_view).collect())
+}
+
+fn project_to_view(model: entity::projects::Model) -> ProjectView {
+    ProjectView {
+        slug: model.slug,
+        name: model.name,
     }
 }
 
@@ -298,6 +326,49 @@ mod tests {
             .expect("query record_by_path_in_project for team-b")
             .expect("team-b has a record at this path");
         assert_eq!(found_b.title, "Team B Title");
+    }
+
+    #[tokio::test]
+    async fn list_projects_returns_every_project_ordered_by_name() {
+        let conn = connect_in_memory().await.expect("connect");
+        migrate(&conn).await.expect("migrate");
+
+        let (store_b, bundle_b) =
+            sync::test_support::single_record_corpus_at("/bundle-b", "Team B Title");
+        sync::sync_project(&conn, &store_b, &bundle_b, "team-b")
+            .await
+            .expect("sync team-b");
+        let (store_a, bundle_a) =
+            sync::test_support::single_record_corpus_at("/bundle-a", "Team A Title");
+        sync::sync_project(&conn, &store_a, &bundle_a, "team-a")
+            .await
+            .expect("sync team-a");
+
+        let projects = list_projects(&conn).await.expect("list projects");
+
+        assert_eq!(
+            projects,
+            vec![
+                ProjectView {
+                    slug: "team-a".to_owned(),
+                    name: "team-a".to_owned(),
+                },
+                ProjectView {
+                    slug: "team-b".to_owned(),
+                    name: "team-b".to_owned(),
+                },
+            ]
+        );
+    }
+
+    #[tokio::test]
+    async fn list_projects_returns_an_empty_vector_when_no_project_has_synced() {
+        let conn = connect_in_memory().await.expect("connect");
+        migrate(&conn).await.expect("migrate");
+
+        let projects = list_projects(&conn).await.expect("list projects");
+
+        assert!(projects.is_empty());
     }
 
     #[test]
