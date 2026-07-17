@@ -1,23 +1,24 @@
 //! Full-rebuild sync from a [`living_docs_core::store::DocStore`] into the
-//! `records` + `records_fts` read-model (ADR 0004, issue 0002 slice S2b).
+//! `records` read-model, plus its backend-native search index (ADR 0004,
+//! issue 0002 slice S2b; ParadeDB branch issue 0004 slice 0004-B).
 
 use std::path::Path;
 
 use living_docs_core::store::DocStore;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ConnectionTrait, DatabaseConnection, DbErr, EntityTrait,
-    Statement, TransactionTrait,
+    ActiveModelTrait, ActiveValue, ConnectionTrait, DatabaseConnection, DbBackend, DbErr,
+    EntityTrait, Statement, TransactionTrait,
 };
 
 use crate::entity::{ActiveModel, Entity as Records};
 use crate::record::{extract_record, is_reserved};
 use crate::Result;
 
-/// Rebuilds the `records` table and the `records_fts` index from every
-/// non-reserved `.md` doc `store` lists under `bundle`, in one transaction.
-/// Idempotent: running twice over an unchanged corpus yields identical rows,
-/// since the table is fully cleared before repopulating. Returns the number
-/// of records inserted.
+/// Rebuilds the `records` table and its backend-native search index from
+/// every non-reserved `.md` doc `store` lists under `bundle`, in one
+/// transaction. Idempotent: running twice over an unchanged corpus yields
+/// identical rows, since the table is fully cleared before repopulating.
+/// Returns the number of records inserted.
 pub async fn sync(conn: &DatabaseConnection, store: &dyn DocStore, bundle: &Path) -> Result<usize> {
     let paths = store.list(bundle).map_err(io_err_to_db_err)?;
     let txn = conn.begin().await?;
@@ -33,7 +34,7 @@ pub async fn sync(conn: &DatabaseConnection, store: &dyn DocStore, bundle: &Path
         count += 1;
     }
 
-    rebuild_fts(&txn).await?;
+    rebuild_search_index(&txn).await?;
     txn.commit().await?;
     Ok(count)
 }
@@ -67,13 +68,21 @@ async fn insert_record<C: ConnectionTrait>(
     Ok(())
 }
 
-async fn rebuild_fts<C: ConnectionTrait>(conn: &C) -> Result<()> {
-    conn.execute(Statement::from_string(
-        conn.get_database_backend(),
-        "INSERT INTO records_fts(records_fts) VALUES('rebuild')".to_owned(),
-    ))
-    .await
-    .map(|_| ())
+/// Rebuilds the backend-native search index over `records`. SQLite's FTS5
+/// external-content index is stale after a bulk write and must be told to
+/// rebuild; Postgres's `pg_search` BM25 index updates automatically on
+/// insert, so this is a no-op there.
+async fn rebuild_search_index<C: ConnectionTrait>(conn: &C) -> Result<()> {
+    match conn.get_database_backend() {
+        DbBackend::Sqlite => conn
+            .execute(Statement::from_string(
+                DbBackend::Sqlite,
+                "INSERT INTO records_fts(records_fts) VALUES('rebuild')".to_owned(),
+            ))
+            .await
+            .map(|_| ()),
+        DbBackend::Postgres | DbBackend::MySql => Ok(()),
+    }
 }
 
 fn io_err_to_db_err(err: std::io::Error) -> DbErr {
@@ -218,5 +227,18 @@ mod tests {
         sync(&conn, &store, &bundle).await.expect("sync");
 
         assert_eq!(row_count(&conn, "records_fts").await, 2);
+    }
+
+    #[tokio::test]
+    async fn rebuild_search_index_is_a_no_op_on_postgres() {
+        let mut options = sea_orm::ConnectOptions::new("postgres://user:pass@localhost/db");
+        options.connect_lazy(true);
+        let conn = sea_orm::Database::connect(options)
+            .await
+            .expect("lazy postgres connect never touches the network");
+
+        rebuild_search_index(&conn)
+            .await
+            .expect("postgres rebuild is a no-op that never issues SQL");
     }
 }
