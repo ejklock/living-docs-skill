@@ -50,7 +50,8 @@ async fn seeded_router() -> Router {
     );
 
     let db_path = temp_dir("db-parent").join("index.db");
-    let conn = db_store::connect(&db_path).await.expect("connect");
+    let db_url = format!("sqlite://{}?mode=rwc", db_path.display());
+    let conn = db_store::connect(&db_url).await.expect("connect");
     db_store::migrate(&conn).await.expect("migrate");
     db_store::sync(&conn, &fs_store::FsStore::new(), &docs)
         .await
@@ -147,9 +148,7 @@ async fn record_route_with_a_seeded_path_returns_the_rendered_body() {
     let body = body_text(response).await;
     assert!(body.contains("Quokka Caching Strategy"), "got: {body}");
     assert!(
-        body.contains(
-            "<p>We adopt an aggressive quokka caching strategy for search results.</p>"
-        ),
+        body.contains("<p>We adopt an aggressive quokka caching strategy for search results.</p>"),
         "got: {body}"
     );
 }

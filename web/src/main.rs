@@ -5,14 +5,13 @@
 
 use std::env;
 use std::net::SocketAddr;
-use std::path::Path;
 
 const DEFAULT_DB_PATH: &str = ".living-docs/index.db";
 const DEFAULT_PORT: u16 = 3000;
 
 #[tokio::main]
 async fn main() {
-    let conn = db_store::connect(Path::new(&db_path()))
+    let conn = db_store::connect(&sqlite_url(&db_path()))
         .await
         .expect("connect to the read-model database");
     let app = web::build_router(conn);
@@ -29,6 +28,10 @@ async fn main() {
 
 fn db_path() -> String {
     env::var("DATABASE_URL").unwrap_or_else(|_| DEFAULT_DB_PATH.to_owned())
+}
+
+fn sqlite_url(path: &str) -> String {
+    format!("sqlite://{path}?mode=rwc")
 }
 
 fn port() -> u16 {
