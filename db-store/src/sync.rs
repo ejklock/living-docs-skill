@@ -1,28 +1,36 @@
 //! Full-rebuild sync from a [`living_docs_core::store::DocStore`] into the
 //! `records` read-model, plus its backend-native search index (ADR 0004,
-//! issue 0002 slice S2b; ParadeDB branch issue 0004 slice 0004-B).
+//! issue 0002 slice S2b; ParadeDB branch issue 0004 slice 0004-B;
+//! default-project assignment issue 0005 slice 0005-A).
 
 use std::path::Path;
 
 use living_docs_core::store::DocStore;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ConnectionTrait, DatabaseConnection, DbBackend, DbErr,
-    EntityTrait, Statement, TransactionTrait,
+    ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DatabaseConnection, DbBackend,
+    DbErr, EntityTrait, QueryFilter, Statement, TransactionTrait,
 };
 
+use crate::entity::projects;
 use crate::entity::{ActiveModel, Entity as Records};
 use crate::record::{extract_record, is_reserved};
 use crate::Result;
+
+/// The slug every synced record is assigned to until per-project ingestion
+/// (`db sync --project <slug>`) lands in issue 0005 slice 0005-B.
+const DEFAULT_PROJECT_SLUG: &str = "default";
 
 /// Rebuilds the `records` table and its backend-native search index from
 /// every non-reserved `.md` doc `store` lists under `bundle`, in one
 /// transaction. Idempotent: running twice over an unchanged corpus yields
 /// identical rows, since the table is fully cleared before repopulating.
-/// Returns the number of records inserted.
+/// Every inserted record is assigned to the single default project (upserted
+/// by slug on first use). Returns the number of records inserted.
 pub async fn sync(conn: &DatabaseConnection, store: &dyn DocStore, bundle: &Path) -> Result<usize> {
     let paths = store.list(bundle).map_err(io_err_to_db_err)?;
     let txn = conn.begin().await?;
 
+    let project_id = ensure_default_project(&txn, bundle).await?;
     Records::delete_many().exec(&txn).await?;
 
     let mut count = 0usize;
@@ -30,7 +38,7 @@ pub async fn sync(conn: &DatabaseConnection, store: &dyn DocStore, bundle: &Path
         if is_reserved(&path) {
             continue;
         }
-        insert_record(&txn, store, bundle, &path).await?;
+        insert_record(&txn, store, bundle, &path, project_id).await?;
         count += 1;
     }
 
@@ -39,11 +47,36 @@ pub async fn sync(conn: &DatabaseConnection, store: &dyn DocStore, bundle: &Path
     Ok(count)
 }
 
+/// Finds the default project by its stable slug, inserting it (rooted at
+/// `bundle`) the first time `sync` runs against a fresh database. Returns
+/// the project's id either way.
+async fn ensure_default_project<C: ConnectionTrait>(conn: &C, bundle: &Path) -> Result<i32> {
+    if let Some(existing) = projects::Entity::find()
+        .filter(projects::Column::Slug.eq(DEFAULT_PROJECT_SLUG))
+        .one(conn)
+        .await?
+    {
+        return Ok(existing.id);
+    }
+
+    let inserted = projects::ActiveModel {
+        slug: ActiveValue::Set(DEFAULT_PROJECT_SLUG.to_owned()),
+        name: ActiveValue::Set(DEFAULT_PROJECT_SLUG.to_owned()),
+        root_path: ActiveValue::Set(Some(bundle.to_string_lossy().into_owned())),
+        ..Default::default()
+    }
+    .insert(conn)
+    .await?;
+
+    Ok(inserted.id)
+}
+
 async fn insert_record<C: ConnectionTrait>(
     conn: &C,
     store: &dyn DocStore,
     bundle: &Path,
     path: &Path,
+    project_id: i32,
 ) -> Result<()> {
     let relative = path
         .strip_prefix(bundle)
@@ -54,6 +87,7 @@ async fn insert_record<C: ConnectionTrait>(
     let extracted = extract_record(path, &contents);
 
     ActiveModel {
+        project_id: ActiveValue::Set(project_id),
         path: ActiveValue::Set(relative),
         doc_type: ActiveValue::Set(extracted.doc_type),
         identity: ActiveValue::Set(extracted.identity),
