@@ -1,8 +1,9 @@
 //! Pure frontmatter/body extraction feeding [`crate::sync::sync_project`]
 //! (ADR 0004, issue 0002 slice S2b; supersedes/superseded_by/tags parsing
 //! ADR 0005 issue 0005 slice 0005-B; dual typed identity + EAV frontmatter
-//! tail ADR 0007 issue 0006 slice 0006-A). Every function here takes
-//! already-read file contents; none touches the filesystem.
+//! tail ADR 0007 issue 0006 slice 0006-A; identity sourced from the record's
+//! path rather than frontmatter, issue 0006 slice 0006-C1). Every function
+//! here takes already-read file contents; none touches the filesystem.
 //!
 //! [`ExtractedRecord`] and the [`NUMBER_IDENTITY_KIND`]/
 //! [`CONCEPT_IDENTITY_KIND`] constants are shared with
@@ -56,9 +57,13 @@ pub struct SearchHit {
 /// The fields extracted from a doc record's raw contents, ready to insert
 /// into the `records` table. `identity_kind` is derived from `doc_type`
 /// (ADR 0007 decision 2): a numbered type (adr/bdr/prd/issue) carries
-/// `number` with `concept_id` left `None`, every other type carries
-/// `concept_id` with `number` left `None`. `supersedes`/`superseded_by`
-/// carry the raw `NNNN` frontmatter value (unresolved to a record id — that
+/// `number` — the record's path's filename `NNNN` prefix — with
+/// `concept_id` left `None`; every other type carries `concept_id` — the
+/// record's path with a trailing `.md` removed — with `number` left `None`
+/// (issue 0006 slice 0006-C1: identity is sourced from the path, never from
+/// a `number:`/`concept_id:` frontmatter key — real OKF docs carry neither).
+/// `supersedes`/`superseded_by` carry the raw `NNNN` frontmatter value
+/// (unresolved to a record id — that
 /// resolution happens against a project's other records in
 /// [`crate::sync::sync_project`]); `tags` is the frontmatter's `tags`
 /// sequence, empty when absent. `frontmatter_tail` is every remaining
@@ -89,14 +94,15 @@ pub fn is_reserved(path: &Path) -> bool {
     )
 }
 
-/// Extracts an [`ExtractedRecord`] from `contents`. `path` is used only for
-/// the filename-stem title fallback. Pure: no I/O.
+/// Extracts an [`ExtractedRecord`] from `contents`. `path` is the record's
+/// project-relative path: it is the sole source of the typed identity (see
+/// [`extract_identity`]) and the filename-stem title fallback. Pure: no I/O.
 pub fn extract_record(path: &Path, contents: &str) -> ExtractedRecord {
     let frontmatter = frontmatter_block(contents).and_then(parse_frontmatter);
     let body = strip_frontmatter(contents).to_owned();
 
     let doc_type = frontmatter_scalar(frontmatter.as_ref(), "type").unwrap_or_default();
-    let (number, concept_id, identity_kind) = extract_identity(frontmatter.as_ref(), &doc_type);
+    let (number, concept_id, identity_kind) = extract_identity(path, &doc_type);
     let description = frontmatter_scalar(frontmatter.as_ref(), "description").unwrap_or_default();
     let title = frontmatter_scalar(frontmatter.as_ref(), "title")
         .or_else(|| first_heading(&body))
@@ -122,23 +128,47 @@ pub fn extract_record(path: &Path, contents: &str) -> ExtractedRecord {
 }
 
 /// Classifies `doc_type` into `identity_kind` (ADR 0007 decision 2) and
-/// reads exactly the matching identity field from `frontmatter`, leaving
-/// the other one `None`.
-fn extract_identity(
-    frontmatter: Option<&Value>,
-    doc_type: &str,
-) -> (Option<i32>, Option<String>, String) {
+/// derives exactly the matching identity field from `path`, leaving the
+/// other one `None`. A `number:`/`concept_id:` frontmatter key is never
+/// consulted (issue 0006 slice 0006-C1, lesson 3706): real OKF docs carry
+/// no such field — the number is the filename's `NNNN` prefix and the
+/// concept id is the path itself.
+fn extract_identity(path: &Path, doc_type: &str) -> (Option<i32>, Option<String>, String) {
     if is_numbered_doc_type(doc_type) {
-        let number = frontmatter_scalar(frontmatter, "number").and_then(|raw| raw.parse().ok());
-        (number, None, NUMBER_IDENTITY_KIND.to_owned())
+        (numbered_prefix(path), None, NUMBER_IDENTITY_KIND.to_owned())
     } else {
-        let concept_id = frontmatter_scalar(frontmatter, "concept_id");
-        (None, concept_id, CONCEPT_IDENTITY_KIND.to_owned())
+        (
+            None,
+            concept_id_from_path(path),
+            CONCEPT_IDENTITY_KIND.to_owned(),
+        )
     }
 }
 
 fn is_numbered_doc_type(doc_type: &str) -> bool {
     NUMBERED_DOC_TYPES.contains(&doc_type.to_lowercase().as_str())
+}
+
+/// The strict `NNNN-*.md` prefix of `path`'s filename (four ASCII digits
+/// followed by `-`), mirroring
+/// `living_docs_core::commands::next::numeric_prefix`. `None` when the
+/// filename does not open with exactly four digits and a dash.
+fn numbered_prefix(path: &Path) -> Option<i32> {
+    let filename = path.file_name()?.to_str()?;
+    if !filename.ends_with(".md") || filename.as_bytes().get(4) != Some(&b'-') {
+        return None;
+    }
+    let prefix = filename.get(0..4)?;
+    if !prefix.chars().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    prefix.parse().ok()
+}
+
+/// `path` with a trailing `.md` removed, `None` only when `path` is not
+/// valid UTF-8.
+fn concept_id_from_path(path: &Path) -> Option<String> {
+    path.to_str()?.strip_suffix(".md").map(str::to_owned)
 }
 
 /// Every frontmatter key with no typed column, in source encounter order
@@ -237,9 +267,9 @@ mod tests {
     }
 
     #[test]
-    fn extract_record_reads_frontmatter_title_description_and_identity() {
-        let contents = "---\ntype: ADR\ntitle: Quokka Caching\ndescription: Adopt quokka caching.\nnumber: 1\n---\n# 0001. Quokka Caching\n\nBody text.\n";
-        let extracted = extract_record(Path::new("/bundle/adr/0001-quokka-caching.md"), contents);
+    fn extract_record_derives_number_from_the_filenames_nnnn_prefix() {
+        let contents = "---\ntype: ADR\ntitle: Quokka Caching\ndescription: Adopt quokka caching.\n---\n# 0001. Quokka Caching\n\nBody text.\n";
+        let extracted = extract_record(Path::new("adr/0001-quokka-caching.md"), contents);
 
         assert_eq!(extracted.doc_type, "ADR");
         assert_eq!(extracted.number, Some(1));
@@ -251,21 +281,39 @@ mod tests {
     }
 
     #[test]
-    fn extract_record_assigns_the_concept_identity_kind_to_a_non_numbered_doc_type() {
-        let contents =
-            "---\ntype: Glossary\nconcept_id: findability\n---\n# Findability\n\nBody.\n";
-        let extracted = extract_record(Path::new("/bundle/glossary/findability.md"), contents);
+    fn extract_record_ignores_a_number_frontmatter_key_and_derives_from_the_path_instead() {
+        let contents = "---\ntype: ADR\nnumber: 99\n---\nBody.\n";
+        let extracted = extract_record(Path::new("adr/0007-x.md"), contents);
+
+        assert_eq!(extracted.number, Some(7));
+    }
+
+    #[test]
+    fn extract_record_derives_concept_id_from_the_project_relative_path() {
+        let contents = "---\ntype: Glossary\ntitle: Findability\n---\n# Findability\n\nBody.\n";
+        let extracted = extract_record(Path::new("context/user-auth.md"), contents);
 
         assert_eq!(extracted.identity_kind, CONCEPT_IDENTITY_KIND);
-        assert_eq!(extracted.concept_id, Some("findability".to_owned()));
+        assert_eq!(extracted.concept_id, Some("context/user-auth".to_owned()));
         assert_eq!(extracted.number, None);
+    }
+
+    #[test]
+    fn extract_record_ignores_a_concept_id_frontmatter_key_and_derives_from_the_path_instead() {
+        let contents = "---\ntype: Glossary\nconcept_id: wrong-slug\n---\nBody.\n";
+        let extracted = extract_record(Path::new("glossary/findability.md"), contents);
+
+        assert_eq!(
+            extracted.concept_id,
+            Some("glossary/findability".to_owned())
+        );
     }
 
     #[test]
     fn extract_record_assigns_the_number_identity_kind_to_every_numbered_doc_type() {
         for doc_type in ["ADR", "BDR", "PRD", "Issue"] {
-            let contents = format!("---\ntype: {doc_type}\nnumber: 7\n---\nBody.\n");
-            let extracted = extract_record(Path::new("/bundle/adr/0007-numbered.md"), &contents);
+            let contents = format!("---\ntype: {doc_type}\n---\nBody.\n");
+            let extracted = extract_record(Path::new("adr/0007-numbered.md"), &contents);
 
             assert_eq!(
                 extracted.identity_kind, NUMBER_IDENTITY_KIND,
@@ -274,6 +322,27 @@ mod tests {
             assert_eq!(extracted.number, Some(7));
             assert_eq!(extracted.concept_id, None);
         }
+    }
+
+    #[test]
+    fn extract_record_yields_no_number_when_the_filename_lacks_a_valid_nnnn_prefix() {
+        let contents = "---\ntype: ADR\n---\nBody.\n";
+        let extracted = extract_record(Path::new("adr/no-number-here.md"), contents);
+
+        assert_eq!(extracted.identity_kind, NUMBER_IDENTITY_KIND);
+        assert_eq!(extracted.number, None);
+    }
+
+    #[test]
+    fn extract_record_concept_doc_always_yields_a_concept_id_even_without_frontmatter() {
+        let contents = "Body with no frontmatter block at all.\n";
+        let extracted = extract_record(Path::new("glossary/findability.md"), contents);
+
+        assert_eq!(extracted.identity_kind, CONCEPT_IDENTITY_KIND);
+        assert_eq!(
+            extracted.concept_id,
+            Some("glossary/findability".to_owned())
+        );
     }
 
     #[test]
@@ -293,12 +362,11 @@ mod tests {
     }
 
     #[test]
-    fn extract_record_defaults_missing_description_and_identity_to_empty() {
+    fn extract_record_defaults_missing_description_to_empty() {
         let contents = "---\ntype: ADR\ntitle: No Extras\n---\nBody.\n";
-        let extracted = extract_record(Path::new("/bundle/adr/0004-no-extras.md"), contents);
+        let extracted = extract_record(Path::new("adr/0004-no-extras.md"), contents);
 
         assert_eq!(extracted.description, "");
-        assert_eq!(extracted.number, None);
         assert_eq!(extracted.concept_id, None);
     }
 
@@ -324,10 +392,10 @@ mod tests {
     #[test]
     fn extract_record_ignores_a_concept_id_stray_on_a_numbered_doc_type() {
         let contents = "---\ntype: Issue\nconcept_id: findability\n---\nBody.\n";
-        let extracted = extract_record(Path::new("/bundle/issues/0006-findability.md"), contents);
+        let extracted = extract_record(Path::new("issues/0006-findability.md"), contents);
 
         assert_eq!(extracted.identity_kind, NUMBER_IDENTITY_KIND);
-        assert_eq!(extracted.number, None);
+        assert_eq!(extracted.number, Some(6));
         assert_eq!(
             extracted.concept_id, None,
             "concept_id is not the identity field for a numbered doc type"

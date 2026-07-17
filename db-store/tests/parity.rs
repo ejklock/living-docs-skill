@@ -1,10 +1,11 @@
 //! Read-side fitness tests for db-store's `DocStore` adapter (ADR 0007,
-//! issue 0006 slice 0006-B): `DbDocStore::read` is a fixed point of
-//! `extract_record`/`to_canonical_markdown` for a synced record, `check`
-//! runs identically over an fs-backed and a db-backed `DocStore` for the
-//! repo's own `docs/` corpus, a seeded frontmatter violation fails on both
-//! backends, and the reconstructed frontmatter tail preserves both its
-//! field order and its concrete ordinal sequence.
+//! issue 0006 slice 0006-B; identity sourced from the record's path rather
+//! than frontmatter, issue 0006 slice 0006-C1): `DbDocStore::read` is a
+//! fixed point of `extract_record`/`to_canonical_markdown` for a synced
+//! record, `check` runs identically over an fs-backed and a db-backed
+//! `DocStore` for the repo's own `docs/` corpus, a seeded frontmatter
+//! violation fails on both backends, and the reconstructed frontmatter
+//! tail preserves both its field order and its concrete ordinal sequence.
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -82,8 +83,8 @@ fn collect_md_files(dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
-const OLD_DOC: &str = "---\ntype: ADR\ntitle: Quokka Caching Strategy\ndescription: Adopt quokka-based caching for the read model.\nnumber: 1\nstatus: Superseded\nsuperseded_by: 0002\ntags: [caching]\nlabels: legacy\ntracker: JIRA-100\ntimestamp: 2026-07-01T00:00:00Z\n---\n# 0001. Quokka Caching Strategy\n\nBody.\n";
-const NEW_DOC: &str = "---\ntype: ADR\ntitle: Improved Caching Strategy\ndescription: Supersedes quokka caching.\nnumber: 2\nstatus: Accepted\nsupersedes: 0001\ntags: [caching, performance]\ntracker: JIRA-101\ntimestamp: 2026-07-17T00:00:00Z\n---\n# 0002. Improved Caching Strategy\n\nBody.\n";
+const OLD_DOC: &str = "---\ntype: ADR\ntitle: Quokka Caching Strategy\ndescription: Adopt quokka-based caching for the read model.\nstatus: Superseded\nsuperseded_by: 0002\ntags: [caching]\nlabels: legacy\ntracker: JIRA-100\ntimestamp: 2026-07-01T00:00:00Z\n---\n# 0001. Quokka Caching Strategy\n\nBody.\n";
+const NEW_DOC: &str = "---\ntype: ADR\ntitle: Improved Caching Strategy\ndescription: Supersedes quokka caching.\nstatus: Accepted\nsupersedes: 0001\ntags: [caching, performance]\ntracker: JIRA-101\ntimestamp: 2026-07-17T00:00:00Z\n---\n# 0002. Improved Caching Strategy\n\nBody.\n";
 
 fn supersede_corpus() -> (MemoryStore, PathBuf) {
     let bundle = PathBuf::from("/bundle-parity-supersede");
@@ -99,7 +100,7 @@ fn supersede_corpus() -> (MemoryStore, PathBuf) {
     (MemoryStore { files }, bundle)
 }
 
-const CONCEPT_DOC: &str = "---\ntype: Glossary\ntitle: Findability\ndescription: The ease of locating a doc via search or convention.\nconcept_id: findability\nstatus: Active\ntags: [glossary]\ntimestamp: 2026-07-17T00:00:00Z\n---\n# Findability\n\nBody.\n";
+const CONCEPT_DOC: &str = "---\ntype: Glossary\ntitle: Findability\ndescription: The ease of locating a doc via search or convention.\nstatus: Active\ntags: [glossary]\ntimestamp: 2026-07-17T00:00:00Z\n---\n# Findability\n\nBody.\n";
 
 fn concept_corpus() -> (MemoryStore, PathBuf) {
     let bundle = PathBuf::from("/bundle-parity-concept");
@@ -111,7 +112,7 @@ fn concept_corpus() -> (MemoryStore, PathBuf) {
     (MemoryStore { files }, bundle)
 }
 
-const TAILED_DOC: &str = "---\ntype: ADR\ntitle: Tailed Decision\ndescription: d.\nnumber: 1\nstatus: Accepted\nlabels: important\nblocked_by: 0002\ntracker: JIRA-42\ntimestamp: 2026-07-17T00:00:00Z\n---\n# 0001. Tailed Decision\n\nBody.\n";
+const TAILED_DOC: &str = "---\ntype: ADR\ntitle: Tailed Decision\ndescription: d.\nstatus: Accepted\nlabels: important\nblocked_by: 0002\ntracker: JIRA-42\ntimestamp: 2026-07-17T00:00:00Z\n---\n# 0001. Tailed Decision\n\nBody.\n";
 
 fn tailed_corpus() -> (MemoryStore, PathBuf) {
     let bundle = PathBuf::from("/bundle-parity-tailed");
@@ -342,7 +343,6 @@ fn reconstructed_tail_preserves_both_field_order_and_the_concrete_ordinal_sequen
         markdown,
         "---\n\
          type: ADR\n\
-         number: 1\n\
          title: Tailed Decision\n\
          description: d.\n\
          status: Accepted\n\
@@ -355,6 +355,7 @@ fn reconstructed_tail_preserves_both_field_order_and_the_concrete_ordinal_sequen
          # 0001. Tailed Decision\n\n\
          Body.\n"
     );
+    assert!(!markdown.contains("number:"));
 
     cleanup_sqlite_file(&db_path);
 }
