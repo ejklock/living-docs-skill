@@ -1,19 +1,20 @@
 use crate::frontmatter;
 use crate::paths;
+use crate::store::DocStore;
 use std::fs;
 use std::path::Path;
 use std::process::ExitCode;
 
 const SUPPORTED_TYPES: [&str; 4] = ["adr", "bdr", "prd", "issue"];
 
-pub fn run(docs_dir: &Path, doc_type: Option<String>) -> ExitCode {
+pub fn run(store: &dyn DocStore, docs_dir: &Path, doc_type: Option<String>) -> ExitCode {
     let types: Vec<String> = match doc_type {
         Some(t) => vec![t],
         None => SUPPORTED_TYPES.iter().map(|t| t.to_string()).collect(),
     };
 
     for doc_type in &types {
-        if let Err(message) = regenerate(docs_dir, doc_type) {
+        if let Err(message) = regenerate(store, docs_dir, doc_type) {
             eprintln!("living-docs index: {message}");
             return ExitCode::from(2);
         }
@@ -22,10 +23,16 @@ pub fn run(docs_dir: &Path, doc_type: Option<String>) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn regenerate(docs_dir: &Path, doc_type: &str) -> Result<(), String> {
+/// `index.md` itself is a reserved fs presentation artifact outside every
+/// `DocStore` domain (ADR 0007: never synced to `db-store`), so it is always
+/// read/written through `std::fs` regardless of the active backend — only
+/// the records feeding its body are read through `store`, meaning a db-mode
+/// run regenerates the filesystem `index.md` from the records in the
+/// database.
+fn regenerate(store: &dyn DocStore, docs_dir: &Path, doc_type: &str) -> Result<(), String> {
     let dir_name = paths::dir_for(doc_type).ok_or_else(|| unsupported_type_message(doc_type))?;
     let type_dir = docs_dir.join(dir_name);
-    let records = collect_records(&type_dir)?;
+    let records = collect_records(store, docs_dir, &type_dir)?;
 
     let index_path = type_dir.join("index.md");
     let existing = fs::read_to_string(&index_path).unwrap_or_default();
@@ -47,30 +54,35 @@ struct Record {
     filename: String,
 }
 
-/// Every `NNNN-*.md` record directly under `type_dir`, sorted ascending by `NNNN`.
-/// `title`/`status` come from each record's frontmatter (S1's reader); `NNNN` comes
-/// from the filename, matching how `next`/`new` allocate it.
-fn collect_records(type_dir: &Path) -> Result<Vec<Record>, String> {
-    let entries = match fs::read_dir(type_dir) {
-        Ok(entries) => entries,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
-        Err(e) => return Err(e.to_string()),
-    };
+/// Every `NNNN-*.md` record directly under `type_dir`, sorted ascending by
+/// `NNNN`, read through `store` (backend-faithful: a db-mode run sees
+/// exactly the records the database lists, not whatever happens to sit on
+/// disk). `title`/`status` come from each record's frontmatter (S1's
+/// reader); `NNNN` comes from the filename, matching how `next`/`new`
+/// allocate it.
+fn collect_records(
+    store: &dyn DocStore,
+    docs_dir: &Path,
+    type_dir: &Path,
+) -> Result<Vec<Record>, String> {
+    let paths = store.list(docs_dir).map_err(|e| e.to_string())?;
 
-    let mut records: Vec<Record> = entries
-        .filter_map(|entry| entry.ok())
-        .filter_map(|entry| record_from_path(&entry.path()))
+    let mut records: Vec<Record> = paths
+        .iter()
+        .filter(|path| path.parent() == Some(type_dir))
+        .filter_map(|path| record_from_path(store, path))
         .collect();
 
     records.sort_by_key(|record| record.number);
     Ok(records)
 }
 
-fn record_from_path(path: &Path) -> Option<Record> {
+fn record_from_path(store: &dyn DocStore, path: &Path) -> Option<Record> {
     let filename = path.file_name()?.to_str()?.to_string();
     let number = numbered_prefix(&filename)?;
-    let title = frontmatter::read_scalar(path, "title").unwrap_or_default();
-    let status = frontmatter::read_scalar(path, "status").unwrap_or_default();
+    let contents = store.read(path).ok()?;
+    let title = frontmatter::read_scalar_from_str(&contents, "title").unwrap_or_default();
+    let status = frontmatter::read_scalar_from_str(&contents, "status").unwrap_or_default();
     Some(Record {
         number,
         title,
@@ -263,5 +275,87 @@ mod tests {
         let existing = "# PRDs\n\nIntro.\n\n* [0001 — X](0001-x.md) - Draft\n";
         let offset = find_boundary_offset(existing, "prd").unwrap();
         assert_eq!(&existing[offset..], "* [0001 — X](0001-x.md) - Draft\n");
+    }
+
+    use std::collections::BTreeMap;
+    use std::io;
+    use std::path::PathBuf;
+
+    /// A minimal in-memory [`DocStore`] test double, proving `collect_records`
+    /// reads a record's title/status through the port rather than the
+    /// filesystem — the same double pattern used by `export.rs`/`new.rs`.
+    struct MapStore {
+        files: BTreeMap<PathBuf, String>,
+    }
+
+    impl DocStore for MapStore {
+        fn list(&self, root: &Path) -> io::Result<Vec<PathBuf>> {
+            Ok(self
+                .files
+                .keys()
+                .filter(|path| path.starts_with(root))
+                .cloned()
+                .collect())
+        }
+
+        fn read(&self, path: &Path) -> io::Result<String> {
+            self.files
+                .get(path)
+                .cloned()
+                .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "not found"))
+        }
+
+        fn write(&self, _path: &Path, _contents: &str) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn collect_records_reads_title_and_status_through_the_store() {
+        let mut files = BTreeMap::new();
+        files.insert(
+            PathBuf::from("/bundle/adr/0001-first.md"),
+            "---\ntype: ADR\ntitle: First\nstatus: Accepted\n---\n# First\n".to_string(),
+        );
+        let store = MapStore { files };
+
+        let records = collect_records(&store, Path::new("/bundle"), &PathBuf::from("/bundle/adr"))
+            .expect("collect_records should succeed");
+
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].title, "First");
+        assert_eq!(records[0].status, "Accepted");
+    }
+
+    #[test]
+    fn collect_records_ignores_paths_the_store_lists_outside_the_type_directory() {
+        let mut files = BTreeMap::new();
+        files.insert(
+            PathBuf::from("/bundle/adr/0001-in-scope.md"),
+            "---\ntype: ADR\ntitle: In Scope\nstatus: Proposed\n---\n# In Scope\n".to_string(),
+        );
+        files.insert(
+            PathBuf::from("/bundle/bdr/0001-other-type.md"),
+            "---\ntype: BDR\ntitle: Other Type\nstatus: Draft\n---\n# Other Type\n".to_string(),
+        );
+        let store = MapStore { files };
+
+        let records = collect_records(&store, Path::new("/bundle"), &PathBuf::from("/bundle/adr"))
+            .expect("collect_records should succeed");
+
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].filename, "0001-in-scope.md");
+    }
+
+    #[test]
+    fn collect_records_on_an_empty_store_returns_no_records() {
+        let store = MapStore {
+            files: BTreeMap::new(),
+        };
+
+        let records = collect_records(&store, Path::new("/bundle"), &PathBuf::from("/bundle/adr"))
+            .expect("collect_records should succeed on an empty store");
+
+        assert!(records.is_empty());
     }
 }
