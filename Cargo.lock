@@ -342,6 +342,7 @@ dependencies = [
  "living-docs-core",
  "sea-orm",
  "sea-orm-migration",
+ "serde_yaml",
  "tokio",
 ]
 

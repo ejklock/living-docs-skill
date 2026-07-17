@@ -1,17 +1,26 @@
 //! `db-store`: the SQLite/FTS5 derived read-model adapter (ADR 0004, issue
-//! 0002). Slice S2a lands only the schema foundation — connect + migrate,
-//! producing an empty `records` table and an empty `records_fts` FTS5
-//! virtual table. Sync and search land in S2b; CLI wiring lands in S2c.
+//! 0002). Slice S2a landed the schema foundation (connect + migrate). Slice
+//! S2b adds the idempotent full-rebuild `sync`, ranked FTS5 `search`, and the
+//! `SearchIndex` port implementation. CLI wiring lands in S2c.
 
 pub mod entity;
 pub mod migration;
+pub mod record;
+pub mod search;
+pub mod sync;
 
-use std::path::Path;
+use std::io;
+use std::path::{Path, PathBuf};
 
+use living_docs_core::store::SearchIndex;
 use sea_orm::{Database, DatabaseConnection, DbErr};
 use sea_orm_migration::MigratorTrait;
 
 use migration::Migrator;
+
+pub use record::{ExtractedRecord, SearchHit};
+pub use search::search;
+pub use sync::sync;
 
 /// Result alias for this crate's fallible operations, using SeaORM's own
 /// error type since every failure here originates from the database layer.
@@ -39,6 +48,46 @@ pub async fn connect_in_memory() -> Result<DatabaseConnection> {
 /// and the `records_fts` FTS5 virtual table on a fresh database.
 pub async fn migrate(conn: &DatabaseConnection) -> Result<()> {
     Migrator::up(conn, None).await
+}
+
+/// Bridges the synchronous `living_docs_core::store::SearchIndex` port onto
+/// this crate's async [`search`]. Holds its own dedicated current-thread
+/// Tokio runtime *and* connects through it: `SearchIndex::search` is a sync
+/// trait method that may be invoked from a caller with no async context at
+/// all, so it cannot assume one exists — and a sea-orm connection is not
+/// safe to drive from a Tokio runtime other than the one that created it, so
+/// the connection and the runtime that opened it are kept together and
+/// never split.
+pub struct DbSearchIndex {
+    conn: DatabaseConnection,
+    runtime: tokio::runtime::Runtime,
+}
+
+impl DbSearchIndex {
+    /// Opens `db_path` on a dedicated current-thread runtime and wraps the
+    /// resulting connection for synchronous search.
+    pub fn new(db_path: &Path) -> io::Result<Self> {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()?;
+        let conn = runtime
+            .block_on(connect(db_path))
+            .map_err(io::Error::other)?;
+        Ok(Self { conn, runtime })
+    }
+}
+
+impl SearchIndex for DbSearchIndex {
+    fn search(&self, query: &str) -> io::Result<Vec<PathBuf>> {
+        let hits = self
+            .runtime
+            .block_on(search::search(&self.conn, query))
+            .map_err(io::Error::other)?;
+        Ok(hits
+            .into_iter()
+            .map(|hit| PathBuf::from(hit.path))
+            .collect())
+    }
 }
 
 #[cfg(test)]
@@ -91,5 +140,42 @@ mod tests {
 
         assert_eq!(row_count(&conn, "records").await, 0);
         assert_eq!(row_count(&conn, "records_fts").await, 0);
+    }
+
+    fn temp_db_path(label: &str) -> PathBuf {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("system clock before unix epoch")
+            .as_nanos();
+        std::env::temp_dir().join(format!("living-docs-db-store-test-{label}-{nanos}.db"))
+    }
+
+    #[test]
+    fn db_search_index_bridges_the_sync_search_index_port_without_an_ambient_runtime() {
+        let db_path = temp_db_path("search-index-bridge");
+
+        let setup_runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("build setup runtime");
+        setup_runtime.block_on(async {
+            let conn = connect(&db_path).await.expect("connect");
+            migrate(&conn).await.expect("migrate");
+            let (store, bundle) = sync::test_support::seeded_corpus();
+            sync::sync(&conn, &store, &bundle).await.expect("sync");
+        });
+        drop(setup_runtime);
+
+        let index = DbSearchIndex::new(&db_path).expect("build search index");
+        let hits = index.search("quokka").expect("search should succeed");
+
+        assert_eq!(hits, vec![PathBuf::from("adr/0001-quokka-caching.md")]);
+
+        let no_hits = index
+            .search("zzzznomatch")
+            .expect("no-match search should succeed");
+        assert!(no_hits.is_empty());
+
+        let _ = std::fs::remove_file(&db_path);
     }
 }
