@@ -12,3 +12,8 @@
 
 # Local publication / marketing drafts and exported assets — not part of the repo
 /publications/
+
+# Playwright browser-gate toolchain (issue 0003) — installed on demand, never committed
+/node_modules/
+/test-results/
+/playwright-report/
