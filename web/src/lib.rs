@@ -59,7 +59,11 @@ async fn record_handler(
     match record_or_log(&conn, &path).await {
         Some(record) => {
             let body_html = render_markdown(&record.body);
-            (StatusCode::OK, views::record_page(&record.title, &body_html)).into_response()
+            (
+                StatusCode::OK,
+                views::record_page(&record.title, &body_html),
+            )
+                .into_response()
         }
         None => (StatusCode::NOT_FOUND, views::not_found()).into_response(),
     }

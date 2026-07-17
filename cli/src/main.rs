@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use living_docs_core::{check, commands};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -45,7 +45,8 @@ enum Command {
         #[arg(long)]
         mermaid_only: bool,
     },
-    /// Operate on the derived SQLite/FTS5 read-model at `.living-docs/index.db`.
+    /// Operate on the derived read-model (SQLite/FTS5 by default, or ParadeDB
+    /// with `--engine paradedb`).
     Db {
         #[command(subcommand)]
         cmd: DbCmd,
@@ -53,16 +54,54 @@ enum Command {
     /// Full-text search the derived read-model, ranked best-match-first.
     Search {
         query: String,
+        /// Which database backend to search: the local SQLite/FTS5 file, or
+        /// ParadeDB via `$DATABASE_URL`.
+        #[arg(long, value_enum, default_value = "sqlite")]
+        engine: Engine,
     },
 }
 
 #[derive(Subcommand)]
 enum DbCmd {
     /// Rebuild the read-model from every doc `--docs-dir` lists.
-    Sync,
+    Sync {
+        /// Which database backend to sync into: the local SQLite/FTS5 file,
+        /// or ParadeDB via `$DATABASE_URL`.
+        #[arg(long, value_enum, default_value = "sqlite")]
+        engine: Engine,
+    },
 }
 
-const READ_MODEL_PATH: &str = ".living-docs/index.db";
+/// The database backend to connect to, selectable per invocation (ADR 0004,
+/// issue 0004).
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum Engine {
+    Sqlite,
+    Paradedb,
+}
+
+const SQLITE_READ_MODEL_PATH: &str = ".living-docs/index.db";
+const DATABASE_URL_VAR: &str = "DATABASE_URL";
+
+impl Engine {
+    fn resolve_url(self) -> Result<String, String> {
+        self.resolve_url_with(|name| std::env::var(name))
+    }
+
+    fn resolve_url_with(
+        self,
+        lookup_env: impl Fn(&str) -> Result<String, std::env::VarError>,
+    ) -> Result<String, String> {
+        match self {
+            Engine::Sqlite => Ok(format!("sqlite://{SQLITE_READ_MODEL_PATH}?mode=rwc")),
+            Engine::Paradedb => lookup_env(DATABASE_URL_VAR).map_err(|_| {
+                format!(
+                    "the paradedb engine requires ${DATABASE_URL_VAR} to be set to a Postgres connection string"
+                )
+            }),
+        }
+    }
+}
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
@@ -83,17 +122,23 @@ fn main() -> ExitCode {
             let store = fs_store::FsStore::new();
             check::run(&store, &bundle)
         }
-        Command::Db { cmd: DbCmd::Sync } => run_db_sync(&cli.docs_dir),
-        Command::Search { query } => run_search(&query),
+        Command::Db {
+            cmd: DbCmd::Sync { engine },
+        } => run_db_sync(&cli.docs_dir, engine),
+        Command::Search { query, engine } => run_search(&query, engine),
     }
 }
 
-fn run_db_sync(docs_dir: &Path) -> ExitCode {
+fn run_db_sync(docs_dir: &Path, engine: Engine) -> ExitCode {
+    let url = match engine.resolve_url() {
+        Ok(url) => url,
+        Err(err) => return report_failure(&err),
+    };
     let runtime = match build_runtime() {
         Ok(runtime) => runtime,
         Err(err) => return report_failure(&err.to_string()),
     };
-    match runtime.block_on(sync_read_model(docs_dir)) {
+    match runtime.block_on(sync_read_model(docs_dir, &url)) {
         Ok(count) => {
             println!("Indexed {count} records.");
             ExitCode::SUCCESS
@@ -102,23 +147,27 @@ fn run_db_sync(docs_dir: &Path) -> ExitCode {
     }
 }
 
-async fn sync_read_model(docs_dir: &Path) -> db_store::Result<usize> {
-    let conn = db_store::connect(Path::new(READ_MODEL_PATH)).await?;
+async fn sync_read_model(docs_dir: &Path, url: &str) -> db_store::Result<usize> {
+    let conn = db_store::connect(url).await?;
     db_store::migrate(&conn).await?;
     db_store::sync(&conn, &fs_store::FsStore::new(), docs_dir).await
 }
 
-fn run_search(query: &str) -> ExitCode {
-    if !Path::new(READ_MODEL_PATH).exists() {
-        eprintln!("no index found at {READ_MODEL_PATH}; run: living-docs db sync");
+fn run_search(query: &str, engine: Engine) -> ExitCode {
+    if matches!(engine, Engine::Sqlite) && !Path::new(SQLITE_READ_MODEL_PATH).exists() {
+        eprintln!("no index found at {SQLITE_READ_MODEL_PATH}; run: living-docs db sync");
         return ExitCode::FAILURE;
     }
 
+    let url = match engine.resolve_url() {
+        Ok(url) => url,
+        Err(err) => return report_failure(&err),
+    };
     let runtime = match build_runtime() {
         Ok(runtime) => runtime,
         Err(err) => return report_failure(&err.to_string()),
     };
-    match runtime.block_on(search_read_model(query)) {
+    match runtime.block_on(search_read_model(query, &url)) {
         Ok(hits) => {
             print_hits(&hits);
             ExitCode::SUCCESS
@@ -127,8 +176,8 @@ fn run_search(query: &str) -> ExitCode {
     }
 }
 
-async fn search_read_model(query: &str) -> db_store::Result<Vec<db_store::SearchHit>> {
-    let conn = db_store::connect(Path::new(READ_MODEL_PATH)).await?;
+async fn search_read_model(query: &str, url: &str) -> db_store::Result<Vec<db_store::SearchHit>> {
+    let conn = db_store::connect(url).await?;
     db_store::search(&conn, query).await
 }
 
@@ -148,4 +197,33 @@ fn build_runtime() -> std::io::Result<tokio::runtime::Runtime> {
 fn report_failure(message: &str) -> ExitCode {
     eprintln!("error: {message}");
     ExitCode::FAILURE
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn engine_sqlite_resolves_to_the_local_read_model_url() {
+        let url = Engine::Sqlite
+            .resolve_url_with(|_| Ok("unused".to_owned()))
+            .expect("sqlite url always resolves");
+        assert_eq!(url, format!("sqlite://{SQLITE_READ_MODEL_PATH}?mode=rwc"));
+    }
+
+    #[test]
+    fn engine_paradedb_resolves_the_configured_database_url() {
+        let url = Engine::Paradedb
+            .resolve_url_with(|_| Ok("postgres://user:pass@localhost/db".to_owned()))
+            .expect("paradedb url resolves when DATABASE_URL is set");
+        assert_eq!(url, "postgres://user:pass@localhost/db");
+    }
+
+    #[test]
+    fn engine_paradedb_errors_clearly_when_database_url_is_unset() {
+        let err = Engine::Paradedb
+            .resolve_url_with(|_| Err(std::env::VarError::NotPresent))
+            .expect_err("paradedb url resolution fails without DATABASE_URL");
+        assert!(err.contains(DATABASE_URL_VAR), "got: {err}");
+    }
 }

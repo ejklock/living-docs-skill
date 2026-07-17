@@ -10,7 +10,7 @@ pub mod search;
 pub mod sync;
 
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use living_docs_core::store::SearchIndex;
 use sea_orm::{ColumnTrait, Database, DatabaseConnection, DbErr, EntityTrait, QueryFilter};
@@ -48,16 +48,29 @@ pub async fn record_by_path(conn: &DatabaseConnection, path: &str) -> Result<Opt
 /// error type since every failure here originates from the database layer.
 pub type Result<T> = std::result::Result<T, DbErr>;
 
-/// Opens a SQLite connection at `db_path`, creating the database file and any
-/// missing parent directories on first use.
-pub async fn connect(db_path: &Path) -> Result<DatabaseConnection> {
-    if let Some(parent) = db_path
-        .parent()
-        .filter(|parent| !parent.as_os_str().is_empty())
-    {
-        std::fs::create_dir_all(parent).map_err(|err| DbErr::Custom(err.to_string()))?;
+/// Opens a database connection at `url`, inferring the backend from its
+/// scheme (`sqlite://…` or `postgres://…`, ADR 0004 issue 0004). For a
+/// SQLite file URL, creates any missing parent directories before handing
+/// the URL to SeaORM unchanged; other schemes are passed straight through.
+pub async fn connect(url: &str) -> Result<DatabaseConnection> {
+    if let Some(path) = sqlite_file_path(url) {
+        if let Some(parent) = path
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+        {
+            std::fs::create_dir_all(parent).map_err(|err| DbErr::Custom(err.to_string()))?;
+        }
     }
-    Database::connect(format!("sqlite://{}?mode=rwc", db_path.display())).await
+    Database::connect(url).await
+}
+
+/// Extracts the filesystem path from a SQLite file URL (`sqlite://<path>`,
+/// optionally followed by a `?query`), or `None` for the in-memory form
+/// (`sqlite::memory:`) and every non-SQLite scheme.
+fn sqlite_file_path(url: &str) -> Option<PathBuf> {
+    let rest = url.strip_prefix("sqlite://")?;
+    let path = rest.split('?').next().unwrap_or(rest);
+    (!path.is_empty()).then(|| PathBuf::from(path))
 }
 
 /// Opens an in-memory SQLite connection for tests. State is discarded once
@@ -86,15 +99,13 @@ pub struct DbSearchIndex {
 }
 
 impl DbSearchIndex {
-    /// Opens `db_path` on a dedicated current-thread runtime and wraps the
+    /// Opens `url` on a dedicated current-thread runtime and wraps the
     /// resulting connection for synchronous search.
-    pub fn new(db_path: &Path) -> io::Result<Self> {
+    pub fn new(url: &str) -> io::Result<Self> {
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()?;
-        let conn = runtime
-            .block_on(connect(db_path))
-            .map_err(io::Error::other)?;
+        let conn = runtime.block_on(connect(url)).map_err(io::Error::other)?;
         Ok(Self { conn, runtime })
     }
 }
@@ -164,12 +175,16 @@ mod tests {
         assert_eq!(row_count(&conn, "records_fts").await, 0);
     }
 
-    fn temp_db_path(label: &str) -> PathBuf {
+    fn temp_sqlite_url(label: &str) -> (PathBuf, String) {
         let nanos = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .expect("system clock before unix epoch")
             .as_nanos();
-        std::env::temp_dir().join(format!("living-docs-db-store-test-{label}-{nanos}.db"))
+        let path = std::env::temp_dir()
+            .join(format!("living-docs-db-store-test-{label}-{nanos}"))
+            .join("index.db");
+        let url = format!("sqlite://{}?mode=rwc", path.display());
+        (path, url)
     }
 
     #[tokio::test]
@@ -196,21 +211,21 @@ mod tests {
 
     #[test]
     fn db_search_index_bridges_the_sync_search_index_port_without_an_ambient_runtime() {
-        let db_path = temp_db_path("search-index-bridge");
+        let (db_path, db_url) = temp_sqlite_url("search-index-bridge");
 
         let setup_runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
             .expect("build setup runtime");
         setup_runtime.block_on(async {
-            let conn = connect(&db_path).await.expect("connect");
+            let conn = connect(&db_url).await.expect("connect");
             migrate(&conn).await.expect("migrate");
             let (store, bundle) = sync::test_support::seeded_corpus();
             sync::sync(&conn, &store, &bundle).await.expect("sync");
         });
         drop(setup_runtime);
 
-        let index = DbSearchIndex::new(&db_path).expect("build search index");
+        let index = DbSearchIndex::new(&db_url).expect("build search index");
         let hits = index.search("quokka").expect("search should succeed");
 
         assert_eq!(hits, vec![PathBuf::from("adr/0001-quokka-caching.md")]);
@@ -221,5 +236,41 @@ mod tests {
         assert!(no_hits.is_empty());
 
         let _ = std::fs::remove_file(&db_path);
+        let _ = std::fs::remove_dir(db_path.parent().expect("path has a parent"));
+    }
+
+    #[tokio::test]
+    async fn connect_creates_missing_parent_dirs_for_a_sqlite_file_url() {
+        let (db_path, db_url) = temp_sqlite_url("parent-dir-creation");
+        assert!(!db_path.parent().expect("path has a parent").exists());
+
+        let conn = connect(&db_url).await.expect("connect creates parent dirs");
+        assert_eq!(conn.get_database_backend(), sea_orm::DbBackend::Sqlite);
+
+        let _ = std::fs::remove_file(&db_path);
+        let _ = std::fs::remove_dir(db_path.parent().expect("path has a parent"));
+    }
+
+    #[tokio::test]
+    async fn connect_infers_postgres_backend_from_scheme_without_a_live_server() {
+        let mut options = sea_orm::ConnectOptions::new("postgres://user:pass@localhost/db");
+        options.connect_lazy(true);
+
+        let conn = Database::connect(options)
+            .await
+            .expect("lazy postgres connect never touches the network");
+
+        assert_eq!(conn.get_database_backend(), sea_orm::DbBackend::Postgres);
+    }
+
+    #[tokio::test]
+    async fn connect_infers_sqlite_backend_from_a_file_url() {
+        let (db_path, db_url) = temp_sqlite_url("backend-inference");
+
+        let conn = connect(&db_url).await.expect("connect");
+        assert_eq!(conn.get_database_backend(), sea_orm::DbBackend::Sqlite);
+
+        let _ = std::fs::remove_file(&db_path);
+        let _ = std::fs::remove_dir(db_path.parent().expect("path has a parent"));
     }
 }
