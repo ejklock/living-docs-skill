@@ -18,7 +18,7 @@ Terms and acronyms get their explanation in the pinned language — but the **na
 
 These do **not** translate — they are structural identifiers, not prose:
 
-- OKF frontmatter **keys** (`type`, `status`, `title`, …) and their controlled values (`type: ADR`, `status: Superseded`).
+- OKF frontmatter **keys** (`type`, `status`, `title`, …) and their controlled values (`type: ADR`, `status: Superseded`, `visibility: public`).
 - The `# References` **heading** itself (OKF §8 reserved heading) and reserved filenames (`index.md`, `log.md`).
 - Code, identifiers, slugs, and the ABNT NBR 6023 **structure** of each reference (CAPS surnames, **bold** title, ISO access date, always-the-link).
 

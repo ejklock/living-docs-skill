@@ -47,8 +47,9 @@ The five invariants govern *organization and lifecycle*; the **Open Knowledge Fo
 
 Two rules apply to every concept file:
 
-1. **Frontmatter with a required `type`.** Every non-reserved `.md` doc opens with a YAML frontmatter block whose `type` names the doc kind (`Constitution`, `PRD`, `ADR`, `BDR`, `Issue`, `Context`, `Architecture View`, `Research`, `Reference`). Recommended: `title`, `description`, `tags`, `timestamp`. Living-docs adds producer keys: `status`, `supersedes`, `superseded_by`. **Status moves into frontmatter — no `**Status:**` body line.**
+1. **Frontmatter with a required `type`.** Every non-reserved `.md` doc opens with a YAML frontmatter block whose `type` names the doc kind (`Constitution`, `PRD`, `ADR`, `BDR`, `Issue`, `Context`, `Architecture View`, `Research`, `Reference`). Recommended: `title`, `description`, `tags`, `timestamp`. Living-docs adds producer keys: `status`, `supersedes`, `superseded_by`, and an optional `visibility` (see rule 3). **Status moves into frontmatter — no `**Status:**` body line.**
 2. **Reserved files + bundle-relative links.** The bundle root is `docs/`. Directory listings are `index.md` (OKF §6, no frontmatter — except the bundle-root `docs/index.md`, which carries `okf_version: "0.1"`). Optional `log.md` records directory history (§7). Cross-link with `/`-prefixed bundle-relative paths (`/adr/0007-slug.md`); list sources under a `# References` heading (§8), each entry formatted per `rules/citation-conventions.md` — **ABNT NBR 6023 structure, always carrying the link**, with connective labels in the project doc language (default English: `Available at: <URL>. Accessed on: <date>`) per `rules/doc-language.md`.
+3. **Visibility (optional; default-deny).** A doc MAY carry `visibility: private | public | showcase`. **Absent ⇒ private** — omission can never publish by accident. It is the single, machine-readable declaration of what a future `public-export` may ship, made **once, at authoring time, by the human**, recorded as data — never re-judged by an LLM at publish. The author proposes a value (defaulting to private) and the human confirms; the *suggestion* is judgment, the *value* is mechanical. `living-docs check` validates the domain (a typo like `pubic` fails); deciding *which* docs are public is the author's, not the checker's. Friction sits on the dangerous direction: a private doc costs nothing, **elevating to `public`/`showcase` is the deliberate step.** Do not add `visibility` to templates — the omission is the intended private default. `index --visibility <csv>` lists only matching docs, so a public index never links a private doc.
 
 ---
 
@@ -272,6 +273,7 @@ rest are judgement:
 - [ ] Every NFR is a quality-attribute scenario in the PRD bound to a verifying instrument (not a freeform "should be fast" line); a structural architecture view names whether it is checked or inspection-only.
 - [ ] The constitution is singular (`docs/constitution.md`) — no NNNN prefix, no index entry.
 - [ ] Each index file's links all resolve (no dangling references).
+- [ ] Any doc declaring `visibility` uses `private | public | showcase` (check enforces the domain); absent ⇒ private, and a doc meant for a public bundle carries `visibility: public | showcase`.
 - [ ] Docs-first respected: the repo body matches the published tracker/wiki copy.
 
 ---
