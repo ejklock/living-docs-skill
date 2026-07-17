@@ -12,3 +12,4 @@ path = "src/lib.rs"
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
 pulldown-cmark = { version = "=0.13.4", default-features = false }
+regex = "1"
