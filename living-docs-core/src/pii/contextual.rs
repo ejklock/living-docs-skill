@@ -197,6 +197,64 @@ fn validate_singapore_nric(matched: &str) -> bool {
     check == chars[8]
 }
 
+/// IRS-assigned EIN campus prefixes (IRS EIN prefix list, Rev. Proc. and
+/// SS-4 campus assignments): the first two digits of a valid EIN identify
+/// the issuing campus, and the ranges below skip several prefixes IRS never
+/// assigned (e.g. `07`-`09`), which is why a structurally digit-shaped EIN
+/// can still be a non-issued number.
+const EIN_PREFIXES: &[u32] = &[
+    1, 2, 3, 4, 5, 6, 10, 11, 12, 13, 14, 15, 16, 20, 21, 22, 23, 24, 25, 26, 27, 30, 31, 32, 33,
+    34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 50, 51, 52, 53, 54, 55, 56, 57, 58,
+    59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 71, 72, 73, 74, 75, 76, 77, 80, 81, 82, 83, 84, 85, 86,
+    87, 88, 90, 91, 92, 93, 94, 95, 98, 99,
+];
+
+/// US EIN (2-digit campus prefix + 7 digits, no checksum — IRS structural
+/// rule only): rejects an all-equal digit run, then requires the 2-digit
+/// prefix to be one of the IRS-issued campus prefixes. The hyphen shape is
+/// regex-owned, so it is never re-checked here (B8a dead-guard lesson).
+fn validate_us_ein(matched: &str) -> bool {
+    let ds = checksum::digits(matched);
+    if ds.len() != 9 || checksum::all_same(&ds) {
+        return false;
+    }
+    EIN_PREFIXES.contains(&(ds[0] * 10 + ds[1]))
+}
+
+/// The complete set of ISO 3166-1 alpha-2 officially assigned country codes
+/// (ISO 3166-1 standard, current edition): a SWIFT/BIC's 5th and 6th
+/// characters must name an assigned country, so an unassigned pair (e.g.
+/// `QZ`) rules out an otherwise shape-valid candidate.
+const ISO_3166_ALPHA2: &[&str] = &[
+    "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AQ", "AR", "AS", "AT", "AU", "AW", "AX", "AZ",
+    "BA", "BB", "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BL", "BM", "BN", "BO", "BQ", "BR", "BS",
+    "BT", "BV", "BW", "BY", "BZ", "CA", "CC", "CD", "CF", "CG", "CH", "CI", "CK", "CL", "CM", "CN",
+    "CO", "CR", "CU", "CV", "CW", "CX", "CY", "CZ", "DE", "DJ", "DK", "DM", "DO", "DZ", "EC", "EE",
+    "EG", "EH", "ER", "ES", "ET", "FI", "FJ", "FK", "FM", "FO", "FR", "GA", "GB", "GD", "GE", "GF",
+    "GG", "GH", "GI", "GL", "GM", "GN", "GP", "GQ", "GR", "GS", "GT", "GU", "GW", "GY", "HK", "HM",
+    "HN", "HR", "HT", "HU", "ID", "IE", "IL", "IM", "IN", "IO", "IQ", "IR", "IS", "IT", "JE", "JM",
+    "JO", "JP", "KE", "KG", "KH", "KI", "KM", "KN", "KP", "KR", "KW", "KY", "KZ", "LA", "LB", "LC",
+    "LI", "LK", "LR", "LS", "LT", "LU", "LV", "LY", "MA", "MC", "MD", "ME", "MF", "MG", "MH", "MK",
+    "ML", "MM", "MN", "MO", "MP", "MQ", "MR", "MS", "MT", "MU", "MV", "MW", "MX", "MY", "MZ", "NA",
+    "NC", "NE", "NF", "NG", "NI", "NL", "NO", "NP", "NR", "NU", "NZ", "OM", "PA", "PE", "PF", "PG",
+    "PH", "PK", "PL", "PM", "PN", "PR", "PS", "PT", "PW", "PY", "QA", "RE", "RO", "RS", "RU", "RW",
+    "SA", "SB", "SC", "SD", "SE", "SG", "SH", "SI", "SJ", "SK", "SL", "SM", "SN", "SO", "SR", "SS",
+    "ST", "SV", "SX", "SY", "SZ", "TC", "TD", "TF", "TG", "TH", "TJ", "TK", "TL", "TM", "TN", "TO",
+    "TR", "TT", "TV", "TW", "TZ", "UA", "UG", "UM", "US", "UY", "UZ", "VA", "VC", "VE", "VG", "VI",
+    "VN", "VU", "WF", "WS", "YE", "YT", "ZA", "ZM", "ZW",
+];
+
+/// SWIFT/BIC (4-letter bank code + 2-letter country code + 2-character
+/// location code, with an optional 3-character branch suffix, no checksum —
+/// ISO 9362 structural rule only): valid iff the country code, characters
+/// `4..6` of the match, is an assigned ISO 3166-1 alpha-2 code. The
+/// letter/digit shape of every other position is regex-owned.
+fn validate_swift_bic(matched: &str) -> bool {
+    matched
+        .get(4..6)
+        .is_some_and(|country| ISO_3166_ALPHA2.contains(&country))
+}
+
 /// Registers every Tier-2 context-gated detector.
 pub(super) fn detectors() -> Vec<ContextualDetector> {
     vec![
@@ -236,6 +294,19 @@ pub(super) fn detectors() -> Vec<ContextualDetector> {
             pattern: Regex::new(r"\b[STFG]\d{7}[A-Z]\b").expect("valid nric regex"),
             validate: validate_singapore_nric,
             context: &["nric", "fin"],
+        },
+        ContextualDetector {
+            label: "US EIN",
+            pattern: Regex::new(r"\b\d{2}-\d{7}\b").expect("valid ein regex"),
+            validate: validate_us_ein,
+            context: &["ein", "employer identification", "fein"],
+        },
+        ContextualDetector {
+            label: "SWIFT/BIC",
+            pattern: Regex::new(r"\b[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?\b")
+                .expect("valid swift regex"),
+            validate: validate_swift_bic,
+            context: &["swift", "bic", "swift code"],
         },
     ]
 }
@@ -301,9 +372,9 @@ mod tests {
     }
 
     #[test]
-    fn detectors_registers_all_six_context_gated_detectors_with_their_context_words() {
+    fn detectors_registers_all_eight_context_gated_detectors_with_their_context_words() {
         let found = detectors();
-        assert_eq!(found.len(), 6);
+        assert_eq!(found.len(), 8);
         assert_eq!(found[0].label, "US SSN");
         assert_eq!(found[0].context, &["ssn", "social security"]);
         assert_eq!(found[1].label, "US ITIN");
@@ -316,6 +387,13 @@ mod tests {
         assert_eq!(found[4].context, &["pps", "personal public service"]);
         assert_eq!(found[5].label, "Singapore NRIC/FIN");
         assert_eq!(found[5].context, &["nric", "fin"]);
+        assert_eq!(found[6].label, "US EIN");
+        assert_eq!(
+            found[6].context,
+            &["ein", "employer identification", "fein"]
+        );
+        assert_eq!(found[7].label, "SWIFT/BIC");
+        assert_eq!(found[7].context, &["swift", "bic", "swift code"]);
     }
 
     #[test]
@@ -447,6 +525,46 @@ mod tests {
     }
 
     #[test]
+    fn validate_us_ein_accepts_a_prefix_in_the_irs_issued_set() {
+        assert!(validate_us_ein("12-3456789"));
+    }
+
+    /// `07-1234567` keeps a 9-digit, non-all-equal shape identical to the
+    /// accepted `12-3456789` vector; only the prefix (`07` instead of `12`)
+    /// differs, and `07` falls in the gap the IRS never assigned (`07`-`09`)
+    /// — isolating the prefix-set guard.
+    #[test]
+    fn validate_us_ein_rejects_a_prefix_outside_the_irs_issued_set() {
+        assert!(!validate_us_ein("07-1234567"));
+    }
+
+    /// `11-1111111` uses `11`, an IRS-issued prefix that alone would pass —
+    /// only the all-equal digit run makes it invalid, isolating the
+    /// all-equal guard from the prefix-set guard.
+    #[test]
+    fn validate_us_ein_rejects_an_all_equal_digit_run_despite_a_valid_prefix() {
+        assert!(!validate_us_ein("11-1111111"));
+    }
+
+    #[test]
+    fn validate_swift_bic_accepts_an_eight_character_form_with_an_assigned_country() {
+        assert!(validate_swift_bic("DEUTDEFF"));
+    }
+
+    #[test]
+    fn validate_swift_bic_accepts_an_eleven_character_form_with_a_branch_code() {
+        assert!(validate_swift_bic("DEUTDEFF500"));
+    }
+
+    /// `DEUTQZFF` keeps the same 8-character shape and bank code as the
+    /// accepted `DEUTDEFF` vector; only the country code (`QZ`, unassigned)
+    /// differs — isolating the country-code guard.
+    #[test]
+    fn validate_swift_bic_rejects_an_unassigned_country_code() {
+        assert!(!validate_swift_bic("DEUTQZFF"));
+    }
+
+    #[test]
     fn collect_pii_violations_flags_a_valid_itin_with_nearby_context_and_masks_it() {
         let path = Path::new("adr/0001-doc.md");
         let contents = "Employee ITIN: 900-70-1234 on file.";
@@ -559,6 +677,54 @@ mod tests {
     fn collect_pii_violations_stays_quiet_on_a_valid_nric_with_no_context_word() {
         let path = Path::new("adr/0001-doc.md");
         let contents = "Ref S1234567D only.";
+        let mut out = Vec::new();
+
+        super::super::collect_pii_violations(path, contents, &mut out);
+
+        assert!(out.is_empty());
+    }
+
+    #[test]
+    fn collect_pii_violations_flags_a_valid_ein_with_nearby_context_and_masks_it() {
+        let path = Path::new("adr/0001-doc.md");
+        let contents = "Employer Identification Number (EIN): 12-3456789 on file.";
+        let mut out = Vec::new();
+
+        super::super::collect_pii_violations(path, contents, &mut out);
+
+        assert_eq!(out.len(), 1);
+        assert!(out[0].1.contains("US EIN"));
+        assert!(!out[0].1.contains("12-3456789"));
+    }
+
+    #[test]
+    fn collect_pii_violations_stays_quiet_on_a_valid_ein_with_no_context_word() {
+        let path = Path::new("adr/0001-doc.md");
+        let contents = "Invoice 12-3456789 issued.";
+        let mut out = Vec::new();
+
+        super::super::collect_pii_violations(path, contents, &mut out);
+
+        assert!(out.is_empty());
+    }
+
+    #[test]
+    fn collect_pii_violations_flags_a_valid_swift_bic_with_nearby_context_and_masks_it() {
+        let path = Path::new("adr/0001-doc.md");
+        let contents = "SWIFT code: DEUTDEFF on file.";
+        let mut out = Vec::new();
+
+        super::super::collect_pii_violations(path, contents, &mut out);
+
+        assert_eq!(out.len(), 1);
+        assert!(out[0].1.contains("SWIFT/BIC"));
+        assert!(!out[0].1.contains("DEUTDEFF"));
+    }
+
+    #[test]
+    fn collect_pii_violations_stays_quiet_on_a_valid_swift_bic_with_no_context_word() {
+        let path = Path::new("adr/0001-doc.md");
+        let contents = "Ref DEUTDEFF only.";
         let mut out = Vec::new();
 
         super::super::collect_pii_violations(path, contents, &mut out);
