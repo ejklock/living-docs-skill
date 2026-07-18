@@ -60,6 +60,56 @@ fn validate_south_africa_id(matched: &str) -> bool {
     checksum::luhn_valid(&ds)
 }
 
+/// South Korea Resident Registration Number (13 digits, research note 0001):
+/// the regex already pins digit 7 (the gender/century flag) to `[1-4]`, so
+/// the validator does not re-check it — a second guard over territory the
+/// regex already owns would be dead code (B8a South Africa citizenship-flag
+/// lesson). After rejecting an all-equal placeholder, the check digit is the
+/// weighted mod-11 residue over the first 12 digits, rescaled into `0..=9`.
+fn validate_korea_rrn(matched: &str) -> bool {
+    let ds = checksum::digits(matched);
+    if ds.len() != 13 || checksum::all_same(&ds) {
+        return false;
+    }
+    const WEIGHTS: [u32; 12] = [2, 3, 4, 5, 6, 7, 8, 9, 2, 3, 4, 5];
+    let sum: u32 = ds[..12].iter().zip(WEIGHTS).map(|(d, w)| d * w).sum();
+    let check = (11 - (sum % 11)) % 10;
+    check == ds[12]
+}
+
+/// Australia Tax File Number (9 digits, research note 0001): after rejecting
+/// an all-equal placeholder, valid iff the digit-weighted sum is an exact
+/// multiple of 11.
+fn validate_australia_tfn(matched: &str) -> bool {
+    let ds = checksum::digits(matched);
+    if ds.len() != 9 || checksum::all_same(&ds) {
+        return false;
+    }
+    const WEIGHTS: [u32; 9] = [1, 4, 3, 7, 5, 8, 6, 9, 10];
+    let sum: u32 = ds.iter().zip(WEIGHTS).map(|(d, w)| d * w).sum();
+    sum.is_multiple_of(11)
+}
+
+/// Australia Business Number (11 digits, research note 0001): the leading
+/// digit is decremented by 1 before weighting, per the published ABN
+/// algorithm — guarded so a leading `0` (which would underflow the
+/// decrement) is rejected outright rather than validated against the wrong
+/// sequence. Valid iff the adjusted digit-weighted sum is an exact multiple
+/// of 89.
+fn validate_australia_abn(matched: &str) -> bool {
+    let mut ds = checksum::digits(matched);
+    if ds.len() != 11 || checksum::all_same(&ds) {
+        return false;
+    }
+    if ds[0] < 1 {
+        return false;
+    }
+    ds[0] -= 1;
+    const WEIGHTS: [u32; 11] = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19];
+    let sum: u32 = ds.iter().zip(WEIGHTS).map(|(d, w)| d * w).sum();
+    sum.is_multiple_of(89)
+}
+
 pub(super) fn detectors() -> Vec<super::PiiDetector> {
     vec![
         super::PiiDetector {
@@ -72,6 +122,21 @@ pub(super) fn detectors() -> Vec<super::PiiDetector> {
             label: "South African ID",
             pattern: Regex::new(r"\b\d{10}[0-2][89]\d\b").expect("valid south africa id regex"),
             validate: validate_south_africa_id,
+        },
+        super::PiiDetector {
+            label: "Korean RRN",
+            pattern: Regex::new(r"\b\d{6}-?[1-4]\d{6}\b").expect("valid korea rrn regex"),
+            validate: validate_korea_rrn,
+        },
+        super::PiiDetector {
+            label: "Australian TFN",
+            pattern: Regex::new(r"\b\d{9}\b").expect("valid australia tfn regex"),
+            validate: validate_australia_tfn,
+        },
+        super::PiiDetector {
+            label: "Australian ABN",
+            pattern: Regex::new(r"\b\d{11}\b").expect("valid australia abn regex"),
+            validate: validate_australia_abn,
         },
     ]
 }
@@ -146,7 +211,66 @@ mod tests {
     }
 
     #[test]
+    fn validate_korea_rrn_accepts_the_derived_checksum_valid_vector() {
+        assert!(validate_korea_rrn("9701011234569"));
+    }
+
+    #[test]
+    fn validate_korea_rrn_rejects_a_broken_check_digit() {
+        assert!(!validate_korea_rrn("9701011234568"));
+    }
+
+    #[test]
+    fn validate_korea_rrn_rejects_an_all_equal_digit_placeholder() {
+        assert!(!validate_korea_rrn("1111111111111"));
+    }
+
+    #[test]
+    fn validate_australia_tfn_accepts_the_canonical_valid_vector() {
+        assert!(validate_australia_tfn("123456782"));
+    }
+
+    #[test]
+    fn validate_australia_tfn_rejects_a_broken_checksum() {
+        assert!(!validate_australia_tfn("123456780"));
+    }
+
+    #[test]
+    fn validate_australia_tfn_rejects_an_all_equal_digit_placeholder() {
+        assert!(!validate_australia_tfn("999999999"));
+    }
+
+    #[test]
+    fn validate_australia_abn_accepts_the_canonical_valid_vector() {
+        assert!(validate_australia_abn("51824753556"));
+    }
+
+    #[test]
+    fn validate_australia_abn_rejects_a_broken_checksum() {
+        assert!(!validate_australia_abn("51824753557"));
+    }
+
+    #[test]
+    fn validate_australia_abn_rejects_an_all_equal_digit_placeholder() {
+        assert!(!validate_australia_abn("77777777777"));
+    }
+
+    /// `51824753556` is the canonical valid ABN vector, but only once the
+    /// leading digit is decremented per the published algorithm: without
+    /// that adjustment the weighted sum is `544`, not a multiple of `89`
+    /// (`534` is `6 * 89`; `544` is not) — proving the `-1` step is load
+    /// bearing, not incidental.
+    #[test]
+    fn validate_australia_abn_rejects_the_canonical_vector_when_the_leading_digit_adjustment_is_skipped(
+    ) {
+        let ds = checksum::digits("51824753556");
+        const WEIGHTS: [u32; 11] = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19];
+        let unadjusted_sum: u32 = ds.iter().zip(WEIGHTS).map(|(d, w)| d * w).sum();
+        assert!(!unadjusted_sum.is_multiple_of(89));
+    }
+
+    #[test]
     fn detectors_registers_one_detector_per_apac_class() {
-        assert_eq!(detectors().len(), 2);
+        assert_eq!(detectors().len(), 5);
     }
 }
