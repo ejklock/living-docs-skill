@@ -21,3 +21,4 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0009 — Document visibility is default-deny frontmatter data, validated and index-aware](0009-document-visibility-model.md) - Accepted
 * [0010 — Public export is a deterministic allowlist build with a leak gate; publish is a human-gated procedure](0010-public-export-is-a-deterministic-allowlist-build-with-a-leak-gate-publish-is-a-human-gated-procedure.md) - Accepted
 * [0011 — Secret and PII detection stays deterministic — a curated ruleset plus Shannon entropy, never ML](0011-leak-detection-stays-deterministic-curated-ruleset-plus-shannon-entropy-never-ml.md) - Accepted
+* [0012 — Worldwide PII detection is checksum-tiered, two-stage, and deterministic](0012-worldwide-pii-detection-is-checksum-tiered-two-stage-and-deterministic.md) - Accepted
