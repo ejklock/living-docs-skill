@@ -41,13 +41,15 @@ fn validate_mac(matched: &str) -> bool {
     hex.any(|c| c != first)
 }
 
-/// The regex pins the 5+3-digit shape (with an optional hyphen), so the
-/// validator does not re-check length or digit count — a second guard over
-/// territory the regex already owns would be dead code (B8a lesson). CEP has
-/// no check digit, so the only honest discriminator is rejecting the
-/// all-equal placeholder (`00000-000`) that stands in for "no CEP entered"
-/// rather than a real postal code.
-fn validate_cep(matched: &str) -> bool {
+/// Shared by CEP, India Voter ID, and Nigeria NIN: each regex pins its own
+/// shape and character set, so this validator does not re-check length,
+/// digit count, or letter placement — a second guard over territory the
+/// regex already owns would be dead code (B8a lesson). None of these three
+/// national IDs carries a check digit, so the only honest discriminator
+/// available is rejecting an all-identical-digit body (`00000-000`,
+/// `ABC0000000`, `00000000000`) — the placeholder shape a stub or "no ID
+/// entered" value takes, rather than a real identifier.
+fn digits_not_all_same(matched: &str) -> bool {
     !checksum::all_same(&checksum::digits(matched))
 }
 
@@ -161,10 +163,10 @@ fn rg_sp_verifier_matches(expected_dv: u32, verifier: char) -> bool {
 }
 
 /// Registers IPv4, IPv6, MAC, CEP, UK postcode, Bitcoin address, Ethereum
-/// address, and Brazil RG (SP) for this slice — Tier-3's per-detector
-/// false-positive risk is why each addition here is deliberate rather than
-/// batched, unlike the Tier-1 modules that ship a whole region's classes at
-/// once.
+/// address, Brazil RG (SP), India Voter ID, and Nigeria NIN for this slice —
+/// Tier-3's per-detector false-positive risk is why each addition here is
+/// deliberate rather than batched, unlike the Tier-1 modules that ship a
+/// whole region's classes at once.
 pub(super) fn detectors() -> Vec<PiiDetector> {
     vec![
         PiiDetector {
@@ -187,7 +189,7 @@ pub(super) fn detectors() -> Vec<PiiDetector> {
         PiiDetector {
             label: "CEP",
             pattern: Regex::new(r"\b\d{5}-?\d{3}\b").expect("valid cep regex"),
-            validate: validate_cep,
+            validate: digits_not_all_same,
         },
         PiiDetector {
             label: "UK postcode",
@@ -210,6 +212,16 @@ pub(super) fn detectors() -> Vec<PiiDetector> {
             label: "Brazil RG (SP)",
             pattern: Regex::new(r"\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b").expect("valid rg sp regex"),
             validate: validate_rg_sp,
+        },
+        PiiDetector {
+            label: "India Voter ID",
+            pattern: Regex::new(r"\b[A-Z]{3}\d{7}\b").expect("valid india voter id regex"),
+            validate: digits_not_all_same,
+        },
+        PiiDetector {
+            label: "Nigeria NIN",
+            pattern: Regex::new(r"\b\d{11}\b").expect("valid nigeria nin regex"),
+            validate: digits_not_all_same,
         },
     ]
 }
@@ -261,17 +273,37 @@ mod tests {
 
     #[test]
     fn validate_cep_accepts_a_hyphenated_cep() {
-        assert!(validate_cep("01310-100"));
+        assert!(digits_not_all_same("01310-100"));
     }
 
     #[test]
     fn validate_cep_accepts_an_unhyphenated_cep() {
-        assert!(validate_cep("01310100"));
+        assert!(digits_not_all_same("01310100"));
     }
 
     #[test]
     fn validate_cep_rejects_the_all_equal_placeholder() {
-        assert!(!validate_cep("00000-000"));
+        assert!(!digits_not_all_same("00000-000"));
+    }
+
+    #[test]
+    fn digits_not_all_same_accepts_a_well_formed_india_voter_id() {
+        assert!(digits_not_all_same("ABC1234567"));
+    }
+
+    #[test]
+    fn digits_not_all_same_rejects_an_india_voter_id_with_an_all_equal_digit_body() {
+        assert!(!digits_not_all_same("ABC0000000"));
+    }
+
+    #[test]
+    fn digits_not_all_same_accepts_a_well_formed_nigeria_nin() {
+        assert!(digits_not_all_same("12345678901"));
+    }
+
+    #[test]
+    fn digits_not_all_same_rejects_an_all_equal_nigeria_nin_placeholder() {
+        assert!(!digits_not_all_same("00000000000"));
     }
 
     #[test]
@@ -305,8 +337,8 @@ mod tests {
     }
 
     #[test]
-    fn detectors_registers_a_detector_for_each_of_the_eight_tier3_classes() {
-        assert_eq!(detectors().len(), 8);
+    fn detectors_registers_a_detector_for_each_of_the_ten_tier3_classes() {
+        assert_eq!(detectors().len(), 10);
         let labels: Vec<&str> = detectors().iter().map(|d| d.label).collect();
         assert!(labels.contains(&"IPv6 address"));
         assert!(labels.contains(&"MAC address"));
@@ -315,6 +347,8 @@ mod tests {
         assert!(labels.contains(&"Bitcoin address"));
         assert!(labels.contains(&"Ethereum address"));
         assert!(labels.contains(&"Brazil RG (SP)"));
+        assert!(labels.contains(&"India Voter ID"));
+        assert!(labels.contains(&"Nigeria NIN"));
     }
 
     #[test]
@@ -553,5 +587,38 @@ mod tests {
             .collect();
         assert_eq!(rg_matches.len(), 1);
         assert!(!rg_matches[0].contains("12.345.678-2"));
+    }
+
+    #[test]
+    fn collect_tier3_violations_flags_an_india_voter_id_and_a_nigeria_nin_and_masks_both() {
+        let path = Path::new("adr/0001-doc.md");
+        let contents = "Voter ID on file: ABC1234567. NIN on file: 12345678901.";
+        let mut out = Vec::new();
+
+        super::super::collect_tier3_violations(path, contents, &mut out);
+
+        assert!(out
+            .iter()
+            .any(|(_, message)| message.contains("India Voter ID")
+                && !message.contains("ABC1234567")));
+        assert!(out.iter().any(
+            |(_, message)| message.contains("Nigeria NIN") && !message.contains("12345678901")
+        ));
+    }
+
+    #[test]
+    fn collect_tier3_violations_stays_quiet_on_the_india_voter_id_and_nigeria_nin_placeholders() {
+        let path = Path::new("adr/0001-doc.md");
+        let contents = "Placeholder voter ID: ABC0000000. Placeholder NIN: 00000000000.";
+        let mut out = Vec::new();
+
+        super::super::collect_tier3_violations(path, contents, &mut out);
+
+        assert!(!out
+            .iter()
+            .any(|(_, message)| message.contains("India Voter ID")));
+        assert!(!out
+            .iter()
+            .any(|(_, message)| message.contains("Nigeria NIN")));
     }
 }
