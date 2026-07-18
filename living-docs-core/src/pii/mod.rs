@@ -4,6 +4,7 @@
 //! checksum. Only a checksum-valid match is reported — the checksum is the
 //! false-positive filter, not the regex (a broken check digit never fires).
 
+mod apac;
 mod brazil;
 mod checksum;
 mod europe;
@@ -28,6 +29,7 @@ fn pii_detectors() -> &'static [PiiDetector] {
         let mut detectors = brazil::detectors();
         detectors.extend(financial::detectors());
         detectors.extend(europe::detectors());
+        detectors.extend(apac::detectors());
         detectors
     })
 }
@@ -129,5 +131,18 @@ mod tests {
         collect_pii_violations(path, contents, &mut out);
 
         assert!(out.iter().any(|(_, message)| message.contains("Dutch BSN")));
+    }
+
+    #[test]
+    fn collect_pii_violations_labels_a_checksum_valid_south_africa_id() {
+        let path = Path::new("adr/0001-doc.md");
+        let contents = "ID number on file: 8001015009087.";
+        let mut out = Vec::new();
+
+        collect_pii_violations(path, contents, &mut out);
+
+        assert!(out
+            .iter()
+            .any(|(_, message)| message.contains("South African ID")));
     }
 }
