@@ -13,51 +13,11 @@ use regex::Regex;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
-/// The kind of document a `PiiDetector` matches, used to label a reported
-/// violation without re-deriving it from the matched text.
-#[derive(Clone, Copy)]
-pub enum PiiClass {
-    Cpf,
-    Cnpj,
-    Pis,
-    TituloEleitor,
-    Cnh,
-    Cns,
-    Renavam,
-    CreditCard,
-    Iban,
-    AbaRouting,
-    Npi,
-    SpainNifNie,
-    PortugalNif,
-    NetherlandsBsn,
-}
-
-impl PiiClass {
-    pub fn label(&self) -> &'static str {
-        match self {
-            PiiClass::Cpf => "Brazilian CPF",
-            PiiClass::Cnpj => "Brazilian CNPJ",
-            PiiClass::Pis => "Brazilian PIS/PASEP",
-            PiiClass::TituloEleitor => "Brazilian título de eleitor",
-            PiiClass::Cnh => "Brazilian CNH",
-            PiiClass::Cns => "Brazilian CNS/SUS card",
-            PiiClass::Renavam => "Brazilian RENAVAM",
-            PiiClass::CreditCard => "Credit card number",
-            PiiClass::Iban => "IBAN",
-            PiiClass::AbaRouting => "US ABA routing number",
-            PiiClass::Npi => "US NPI",
-            PiiClass::SpainNifNie => "Spanish NIF/NIE",
-            PiiClass::PortugalNif => "Portuguese NIF",
-            PiiClass::NetherlandsBsn => "Dutch BSN",
-        }
-    }
-}
-
 /// A two-stage detector: `pattern` finds every syntactic candidate,
-/// `validate` decides whether one is checksum-valid PII.
+/// `validate` decides whether one is checksum-valid PII, and `label` names
+/// the document class in a reported violation.
 struct PiiDetector {
-    class: PiiClass,
+    label: &'static str,
     pattern: Regex,
     validate: fn(&str) -> bool,
 }
@@ -84,7 +44,7 @@ pub fn collect_pii_violations(path: &Path, contents: &str, out: &mut Vec<(PathBu
                 path.to_path_buf(),
                 format!(
                     "{} detected (masked: {})",
-                    detector.class.label(),
+                    detector.label,
                     mask_pii(candidate.as_str())
                 ),
             ));
@@ -147,5 +107,27 @@ mod tests {
         collect_pii_violations(path, contents, &mut out);
 
         assert!(out.is_empty());
+    }
+
+    #[test]
+    fn collect_pii_violations_labels_a_checksum_valid_iban() {
+        let path = Path::new("adr/0001-doc.md");
+        let contents = "Wire to IBAN GB82WEST12345698765432 today.";
+        let mut out = Vec::new();
+
+        collect_pii_violations(path, contents, &mut out);
+
+        assert!(out.iter().any(|(_, message)| message.contains("IBAN")));
+    }
+
+    #[test]
+    fn collect_pii_violations_labels_a_checksum_valid_dutch_bsn() {
+        let path = Path::new("adr/0001-doc.md");
+        let contents = "BSN op file: 111222333.";
+        let mut out = Vec::new();
+
+        collect_pii_violations(path, contents, &mut out);
+
+        assert!(out.iter().any(|(_, message)| message.contains("Dutch BSN")));
     }
 }

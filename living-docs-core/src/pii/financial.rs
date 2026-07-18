@@ -133,22 +133,22 @@ fn validate_npi(matched: &str) -> bool {
 pub(super) fn detectors() -> Vec<super::PiiDetector> {
     vec![
         super::PiiDetector {
-            class: super::PiiClass::CreditCard,
+            label: "Credit card number",
             pattern: Regex::new(r"\b\d{13,19}\b").expect("valid credit card regex"),
             validate: validate_credit_card,
         },
         super::PiiDetector {
-            class: super::PiiClass::Iban,
+            label: "IBAN",
             pattern: Regex::new(r"\b[A-Z]{2}\d{2}[A-Z0-9]{9,30}\b").expect("valid iban regex"),
             validate: validate_iban,
         },
         super::PiiDetector {
-            class: super::PiiClass::AbaRouting,
+            label: "US ABA routing number",
             pattern: Regex::new(r"\b\d{9}\b").expect("valid aba routing regex"),
             validate: validate_aba_routing,
         },
         super::PiiDetector {
-            class: super::PiiClass::Npi,
+            label: "US NPI",
             pattern: Regex::new(r"\b\d{10}\b").expect("valid npi regex"),
             validate: validate_npi,
         },

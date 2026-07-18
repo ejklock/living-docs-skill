@@ -102,17 +102,17 @@ fn validate_netherlands_bsn(matched: &str) -> bool {
 pub(super) fn detectors() -> Vec<super::PiiDetector> {
     vec![
         super::PiiDetector {
-            class: super::PiiClass::SpainNifNie,
+            label: "Spanish NIF/NIE",
             pattern: Regex::new(r"\b[XYZ]?\d{7,8}[A-Z]\b").expect("valid spain nif/nie regex"),
             validate: validate_spain_nif_nie,
         },
         super::PiiDetector {
-            class: super::PiiClass::PortugalNif,
+            label: "Portuguese NIF",
             pattern: Regex::new(r"\b\d{9}\b").expect("valid portugal nif regex"),
             validate: validate_portugal_nif,
         },
         super::PiiDetector {
-            class: super::PiiClass::NetherlandsBsn,
+            label: "Dutch BSN",
             pattern: Regex::new(r"\b\d{9}\b").expect("valid netherlands bsn regex"),
             validate: validate_netherlands_bsn,
         },
