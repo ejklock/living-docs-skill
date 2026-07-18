@@ -2,8 +2,8 @@
 //!
 //! Covers the mechanical invariants: OKF frontmatter/type, index-format,
 //! directory-index membership, bundle-root reachability, supersede-chain
-//! integrity, local link/image validity via `pulldown-cmark`, and (S6)
-//! ```mermaid``` fence validation via the pinned mermaid-cli Docker image.
+//! integrity, local link/image validity via `pulldown-cmark`, and (ADR 0013)
+//! ```mermaid``` fence validation in-process via `merman-core`.
 //!
 //! Every record's content (`records`, `links`) is read through
 //! `DocStore::read`, so `check` validates whichever backend `run` is given.
@@ -57,9 +57,7 @@ pub fn run(store: &dyn DocStore, bundle: &Path) -> ExitCode {
     links::check_links(store, bundle, &all_md, &mut reporter);
     records::check_supersede_chain(store, &all_md, &mut reporter);
 
-    if let Some(code) = mermaid::check_bundle(&all_md, &mut reporter) {
-        return code;
-    }
+    mermaid::check_bundle(&all_md, &mut reporter);
 
     reporter.finish(all_md.len())
 }

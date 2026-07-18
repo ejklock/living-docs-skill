@@ -1,18 +1,17 @@
-//! Mermaid fence validation (S6) — ports `skills/living-docs/scripts/lint-mermaid.sh`.
+//! Mermaid fence validation (ADR 0013) — ports `skills/living-docs/scripts/lint-mermaid.sh`.
 //!
 //! Extracts every fenced ```mermaid``` block (optional indent, one open line +
-//! one close line) and validates each one through the pinned `mermaid-cli`
-//! Docker image — the real parser, not a hand-rolled grammar check. Docker is
-//! only required when at least one fence is found: a bundle with no diagrams
-//! never shells out.
+//! one close line) and validates each one in-process through `merman-core`'s
+//! `Engine::parse_diagram_sync`, the real Mermaid grammar parser — not a
+//! hand-rolled check and no external process of any kind.
 
 use super::{collect_md_files, Reporter};
+use merman_core::{Engine, ParseOptions};
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
 
-const DEFAULT_IMAGE: &str = "minlag/mermaid-cli:11.4.2";
 const FIXTURES_PATHSPEC: &str = ":!skills/living-docs/tests/fixtures";
 
 pub(crate) struct Diagram {
@@ -29,7 +28,6 @@ struct Failure {
 
 enum Outcome {
     NoFences,
-    DockerUnavailable,
     Checked {
         diagram_count: usize,
         file_count: usize,
@@ -46,10 +44,6 @@ pub fn run_mermaid_only(paths: &[PathBuf]) -> ExitCode {
         Outcome::NoFences => {
             println!("\nOK: 0 diagram(s) across 0 file(s).");
             ExitCode::SUCCESS
-        }
-        Outcome::DockerUnavailable => {
-            report_docker_unavailable("check --mermaid-only");
-            ExitCode::from(2)
         }
         Outcome::Checked {
             diagram_count,
@@ -72,30 +66,21 @@ pub fn run_mermaid_only(paths: &[PathBuf]) -> ExitCode {
     }
 }
 
-/// Wires mermaid validation into a full `check <bundle>` run. Returns `Some`
-/// exit code when the bundle has fences but Docker is unavailable — the
-/// caller must abort immediately, matching the mermaid-only tool-error
-/// contract — otherwise reports failures into `reporter` and returns `None`.
-pub(crate) fn check_bundle(all_md: &[PathBuf], reporter: &mut Reporter) -> Option<ExitCode> {
-    match check(all_md) {
-        Outcome::NoFences => None,
-        Outcome::DockerUnavailable => {
-            report_docker_unavailable("check");
-            Some(ExitCode::from(2))
-        }
-        Outcome::Checked { failures, .. } => {
-            for f in &failures {
-                reporter.report(
-                    &f.file,
-                    format!(
-                        "FAIL {}:{} — invalid mermaid diagram",
-                        f.file.display(),
-                        f.start_line
-                    ),
-                );
-            }
-            None
-        }
+/// Wires mermaid validation into a full `check <bundle>` run: reports every
+/// invalid diagram into `reporter`. A bundle with no fences reports nothing.
+pub(crate) fn check_bundle(all_md: &[PathBuf], reporter: &mut Reporter) {
+    let Outcome::Checked { failures, .. } = check(all_md) else {
+        return;
+    };
+    for f in &failures {
+        reporter.report(
+            &f.file,
+            format!(
+                "FAIL {}:{} — invalid mermaid diagram",
+                f.file.display(),
+                f.start_line
+            ),
+        );
     }
 }
 
@@ -103,9 +88,6 @@ fn check(files: &[PathBuf]) -> Outcome {
     let diagrams = extract_diagrams(files);
     if diagrams.is_empty() {
         return Outcome::NoFences;
-    }
-    if !docker_available() {
-        return Outcome::DockerUnavailable;
     }
     let file_count = diagrams
         .iter()
@@ -119,11 +101,6 @@ fn check(files: &[PathBuf]) -> Outcome {
         file_count,
         failures,
     }
-}
-
-fn report_docker_unavailable(prog: &str) {
-    eprintln!("living-docs {prog}: missing required tool: docker");
-    eprintln!("       install: https://docs.docker.com/get-docker/");
 }
 
 fn print_failures(failures: &[Failure]) {
@@ -217,89 +194,28 @@ fn extract_from_file(file: &Path) -> Vec<Diagram> {
     diagrams
 }
 
-fn docker_available() -> bool {
-    Command::new("docker")
-        .arg("info")
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
-}
-
-fn mermaid_cli_image() -> String {
-    std::env::var("MERMAID_CLI_IMAGE").unwrap_or_else(|_| DEFAULT_IMAGE.to_string())
-}
-
+/// Validates every diagram against one shared `Engine`, matching ADR 0013:
+/// `Ok(Some(_))` passes, `Err(_)`/`Ok(None)` produce a `Failure` carrying the
+/// parser's own error (or a no-diagram note) as `detail`.
 fn validate_all(diagrams: &[Diagram]) -> Vec<Failure> {
-    let image = mermaid_cli_image();
-    let scratch = scratch_dir();
-    let _ = fs::create_dir_all(scratch.join("out"));
-    let failures = diagrams
+    let engine = Engine::new();
+    diagrams
         .iter()
-        .enumerate()
-        .filter_map(|(i, d)| validate_one(&scratch, &image, i + 1, d))
-        .collect();
-    let _ = fs::remove_dir_all(&scratch);
-    failures
+        .filter_map(|d| validate_one(&engine, d))
+        .collect()
 }
 
-fn validate_one(scratch: &Path, image: &str, id: usize, diagram: &Diagram) -> Option<Failure> {
-    let mmd_path = scratch.join(format!("{id:03}.mmd"));
-    fs::write(&mmd_path, &diagram.body).ok()?;
-    let mount = format!("{}:/data", scratch.display());
-    let mmd_arg = format!("/data/{id:03}.mmd");
-    let svg_arg = format!("/data/out/{id:03}.svg");
-    let output = Command::new("docker")
-        .args([
-            "run",
-            "--rm",
-            "-u",
-            &uid_gid_arg(),
-            "-v",
-            &mount,
-            image,
-            "-i",
-            &mmd_arg,
-            "-o",
-            &svg_arg,
-            "-q",
-        ])
-        .output()
-        .ok()?;
-    if output.status.success() {
-        return None;
-    }
-    let mut detail = String::from_utf8_lossy(&output.stdout).into_owned();
-    detail.push_str(&String::from_utf8_lossy(&output.stderr));
+fn validate_one(engine: &Engine, diagram: &Diagram) -> Option<Failure> {
+    let detail = match engine.parse_diagram_sync(&diagram.body, ParseOptions::strict()) {
+        Ok(Some(_)) => return None,
+        Ok(None) => "no mermaid diagram recognized in fence body".to_string(),
+        Err(err) => err.to_string(),
+    };
     Some(Failure {
         file: diagram.file.clone(),
         start_line: diagram.start_line,
         detail,
     })
-}
-
-fn uid_gid_arg() -> String {
-    format!("{}:{}", id_output("-u"), id_output("-g"))
-}
-
-fn id_output(flag: &str) -> String {
-    Command::new("id")
-        .arg(flag)
-        .output()
-        .ok()
-        .filter(|o| o.status.success())
-        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
-        .unwrap_or_else(|| "0".to_string())
-}
-
-fn scratch_dir() -> PathBuf {
-    let nanos = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    std::env::temp_dir().join(format!(
-        "living-docs-mermaid-{}-{nanos}",
-        std::process::id()
-    ))
 }
 
 #[cfg(test)]
@@ -359,14 +275,41 @@ mod tests {
         let _ = fs::remove_file(&path);
     }
 
-    #[test]
-    fn mermaid_cli_image_defaults_to_the_pinned_tag_and_honors_the_env_override() {
-        std::env::remove_var("MERMAID_CLI_IMAGE");
-        assert_eq!(mermaid_cli_image(), DEFAULT_IMAGE);
+    fn corpus_diagram(body: &str) -> Diagram {
+        Diagram {
+            file: PathBuf::from("corpus.md"),
+            start_line: 1,
+            body: body.to_string(),
+        }
+    }
 
-        std::env::set_var("MERMAID_CLI_IMAGE", "example/mermaid-cli:9.9.9");
-        assert_eq!(mermaid_cli_image(), "example/mermaid-cli:9.9.9");
-        std::env::remove_var("MERMAID_CLI_IMAGE");
+    /// ADR 0013 fitness function: the conformance corpus must parse with the
+    /// exact same accept/reject verdict the prior parser gave — every valid
+    /// shape accepted, the broken arrow chain rejected. A parity regression
+    /// in `merman-core` fails this test, not silently degrades `check`.
+    #[test]
+    fn validate_all_matches_the_adr_0013_conformance_corpus() {
+        let valid = [
+            "flowchart TD\n  A[Start] --> B{Decision}\n  B -->|Yes| C[Do the thing]\n  B -->|No| D[Skip it]\n",
+            "flowchart LR\n  User -->|shortens| App\n  App -->|redirects| User\n",
+            "erDiagram\n  CUSTOMER ||--o{ ORDER : places\n  ORDER ||--|{ LINE_ITEM : contains\n",
+            "  flowchart TD\n    A --> B\n",
+        ]
+        .map(corpus_diagram);
+        let failures = validate_all(&valid);
+        assert!(
+            failures.is_empty(),
+            "expected every valid corpus diagram to parse, but {} failed",
+            failures.len()
+        );
+
+        let invalid = [corpus_diagram("flowchart TD\nA --> --> B\n")];
+        let failures = validate_all(&invalid);
+        assert_eq!(
+            failures.len(),
+            1,
+            "expected the broken arrow chain to be rejected"
+        );
     }
 
     #[test]
