@@ -106,6 +106,26 @@ enum SecretClass {
     AwsAccessKeyId,
     SecretAssignment,
     Email,
+    StripeSecretKey,
+    GitHubToken,
+    GitLabToken,
+    GoogleApiKey,
+    SlackToken,
+    Jwt,
+    BearerToken,
+    HighEntropyAssignment,
+}
+
+/// How much of a matched value `mask` is allowed to reveal. Each
+/// `SecretClass` maps to exactly one strategy (`mask_strategy`), so adding a
+/// class never grows `mask` itself — it only ever switches on these three
+/// shapes, keeping it within the complexity budget regardless of how many
+/// provider patterns the ruleset (ADR 0011) grows to.
+#[derive(Clone, Copy)]
+enum MaskStrategy {
+    Redact,
+    KeepPrefix(usize),
+    Email,
 }
 
 impl SecretClass {
@@ -115,15 +135,42 @@ impl SecretClass {
             SecretClass::AwsAccessKeyId => "AWS access key id",
             SecretClass::SecretAssignment => "secret/token/password assignment",
             SecretClass::Email => "email address (PII)",
+            SecretClass::StripeSecretKey => "Stripe secret key",
+            SecretClass::GitHubToken => "GitHub token",
+            SecretClass::GitLabToken => "GitLab personal access token",
+            SecretClass::GoogleApiKey => "Google API key",
+            SecretClass::SlackToken => "Slack token",
+            SecretClass::Jwt => "JSON Web Token (JWT)",
+            SecretClass::BearerToken => "generic Bearer token",
+            SecretClass::HighEntropyAssignment => "high-entropy generic secret assignment",
+        }
+    }
+
+    fn mask_strategy(self) -> MaskStrategy {
+        match self {
+            SecretClass::Email => MaskStrategy::Email,
+            SecretClass::AwsAccessKeyId => MaskStrategy::KeepPrefix(4),
+            SecretClass::StripeSecretKey => MaskStrategy::KeepPrefix(8),
+            SecretClass::GitHubToken => MaskStrategy::KeepPrefix(4),
+            SecretClass::GitLabToken => MaskStrategy::KeepPrefix(6),
+            SecretClass::GoogleApiKey => MaskStrategy::KeepPrefix(4),
+            SecretClass::SlackToken => MaskStrategy::KeepPrefix(5),
+            SecretClass::PemPrivateKey
+            | SecretClass::SecretAssignment
+            | SecretClass::Jwt
+            | SecretClass::BearerToken
+            | SecretClass::HighEntropyAssignment => MaskStrategy::Redact,
         }
     }
 }
 
-/// The secret/PII pattern set (ADR 0010): a small, high-signal set of
-/// regexes compiled once. This is heuristic and advisory, not exhaustive —
-/// it targets the shapes most likely to leak (PEM key material, AWS access
-/// key ids, quoted secret/token/password/api_key assignments, and email
-/// addresses) and is versioned alongside ADR 0010 rather than grown ad hoc.
+/// The secret/PII pattern set (ADR 0010, deepened by ADR 0011): a curated,
+/// gitleaks-style set of high-signal provider-token regexes compiled once.
+/// This is heuristic and advisory, not exhaustive — it targets the shapes
+/// most likely to leak (PEM key material, AWS access key ids, quoted
+/// secret/token/password/api_key assignments, email addresses, and named
+/// provider token formats for Stripe/GitHub/GitLab/Google/Slack/JWT/Bearer)
+/// and is versioned alongside those ADRs rather than grown ad hoc.
 fn secret_patterns() -> &'static [(SecretClass, Regex)] {
     static PATTERNS: OnceLock<Vec<(SecretClass, Regex)>> = OnceLock::new();
     PATTERNS.get_or_init(|| {
@@ -148,21 +195,50 @@ fn secret_patterns() -> &'static [(SecretClass, Regex)] {
                 Regex::new(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
                     .expect("valid email regex"),
             ),
+            (
+                SecretClass::StripeSecretKey,
+                Regex::new(r"(?:sk|rk)_live_[0-9a-zA-Z]{20,}")
+                    .expect("valid stripe secret key regex"),
+            ),
+            (
+                SecretClass::GitHubToken,
+                Regex::new(r"gh[pousr]_[0-9A-Za-z]{36}").expect("valid github token regex"),
+            ),
+            (
+                SecretClass::GitLabToken,
+                Regex::new(r"glpat-[0-9A-Za-z_-]{20}").expect("valid gitlab token regex"),
+            ),
+            (
+                SecretClass::GoogleApiKey,
+                Regex::new(r"AIza[0-9A-Za-z_-]{35}").expect("valid google api key regex"),
+            ),
+            (
+                SecretClass::SlackToken,
+                Regex::new(r"xox[baprs]-[0-9A-Za-z-]{10,}").expect("valid slack token regex"),
+            ),
+            (
+                SecretClass::Jwt,
+                Regex::new(r"eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}")
+                    .expect("valid jwt regex"),
+            ),
+            (
+                SecretClass::BearerToken,
+                Regex::new(r"(?i)bearer\s+[A-Za-z0-9._~+/=-]{20,}")
+                    .expect("valid bearer token regex"),
+            ),
         ]
     })
 }
 
 /// Masks a matched secret/PII value so the gate never echoes it verbatim —
 /// a leak gate that prints the secret it caught would itself be a leak
-/// vector. Key material and secret assignments are fully redacted; an AWS
-/// key id keeps only its public `AKIA` prefix; an email keeps its first
-/// character and domain so the report stays locatable without exposing the
-/// full address.
+/// vector. Delegates to the class's `MaskStrategy` so this stays a fixed
+/// three-arm match no matter how many provider classes the ruleset grows to.
 fn mask(class: SecretClass, matched: &str) -> String {
-    match class {
-        SecretClass::Email => mask_email(matched),
-        SecretClass::AwsAccessKeyId => mask_keeping_prefix(matched, 4),
-        SecretClass::PemPrivateKey | SecretClass::SecretAssignment => "[redacted]".to_string(),
+    match class.mask_strategy() {
+        MaskStrategy::Email => mask_email(matched),
+        MaskStrategy::KeepPrefix(keep) => mask_keeping_prefix(matched, keep),
+        MaskStrategy::Redact => "[redacted]".to_string(),
     }
 }
 
@@ -189,14 +265,89 @@ fn collect_secret_violations(
     let Ok(contents) = store.read(path) else {
         return;
     };
+    collect_secret_pattern_violations(path, &contents, violations);
+    collect_high_entropy_assignment_violations(path, &contents, violations);
+}
+
+fn collect_secret_pattern_violations(
+    path: &Path,
+    contents: &str,
+    violations: &mut Vec<(PathBuf, String)>,
+) {
     for (class, pattern) in secret_patterns() {
-        let Some(found) = pattern.find(&contents) else {
+        let Some(found) = pattern.find(contents) else {
             continue;
         };
         let masked = mask(*class, found.as_str());
         violations.push((
             path.to_path_buf(),
             format!("{} detected (masked: {masked})", class.label()),
+        ));
+    }
+}
+
+/// Bits/char below which a quoted assignment value is treated as ordinary
+/// text rather than a generic secret (ADR 0011). English prose and
+/// structural strings (hex ids, short config values) cluster below this
+/// line; base64-ish random token material sits comfortably above it. Kept
+/// as a named threshold — like `secret_patterns()` — so it is versioned
+/// rather than a magic number buried in the scan.
+const HIGH_ENTROPY_THRESHOLD: f64 = 4.0;
+
+/// Matches a quoted assignment (`identifier = "value"` / `identifier:
+/// "value"`) whose value is at least 24 characters, the shape a generic
+/// high-entropy secret takes. Scoping the entropy scan to this shape — never
+/// free prose — is what keeps it quiet on a git SHA or an ordinary sentence
+/// mentioned in a doc (ADR 0011).
+fn assignment_pattern() -> &'static Regex {
+    static PATTERN: OnceLock<Regex> = OnceLock::new();
+    PATTERN.get_or_init(|| {
+        Regex::new(r#"(?i)([A-Za-z0-9_]+)\s*[:=]\s*["']([^"']{24,})["']"#)
+            .expect("valid assignment regex")
+    })
+}
+
+/// Shannon entropy of `value` in bits per character, over the character
+/// frequency distribution. A generic random secret (base64/hex token
+/// material) sits well above ordinary prose or structured ids, which is
+/// what lets the entropy scan flag a high-entropy value assigned to a
+/// non-secret-named key (ADR 0011).
+fn shannon_entropy(value: &str) -> f64 {
+    let len = value.chars().count();
+    if len == 0 {
+        return 0.0;
+    }
+    let mut counts = std::collections::HashMap::new();
+    for c in value.chars() {
+        *counts.entry(c).or_insert(0u32) += 1;
+    }
+    let len = len as f64;
+    counts
+        .values()
+        .map(|&count| {
+            let probability = f64::from(count) / len;
+            -probability * probability.log2()
+        })
+        .sum()
+}
+
+fn collect_high_entropy_assignment_violations(
+    path: &Path,
+    contents: &str,
+    violations: &mut Vec<(PathBuf, String)>,
+) {
+    for captures in assignment_pattern().captures_iter(contents) {
+        let value = &captures[2];
+        if shannon_entropy(value) < HIGH_ENTROPY_THRESHOLD {
+            continue;
+        }
+        let masked = mask(SecretClass::HighEntropyAssignment, value);
+        violations.push((
+            path.to_path_buf(),
+            format!(
+                "{} detected (masked: {masked})",
+                SecretClass::HighEntropyAssignment.label()
+            ),
         ));
     }
 }
@@ -473,7 +624,7 @@ mod tests {
     fn leak_gate_masks_the_matched_secret_value_in_the_reported_message() {
         let bundle = TempBundle::new("secret-masking");
         let doc_path = bundle.root.join("adr").join("0001-key.md");
-        let raw_secret = "sk_\x6cive_abcdefghijklmnopqrstuvwxyz";
+        let raw_secret = "abcdefghijklmnop1234";
         let mut files = BTreeMap::new();
         files.insert(
             doc_path.clone(),
@@ -557,6 +708,173 @@ mod tests {
         assert!(violations
             .iter()
             .any(|(_, m)| m.contains("AWS access key id")));
+
+        let code = run(&store, &bundle.root);
+        assert!(!exit_code_is_success(code));
+    }
+
+    fn bundle_with_one_doc(label: &str, body: &str) -> (TempBundle, PathBuf, MapStore) {
+        let bundle = TempBundle::new(label);
+        let doc_path = bundle.root.join("adr").join("0001-doc.md");
+        let mut files = BTreeMap::new();
+        files.insert(
+            doc_path.clone(),
+            format!("---\ntype: ADR\nvisibility: public\n---\n{body}\n"),
+        );
+        let store = MapStore { files };
+        (bundle, doc_path, store)
+    }
+
+    #[test]
+    fn leak_gate_fails_when_a_doc_contains_a_stripe_secret_key() {
+        let (bundle, _doc_path, store) =
+            bundle_with_one_doc("stripe-secret-key", "sk_\x6cive_abcdefghijklmnopqrstuvwx");
+
+        let code = run(&store, &bundle.root);
+
+        assert!(!exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_fails_when_a_doc_contains_a_github_token() {
+        let (bundle, doc_path, store) =
+            bundle_with_one_doc("github-token", "ghp_abcdefghijklmnopqrstuvwxyz0123456789");
+        let mut violations = Vec::new();
+
+        collect_secret_violations(&store, &doc_path, &mut violations);
+
+        assert!(violations
+            .iter()
+            .any(|(path, m)| path == &doc_path && m.contains("GitHub token")));
+
+        let code = run(&store, &bundle.root);
+        assert!(!exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_fails_when_a_doc_contains_a_gitlab_token() {
+        let (bundle, _doc_path, store) =
+            bundle_with_one_doc("gitlab-token", "glpat-abcdefghijklmnopqrst");
+
+        let code = run(&store, &bundle.root);
+
+        assert!(!exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_fails_when_a_doc_contains_a_google_api_key() {
+        let (bundle, _doc_path, store) =
+            bundle_with_one_doc("google-api-key", "AIza0123456789abcdefghijklmnopqrstuvwxy");
+
+        let code = run(&store, &bundle.root);
+
+        assert!(!exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_fails_when_a_doc_contains_a_slack_token() {
+        let (bundle, _doc_path, store) =
+            bundle_with_one_doc("slack-token", "xoxb-1234567890abcdef");
+
+        let code = run(&store, &bundle.root);
+
+        assert!(!exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_fails_when_a_doc_contains_a_jwt() {
+        let (bundle, _doc_path, store) = bundle_with_one_doc(
+            "jwt",
+            "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+        );
+
+        let code = run(&store, &bundle.root);
+
+        assert!(!exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_fails_when_a_doc_contains_a_generic_bearer_token() {
+        let (bundle, _doc_path, store) = bundle_with_one_doc(
+            "bearer-token",
+            "Authorization: Bearer abcdefghijklmnopqrstuvwxyz1234567890",
+        );
+
+        let code = run(&store, &bundle.root);
+
+        assert!(!exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_fails_when_a_high_entropy_value_is_assigned_to_a_non_secret_named_key() {
+        let (bundle, doc_path, store) = bundle_with_one_doc(
+            "high-entropy-assignment",
+            "session_marker = \"N3xQ9pLvR8tYbZ6dS1jWaC4mK0fGhEuX\"",
+        );
+        let mut violations = Vec::new();
+
+        collect_secret_violations(&store, &doc_path, &mut violations);
+
+        assert!(violations
+            .iter()
+            .any(|(_, m)| m.contains("high-entropy generic secret assignment")));
+
+        let code = run(&store, &bundle.root);
+        assert!(!exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_secret_scan_does_not_false_fail_on_a_git_sha_mentioned_in_prose() {
+        let (bundle, _doc_path, store) = bundle_with_one_doc(
+            "git-sha-in-prose",
+            "See commit a1b2c3d4e5f6789012345678901234567890abcd for the fix.",
+        );
+
+        let code = run(&store, &bundle.root);
+
+        assert!(exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_secret_scan_does_not_false_fail_on_a_low_entropy_quoted_assignment() {
+        let (bundle, _doc_path, store) = bundle_with_one_doc(
+            "low-entropy-assignment",
+            "note = \"aaaaaaaaaaaaaaaaaaaaaaaaaaaa\"",
+        );
+
+        let code = run(&store, &bundle.root);
+
+        assert!(exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_masks_a_provider_token_keeping_only_a_short_public_prefix() {
+        let raw_token = "ghp_abcdefghijklmnopqrstuvwxyz0123456789";
+        let (bundle, doc_path, store) = bundle_with_one_doc("github-token-masking", raw_token);
+        let mut violations = Vec::new();
+
+        collect_secret_violations(&store, &doc_path, &mut violations);
+
+        assert!(violations.iter().any(|(_, m)| !m.contains(raw_token)));
+
+        let code = run(&store, &bundle.root);
+        assert!(!exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_masks_a_high_entropy_value_fully() {
+        let raw_value = "N3xQ9pLvR8tYbZ6dS1jWaC4mK0fGhEuX";
+        let (bundle, doc_path, store) = bundle_with_one_doc(
+            "high-entropy-masking",
+            &format!("session_marker = \"{raw_value}\""),
+        );
+        let mut violations = Vec::new();
+
+        collect_secret_violations(&store, &doc_path, &mut violations);
+
+        assert!(violations.iter().any(|(_, m)| m
+            .contains("high-entropy generic secret assignment")
+            && !m.contains(raw_value)));
 
         let code = run(&store, &bundle.root);
         assert!(!exit_code_is_success(code));
