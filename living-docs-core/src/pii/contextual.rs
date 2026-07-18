@@ -255,6 +255,61 @@ fn validate_swift_bic(matched: &str) -> bool {
         .is_some_and(|country| ISO_3166_ALPHA2.contains(&country))
 }
 
+/// E.164 international phone number (leading `+` and 7-15 total digits, no
+/// checksum — ITU-T E.164 structural rule only): the `+`, the leading
+/// `[1-9]`, and the overall digit-count range are all regex-owned, so the
+/// sole guard here is rejecting an all-equal digit run (a placeholder like
+/// `+11111111111` that would otherwise pass the shape check, B8a dead-guard
+/// lesson).
+fn validate_e164_phone(matched: &str) -> bool {
+    let ds = checksum::digits(matched);
+    !checksum::all_same(&ds)
+}
+
+/// ANATEL-assigned Brazilian area codes (DDDs), per the ANATEL National
+/// Numbering Plan (Plano Geral de Numeração de Longa Distância Nacional):
+/// the two-digit codes ANATEL has actually assigned to an operating region.
+/// A structurally digit-shaped DDD outside this table (e.g. `10`, `20`,
+/// `23`) was never assigned, so it rules out an otherwise shape-valid
+/// candidate.
+const VALID_DDD: &[u32] = &[
+    11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 24, 27, 28, 31, 32, 33, 34, 35, 37, 38, 41, 42, 43,
+    44, 45, 46, 47, 48, 49, 51, 53, 54, 55, 61, 62, 63, 64, 65, 66, 67, 68, 69, 71, 73, 74, 75, 77,
+    79, 81, 82, 83, 84, 85, 86, 87, 88, 89, 91, 92, 93, 94, 95, 96, 97, 98, 99,
+];
+
+/// Strips a leading `+55`/`55` country code from a Brazilian phone's digits
+/// so the DDD and mobile-prefix guards downstream always read a national
+/// number, never a country-code-prefixed one: a 12 or 13-digit run starting
+/// `55` is a country code plus an 8 or 9-digit local number, and the leading
+/// pair would otherwise be misread as the DDD.
+fn strip_br_country_code(ds: Vec<u32>) -> Vec<u32> {
+    if (ds.len() == 12 || ds.len() == 13) && ds[0] == 5 && ds[1] == 5 {
+        return ds[2..].to_vec();
+    }
+    ds
+}
+
+/// Brazilian national phone number (2-digit DDD + 8-digit landline or
+/// 9-digit mobile local number, with an optional `+55`/`55` country-code
+/// prefix, no checksum — ANATEL structural rules only): strips a leading
+/// country code when present, rejects an all-equal digit run, requires the
+/// DDD to be one ANATEL has assigned (`VALID_DDD`), and requires a 9-digit
+/// local number to start with the mobile prefix digit `9`. The digit-count
+/// shape itself is regex-owned, so it is never re-checked here (B8a
+/// dead-guard lesson).
+fn validate_brazil_phone(matched: &str) -> bool {
+    let ds = strip_br_country_code(checksum::digits(matched));
+    if checksum::all_same(&ds) {
+        return false;
+    }
+    let ddd = ds[0] * 10 + ds[1];
+    if !VALID_DDD.contains(&ddd) {
+        return false;
+    }
+    !(ds.len() == 11 && ds[2] != 9)
+}
+
 /// Registers every Tier-2 context-gated detector.
 pub(super) fn detectors() -> Vec<ContextualDetector> {
     vec![
@@ -307,6 +362,21 @@ pub(super) fn detectors() -> Vec<ContextualDetector> {
                 .expect("valid swift regex"),
             validate: validate_swift_bic,
             context: &["swift", "bic", "swift code"],
+        },
+        ContextualDetector {
+            label: "E.164 phone",
+            pattern: Regex::new(r"\+[1-9]\d{6,14}\b").expect("valid e164 regex"),
+            validate: validate_e164_phone,
+            context: &["phone", "telephone", "mobile", "whatsapp"],
+        },
+        ContextualDetector {
+            label: "Brazil phone",
+            pattern: Regex::new(r"(?:\+?55[\s.-]?)?\(?\b\d{2}\)?[\s.-]?9?\d{4}[\s.-]?\d{4}\b")
+                .expect("valid brazil phone regex"),
+            validate: validate_brazil_phone,
+            context: &[
+                "telefone", "celular", "fone", "whatsapp", "contato", "phone",
+            ],
         },
     ]
 }
@@ -372,9 +442,9 @@ mod tests {
     }
 
     #[test]
-    fn detectors_registers_all_eight_context_gated_detectors_with_their_context_words() {
+    fn detectors_registers_all_ten_context_gated_detectors_with_their_context_words() {
         let found = detectors();
-        assert_eq!(found.len(), 8);
+        assert_eq!(found.len(), 10);
         assert_eq!(found[0].label, "US SSN");
         assert_eq!(found[0].context, &["ssn", "social security"]);
         assert_eq!(found[1].label, "US ITIN");
@@ -394,6 +464,16 @@ mod tests {
         );
         assert_eq!(found[7].label, "SWIFT/BIC");
         assert_eq!(found[7].context, &["swift", "bic", "swift code"]);
+        assert_eq!(found[8].label, "E.164 phone");
+        assert_eq!(
+            found[8].context,
+            &["phone", "telephone", "mobile", "whatsapp"]
+        );
+        assert_eq!(found[9].label, "Brazil phone");
+        assert_eq!(
+            found[9].context,
+            &["telefone", "celular", "fone", "whatsapp", "contato", "phone"]
+        );
     }
 
     #[test]
@@ -701,6 +781,108 @@ mod tests {
     fn collect_pii_violations_stays_quiet_on_a_valid_ein_with_no_context_word() {
         let path = Path::new("adr/0001-doc.md");
         let contents = "Invoice 12-3456789 issued.";
+        let mut out = Vec::new();
+
+        super::super::collect_pii_violations(path, contents, &mut out);
+
+        assert!(out.is_empty());
+    }
+
+    #[test]
+    fn validate_e164_phone_accepts_a_well_formed_international_number() {
+        assert!(validate_e164_phone("+15551234567"));
+    }
+
+    /// `+11111111111` keeps the same `+` and leading-digit shape as the
+    /// accepted `+15551234567` vector — only the all-equal digit run makes
+    /// it invalid, isolating the `all_same` guard as the sole rejection
+    /// reason.
+    #[test]
+    fn validate_e164_phone_rejects_an_all_equal_digit_run() {
+        assert!(!validate_e164_phone("+11111111111"));
+    }
+
+    #[test]
+    fn validate_brazil_phone_accepts_a_formatted_mobile_number() {
+        assert!(validate_brazil_phone("(11) 91234-5678"));
+    }
+
+    #[test]
+    fn validate_brazil_phone_accepts_a_bare_national_mobile_number() {
+        assert!(validate_brazil_phone("11987654321"));
+    }
+
+    #[test]
+    fn validate_brazil_phone_accepts_a_country_code_prefixed_landline_number() {
+        assert!(validate_brazil_phone("+55 11 3234-5678"));
+    }
+
+    /// `(10) 91234-5678` differs from the accepted `(11) 91234-5678` vector
+    /// only in the DDD (`10` instead of `11`), and `10` is absent from
+    /// `VALID_DDD` — isolating the DDD-assignment guard.
+    #[test]
+    fn validate_brazil_phone_rejects_an_unassigned_ddd() {
+        assert!(!validate_brazil_phone("(10) 91234-5678"));
+    }
+
+    /// `(11) 11111-1111` keeps `11`, an ANATEL-assigned DDD that alone would
+    /// pass — only the all-equal digit run makes it invalid, isolating the
+    /// `all_same` guard from the DDD-assignment guard.
+    #[test]
+    fn validate_brazil_phone_rejects_an_all_equal_digit_run() {
+        assert!(!validate_brazil_phone("(11) 11111-1111"));
+    }
+
+    /// `11887654321` keeps `11`, the same ANATEL-assigned DDD as the
+    /// accepted `11987654321` vector, and the same 11-digit length; only the
+    /// third digit (`8` instead of the mobile prefix `9`) differs —
+    /// isolating the mobile-9 guard.
+    #[test]
+    fn validate_brazil_phone_rejects_an_eleven_digit_number_without_the_mobile_nine_prefix() {
+        assert!(!validate_brazil_phone("11887654321"));
+    }
+
+    #[test]
+    fn collect_pii_violations_flags_a_valid_e164_phone_with_nearby_context_and_masks_it() {
+        let path = Path::new("adr/0001-doc.md");
+        let contents = "Call my mobile: +442071838750 today.";
+        let mut out = Vec::new();
+
+        super::super::collect_pii_violations(path, contents, &mut out);
+
+        assert_eq!(out.len(), 1);
+        assert!(out[0].1.contains("E.164 phone"));
+        assert!(!out[0].1.contains("+442071838750"));
+    }
+
+    #[test]
+    fn collect_pii_violations_stays_quiet_on_a_valid_e164_phone_with_no_context_word() {
+        let path = Path::new("adr/0001-doc.md");
+        let contents = "Reference +442071838750 only.";
+        let mut out = Vec::new();
+
+        super::super::collect_pii_violations(path, contents, &mut out);
+
+        assert!(out.is_empty());
+    }
+
+    #[test]
+    fn collect_pii_violations_flags_a_valid_brazil_phone_with_nearby_context_and_masks_it() {
+        let path = Path::new("adr/0001-doc.md");
+        let contents = "WhatsApp: (11) 91234-5678 to talk.";
+        let mut out = Vec::new();
+
+        super::super::collect_pii_violations(path, contents, &mut out);
+
+        assert_eq!(out.len(), 1);
+        assert!(out[0].1.contains("Brazil phone"));
+        assert!(!out[0].1.contains("(11) 91234-5678"));
+    }
+
+    #[test]
+    fn collect_pii_violations_stays_quiet_on_a_valid_brazil_phone_with_no_context_word() {
+        let path = Path::new("adr/0001-doc.md");
+        let contents = "Ref (11) 91234-5678 only.";
         let mut out = Vec::new();
 
         super::super::collect_pii_violations(path, contents, &mut out);
