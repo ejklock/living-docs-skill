@@ -96,7 +96,7 @@ dependencies and the prior-art research that backs its honesty claims:
 | [`skills/research-artifacts/`](skills/research-artifacts/) | The research-note format and source discipline that feeds ADRs/PRDs (the `docs/research/` half of the trail). |
 | [`references/prior-art-landscape.md`](references/prior-art-landscape.md) | The sourced prior-art analysis — every part of Living Docs (the doc trail, the OKF format, the diagrams, the governance invariants) mapped to its established originator, so every "credit, not invention" claim has a checkable citation. |
 | [`cli/`](cli/) ([`living-docs check`](cli/)) | The **deterministic checker** for the mechanical invariants — frontmatter/`type`, indexing + reachability, link resolution, supersede integrity. A single self-contained Rust binary: native `serde_yaml` frontmatter parsing and native `pulldown-cmark` link extraction/resolution — no host tools (no lychee/yq/jq) needed. *A constraint without an instrument is a vibe*; this is the instrument. Wire it into CI. Install with `./install.sh cli` or `make cli-install`. |
-| [`cli/`](cli/) (`living-docs check --mermaid-only`) | Validates every fenced ```` ```mermaid ```` block against the real Mermaid parser, not a hand-rolled grammar check — it runs each diagram through the pinned upstream **`minlag/mermaid-cli:11.4.2`** Docker image and fails with a `file:line` pointer at the first broken diagram. Requires Docker (daemon reachable); with no path argument it sweeps every git-tracked `.md` file in the repo. |
+| [`cli/`](cli/) (`living-docs check --mermaid-only`) | Validates every fenced ```` ```mermaid ```` block **in-process** via the pure-Rust [`merman-core`](https://crates.io/crates/merman-core) parser — the real Mermaid grammar, not a hand-rolled check — and fails with a `file:line` pointer at the first broken diagram. **No Docker, no daemon, no Chromium** ([ADR 0013](docs/adr/0013-mermaid-validation-runs-in-process-via-merman-core-not-a-docker-mermaid-cli-shell-out.md)): the same self-contained binary does it. With no path argument it sweeps every git-tracked `.md` file in the repo. |
 | [`examples/linkly/`](examples/linkly/) | A worked, **lint-clean** end-to-end corpus (constitution → PRD → ADR + BDR → issue) for a fictional URL shortener — the discipline shown, not just described, and the fixture CI runs `living-docs check` against. |
 
 Each skill is self-describing — open its `SKILL.md` for the full operational
@@ -108,7 +108,7 @@ bundle's markdown and frontmatter are shaped.**
 
 ## Installation
 
-The skill is plain **markdown instruction files** — nothing to compile or install to use it. The optional `living-docs` checker is a single self-contained Rust binary with no host-tool dependencies (native frontmatter and link parsing — no lychee/yq/jq); install it with `./install.sh cli` or `make cli-install`. The checker's `--mermaid-only` mode needs only **Docker** — it runs every diagram through the pinned upstream mermaid-cli image, no local Mermaid install required.
+The skill is plain **markdown instruction files** — nothing to compile or install to use it. The optional `living-docs` checker is a single self-contained Rust binary with **no host-tool dependencies at all**: native frontmatter and link parsing (no lychee/yq/jq) and — since **v0.6.0** — in-process Mermaid validation via the pure-Rust `merman-core` parser, so `--mermaid-only` **no longer needs Docker**. Install it with `./install.sh cli` or `make cli-install`.
 Installing Living Docs always means the same thing: **put the three `skills/`
 directories (or a generated rule file) where your tool discovers instructions,
 then start a fresh session.** A cross-platform installer and a `Makefile` do this
@@ -144,7 +144,7 @@ make uninstall-all   # remove from every harness
 make check           # full gate: version sync · living-docs check the example ·
                      #   validate mermaid · hostile parser fixtures · bash -n all
                      #   scripts · dry-run every harness
-make build           # build the living-docs binary natively -> cli/target/release/living-docs
+make build           # build the living-docs binary natively -> target/release/living-docs
 make cli-install     # install the living-docs binary onto PATH (native cargo install)
 make test-fixtures   # run the hostile/negative fixtures guarding the parsers
 ```
@@ -176,6 +176,27 @@ skills/okf-knowledge-format/SKILL.md, and skills/research-artifacts/SKILL.md.
 ```
 
 Then restart the session so the tool picks up the skills.
+
+### Skill content — served by the CLI, not copied to disk
+
+Native harnesses (Claude Code, OpenCode, Codex, Pi) only get each skill's slim
+`SKILL.md` stub (plus `okf-knowledge-format/reference/`, the vendored spec) — the
+full per-doc-type conventions (`rules/`) and starter templates (`templates/`)
+travel **inside the `living-docs` binary** ([ADR 0014](docs/adr/0014-the-cli-serves-skill-content-from-an-embedded-corpus-harness-skill-md-files-are-slim-stubs.md))
+and are reached with `living-docs skill`, not by reading files off disk:
+
+```bash
+living-docs skill --list                          # every embedded skill and its topics
+living-docs skill living-docs                      # the full living-docs/SKILL.md body
+living-docs skill living-docs --topic adr           # just the adr topic's rules (+ template)
+```
+
+Output is **context-aware**: piped or otherwise non-TTY output defaults to minified
+single-line JSON (the machine-friendly shape another agent parses); a real terminal
+gets human-readable plain text. `--json` and `--plain` override the autodetection in
+either direction and are mutually exclusive. This is why a native harness install is
+a small, stable footprint on disk while the authoritative detail stays centralized in
+one versioned binary — see [ADR 0014](docs/adr/0014-the-cli-serves-skill-content-from-an-embedded-corpus-harness-skill-md-files-are-slim-stubs.md).
 
 ### Any other tool
 

@@ -37,9 +37,30 @@ skills/
 references/
   prior-art-landscape.md   sourced prior-art analysis (the attribution backbone)
 assets/                    README images (hand-authored SVG, no build step)
+cli/                       the living-docs binary (embeds skills/ via rust-embed)
 install.sh                 multi-harness installer
 Makefile                   convenience wrapper around install.sh
 ```
+
+Each `SKILL.md` is a slim, self-bootstrapping stub: a trigger plus a task->topic
+router. The per-doc-type prose lives in `skills/<name>/rules/*.md` (one file per
+topic, plus an optional `skills/<name>/templates/<topic>.md` starter) and is
+**embedded into the `living-docs` binary at compile time** via
+[`rust-embed`](https://crates.io/crates/rust-embed) ([ADR 0014](docs/adr/0014-the-cli-serves-skill-content-from-an-embedded-corpus-harness-skill-md-files-are-slim-stubs.md)).
+A native harness install (`./install.sh claude`, etc.) only copies the stub to
+disk; the CLI serves the rest on demand:
+
+```bash
+living-docs skill <name> --list             # every topic the skill exposes
+living-docs skill <name> --topic <topic>    # that topic's rules (+ template)
+```
+
+**Adding a topic** needs no code change and no new registration step: drop
+`skills/<name>/rules/<topic>.md` (plus an optional matching
+`skills/<name>/templates/<topic>.md`) and it auto-registers — the topic key is
+the rules file's basename with any trailing `-conventions` stripped (so
+`rules/adr-conventions.md` resolves as topic `adr`). Reference the new topic from
+the skill's `SKILL.md` router so agents discover it.
 
 ---
 
@@ -91,7 +112,7 @@ Then, before opening a PR:
 ```bash
 make check         # bash -n, dry-run every harness, living-docs check the example corpus,
                     #   validate mermaid, and run the fixtures
-make test-fixtures # just the hostile/negative parser fixtures (needs Docker for mermaid)
+make test-fixtures # just the hostile/negative parser fixtures (no Docker — mermaid validates in-process via merman-core)
 ```
 
 `make check` runs the `living-docs` checker against
