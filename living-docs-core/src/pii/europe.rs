@@ -1,9 +1,10 @@
 //! Tier 1 EU national-ID detectors (ADR 0012, research note 0001 §2/§4):
 //! Spain NIF/NIE (mod-23 check letter), Portugal NIF (weighted mod-11),
 //! Netherlands BSN (11-proef), Italy Codice Fiscale (odd/even table
-//! mod-26 check letter), and Germany Steuer-IdNr (ISO 7064 MOD 11,10).
-//! Same two-stage regex+validator shape as `pii::brazil` and
-//! `pii::financial`.
+//! mod-26 check letter), Germany Steuer-IdNr (ISO 7064 MOD 11,10), Poland
+//! PESEL (weighted mod-10) and NIP (weighted mod-11), Sweden personnummer
+//! (date range + Luhn), and Finland HETU (mod-31 check character). Same
+//! two-stage regex+validator shape as `pii::brazil` and `pii::financial`.
 
 use super::checksum;
 use regex::Regex;
@@ -184,6 +185,123 @@ fn validate_germany_steuer_id(matched: &str) -> bool {
     check == ds[10]
 }
 
+const POLAND_PESEL_WEIGHTS: [u32; 10] = [1, 3, 7, 9, 1, 3, 7, 9, 1, 3];
+
+/// Poland PESEL (11 digits, research note 0001 §2): rejects an all-equal
+/// placeholder, then requires the 11th digit to equal the weighted mod-10
+/// check digit over the first 10 (`(10 - sum % 10) % 10`, folding a `10`
+/// remainder down to `0`).
+fn validate_poland_pesel(matched: &str) -> bool {
+    let ds = checksum::digits(matched);
+    if ds.len() != 11 || checksum::all_same(&ds) {
+        return false;
+    }
+    let sum: u32 = ds[..10]
+        .iter()
+        .zip(POLAND_PESEL_WEIGHTS)
+        .map(|(d, w)| d * w)
+        .sum();
+    let check = (10 - (sum % 10)) % 10;
+    check == ds[10]
+}
+
+const POLAND_NIP_WEIGHTS: [u32; 9] = [6, 5, 7, 2, 3, 4, 5, 6, 7];
+
+/// Poland NIP (10 digits, research note 0001 §2): rejects an all-equal
+/// placeholder, then requires the 10th digit to equal the weighted mod-11
+/// check digit over the first 9 — a `10` remainder has no valid check digit
+/// and is rejected outright rather than folded, unlike PESEL's mod-10 rule.
+fn validate_poland_nip(matched: &str) -> bool {
+    let ds = checksum::digits(matched);
+    if ds.len() != 10 || checksum::all_same(&ds) {
+        return false;
+    }
+    let sum: u32 = ds[..9]
+        .iter()
+        .zip(POLAND_NIP_WEIGHTS)
+        .map(|(d, w)| d * w)
+        .sum();
+    let check = sum % 11;
+    check != 10 && check == ds[9]
+}
+
+/// A Sweden personnummer day is either the literal day of birth (01-31) or,
+/// for a coordination number issued to a non-resident, that day plus 60
+/// (61-91) — research note 0001 §2.
+fn sweden_day_in_range(day: u32) -> bool {
+    (1..=31).contains(&day) || (61..=91).contains(&day)
+}
+
+/// Sweden personnummer (10 digits after stripping the optional `-`/`+`
+/// separator, research note 0001 §2): rejects an all-equal placeholder and
+/// an out-of-range month/day, then defers to the shared `checksum::luhn_valid`
+/// — the same rule payment cards use.
+fn validate_sweden_personnummer(matched: &str) -> bool {
+    let ds = checksum::digits(matched);
+    if ds.len() != 10 || checksum::all_same(&ds) {
+        return false;
+    }
+    let month = ds[2] * 10 + ds[3];
+    let day = ds[4] * 10 + ds[5];
+    if !(1..=12).contains(&month) || !sweden_day_in_range(day) {
+        return false;
+    }
+    checksum::luhn_valid(&ds)
+}
+
+const FINLAND_HETU_ALPHABET: &str = "0123456789ABCDEFHJKLMNPRSTUVWXY";
+
+/// Parses a slice of ASCII-digit chars as a base-10 integer, `None` on any
+/// non-digit character.
+fn finland_hetu_number(chars: &[char]) -> Option<u32> {
+    chars
+        .iter()
+        .try_fold(0u32, |acc, c| Some(acc * 10 + c.to_digit(10)?))
+}
+
+/// A Finland HETU's leading 6 characters are `DDMMYY`; rejects a day or
+/// month outside the calendar range before the check character is computed,
+/// since the mod-31 arithmetic alone cannot distinguish a bad date from a
+/// bad individual number.
+fn finland_hetu_date_in_range(date_part: &[char]) -> bool {
+    let Some(day) = finland_hetu_number(&date_part[..2]) else {
+        return false;
+    };
+    let Some(month) = finland_hetu_number(&date_part[2..4]) else {
+        return false;
+    };
+    (1..=31).contains(&day) && (1..=12).contains(&month)
+}
+
+/// Finland HETU (11 chars — `DDMMYY` + century sign + 3-digit individual
+/// number + check char, research note 0001 §2/§4): the check character is
+/// `ALPHABET[(DDMMYY ++ individual) as integer % 31]`; the century sign
+/// itself never enters the checksum.
+fn validate_finland_hetu(matched: &str) -> bool {
+    let chars: Vec<char> = matched.chars().collect();
+    if chars.len() != 11 {
+        return false;
+    }
+    let (date_part, rest) = chars.split_at(6);
+    let Some((_century_sign, rest)) = rest.split_first() else {
+        return false;
+    };
+    let (individual, check_part) = rest.split_at(3);
+    let Some((&check_char, _)) = check_part.split_first() else {
+        return false;
+    };
+    if !finland_hetu_date_in_range(date_part) {
+        return false;
+    }
+    let mut number_chars = date_part.to_vec();
+    number_chars.extend_from_slice(individual);
+    let Some(n) = finland_hetu_number(&number_chars) else {
+        return false;
+    };
+    let idx = (n % 31) as usize;
+    FINLAND_HETU_ALPHABET.as_bytes()[idx] as char == check_char
+}
+
 pub(super) fn detectors() -> Vec<super::PiiDetector> {
     vec![
         super::PiiDetector {
@@ -210,6 +328,26 @@ pub(super) fn detectors() -> Vec<super::PiiDetector> {
             label: "German Steuer-IdNr",
             pattern: Regex::new(r"\b\d{11}\b").expect("valid germany steuer-idnr regex"),
             validate: validate_germany_steuer_id,
+        },
+        super::PiiDetector {
+            label: "Polish PESEL",
+            pattern: Regex::new(r"\b\d{11}\b").expect("valid poland pesel regex"),
+            validate: validate_poland_pesel,
+        },
+        super::PiiDetector {
+            label: "Polish NIP",
+            pattern: Regex::new(r"\b\d{10}\b").expect("valid poland nip regex"),
+            validate: validate_poland_nip,
+        },
+        super::PiiDetector {
+            label: "Swedish personnummer",
+            pattern: Regex::new(r"\b\d{6}[-+]?\d{4}\b").expect("valid sweden personnummer regex"),
+            validate: validate_sweden_personnummer,
+        },
+        super::PiiDetector {
+            label: "Finnish HETU",
+            pattern: Regex::new(r"\b\d{6}[-+A]\d{3}[0-9A-Y]\b").expect("valid finland hetu regex"),
+            validate: validate_finland_hetu,
         },
     ]
 }
@@ -324,7 +462,72 @@ mod tests {
     }
 
     #[test]
+    fn validate_poland_pesel_accepts_the_canonical_valid_vector() {
+        assert!(validate_poland_pesel("44051401359"));
+    }
+
+    #[test]
+    fn validate_poland_pesel_rejects_a_broken_check_digit() {
+        assert!(!validate_poland_pesel("44051401350"));
+    }
+
+    #[test]
+    fn validate_poland_pesel_rejects_an_all_equal_digit_placeholder() {
+        assert!(!validate_poland_pesel("11111111111"));
+    }
+
+    #[test]
+    fn validate_poland_nip_accepts_the_canonical_valid_vector() {
+        assert!(validate_poland_nip("5260001246"));
+    }
+
+    #[test]
+    fn validate_poland_nip_rejects_a_broken_check_digit() {
+        assert!(!validate_poland_nip("5260001240"));
+    }
+
+    #[test]
+    fn validate_poland_nip_rejects_an_all_equal_digit_placeholder() {
+        assert!(!validate_poland_nip("1111111111"));
+    }
+
+    #[test]
+    fn validate_sweden_personnummer_accepts_the_canonical_valid_vector() {
+        assert!(validate_sweden_personnummer("811218-9876"));
+    }
+
+    #[test]
+    fn validate_sweden_personnummer_rejects_a_broken_checksum() {
+        assert!(!validate_sweden_personnummer("811218-9875"));
+    }
+
+    #[test]
+    fn validate_sweden_personnummer_rejects_an_impossible_month() {
+        assert!(!validate_sweden_personnummer("811332-9876"));
+    }
+
+    #[test]
+    fn validate_sweden_personnummer_accepts_a_coordination_number() {
+        assert!(validate_sweden_personnummer("811278-9873"));
+    }
+
+    #[test]
+    fn validate_finland_hetu_accepts_the_canonical_valid_vector() {
+        assert!(validate_finland_hetu("131052-308T"));
+    }
+
+    #[test]
+    fn validate_finland_hetu_rejects_a_wrong_check_character() {
+        assert!(!validate_finland_hetu("131052-308A"));
+    }
+
+    #[test]
+    fn validate_finland_hetu_rejects_an_impossible_date() {
+        assert!(!validate_finland_hetu("321352-308F"));
+    }
+
+    #[test]
     fn detectors_registers_one_detector_per_europe_class() {
-        assert_eq!(detectors().len(), 5);
+        assert_eq!(detectors().len(), 9);
     }
 }
