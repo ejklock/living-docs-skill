@@ -37,6 +37,31 @@ pub fn weighted_mod11_dv(values: &[u32], weights: &[u32]) -> u32 {
     }
 }
 
+/// The Luhn (mod-10) check shared by payment cards and the US NPI (research
+/// note 0001 §4): doubling every second digit from the rightmost, subtracting
+/// 9 from any doubled value over 9, then requiring the total to be a
+/// multiple of 10.
+pub fn luhn_valid(values: &[u32]) -> bool {
+    let sum: u32 = values
+        .iter()
+        .rev()
+        .enumerate()
+        .map(|(i, value)| {
+            if i % 2 == 1 {
+                let doubled = value * 2;
+                if doubled > 9 {
+                    doubled - 9
+                } else {
+                    doubled
+                }
+            } else {
+                *value
+            }
+        })
+        .sum();
+    sum.is_multiple_of(10)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -100,5 +125,15 @@ mod tests {
     #[test]
     fn weighted_mod11_dv_returns_eleven_minus_resto_at_the_resto_equals_two_boundary() {
         assert_eq!(weighted_mod11_dv(&[2], &[1]), 9);
+    }
+
+    #[test]
+    fn luhn_valid_accepts_a_known_valid_vector() {
+        assert!(luhn_valid(&digits("4111111111111111")));
+    }
+
+    #[test]
+    fn luhn_valid_rejects_a_broken_vector() {
+        assert!(!luhn_valid(&digits("4111111111111112")));
     }
 }

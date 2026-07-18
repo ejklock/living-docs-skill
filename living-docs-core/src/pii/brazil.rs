@@ -402,6 +402,15 @@ mod tests {
         assert!(!validate_renavam("11111111111"));
     }
 
+    /// Base `1834567890` sums to `243` over `RENAVAM_DV_WEIGHTS`, and
+    /// `243 % 11 == 1`, so `(soma * 10) % 11 == 10` — exercising the
+    /// `dv == 10 -> 0` remap branch a mutant deleting it would otherwise
+    /// leave uncovered.
+    #[test]
+    fn validate_renavam_accepts_a_checksum_valid_renavam_through_the_ten_to_zero_remap() {
+        assert!(validate_renavam("18345678900"));
+    }
+
     #[test]
     fn detectors_registers_one_detector_per_document_class() {
         assert_eq!(detectors().len(), 7);
