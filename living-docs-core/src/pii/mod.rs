@@ -18,6 +18,10 @@ pub enum PiiClass {
     Cpf,
     Cnpj,
     Pis,
+    TituloEleitor,
+    Cnh,
+    Cns,
+    Renavam,
 }
 
 impl PiiClass {
@@ -26,6 +30,10 @@ impl PiiClass {
             PiiClass::Cpf => "Brazilian CPF",
             PiiClass::Cnpj => "Brazilian CNPJ",
             PiiClass::Pis => "Brazilian PIS/PASEP",
+            PiiClass::TituloEleitor => "Brazilian título de eleitor",
+            PiiClass::Cnh => "Brazilian CNH",
+            PiiClass::Cns => "Brazilian CNS/SUS card",
+            PiiClass::Renavam => "Brazilian RENAVAM",
         }
     }
 }
