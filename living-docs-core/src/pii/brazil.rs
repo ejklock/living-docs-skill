@@ -235,38 +235,38 @@ fn validate_renavam(matched: &str) -> bool {
 pub(super) fn detectors() -> Vec<super::PiiDetector> {
     vec![
         super::PiiDetector {
-            class: super::PiiClass::Cpf,
+            label: "Brazilian CPF",
             pattern: Regex::new(r"\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b").expect("valid cpf regex"),
             validate: validate_cpf,
         },
         super::PiiDetector {
-            class: super::PiiClass::Cnpj,
+            label: "Brazilian CNPJ",
             pattern: Regex::new(r"\b[0-9A-Z]{2}\.?[0-9A-Z]{3}\.?[0-9A-Z]{3}/?[0-9A-Z]{4}-?\d{2}\b")
                 .expect("valid cnpj regex"),
             validate: validate_cnpj,
         },
         super::PiiDetector {
-            class: super::PiiClass::Pis,
+            label: "Brazilian PIS/PASEP",
             pattern: Regex::new(r"\b\d{3}\.?\d{5}\.?\d{2}-?\d{1}\b").expect("valid pis regex"),
             validate: validate_pis,
         },
         super::PiiDetector {
-            class: super::PiiClass::TituloEleitor,
+            label: "Brazilian título de eleitor",
             pattern: Regex::new(r"\b\d{12}\b").expect("valid titulo eleitor regex"),
             validate: validate_titulo_eleitor,
         },
         super::PiiDetector {
-            class: super::PiiClass::Cnh,
+            label: "Brazilian CNH",
             pattern: Regex::new(r"\b\d{11}\b").expect("valid cnh regex"),
             validate: validate_cnh,
         },
         super::PiiDetector {
-            class: super::PiiClass::Cns,
+            label: "Brazilian CNS/SUS card",
             pattern: Regex::new(r"\b[1-9]\d{14}\b").expect("valid cns regex"),
             validate: validate_cns,
         },
         super::PiiDetector {
-            class: super::PiiClass::Renavam,
+            label: "Brazilian RENAVAM",
             pattern: Regex::new(r"\b\d{11}\b").expect("valid renavam regex"),
             validate: validate_renavam,
         },
