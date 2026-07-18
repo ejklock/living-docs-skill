@@ -1,7 +1,9 @@
-//! Tier 1 EU national-ID detectors, part 1 (ADR 0012, research note 0001
-//! §2/§4): Spain NIF/NIE (mod-23 check letter), Portugal NIF (weighted
-//! mod-11), and Netherlands BSN (11-proef). Same two-stage regex+validator
-//! shape as `pii::brazil` and `pii::financial`.
+//! Tier 1 EU national-ID detectors (ADR 0012, research note 0001 §2/§4):
+//! Spain NIF/NIE (mod-23 check letter), Portugal NIF (weighted mod-11),
+//! Netherlands BSN (11-proef), Italy Codice Fiscale (odd/even table
+//! mod-26 check letter), and Germany Steuer-IdNr (ISO 7064 MOD 11,10).
+//! Same two-stage regex+validator shape as `pii::brazil` and
+//! `pii::financial`.
 
 use super::checksum;
 use regex::Regex;
@@ -99,6 +101,89 @@ fn validate_netherlands_bsn(matched: &str) -> bool {
     sum % 11 == 0
 }
 
+/// The Italy Codice Fiscale odd-position table (research note 0001 §4),
+/// indexed `0..=9` for digits `'0'..='9'` and `10..=35` for letters
+/// `'A'..='Z'`: unlike the even-position table (plain digit/ordinal value),
+/// this mapping has no closed-form formula, so it is data, not a branch.
+const ITALY_ODD_VALUES: [u32; 36] = [
+    1, 0, 5, 7, 9, 13, 15, 17, 19, 21, 1, 0, 5, 7, 9, 13, 15, 17, 19, 21, 2, 4, 18, 20, 11, 3, 6,
+    8, 12, 14, 16, 10, 22, 25, 24, 23,
+];
+
+fn italy_odd_table_index(c: char) -> Option<usize> {
+    if let Some(digit) = c.to_digit(10) {
+        return Some(digit as usize);
+    }
+    if c.is_ascii_uppercase() {
+        return Some(10 + (c as u8 - b'A') as usize);
+    }
+    None
+}
+
+fn italy_even_table_value(c: char) -> Option<u32> {
+    if let Some(digit) = c.to_digit(10) {
+        return Some(digit);
+    }
+    if c.is_ascii_uppercase() {
+        return Some((c as u8 - b'A') as u32);
+    }
+    None
+}
+
+/// Sums the ODD-table value at each 1-indexed odd position (0-indexed even
+/// index) and the EVEN-table value at each 1-indexed even position over the
+/// first 15 Codice Fiscale characters, then folds the sum to the mod-26
+/// check letter (research note 0001 §4).
+fn italy_check_letter(chars: &[char]) -> Option<char> {
+    let mut sum = 0u32;
+    for (i, &c) in chars.iter().enumerate() {
+        let value = if i % 2 == 0 {
+            ITALY_ODD_VALUES[italy_odd_table_index(c)?]
+        } else {
+            italy_even_table_value(c)?
+        };
+        sum += value;
+    }
+    Some(char::from(b'A' + (sum % 26) as u8))
+}
+
+/// Italy Codice Fiscale (16 chars, research note 0001 §2/§4): requires 16
+/// uppercase alnum characters, then the 16th must equal the mod-26 check
+/// letter computed over the first 15.
+fn validate_italy_codice_fiscale(matched: &str) -> bool {
+    let chars: Vec<char> = matched.chars().collect();
+    if chars.len() != 16
+        || !chars
+            .iter()
+            .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
+    {
+        return false;
+    }
+    let Some(check) = italy_check_letter(&chars[..15]) else {
+        return false;
+    };
+    check == chars[15]
+}
+
+/// Germany Steuer-IdNr (11 digits, research note 0001 §2/§4): rejects an
+/// all-equal placeholder, then runs the ISO 7064 MOD 11,10 loop over the
+/// first 10 digits and requires the derived check digit to equal the 11th.
+fn validate_germany_steuer_id(matched: &str) -> bool {
+    let ds = checksum::digits(matched);
+    if ds.len() != 11 || checksum::all_same(&ds) {
+        return false;
+    }
+    let product = ds[..10].iter().fold(10u32, |product, &digit| {
+        let mut m = (digit + product) % 10;
+        if m == 0 {
+            m = 10;
+        }
+        (m * 2) % 11
+    });
+    let check = (11 - product) % 10;
+    check == ds[10]
+}
+
 pub(super) fn detectors() -> Vec<super::PiiDetector> {
     vec![
         super::PiiDetector {
@@ -115,6 +200,16 @@ pub(super) fn detectors() -> Vec<super::PiiDetector> {
             label: "Dutch BSN",
             pattern: Regex::new(r"\b\d{9}\b").expect("valid netherlands bsn regex"),
             validate: validate_netherlands_bsn,
+        },
+        super::PiiDetector {
+            label: "Italian Codice Fiscale",
+            pattern: Regex::new(r"\b[A-Z0-9]{16}\b").expect("valid italy codice fiscale regex"),
+            validate: validate_italy_codice_fiscale,
+        },
+        super::PiiDetector {
+            label: "German Steuer-IdNr",
+            pattern: Regex::new(r"\b\d{11}\b").expect("valid germany steuer-idnr regex"),
+            validate: validate_germany_steuer_id,
         },
     ]
 }
@@ -189,7 +284,47 @@ mod tests {
     }
 
     #[test]
+    fn validate_italy_codice_fiscale_accepts_the_canonical_valid_vector() {
+        assert!(validate_italy_codice_fiscale("RSSMRA85T10A562S"));
+    }
+
+    #[test]
+    fn validate_italy_codice_fiscale_rejects_a_wrong_check_letter() {
+        assert!(!validate_italy_codice_fiscale("RSSMRA85T10A562A"));
+    }
+
+    #[test]
+    fn validate_italy_codice_fiscale_rejects_a_string_shorter_than_16_chars() {
+        assert!(!validate_italy_codice_fiscale("RSSMRA85T10A562"));
+    }
+
+    #[test]
+    fn validate_italy_codice_fiscale_rejects_lowercase_input() {
+        assert!(!validate_italy_codice_fiscale("rssmra85t10a562s"));
+    }
+
+    #[test]
+    fn validate_germany_steuer_id_accepts_the_canonical_valid_vector() {
+        assert!(validate_germany_steuer_id("86095742719"));
+    }
+
+    #[test]
+    fn validate_germany_steuer_id_rejects_a_broken_check_digit() {
+        assert!(!validate_germany_steuer_id("86095742718"));
+    }
+
+    #[test]
+    fn validate_germany_steuer_id_rejects_an_all_equal_digit_placeholder() {
+        assert!(!validate_germany_steuer_id("11111111111"));
+    }
+
+    #[test]
+    fn validate_germany_steuer_id_accepts_a_vector_exercising_the_iso7064_correction_branch() {
+        assert!(validate_germany_steuer_id("02345678910"));
+    }
+
+    #[test]
     fn detectors_registers_one_detector_per_europe_class() {
-        assert_eq!(detectors().len(), 3);
+        assert_eq!(detectors().len(), 5);
     }
 }
