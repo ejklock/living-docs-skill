@@ -6,7 +6,10 @@
 //! Tier-2 detectors (`contextual`) extend this to identifiers with no
 //! checksum: a nearby context word stands in for the checksum as the
 //! false-positive filter (see `contextual` for why that needs a distinct
-//! detector type).
+//! detector type). Tier-3 (`tier3`) is the opt-in, highest-false-positive
+//! class: regex+validate only, like Tier-1, but never runs as part of
+//! `collect_pii_violations` — the command layer decides whether to invoke
+//! `collect_tier3_violations` at all.
 
 mod apac;
 mod brazil;
@@ -14,6 +17,7 @@ mod checksum;
 mod contextual;
 mod europe;
 mod financial;
+mod tier3;
 
 use regex::Regex;
 use std::path::{Path, PathBuf};
@@ -46,6 +50,11 @@ fn pii_detectors() -> &'static [PiiDetector] {
 fn contextual_detectors() -> &'static [contextual::ContextualDetector] {
     static DETECTORS: OnceLock<Vec<contextual::ContextualDetector>> = OnceLock::new();
     DETECTORS.get_or_init(contextual::detectors)
+}
+
+fn tier3_detectors() -> &'static [PiiDetector] {
+    static DETECTORS: OnceLock<Vec<PiiDetector>> = OnceLock::new();
+    DETECTORS.get_or_init(tier3::detectors)
 }
 
 /// The byte offset, in `contents`, of the earliest character to include in a
@@ -130,6 +139,22 @@ fn collect_tier2_violations(path: &Path, contents: &str, out: &mut Vec<(PathBuf,
                 candidate.end(),
                 detector.context,
             ) {
+                continue;
+            }
+            push_masked_violation(out, path, detector.label, candidate.as_str());
+        }
+    }
+}
+
+/// Tier-3 pass (ADR 0012): pushes a masked violation for every valid match
+/// of a registered Tier-3 `PiiDetector`, unconditionally like Tier-1 (no
+/// context gate) — Tier-3 is opt-in at the command layer precisely because
+/// it is the highest-false-positive class, so gating happens once at the
+/// call site rather than inside every detector.
+pub fn collect_tier3_violations(path: &Path, contents: &str, out: &mut Vec<(PathBuf, String)>) {
+    for detector in tier3_detectors() {
+        for candidate in detector.pattern.find_iter(contents) {
+            if !(detector.validate)(candidate.as_str()) {
                 continue;
             }
             push_masked_violation(out, path, detector.label, candidate.as_str());

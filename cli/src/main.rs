@@ -87,6 +87,11 @@ enum Command {
     /// of `--backend`).
     LeakGate {
         bundle: PathBuf,
+        /// Additionally runs the Tier-3 PII detectors (ADR 0012) — the
+        /// highest-false-positive class, so they stay opt-in rather than
+        /// running by default.
+        #[arg(long)]
+        check_tier3: bool,
     },
     /// Full-text search the derived read-model, ranked best-match-first.
     Search {
@@ -201,7 +206,10 @@ fn main() -> ExitCode {
             out_dir,
             visibility,
         } => run_export(cli.backend, &cli.docs_dir, &out_dir, visibility),
-        Command::LeakGate { bundle } => run_leak_gate(&bundle),
+        Command::LeakGate {
+            bundle,
+            check_tier3,
+        } => run_leak_gate(&bundle, check_tier3),
         Command::Db {
             cmd: DbCmd::Sync { engine, project },
         } => run_db_sync(&cli.docs_dir, engine, project),
@@ -275,8 +283,9 @@ fn run_export(
 
 /// Always inspects a materialized filesystem bundle — a bundle is a directory
 /// tree `export` already wrote, not a `--backend`-selectable projection.
-fn run_leak_gate(bundle: &Path) -> ExitCode {
-    commands::leak_gate::run(&fs_store::FsStore::new(), bundle)
+/// `check_tier3` threads `--check-tier3` down to the opt-in Tier-3 PII scan.
+fn run_leak_gate(bundle: &Path, check_tier3: bool) -> ExitCode {
+    commands::leak_gate::run(&fs_store::FsStore::new(), bundle, check_tier3)
 }
 
 fn build_backend_store(backend: Backend, root: &Path) -> Result<Box<dyn DocStore>, String> {
