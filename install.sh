@@ -2,10 +2,12 @@
 #
 # install.sh — install the Living Docs skill bundle into an AI agent tool.
 #
-# Living Docs is plain markdown. "Installing" means copying the three skills
-# (living-docs, okf-knowledge-format, research-artifacts) to where your tool
-# discovers instructions, and — for tools that need it — generating a small
-# rule/instruction pointer file.
+# Living Docs is plain markdown. "Installing" means copying the three skills'
+# slim SKILL.md stubs (living-docs, okf-knowledge-format, research-artifacts,
+# plus okf-knowledge-format's vendored reference/) to where your tool
+# discovers instructions — full rules/templates detail is served on demand by
+# the `living-docs skill` CLI command, not copied to disk — and, for tools
+# that need it, generating a small rule/instruction pointer file.
 #
 # Usage:
 #   ./install.sh [harness] [options]
@@ -93,7 +95,11 @@ copy_skills() {
   run "mkdir -p '$dest'"
   for s in "${SKILLS[@]}"; do
     run "rm -rf '${dest:?}/$s'"
-    run "cp -R '$SCRIPT_DIR/skills/$s' '$dest/$s'"
+    run "mkdir -p '$dest/$s'"
+    run "cp '$SCRIPT_DIR/skills/$s/SKILL.md' '$dest/$s/SKILL.md'"
+    if [[ -d "$SCRIPT_DIR/skills/$s/reference" ]]; then
+      run "cp -R '$SCRIPT_DIR/skills/$s/reference' '$dest/$s/reference'"
+    fi
     note "$s -> $dest/$s"
   done
 }
