@@ -91,7 +91,7 @@ check: version build test-fixtures ## Check version sync, validate install.sh, r
 	$(LIVING_DOCS_BIN) check --mermaid-only
 	$(INSTALL) all --dry-run
 
-test-fixtures: build ## Run the hostile/negative fixtures that guard the check parsers (requires Docker for mermaid)
+test-fixtures: build ## Run the hostile/negative fixtures that guard the check parsers
 	LIVING_DOCS_BIN=$(LIVING_DOCS_BIN) ./skills/living-docs/tests/run.sh
 
 version: ## Assert the release version is consistent across VERSION and every SKILL.md
