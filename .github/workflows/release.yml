@@ -93,7 +93,7 @@ jobs:
         run: |
           set -euo pipefail
           asset="living-docs-${{ matrix.target }}"
-          cp "cli/target/${{ matrix.target }}/release/living-docs" "$asset"
+          cp "target/${{ matrix.target }}/release/living-docs" "$asset"
           if command -v sha256sum >/dev/null 2>&1; then
             sha256sum "$asset" > "$asset.sha256"
           else

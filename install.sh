@@ -197,7 +197,7 @@ build_cli_from_source() {
     || die "cargo not found; install Rust or drop --from-source once a release asset exists"
   run "cargo build --release --manifest-path '$SCRIPT_DIR/cli/Cargo.toml'"
   run "mkdir -p '$dest'"
-  run "install -m 755 '$SCRIPT_DIR/cli/target/release/living-docs' '$dest/living-docs'"
+  run "install -m 755 '$SCRIPT_DIR/target/release/living-docs' '$dest/living-docs'"
   note "living-docs (built from source) -> $dest/living-docs"
 }
 
