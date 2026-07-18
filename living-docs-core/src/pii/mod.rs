@@ -6,6 +6,7 @@
 
 mod brazil;
 mod checksum;
+mod europe;
 mod financial;
 
 use regex::Regex;
@@ -27,6 +28,9 @@ pub enum PiiClass {
     Iban,
     AbaRouting,
     Npi,
+    SpainNifNie,
+    PortugalNif,
+    NetherlandsBsn,
 }
 
 impl PiiClass {
@@ -43,6 +47,9 @@ impl PiiClass {
             PiiClass::Iban => "IBAN",
             PiiClass::AbaRouting => "US ABA routing number",
             PiiClass::Npi => "US NPI",
+            PiiClass::SpainNifNie => "Spanish NIF/NIE",
+            PiiClass::PortugalNif => "Portuguese NIF",
+            PiiClass::NetherlandsBsn => "Dutch BSN",
         }
     }
 }
@@ -60,6 +67,7 @@ fn pii_detectors() -> &'static [PiiDetector] {
     DETECTORS.get_or_init(|| {
         let mut detectors = brazil::detectors();
         detectors.extend(financial::detectors());
+        detectors.extend(europe::detectors());
         detectors
     })
 }
