@@ -3,6 +3,7 @@
 //! default `collect_pii_violations` scan. Same two-stage regex+validator
 //! shape as the Tier-1 detectors (`apac`, `brazil`, `europe`, `financial`).
 
+use super::checksum;
 use super::PiiDetector;
 use regex::Regex;
 
@@ -40,10 +41,42 @@ fn validate_mac(matched: &str) -> bool {
     hex.any(|c| c != first)
 }
 
-/// Registers IPv4, IPv6, and MAC for this slice — Tier-3's per-detector
-/// false-positive risk is why each addition here is deliberate rather than
-/// batched, unlike the Tier-1 modules that ship a whole region's classes at
-/// once.
+/// The regex pins the 5+3-digit shape (with an optional hyphen), so the
+/// validator does not re-check length or digit count — a second guard over
+/// territory the regex already owns would be dead code (B8a lesson). CEP has
+/// no check digit, so the only honest discriminator is rejecting the
+/// all-equal placeholder (`00000-000`) that stands in for "no CEP entered"
+/// rather than a real postal code.
+fn validate_cep(matched: &str) -> bool {
+    !checksum::all_same(&checksum::digits(matched))
+}
+
+/// The two trailing letters of a UK postcode are its inward code, and
+/// official rules never draw those two letters from `C`, `I`, `K`, `M`, `O`,
+/// or `V` (they are reserved to avoid confusion with digits or other
+/// letters). The regex pins the outward+inward shape but is permissive on
+/// letter identity, so this is the one constraint it cannot pin — re-checking
+/// it here is not a dead guard (B8a lesson) because the regex genuinely
+/// leaves it open. The regex is uppercase-only by design, mirroring the
+/// catalog/Presidio `uk_postcode` source, so a lowercase postcode is a known
+/// non-match rather than a validator gap.
+const UK_FORBIDDEN_INWARD: &[char] = &['C', 'I', 'K', 'M', 'O', 'V'];
+
+fn validate_uk_postcode(matched: &str) -> bool {
+    let letters: Vec<char> = matched
+        .chars()
+        .filter(|c| c.is_ascii_alphabetic())
+        .collect();
+    match letters.as_slice() {
+        [.., a, b] => !UK_FORBIDDEN_INWARD.contains(a) && !UK_FORBIDDEN_INWARD.contains(b),
+        _ => false,
+    }
+}
+
+/// Registers IPv4, IPv6, MAC, CEP, and UK postcode for this slice — Tier-3's
+/// per-detector false-positive risk is why each addition here is deliberate
+/// rather than batched, unlike the Tier-1 modules that ship a whole region's
+/// classes at once.
 pub(super) fn detectors() -> Vec<PiiDetector> {
     vec![
         PiiDetector {
@@ -62,6 +95,17 @@ pub(super) fn detectors() -> Vec<PiiDetector> {
             pattern: Regex::new(r"\b(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b")
                 .expect("valid mac regex"),
             validate: validate_mac,
+        },
+        PiiDetector {
+            label: "CEP",
+            pattern: Regex::new(r"\b\d{5}-?\d{3}\b").expect("valid cep regex"),
+            validate: validate_cep,
+        },
+        PiiDetector {
+            label: "UK postcode",
+            pattern: Regex::new(r"\b[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}\b")
+                .expect("valid uk postcode regex"),
+            validate: validate_uk_postcode,
         },
     ]
 }
@@ -112,11 +156,58 @@ mod tests {
     }
 
     #[test]
-    fn detectors_registers_a_detector_for_ipv4_ipv6_and_mac() {
-        assert_eq!(detectors().len(), 3);
+    fn validate_cep_accepts_a_hyphenated_cep() {
+        assert!(validate_cep("01310-100"));
+    }
+
+    #[test]
+    fn validate_cep_accepts_an_unhyphenated_cep() {
+        assert!(validate_cep("01310100"));
+    }
+
+    #[test]
+    fn validate_cep_rejects_the_all_equal_placeholder() {
+        assert!(!validate_cep("00000-000"));
+    }
+
+    #[test]
+    fn validate_uk_postcode_accepts_a_two_letter_outward_postcode() {
+        assert!(validate_uk_postcode("SW1A 1AA"));
+    }
+
+    #[test]
+    fn validate_uk_postcode_accepts_another_two_letter_outward_postcode() {
+        assert!(validate_uk_postcode("EC1A 1BB"));
+    }
+
+    #[test]
+    fn validate_uk_postcode_accepts_a_one_letter_outward_postcode() {
+        assert!(validate_uk_postcode("M1 1AE"));
+    }
+
+    #[test]
+    fn validate_uk_postcode_rejects_a_forbidden_inward_letter_pair() {
+        assert!(!validate_uk_postcode("SW1A 1CV"));
+    }
+
+    #[test]
+    fn validate_uk_postcode_rejects_a_forbidden_first_inward_letter() {
+        assert!(!validate_uk_postcode("SW1A 1CA"));
+    }
+
+    #[test]
+    fn validate_uk_postcode_rejects_a_forbidden_second_inward_letter() {
+        assert!(!validate_uk_postcode("SW1A 1AV"));
+    }
+
+    #[test]
+    fn detectors_registers_a_detector_for_each_of_the_five_tier3_classes() {
+        assert_eq!(detectors().len(), 5);
         let labels: Vec<&str> = detectors().iter().map(|d| d.label).collect();
         assert!(labels.contains(&"IPv6 address"));
         assert!(labels.contains(&"MAC address"));
+        assert!(labels.contains(&"CEP"));
+        assert!(labels.contains(&"UK postcode"));
     }
 
     #[test]
@@ -186,5 +277,45 @@ mod tests {
         assert!(!out
             .iter()
             .any(|(_, message)| message.contains("MAC address")));
+    }
+
+    #[test]
+    fn collect_tier3_violations_flags_a_cep_and_a_uk_postcode_and_masks_both() {
+        let path = Path::new("adr/0001-doc.md");
+        let contents = "Ship to CEP 01310-100 or the UK branch at SW1A 1AA.";
+        let mut out = Vec::new();
+
+        super::super::collect_tier3_violations(path, contents, &mut out);
+
+        assert!(out
+            .iter()
+            .any(|(_, message)| message.contains("CEP") && !message.contains("01310-100")));
+        assert!(out
+            .iter()
+            .any(|(_, message)| message.contains("UK postcode") && !message.contains("SW1A 1AA")));
+    }
+
+    #[test]
+    fn collect_tier3_violations_stays_quiet_on_an_all_equal_cep_placeholder() {
+        let path = Path::new("adr/0001-doc.md");
+        let contents = "Default CEP on file: 00000-000 (unset).";
+        let mut out = Vec::new();
+
+        super::super::collect_tier3_violations(path, contents, &mut out);
+
+        assert!(!out.iter().any(|(_, message)| message.contains("CEP")));
+    }
+
+    #[test]
+    fn collect_tier3_violations_stays_quiet_on_a_forbidden_inward_letter_postcode() {
+        let path = Path::new("adr/0001-doc.md");
+        let contents = "Placeholder address: SW1A 1CV (do not mail).";
+        let mut out = Vec::new();
+
+        super::super::collect_tier3_violations(path, contents, &mut out);
+
+        assert!(!out
+            .iter()
+            .any(|(_, message)| message.contains("UK postcode")));
     }
 }
