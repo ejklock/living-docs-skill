@@ -1,8 +1,22 @@
 .DS_Store
 *.log
+
+# Rust workspace build output
+/target
 .idea/
 .vscode/
 .tmp-smoke/
 
+# Derived SQLite/FTS5 read-model (ADR 0004, issue 0002) — rebuilt via `db sync`
+.living-docs/
+
 # Local publication / marketing drafts and exported assets — not part of the repo
 /publications/
+
+# Playwright browser-gate toolchain (issue 0003) — installed on demand, never committed
+/node_modules/
+/test-results/
+/playwright-report/
+
+# Dev-env docker-compose secrets (issue 0007) — only env.example is committed
+/.env
