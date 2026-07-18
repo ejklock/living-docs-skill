@@ -13,7 +13,7 @@ export
 # Docker-always dev environment for cli/ (Rust). The host is not assumed to have a
 # toolchain — Dockerfile.dev pins the exact version from cli/rust-toolchain.toml, plus
 # rustfmt/clippy/build-essential. Mounts the repo + the host cargo registry (reused
-# across runs) and runs as the host uid:gid so cli/target stays host-owned.
+# across runs) and runs as the host uid:gid so target stays host-owned.
 DEV_IMAGE := living-docs-dev
 DOCKER_CARGO = docker run --rm \
 	-u "$$(id -u):$$(id -g)" \
@@ -25,7 +25,7 @@ DOCKER_CARGO = docker run --rm \
 
 # Native release binary built by `build`; reused by `check`/`test-fixtures` so the
 # invariant checks and hostile fixtures don't each trigger their own compile.
-LIVING_DOCS_BIN := cli/target/release/living-docs
+LIVING_DOCS_BIN := target/release/living-docs
 
 .DEFAULT_GOAL := help
 .PHONY: help install install-claude install-cursor install-copilot \
@@ -124,7 +124,7 @@ cli-clippy: cli-dev-image ## Lint the CLI inside the dev image (clippy --all-tar
 	@mkdir -p "$(HOME)/.cargo/registry"
 	$(DOCKER_CARGO) cargo clippy --manifest-path cli/Cargo.toml --all-targets -- -D warnings
 
-build: ## Build the release CLI binary natively (host cargo) -> cli/target/release/living-docs
+build: ## Build the release CLI binary natively (host cargo) -> target/release/living-docs
 	cargo build --release --manifest-path cli/Cargo.toml
 
 cli-install: build ## Install the CLI binary onto PATH natively (host cargo, idempotent)
