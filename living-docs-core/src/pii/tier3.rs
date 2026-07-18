@@ -113,10 +113,58 @@ fn validate_eth_address(matched: &str) -> bool {
     matched.get(2..).is_some_and(|body| !all_same_chars(body))
 }
 
-/// Registers IPv4, IPv6, MAC, CEP, UK postcode, Bitcoin address, and
-/// Ethereum address for this slice — Tier-3's per-detector false-positive
-/// risk is why each addition here is deliberate rather than batched, unlike
-/// the Tier-1 modules that ship a whole region's classes at once.
+/// São Paulo's RG carries the only nationwide-documented RG check digit
+/// (catalog docs/research/0001 line 247); the regex owns the 8-base-digit
+/// 2-3-3 shape plus the verifier character, so this validator does exactly
+/// two things the regex cannot: reject an all-identical base and verify the
+/// mod-11 check digit. The all-identical-base guard is NOT dead code even
+/// though the checksum runs afterward — an all-zero base (`000000000`)
+/// computes a checksum-valid DV of `0` and would otherwise pass, so the
+/// guard catches the one placeholder shape the math alone cannot reject.
+/// DV convention mirrors the catalog source: `10` maps to `X`
+/// (case-insensitive), `11` maps to `0`, anything else is the digit itself.
+fn validate_rg_sp(matched: &str) -> bool {
+    let stripped: Vec<char> = matched
+        .chars()
+        .filter(|c| c.is_ascii_digit() || c.eq_ignore_ascii_case(&'x'))
+        .collect();
+    if stripped.len() != 9 {
+        return false;
+    }
+    let base_str: String = stripped[..8].iter().collect();
+    let base = checksum::digits(&base_str);
+    if base.len() != 8 || checksum::all_same(&base) {
+        return false;
+    }
+    rg_sp_verifier_matches(rg_sp_check_digit(&base), stripped[8])
+}
+
+/// Weights `2..9` ascending over the 8 base digits (leftmost x2 .. eighth
+/// x9), per the catalog oracle — extracted so `validate_rg_sp` stays within
+/// the complexity budget.
+fn rg_sp_check_digit(base: &[u32]) -> u32 {
+    const WEIGHTS: [u32; 8] = [2, 3, 4, 5, 6, 7, 8, 9];
+    let sum: u32 = base
+        .iter()
+        .zip(WEIGHTS)
+        .map(|(value, weight)| value * weight)
+        .sum();
+    11 - (sum % 11)
+}
+
+fn rg_sp_verifier_matches(expected_dv: u32, verifier: char) -> bool {
+    match expected_dv {
+        10 => verifier.eq_ignore_ascii_case(&'X'),
+        11 => verifier == '0',
+        digit => verifier.to_digit(10) == Some(digit),
+    }
+}
+
+/// Registers IPv4, IPv6, MAC, CEP, UK postcode, Bitcoin address, Ethereum
+/// address, and Brazil RG (SP) for this slice — Tier-3's per-detector
+/// false-positive risk is why each addition here is deliberate rather than
+/// batched, unlike the Tier-1 modules that ship a whole region's classes at
+/// once.
 pub(super) fn detectors() -> Vec<PiiDetector> {
     vec![
         PiiDetector {
@@ -157,6 +205,11 @@ pub(super) fn detectors() -> Vec<PiiDetector> {
             label: "Ethereum address",
             pattern: Regex::new(r"\b0x[a-fA-F0-9]{40}\b").expect("valid ethereum address regex"),
             validate: validate_eth_address,
+        },
+        PiiDetector {
+            label: "Brazil RG (SP)",
+            pattern: Regex::new(r"\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b").expect("valid rg sp regex"),
+            validate: validate_rg_sp,
         },
     ]
 }
@@ -252,8 +305,8 @@ mod tests {
     }
 
     #[test]
-    fn detectors_registers_a_detector_for_each_of_the_seven_tier3_classes() {
-        assert_eq!(detectors().len(), 7);
+    fn detectors_registers_a_detector_for_each_of_the_eight_tier3_classes() {
+        assert_eq!(detectors().len(), 8);
         let labels: Vec<&str> = detectors().iter().map(|d| d.label).collect();
         assert!(labels.contains(&"IPv6 address"));
         assert!(labels.contains(&"MAC address"));
@@ -261,6 +314,7 @@ mod tests {
         assert!(labels.contains(&"UK postcode"));
         assert!(labels.contains(&"Bitcoin address"));
         assert!(labels.contains(&"Ethereum address"));
+        assert!(labels.contains(&"Brazil RG (SP)"));
     }
 
     #[test]
@@ -444,5 +498,60 @@ mod tests {
         assert!(!out
             .iter()
             .any(|(_, message)| message.contains("Ethereum address")));
+    }
+
+    #[test]
+    fn validate_rg_sp_accepts_a_dotted_valid_rg() {
+        assert!(validate_rg_sp("12.345.678-2"));
+    }
+
+    #[test]
+    fn validate_rg_sp_accepts_an_undotted_valid_rg() {
+        assert!(validate_rg_sp("123456782"));
+    }
+
+    #[test]
+    fn validate_rg_sp_accepts_the_x_verifier_form() {
+        assert!(validate_rg_sp("82.345.678-X"));
+    }
+
+    #[test]
+    fn validate_rg_sp_accepts_an_undotted_lowercase_x_verifier() {
+        assert!(validate_rg_sp("82345678x"));
+    }
+
+    #[test]
+    fn validate_rg_sp_rejects_a_wrong_check_digit() {
+        assert!(!validate_rg_sp("123456783"));
+    }
+
+    #[test]
+    fn validate_rg_sp_rejects_the_all_identical_base_placeholder() {
+        assert!(!validate_rg_sp("000000000"));
+    }
+
+    #[test]
+    fn validate_rg_sp_rejects_a_digit_count_mismatch() {
+        assert!(!validate_rg_sp("1234567"));
+        assert!(!validate_rg_sp("1234567890"));
+    }
+
+    #[test]
+    fn collect_tier3_violations_flags_a_valid_rg_sp_and_masks_it_while_staying_quiet_on_bad_shapes()
+    {
+        let path = Path::new("adr/0001-doc.md");
+        let contents = "Valid RG on file: 12.345.678-2. Wrong checksum shape: 123456783. \
+                         Placeholder shape: 000000000.";
+        let mut out = Vec::new();
+
+        super::super::collect_tier3_violations(path, contents, &mut out);
+
+        let rg_matches: Vec<&String> = out
+            .iter()
+            .filter(|(_, message)| message.contains("Brazil RG (SP)"))
+            .map(|(_, message)| message)
+            .collect();
+        assert_eq!(rg_matches.len(), 1);
+        assert!(!rg_matches[0].contains("12.345.678-2"));
     }
 }
