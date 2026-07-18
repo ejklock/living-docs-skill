@@ -6,6 +6,7 @@
 
 mod brazil;
 mod checksum;
+mod financial;
 
 use regex::Regex;
 use std::path::{Path, PathBuf};
@@ -22,6 +23,10 @@ pub enum PiiClass {
     Cnh,
     Cns,
     Renavam,
+    CreditCard,
+    Iban,
+    AbaRouting,
+    Npi,
 }
 
 impl PiiClass {
@@ -34,6 +39,10 @@ impl PiiClass {
             PiiClass::Cnh => "Brazilian CNH",
             PiiClass::Cns => "Brazilian CNS/SUS card",
             PiiClass::Renavam => "Brazilian RENAVAM",
+            PiiClass::CreditCard => "Credit card number",
+            PiiClass::Iban => "IBAN",
+            PiiClass::AbaRouting => "US ABA routing number",
+            PiiClass::Npi => "US NPI",
         }
     }
 }
@@ -48,7 +57,11 @@ struct PiiDetector {
 
 fn pii_detectors() -> &'static [PiiDetector] {
     static DETECTORS: OnceLock<Vec<PiiDetector>> = OnceLock::new();
-    DETECTORS.get_or_init(brazil::detectors)
+    DETECTORS.get_or_init(|| {
+        let mut detectors = brazil::detectors();
+        detectors.extend(financial::detectors());
+        detectors
+    })
 }
 
 /// Scans `contents` with every registered detector and pushes a masked
