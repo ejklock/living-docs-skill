@@ -14,6 +14,7 @@
 use crate::check::file_name_str;
 use crate::check::links::{link_destinations, resolve_destination};
 use crate::frontmatter;
+use crate::pii;
 use crate::store::DocStore;
 use regex::Regex;
 use std::path::{Path, PathBuf};
@@ -29,6 +30,7 @@ pub fn run(store: &dyn DocStore, bundle: &Path) -> ExitCode {
         collect_private_present_violation(store, path, &mut violations);
         collect_dangling_link_violations(store, path, &bundle_str, &mut violations);
         collect_secret_violations(store, path, &mut violations);
+        collect_pii_violations(store, path, &mut violations);
     }
 
     report(violations)
@@ -350,6 +352,20 @@ fn collect_high_entropy_assignment_violations(
             ),
         ));
     }
+}
+
+/// The Brazilian PII scan (ADR 0012): reads a doc's contents like the other
+/// leak classes, including the reserved `index.md`/`log.md` listing files —
+/// content is content regardless of which command normally writes it.
+fn collect_pii_violations(
+    store: &dyn DocStore,
+    path: &Path,
+    violations: &mut Vec<(PathBuf, String)>,
+) {
+    let Ok(contents) = store.read(path) else {
+        return;
+    };
+    pii::collect_pii_violations(path, &contents, violations);
 }
 
 fn report(violations: Vec<(PathBuf, String)>) -> ExitCode {
@@ -856,6 +872,80 @@ mod tests {
         collect_secret_violations(&store, &doc_path, &mut violations);
 
         assert!(violations.iter().any(|(_, m)| !m.contains(raw_token)));
+
+        let code = run(&store, &bundle.root);
+        assert!(!exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_fails_when_a_doc_contains_a_checksum_valid_cpf() {
+        let (bundle, doc_path, store) =
+            bundle_with_one_doc("cpf-pii", "Cliente CPF: 111.444.777-35");
+        let mut violations = Vec::new();
+
+        collect_pii_violations(&store, &doc_path, &mut violations);
+
+        assert!(violations
+            .iter()
+            .any(|(_, m)| m.contains("Brazilian CPF") && !m.contains("111.444.777-35")));
+
+        let code = run(&store, &bundle.root);
+        assert!(!exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_stays_quiet_on_a_cpf_shaped_number_with_a_broken_check_digit() {
+        let (bundle, _doc_path, store) =
+            bundle_with_one_doc("cpf-pii-broken", "Reference number 111.444.777-00");
+
+        let code = run(&store, &bundle.root);
+
+        assert!(exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_composes_the_pii_scan_with_the_private_dangling_link_and_secret_checks() {
+        let bundle = TempBundle::new("compose-with-pii");
+        let private_path = bundle.root.join("adr").join("0001-private.md");
+        let link_path = bundle.root.join("adr").join("0002-link.md");
+        let secret_path = bundle.root.join("adr").join("0003-secret.md");
+        let pii_path = bundle.root.join("adr").join("0004-pii.md");
+
+        let mut files = BTreeMap::new();
+        files.insert(
+            private_path.clone(),
+            "---\ntype: ADR\nvisibility: private\n---\n# Private\n".to_string(),
+        );
+        files.insert(
+            link_path.clone(),
+            "---\ntype: ADR\nvisibility: public\n---\n# Link\n\n[missing](./0099-missing.md)\n"
+                .to_string(),
+        );
+        files.insert(
+            secret_path.clone(),
+            "---\ntype: ADR\nvisibility: public\n---\nAKIAABCDEFGHIJKLMNOP\n".to_string(),
+        );
+        files.insert(
+            pii_path.clone(),
+            "---\ntype: ADR\nvisibility: public\n---\nCPF: 111.444.777-35\n".to_string(),
+        );
+        let store = MapStore { files };
+        let bundle_str = bundle.root.to_string_lossy();
+        let mut violations = Vec::new();
+
+        for path in [&private_path, &link_path, &secret_path, &pii_path] {
+            collect_private_present_violation(&store, path, &mut violations);
+            collect_dangling_link_violations(&store, path, &bundle_str, &mut violations);
+            collect_secret_violations(&store, path, &mut violations);
+            collect_pii_violations(&store, path, &mut violations);
+        }
+
+        assert!(violations.iter().any(|(_, m)| m.contains("private")));
+        assert!(violations.iter().any(|(_, m)| m.contains("withheld")));
+        assert!(violations
+            .iter()
+            .any(|(_, m)| m.contains("AWS access key id")));
+        assert!(violations.iter().any(|(_, m)| m.contains("Brazilian CPF")));
 
         let code = run(&store, &bundle.root);
         assert!(!exit_code_is_success(code));
