@@ -7,14 +7,6 @@ fn living_docs() -> Command {
     Command::new(env!("CARGO_BIN_EXE_living-docs"))
 }
 
-fn docker_available() -> bool {
-    Command::new("docker")
-        .arg("info")
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
-}
-
 /// Fixtures live under `skills/living-docs/tests/fixtures` relative to the repo
 /// root; `CARGO_MANIFEST_DIR` anchors this at compile time regardless of the
 /// working directory `cargo test` is invoked from.
@@ -51,10 +43,6 @@ fn stderr_of(output: &Output) -> String {
 
 #[test]
 fn fixture_10_valid_diagrams_pass_clean() {
-    if !docker_available() {
-        eprintln!("note: docker unavailable — skipping mermaid validation test");
-        return;
-    }
     let output = run_mermaid_only(&fixture("10-mermaid-valid"));
     let stdout = stdout_of(&output);
     assert_eq!(
@@ -68,10 +56,6 @@ fn fixture_10_valid_diagrams_pass_clean() {
 
 #[test]
 fn fixture_11_invalid_diagram_fails_with_a_file_line_pointer() {
-    if !docker_available() {
-        eprintln!("note: docker unavailable — skipping mermaid validation test");
-        return;
-    }
     let output = run_mermaid_only(&fixture("11-mermaid-invalid"));
     let stdout = stdout_of(&output);
     assert_eq!(
@@ -110,27 +94,34 @@ fn mermaid_only_with_no_fences_is_clean_without_requiring_docker() {
     let _ = fs::remove_dir_all(&bundle);
 }
 
-#[test]
-fn mermaid_only_exits_2_when_docker_is_unavailable_and_fences_exist() {
-    let output = living_docs()
-        .args([
-            "check",
-            "--mermaid-only",
-            fixture("10-mermaid-valid").to_str().unwrap(),
-        ])
+fn run_mermaid_only_without_docker_on_path(path: &Path) -> Output {
+    living_docs()
+        .args(["check", "--mermaid-only", path.to_str().unwrap()])
         .env("PATH", "/nonexistent")
         .output()
-        .expect("failed to run living-docs check --mermaid-only");
+        .expect("failed to run living-docs check --mermaid-only")
+}
 
+#[test]
+fn mermaid_only_validates_without_docker_on_path() {
+    let valid = run_mermaid_only_without_docker_on_path(&fixture("10-mermaid-valid"));
     assert_eq!(
-        output.status.code(),
-        Some(2),
-        "expected a tool-error exit, got:\n{}",
-        stderr_of(&output)
+        valid.status.code(),
+        Some(0),
+        "expected clean with docker off PATH, got:\n{}\n{}",
+        stdout_of(&valid),
+        stderr_of(&valid)
+    );
+
+    let invalid = run_mermaid_only_without_docker_on_path(&fixture("11-mermaid-invalid"));
+    let invalid_stdout = stdout_of(&invalid);
+    assert_eq!(
+        invalid.status.code(),
+        Some(1),
+        "expected a parse failure with docker off PATH, got:\n{invalid_stdout}"
     );
     assert!(
-        stderr_of(&output).contains("docker"),
-        "expected a docker error message, got:\n{}",
-        stderr_of(&output)
+        invalid_stdout.contains("doc.md:"),
+        "expected a file:line pointer, got:\n{invalid_stdout}"
     );
 }
