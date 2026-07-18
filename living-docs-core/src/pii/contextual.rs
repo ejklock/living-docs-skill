@@ -134,6 +134,69 @@ fn validate_india_pan(matched: &str) -> bool {
         .is_some_and(|entity_type| PAN_VALID_ENTITY_CHARS.contains(&entity_type))
 }
 
+/// Ireland PPS check-letter table (Irish Revenue Commissioners PPS-number
+/// spec): index `n` is the letter assigned to a mod-23 remainder of `n`.
+const PPS_TABLE: &str = "WABCDEFGHIJKLMNOPQRSTUV";
+
+/// The `PPS_TABLE` index of `letter`, used both for the optional 9th
+/// character's contribution to the check sum and to read off the computed
+/// check letter; an unrecognized letter contributes `0`.
+fn pps_table_index(letter: char) -> usize {
+    PPS_TABLE.find(letter).unwrap_or(0)
+}
+
+/// Ireland PPS (7 digits + a mod-23 weighted check letter, with an optional
+/// second letter that folds into the same sum — Irish Revenue Commissioners
+/// PPS-number spec): `sum` weights the 7 digits `[8,7,6,5,4,3,2]`, adds
+/// `index(9th letter) * 9` when a second letter is present, and the check
+/// letter is `PPS_TABLE[sum % 23]`.
+fn validate_ireland_pps(matched: &str) -> bool {
+    const WEIGHTS: [usize; 7] = [8, 7, 6, 5, 4, 3, 2];
+    let chars: Vec<char> = matched.chars().collect();
+    let ds = checksum::digits(matched);
+    if ds.len() != 7 || chars.len() < 8 {
+        return false;
+    }
+    let mut sum: usize = ds.iter().zip(WEIGHTS).map(|(d, w)| *d as usize * w).sum();
+    if let Some(&ninth) = chars.get(8) {
+        sum += pps_table_index(ninth) * 9;
+    }
+    PPS_TABLE.as_bytes()[sum % 23] as char == chars[7]
+}
+
+/// Singapore NRIC/FIN check-letter tables (Singapore NRIC/FIN spec): index
+/// `n` is the letter assigned to a mod-11 remainder of `n`, one table per
+/// prefix family (`S`/`T` citizens and permanent residents, `F`/`G` foreign
+/// IDs).
+const ST_TABLE: [char; 11] = ['J', 'Z', 'I', 'H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'];
+const FG_TABLE: [char; 11] = ['X', 'W', 'U', 'T', 'R', 'Q', 'P', 'N', 'M', 'L', 'K'];
+
+/// Singapore NRIC/FIN (prefix letter + 7 digits + a mod-11 weighted check
+/// letter — Singapore NRIC/FIN spec): `sum` weights the 7 digits
+/// `[2,7,6,5,4,3,2]`, adds `4` when the prefix is `T` or `G` (the
+/// newer-series offset), and the remainder selects the check letter from
+/// `ST_TABLE` (`S`/`T`) or `FG_TABLE` (`F`/`G`).
+fn validate_singapore_nric(matched: &str) -> bool {
+    const WEIGHTS: [u32; 7] = [2, 7, 6, 5, 4, 3, 2];
+    let chars: Vec<char> = matched.chars().collect();
+    let ds = checksum::digits(matched);
+    if ds.len() != 7 || chars.len() != 9 {
+        return false;
+    }
+    let prefix = chars[0];
+    let mut sum: u32 = ds.iter().zip(WEIGHTS).map(|(d, w)| d * w).sum();
+    if prefix == 'T' || prefix == 'G' {
+        sum += 4;
+    }
+    let remainder = (sum % 11) as usize;
+    let check = match prefix {
+        'S' | 'T' => ST_TABLE[remainder],
+        'F' | 'G' => FG_TABLE[remainder],
+        _ => return false,
+    };
+    check == chars[8]
+}
+
 /// Registers every Tier-2 context-gated detector.
 pub(super) fn detectors() -> Vec<ContextualDetector> {
     vec![
@@ -161,6 +224,18 @@ pub(super) fn detectors() -> Vec<ContextualDetector> {
             pattern: Regex::new(r"\b[A-Z]{5}\d{4}[A-Z]\b").expect("valid pan regex"),
             validate: validate_india_pan,
             context: &["pan"],
+        },
+        ContextualDetector {
+            label: "Ireland PPS",
+            pattern: Regex::new(r"\b\d{7}[A-W][A-IW]?\b").expect("valid pps regex"),
+            validate: validate_ireland_pps,
+            context: &["pps", "personal public service"],
+        },
+        ContextualDetector {
+            label: "Singapore NRIC/FIN",
+            pattern: Regex::new(r"\b[STFG]\d{7}[A-Z]\b").expect("valid nric regex"),
+            validate: validate_singapore_nric,
+            context: &["nric", "fin"],
         },
     ]
 }
@@ -226,9 +301,9 @@ mod tests {
     }
 
     #[test]
-    fn detectors_registers_all_four_context_gated_detectors_with_their_context_words() {
+    fn detectors_registers_all_six_context_gated_detectors_with_their_context_words() {
         let found = detectors();
-        assert_eq!(found.len(), 4);
+        assert_eq!(found.len(), 6);
         assert_eq!(found[0].label, "US SSN");
         assert_eq!(found[0].context, &["ssn", "social security"]);
         assert_eq!(found[1].label, "US ITIN");
@@ -237,6 +312,10 @@ mod tests {
         assert_eq!(found[2].context, &["nino", "national insurance"]);
         assert_eq!(found[3].label, "India PAN");
         assert_eq!(found[3].context, &["pan"]);
+        assert_eq!(found[4].label, "Ireland PPS");
+        assert_eq!(found[4].context, &["pps", "personal public service"]);
+        assert_eq!(found[5].label, "Singapore NRIC/FIN");
+        assert_eq!(found[5].context, &["nric", "fin"]);
     }
 
     #[test]
@@ -299,6 +378,72 @@ mod tests {
     #[test]
     fn validate_india_pan_rejects_an_unassigned_entity_type_character() {
         assert!(!validate_india_pan("ABCXD1234E"));
+    }
+
+    #[test]
+    fn validate_ireland_pps_accepts_a_structurally_valid_number() {
+        assert!(validate_ireland_pps("1234567T"));
+    }
+
+    /// `1234567A` differs from the accepted `1234567T` vector only in the
+    /// check letter — the mod-23 comparison is the only reason this vector is
+    /// rejected.
+    #[test]
+    fn validate_ireland_pps_rejects_a_wrong_check_letter() {
+        assert!(!validate_ireland_pps("1234567A"));
+    }
+
+    /// `1234567FA` carries the same 7 digits as the accepted `1234567T`
+    /// vector, but a different first check letter (`F`) made correct only by
+    /// folding the 9th character (`A`, index 1) into the sum via `* 9` —
+    /// isolating the optional-9th-character term.
+    #[test]
+    fn validate_ireland_pps_accepts_a_second_letter_that_folds_into_the_sum() {
+        assert!(validate_ireland_pps("1234567FA"));
+    }
+
+    /// `1234567F` keeps the same digits and first letter as the accepted
+    /// `1234567FA` vector but drops the 9th character — removing the
+    /// 9th-char term's contribution flips this vector to reject (its correct
+    /// check letter is `T`, not `F`).
+    #[test]
+    fn validate_ireland_pps_rejects_the_same_prefix_without_the_ninth_character() {
+        assert!(!validate_ireland_pps("1234567F"));
+    }
+
+    #[test]
+    fn validate_singapore_nric_accepts_an_s_prefix_valid_number() {
+        assert!(validate_singapore_nric("S1234567D"));
+    }
+
+    #[test]
+    fn validate_singapore_nric_accepts_an_f_prefix_valid_number() {
+        assert!(validate_singapore_nric("F1234567N"));
+    }
+
+    /// `T1234567J` carries the same 7 digits as the accepted `S1234567D`
+    /// vector; the `T` prefix's `+4` offset changes the remainder from `7`
+    /// (check `D`) to `0` (check `J`) — isolating the prefix offset.
+    #[test]
+    fn validate_singapore_nric_accepts_a_t_prefix_with_the_plus_four_offset() {
+        assert!(validate_singapore_nric("T1234567J"));
+    }
+
+    /// `G1234567X` carries the same 7 digits as the accepted `F1234567N`
+    /// vector; the `G` prefix's `+4` offset changes the remainder from `7`
+    /// (check `N`) to `0` (check `X`) — isolating the `G` branch of the
+    /// prefix offset, independent of the already-covered `T` branch.
+    #[test]
+    fn validate_singapore_nric_accepts_a_g_prefix_with_the_plus_four_offset() {
+        assert!(validate_singapore_nric("G1234567X"));
+    }
+
+    /// `S1234567A` differs from the accepted `S1234567D` vector only in the
+    /// check letter — the mod-11 comparison is the only reason this vector is
+    /// rejected.
+    #[test]
+    fn validate_singapore_nric_rejects_a_wrong_check_letter() {
+        assert!(!validate_singapore_nric("S1234567A"));
     }
 
     #[test]
@@ -366,6 +511,54 @@ mod tests {
     fn collect_pii_violations_stays_quiet_on_a_valid_pan_with_no_context_word() {
         let path = Path::new("adr/0001-doc.md");
         let contents = "Code ABCPD1234E only.";
+        let mut out = Vec::new();
+
+        super::super::collect_pii_violations(path, contents, &mut out);
+
+        assert!(out.is_empty());
+    }
+
+    #[test]
+    fn collect_pii_violations_flags_a_valid_pps_with_nearby_context_and_masks_it() {
+        let path = Path::new("adr/0001-doc.md");
+        let contents = "PPS 1234567T on file.";
+        let mut out = Vec::new();
+
+        super::super::collect_pii_violations(path, contents, &mut out);
+
+        assert_eq!(out.len(), 1);
+        assert!(out[0].1.contains("Ireland PPS"));
+        assert!(!out[0].1.contains("1234567T"));
+    }
+
+    #[test]
+    fn collect_pii_violations_stays_quiet_on_a_valid_pps_with_no_context_word() {
+        let path = Path::new("adr/0001-doc.md");
+        let contents = "Ref 1234567T only.";
+        let mut out = Vec::new();
+
+        super::super::collect_pii_violations(path, contents, &mut out);
+
+        assert!(out.is_empty());
+    }
+
+    #[test]
+    fn collect_pii_violations_flags_a_valid_nric_with_nearby_context_and_masks_it() {
+        let path = Path::new("adr/0001-doc.md");
+        let contents = "NRIC S1234567D on file.";
+        let mut out = Vec::new();
+
+        super::super::collect_pii_violations(path, contents, &mut out);
+
+        assert_eq!(out.len(), 1);
+        assert!(out[0].1.contains("Singapore NRIC/FIN"));
+        assert!(!out[0].1.contains("S1234567D"));
+    }
+
+    #[test]
+    fn collect_pii_violations_stays_quiet_on_a_valid_nric_with_no_context_word() {
+        let path = Path::new("adr/0001-doc.md");
+        let contents = "Ref S1234567D only.";
         let mut out = Vec::new();
 
         super::super::collect_pii_violations(path, contents, &mut out);
