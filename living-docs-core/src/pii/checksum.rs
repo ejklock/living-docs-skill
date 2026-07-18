@@ -96,4 +96,9 @@ mod tests {
         let weights = [3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
         assert_eq!(weighted_mod11_dv(&base, &weights), 3);
     }
+
+    #[test]
+    fn weighted_mod11_dv_returns_eleven_minus_resto_at_the_resto_equals_two_boundary() {
+        assert_eq!(weighted_mod11_dv(&[2], &[1]), 9);
+    }
 }
