@@ -190,6 +190,46 @@ fn root_index_frontmatter_with_okf_version_is_clean() {
 }
 
 #[test]
+fn invalid_visibility_value_fails_and_correcting_it_to_the_domain_passes() {
+    let bundle = temp_bundle("visibility");
+    write(&bundle, "index.md", "# Index\n\n- [Concept](concept.md)\n");
+    write(
+        &bundle,
+        "concept.md",
+        "---\ntype: Reference\nvisibility: pubic\n---\n# Concept\n",
+    );
+
+    let output = run_check(&bundle);
+    let stdout = stdout_of(&output);
+
+    assert_eq!(output.status.code(), Some(1));
+    assert!(
+        stdout.contains(
+            "invalid visibility 'pubic' (allowed: private|public|showcase; absent means private)"
+        ),
+        "expected an invalid-visibility violation, got:\n{stdout}"
+    );
+
+    write(
+        &bundle,
+        "concept.md",
+        "---\ntype: Reference\nvisibility: public\n---\n# Concept\n",
+    );
+
+    let output = run_check(&bundle);
+    let stdout = stdout_of(&output);
+
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "expected a clean check after correcting visibility, got:\n{stdout}"
+    );
+    assert!(stdout.contains("no invariant violations"));
+
+    let _ = fs::remove_dir_all(&bundle);
+}
+
+#[test]
 fn supersede_status_is_case_insensitive_and_a_valid_chain_is_clean() {
     let bundle = temp_bundle("supersede-clean");
     write(

@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -103,6 +103,75 @@ fn missing_required_argument_exits_with_code_2() {
         .expect("failed to run living-docs");
 
     assert_eq!(output.status.code(), Some(2));
+}
+
+fn write_record_with_visibility(docs: &Path, dir: &str, filename: &str, visibility: Option<&str>) {
+    let type_dir = docs.join(dir);
+    fs::create_dir_all(&type_dir).unwrap();
+    let visibility_line = visibility
+        .map(|v| format!("visibility: {v}\n"))
+        .unwrap_or_default();
+    let contents =
+        format!("---\ntype: ADR\ntitle: {filename}\n{visibility_line}---\n# {filename}\n");
+    fs::write(type_dir.join(filename), contents).unwrap();
+}
+
+#[test]
+fn export_with_visibility_flag_writes_only_matching_records() {
+    let docs = temp_dir("export-visibility-filter");
+    write_record_with_visibility(&docs, "adr", "0001-public.md", Some("public"));
+    write_record_with_visibility(&docs, "adr", "0002-private.md", Some("private"));
+    write_record_with_visibility(&docs, "adr", "0003-absent.md", None);
+    let out_dir = temp_dir("export-visibility-filter-out");
+    fs::remove_dir_all(&out_dir).unwrap();
+
+    let output = living_docs()
+        .args([
+            "--docs-dir",
+            docs.to_str().unwrap(),
+            "export",
+            out_dir.to_str().unwrap(),
+            "--visibility",
+            "public,showcase",
+        ])
+        .output()
+        .expect("failed to run living-docs export");
+
+    assert!(output.status.success());
+    assert!(out_dir.join("adr/0001-public.md").exists());
+    assert!(!out_dir.join("adr/0002-private.md").exists());
+    assert!(!out_dir.join("adr/0003-absent.md").exists());
+
+    let _ = fs::remove_dir_all(&docs);
+    let _ = fs::remove_dir_all(&out_dir);
+}
+
+#[test]
+fn export_without_visibility_flag_writes_every_record() {
+    let docs = temp_dir("export-visibility-unset");
+    write_record_with_visibility(&docs, "adr", "0001-public.md", Some("public"));
+    write_record_with_visibility(&docs, "adr", "0002-private.md", Some("private"));
+    write_record_with_visibility(&docs, "adr", "0003-absent.md", None);
+    let out_dir = temp_dir("export-visibility-unset-out");
+    fs::remove_dir_all(&out_dir).unwrap();
+
+    let output = living_docs()
+        .args([
+            "--docs-dir",
+            docs.to_str().unwrap(),
+            "export",
+            out_dir.to_str().unwrap(),
+        ])
+        .output()
+        .expect("failed to run living-docs export");
+
+    assert!(output.status.success());
+    assert!(out_dir.join("adr/0001-public.md").exists());
+    assert!(out_dir.join("adr/0002-private.md").exists());
+    assert!(out_dir.join("adr/0003-absent.md").exists());
+
+    let _ = fs::remove_dir_all(&docs);
+    let _ = fs::remove_dir_all(&out_dir);
 }
 
 #[test]

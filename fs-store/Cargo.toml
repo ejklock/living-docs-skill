@@ -1,0 +1,12 @@
+[package]
+name = "fs-store"
+version = "0.1.0"
+edition = "2021"
+description = "DocStore adapter over .md files on disk (ADR 0002)."
+
+[lib]
+name = "fs_store"
+path = "src/lib.rs"
+
+[dependencies]
+living-docs-core = { path = "../living-docs-core" }

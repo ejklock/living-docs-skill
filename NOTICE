@@ -1,0 +1,21 @@
+living-docs
+Copyright the living-docs contributors
+
+This product includes deterministic logic ported to Rust from the Open
+Knowledge Format (OKF) reference implementation:
+
+    GoogleCloudPlatform/knowledge-catalog
+    https://github.com/GoogleCloudPlatform/knowledge-catalog
+    Licensed under the Apache License, Version 2.0
+    https://www.apache.org/licenses/LICENSE-2.0
+
+The following modules were ported from that project's `bundle/paths.py`,
+`bundle/document.py`, and `bundle/index.py`: path/concept-id resolution,
+frontmatter parsing, serialization and validation, and index
+grouping/sorting.
+
+The upstream implementation's `synthesize_description` call, which invokes
+an LLM (`gemini-flash-latest`) to generate directory descriptions, was
+intentionally omitted. `living-docs` is deterministic by construction — see
+ADR 0001 (docs/adr/0001-living-docs-cli.md) — and contains no LLM call of
+any kind.
