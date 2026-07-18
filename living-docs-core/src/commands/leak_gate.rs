@@ -10,6 +10,11 @@
 //! never drift apart. This command keeps its own small violation collector
 //! instead of `check::Reporter` — the two commands report unrelated
 //! invariants and have no reason to share output shape.
+//!
+//! `include_tier3` (ADR 0012, `--check-tier3`) additionally runs the Tier-3
+//! PII detectors — the highest-false-positive class — over every file scanned
+//! for PII. It stays off by default: the flag is a policy of this command
+//! layer, not of `pii::collect_pii_violations`, which is untouched.
 
 use crate::check::file_name_str;
 use crate::check::links::{link_destinations, resolve_destination};
@@ -21,7 +26,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::OnceLock;
 
-pub fn run(store: &dyn DocStore, bundle: &Path) -> ExitCode {
+pub fn run(store: &dyn DocStore, bundle: &Path, include_tier3: bool) -> ExitCode {
     let all_md = store.list(bundle).unwrap_or_default();
     let bundle_str = bundle.to_string_lossy();
     let mut violations = Vec::new();
@@ -30,7 +35,7 @@ pub fn run(store: &dyn DocStore, bundle: &Path) -> ExitCode {
         collect_private_present_violation(store, path, &mut violations);
         collect_dangling_link_violations(store, path, &bundle_str, &mut violations);
         collect_secret_violations(store, path, &mut violations);
-        collect_pii_violations(store, path, &mut violations);
+        collect_pii_violations(store, path, include_tier3, &mut violations);
     }
 
     report(violations)
@@ -354,18 +359,24 @@ fn collect_high_entropy_assignment_violations(
     }
 }
 
-/// The Brazilian PII scan (ADR 0012): reads a doc's contents like the other
+/// The worldwide PII scan (ADR 0012): reads a doc's contents like the other
 /// leak classes, including the reserved `index.md`/`log.md` listing files —
 /// content is content regardless of which command normally writes it.
+/// `include_tier3` additionally runs the opt-in, highest-false-positive
+/// Tier-3 detectors over the same contents.
 fn collect_pii_violations(
     store: &dyn DocStore,
     path: &Path,
+    include_tier3: bool,
     violations: &mut Vec<(PathBuf, String)>,
 ) {
     let Ok(contents) = store.read(path) else {
         return;
     };
     pii::collect_pii_violations(path, &contents, violations);
+    if include_tier3 {
+        pii::collect_tier3_violations(path, &contents, violations);
+    }
 }
 
 fn report(violations: Vec<(PathBuf, String)>) -> ExitCode {
@@ -453,7 +464,7 @@ mod tests {
         );
         let store = MapStore { files };
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
 
         assert!(!exit_code_is_success(code));
     }
@@ -489,7 +500,7 @@ mod tests {
         );
         let store = MapStore { files };
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
 
         assert!(exit_code_is_success(code));
     }
@@ -505,7 +516,7 @@ mod tests {
         );
         let store = MapStore { files };
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
 
         assert!(!exit_code_is_success(code));
     }
@@ -556,7 +567,7 @@ mod tests {
         );
         let store = MapStore { files };
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
 
         assert!(exit_code_is_success(code));
     }
@@ -568,7 +579,7 @@ mod tests {
             files: BTreeMap::new(),
         };
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
 
         assert!(exit_code_is_success(code));
     }
@@ -584,7 +595,7 @@ mod tests {
         );
         let store = MapStore { files };
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
 
         assert!(!exit_code_is_success(code));
     }
@@ -599,7 +610,7 @@ mod tests {
         );
         let store = MapStore { files };
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
 
         assert!(!exit_code_is_success(code));
     }
@@ -615,7 +626,7 @@ mod tests {
         );
         let store = MapStore { files };
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
 
         assert!(!exit_code_is_success(code));
     }
@@ -631,7 +642,7 @@ mod tests {
         );
         let store = MapStore { files };
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
 
         assert!(!exit_code_is_success(code));
     }
@@ -683,7 +694,7 @@ mod tests {
         );
         let store = MapStore { files };
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
 
         assert!(exit_code_is_success(code));
     }
@@ -725,7 +736,7 @@ mod tests {
             .iter()
             .any(|(_, m)| m.contains("AWS access key id")));
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
         assert!(!exit_code_is_success(code));
     }
 
@@ -746,7 +757,7 @@ mod tests {
         let (bundle, _doc_path, store) =
             bundle_with_one_doc("stripe-secret-key", "sk_\x6cive_abcdefghijklmnopqrstuvwx");
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
 
         assert!(!exit_code_is_success(code));
     }
@@ -763,7 +774,7 @@ mod tests {
             .iter()
             .any(|(path, m)| path == &doc_path && m.contains("GitHub token")));
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
         assert!(!exit_code_is_success(code));
     }
 
@@ -772,7 +783,7 @@ mod tests {
         let (bundle, _doc_path, store) =
             bundle_with_one_doc("gitlab-token", "glpat-abcdefghijklmnopqrst");
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
 
         assert!(!exit_code_is_success(code));
     }
@@ -782,7 +793,7 @@ mod tests {
         let (bundle, _doc_path, store) =
             bundle_with_one_doc("google-api-key", "AIza0123456789abcdefghijklmnopqrstuvwxy");
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
 
         assert!(!exit_code_is_success(code));
     }
@@ -792,7 +803,7 @@ mod tests {
         let (bundle, _doc_path, store) =
             bundle_with_one_doc("slack-token", "xoxb-1234567890abcdef");
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
 
         assert!(!exit_code_is_success(code));
     }
@@ -804,7 +815,7 @@ mod tests {
             "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
         );
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
 
         assert!(!exit_code_is_success(code));
     }
@@ -816,7 +827,7 @@ mod tests {
             "Authorization: Bearer abcdefghijklmnopqrstuvwxyz1234567890",
         );
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
 
         assert!(!exit_code_is_success(code));
     }
@@ -835,7 +846,7 @@ mod tests {
             .iter()
             .any(|(_, m)| m.contains("high-entropy generic secret assignment")));
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
         assert!(!exit_code_is_success(code));
     }
 
@@ -846,7 +857,7 @@ mod tests {
             "See commit a1b2c3d4e5f6789012345678901234567890abcd for the fix.",
         );
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
 
         assert!(exit_code_is_success(code));
     }
@@ -858,7 +869,7 @@ mod tests {
             "note = \"aaaaaaaaaaaaaaaaaaaaaaaaaaaa\"",
         );
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
 
         assert!(exit_code_is_success(code));
     }
@@ -873,7 +884,7 @@ mod tests {
 
         assert!(violations.iter().any(|(_, m)| !m.contains(raw_token)));
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
         assert!(!exit_code_is_success(code));
     }
 
@@ -883,13 +894,13 @@ mod tests {
             bundle_with_one_doc("cpf-pii", "Cliente CPF: 111.444.777-35");
         let mut violations = Vec::new();
 
-        collect_pii_violations(&store, &doc_path, &mut violations);
+        collect_pii_violations(&store, &doc_path, false, &mut violations);
 
         assert!(violations
             .iter()
             .any(|(_, m)| m.contains("Brazilian CPF") && !m.contains("111.444.777-35")));
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
         assert!(!exit_code_is_success(code));
     }
 
@@ -898,7 +909,7 @@ mod tests {
         let (bundle, _doc_path, store) =
             bundle_with_one_doc("cpf-pii-broken", "Reference number 111.444.777-00");
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
 
         assert!(exit_code_is_success(code));
     }
@@ -937,7 +948,7 @@ mod tests {
             collect_private_present_violation(&store, path, &mut violations);
             collect_dangling_link_violations(&store, path, &bundle_str, &mut violations);
             collect_secret_violations(&store, path, &mut violations);
-            collect_pii_violations(&store, path, &mut violations);
+            collect_pii_violations(&store, path, false, &mut violations);
         }
 
         assert!(violations.iter().any(|(_, m)| m.contains("private")));
@@ -947,7 +958,7 @@ mod tests {
             .any(|(_, m)| m.contains("AWS access key id")));
         assert!(violations.iter().any(|(_, m)| m.contains("Brazilian CPF")));
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
         assert!(!exit_code_is_success(code));
     }
 
@@ -966,7 +977,44 @@ mod tests {
             .contains("high-entropy generic secret assignment")
             && !m.contains(raw_value)));
 
-        let code = run(&store, &bundle.root);
+        let code = run(&store, &bundle.root, false);
         assert!(!exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_flags_an_ipv4_address_when_tier3_is_included() {
+        let (bundle, _doc_path, store) =
+            bundle_with_one_doc("ipv4-tier3-on", "Server at 192.168.1.1 on file.");
+
+        let code = run(&store, &bundle.root, true);
+
+        assert!(!exit_code_is_success(code));
+    }
+
+    #[test]
+    fn leak_gate_masks_the_reported_ipv4_address() {
+        let (_bundle, doc_path, store) =
+            bundle_with_one_doc("ipv4-tier3-masking", "Server at 192.168.1.1 on file.");
+        let mut violations = Vec::new();
+
+        collect_pii_violations(&store, &doc_path, true, &mut violations);
+
+        assert!(violations
+            .iter()
+            .any(|(_, m)| m.contains("IPv4 address") && !m.contains("192.168.1.1")));
+    }
+
+    #[test]
+    fn leak_gate_stays_quiet_on_an_ipv4_address_when_tier3_is_excluded_by_default() {
+        let (bundle, doc_path, store) =
+            bundle_with_one_doc("ipv4-tier3-off", "Server at 192.168.1.1 on file.");
+        let mut violations = Vec::new();
+
+        collect_pii_violations(&store, &doc_path, false, &mut violations);
+
+        assert!(violations.is_empty());
+
+        let code = run(&store, &bundle.root, false);
+        assert!(exit_code_is_success(code));
     }
 }
