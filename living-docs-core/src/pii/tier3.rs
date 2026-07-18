@@ -389,149 +389,114 @@ mod tests {
         ));
     }
 
-    #[test]
-    fn collect_tier3_violations_flags_a_valid_ipv6_and_masks_it() {
+    fn tier3_messages(contents: &str) -> Vec<String> {
         let path = Path::new("adr/0001-doc.md");
-        let contents = "Host reachable at 2001:db8::1 on the lab network.";
         let mut out = Vec::new();
 
         super::super::collect_tier3_violations(path, contents, &mut out);
 
-        assert!(out.iter().any(
-            |(_, message)| message.contains("IPv6 address") && !message.contains("2001:db8::1")
-        ));
+        out.into_iter().map(|(_, message)| message).collect()
+    }
+
+    fn flags_masked(contents: &str, label: &str, raw: &str) -> bool {
+        tier3_messages(contents)
+            .iter()
+            .any(|message| message.contains(label) && !message.contains(raw))
+    }
+
+    fn stays_quiet(contents: &str, label: &str) -> bool {
+        !tier3_messages(contents)
+            .iter()
+            .any(|message| message.contains(label))
+    }
+
+    #[test]
+    fn collect_tier3_violations_flags_a_valid_ipv6_and_masks_it() {
+        let contents = "Host reachable at 2001:db8::1 on the lab network.";
+
+        assert!(flags_masked(contents, "IPv6 address", "2001:db8::1"));
     }
 
     #[test]
     fn collect_tier3_violations_flags_a_valid_mac_and_masks_it() {
-        let path = Path::new("adr/0001-doc.md");
         let contents = "NIC address is 01:23:45:67:89:AB per the asset log.";
-        let mut out = Vec::new();
 
-        super::super::collect_tier3_violations(path, contents, &mut out);
-
-        assert!(out
-            .iter()
-            .any(|(_, message)| message.contains("MAC address")
-                && !message.contains("01:23:45:67:89:AB")));
+        assert!(flags_masked(contents, "MAC address", "01:23:45:67:89:AB"));
     }
 
     #[test]
     fn collect_tier3_violations_flags_both_an_ipv6_and_a_mac_in_the_same_document() {
-        let path = Path::new("adr/0001-doc.md");
         let contents = "IPv6: 2001:db8::1, MAC: 01:23:45:67:89:AB";
-        let mut out = Vec::new();
+        let messages = tier3_messages(contents);
 
-        super::super::collect_tier3_violations(path, contents, &mut out);
-
-        assert!(out
+        assert!(messages
             .iter()
-            .any(|(_, message)| message.contains("IPv6 address")));
-        assert!(out
+            .any(|message| message.contains("IPv6 address")));
+        assert!(messages
             .iter()
-            .any(|(_, message)| message.contains("MAC address")));
+            .any(|message| message.contains("MAC address")));
     }
 
     #[test]
     fn collect_tier3_violations_stays_quiet_on_an_incomplete_ipv6_shape() {
-        let path = Path::new("adr/0001-doc.md");
         let contents = "Route: 2001:db8:1:1:1:1:1 unreachable.";
-        let mut out = Vec::new();
 
-        super::super::collect_tier3_violations(path, contents, &mut out);
-
-        assert!(!out
-            .iter()
-            .any(|(_, message)| message.contains("IPv6 address")));
+        assert!(stays_quiet(contents, "IPv6 address"));
     }
 
     #[test]
     fn collect_tier3_violations_stays_quiet_on_an_all_equal_mac_placeholder() {
-        let path = Path::new("adr/0001-doc.md");
         let contents = "Default NIC: 00:00:00:00:00:00 (unset).";
-        let mut out = Vec::new();
 
-        super::super::collect_tier3_violations(path, contents, &mut out);
-
-        assert!(!out
-            .iter()
-            .any(|(_, message)| message.contains("MAC address")));
+        assert!(stays_quiet(contents, "MAC address"));
     }
 
     #[test]
     fn collect_tier3_violations_flags_a_cep_and_a_uk_postcode_and_masks_both() {
-        let path = Path::new("adr/0001-doc.md");
         let contents = "Ship to CEP 01310-100 or the UK branch at SW1A 1AA.";
-        let mut out = Vec::new();
 
-        super::super::collect_tier3_violations(path, contents, &mut out);
-
-        assert!(out
-            .iter()
-            .any(|(_, message)| message.contains("CEP") && !message.contains("01310-100")));
-        assert!(out
-            .iter()
-            .any(|(_, message)| message.contains("UK postcode") && !message.contains("SW1A 1AA")));
+        assert!(flags_masked(contents, "CEP", "01310-100"));
+        assert!(flags_masked(contents, "UK postcode", "SW1A 1AA"));
     }
 
     #[test]
     fn collect_tier3_violations_stays_quiet_on_an_all_equal_cep_placeholder() {
-        let path = Path::new("adr/0001-doc.md");
         let contents = "Default CEP on file: 00000-000 (unset).";
-        let mut out = Vec::new();
 
-        super::super::collect_tier3_violations(path, contents, &mut out);
-
-        assert!(!out.iter().any(|(_, message)| message.contains("CEP")));
+        assert!(stays_quiet(contents, "CEP"));
     }
 
     #[test]
     fn collect_tier3_violations_stays_quiet_on_a_forbidden_inward_letter_postcode() {
-        let path = Path::new("adr/0001-doc.md");
         let contents = "Placeholder address: SW1A 1CV (do not mail).";
-        let mut out = Vec::new();
 
-        super::super::collect_tier3_violations(path, contents, &mut out);
-
-        assert!(!out
-            .iter()
-            .any(|(_, message)| message.contains("UK postcode")));
+        assert!(stays_quiet(contents, "UK postcode"));
     }
 
     #[test]
     fn collect_tier3_violations_flags_a_bitcoin_and_an_ethereum_address_and_masks_both() {
-        let path = Path::new("adr/0001-doc.md");
         let contents = "Send BTC to bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4 or \
                          ETH to 0x52908400098527886E0F7030069857D2E4169EE7.";
-        let mut out = Vec::new();
 
-        super::super::collect_tier3_violations(path, contents, &mut out);
-
-        assert!(out.iter().any(|(_, message)| {
-            message.contains("Bitcoin address")
-                && !message.contains("bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4")
-        }));
-        assert!(out.iter().any(|(_, message)| {
-            message.contains("Ethereum address")
-                && !message.contains("0x52908400098527886E0F7030069857D2E4169EE7")
-        }));
+        assert!(flags_masked(
+            contents,
+            "Bitcoin address",
+            "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+        ));
+        assert!(flags_masked(
+            contents,
+            "Ethereum address",
+            "0x52908400098527886E0F7030069857D2E4169EE7"
+        ));
     }
 
     #[test]
     fn collect_tier3_violations_stays_quiet_on_the_bitcoin_and_ethereum_placeholders() {
-        let path = Path::new("adr/0001-doc.md");
         let contents = "Eater address: 111111111111111111111111111111. \
                          Null address: 0x0000000000000000000000000000000000000000.";
-        let mut out = Vec::new();
 
-        super::super::collect_tier3_violations(path, contents, &mut out);
-
-        assert!(!out
-            .iter()
-            .any(|(_, message)| message.contains("Bitcoin address")));
-        assert!(!out
-            .iter()
-            .any(|(_, message)| message.contains("Ethereum address")));
+        assert!(stays_quiet(contents, "Bitcoin address"));
+        assert!(stays_quiet(contents, "Ethereum address"));
     }
 
     #[test]
@@ -573,52 +538,31 @@ mod tests {
     #[test]
     fn collect_tier3_violations_flags_a_valid_rg_sp_and_masks_it_while_staying_quiet_on_bad_shapes()
     {
-        let path = Path::new("adr/0001-doc.md");
         let contents = "Valid RG on file: 12.345.678-2. Wrong checksum shape: 123456783. \
                          Placeholder shape: 000000000.";
-        let mut out = Vec::new();
 
-        super::super::collect_tier3_violations(path, contents, &mut out);
-
-        let rg_matches: Vec<&String> = out
-            .iter()
-            .filter(|(_, message)| message.contains("Brazil RG (SP)"))
-            .map(|(_, message)| message)
+        let rg_matches: Vec<String> = tier3_messages(contents)
+            .into_iter()
+            .filter(|message| message.contains("Brazil RG (SP)"))
             .collect();
+
         assert_eq!(rg_matches.len(), 1);
         assert!(!rg_matches[0].contains("12.345.678-2"));
     }
 
     #[test]
     fn collect_tier3_violations_flags_an_india_voter_id_and_a_nigeria_nin_and_masks_both() {
-        let path = Path::new("adr/0001-doc.md");
         let contents = "Voter ID on file: ABC1234567. NIN on file: 12345678901.";
-        let mut out = Vec::new();
 
-        super::super::collect_tier3_violations(path, contents, &mut out);
-
-        assert!(out
-            .iter()
-            .any(|(_, message)| message.contains("India Voter ID")
-                && !message.contains("ABC1234567")));
-        assert!(out.iter().any(
-            |(_, message)| message.contains("Nigeria NIN") && !message.contains("12345678901")
-        ));
+        assert!(flags_masked(contents, "India Voter ID", "ABC1234567"));
+        assert!(flags_masked(contents, "Nigeria NIN", "12345678901"));
     }
 
     #[test]
     fn collect_tier3_violations_stays_quiet_on_the_india_voter_id_and_nigeria_nin_placeholders() {
-        let path = Path::new("adr/0001-doc.md");
         let contents = "Placeholder voter ID: ABC0000000. Placeholder NIN: 00000000000.";
-        let mut out = Vec::new();
 
-        super::super::collect_tier3_violations(path, contents, &mut out);
-
-        assert!(!out
-            .iter()
-            .any(|(_, message)| message.contains("India Voter ID")));
-        assert!(!out
-            .iter()
-            .any(|(_, message)| message.contains("Nigeria NIN")));
+        assert!(stays_quiet(contents, "India Voter ID"));
+        assert!(stays_quiet(contents, "Nigeria NIN"));
     }
 }
