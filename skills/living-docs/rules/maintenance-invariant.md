@@ -45,3 +45,5 @@ one-home-per-fact checks have no sound oracle and stay a reviewer judgement.
 ## Why same-change, not later
 
 A doc update deferred to "later" is a doc update that never happens — and the gap between code and docs is exactly where the next person gets misled. Coupling the doc to the change that caused it is the only mechanism that survives turnover and time pressure. The reviewer enforces it: a structural PR with no doc delta is incomplete.
+
+Same-change is also the cheap way when the author is an agent: in the same change the model still holds the full context of what it just did, so the doc costs only its output tokens (a terse record is small — see `size-targets.md`). Deferring docs to a later "documentation session" re-pays the entire input context cold before a single line is written.

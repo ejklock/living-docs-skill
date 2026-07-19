@@ -16,6 +16,7 @@ mod graph;
 pub(crate) mod links;
 mod mermaid;
 mod records;
+mod size;
 
 use crate::store::DocStore;
 use std::fs;
@@ -58,6 +59,7 @@ pub fn run(store: &dyn DocStore, bundle: &Path) -> ExitCode {
     records::check_supersede_chain(store, &all_md, &mut reporter);
 
     mermaid::check_bundle(&all_md, &mut reporter);
+    size::check_body_size(store, &all_md, &mut reporter);
 
     reporter.finish(all_md.len())
 }
@@ -90,15 +92,18 @@ fn walk_md_files(dir: &Path, out: &mut Vec<PathBuf>) {
 }
 
 /// Collects violations and renders the final report + exit code, mirroring
-/// `report()` and the verdict block of `lint-docs.sh`.
+/// `report()` and the verdict block of `lint-docs.sh`. Advisories (issue
+/// 0009) print alongside violations but never touch the exit code.
 pub(crate) struct Reporter {
     violations: Vec<(String, String)>,
+    advisories: Vec<(String, String)>,
 }
 
 impl Reporter {
     fn new() -> Self {
         Self {
             violations: Vec::new(),
+            advisories: Vec::new(),
         }
     }
 
@@ -107,7 +112,18 @@ impl Reporter {
             .push((file.display().to_string(), message.into()));
     }
 
+    pub(crate) fn advise(&mut self, file: &Path, message: impl Into<String>) {
+        self.advisories
+            .push((file.display().to_string(), message.into()));
+    }
+
     fn finish(self, doc_count: usize) -> ExitCode {
+        for (file, message) in &self.advisories {
+            println!("  {file:<44} {message}");
+        }
+        if !self.advisories.is_empty() {
+            println!();
+        }
         for (file, message) in &self.violations {
             println!("  {file:<44} {message}");
         }

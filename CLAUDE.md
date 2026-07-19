@@ -7,8 +7,8 @@ rule wins.
 ## What this project is
 
 `living-docs` is the deterministic layer of Living Docs authoring (see `docs/adr/0001`).
-A Rust CLI owns the mechanical, template-fillable steps (`new`, `index`, `supersede`,
-`next`, `check`) so the authoring model never pays tokens for them. There is **no LLM
+A Rust CLI owns the mechanical, template-fillable steps (`new`, `brief`, `index`,
+`supersede`, `next`, `check`) so the authoring model never pays tokens for them. There is **no LLM
 inside the tool** — it is deterministic by construction.
 
 ## Hard rules
