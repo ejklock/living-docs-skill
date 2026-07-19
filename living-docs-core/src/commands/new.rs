@@ -47,7 +47,7 @@ fn scaffold(
     Ok(target_path)
 }
 
-fn unsupported_type_message(doc_type: &str) -> String {
+pub(crate) fn unsupported_type_message(doc_type: &str) -> String {
     format!("unsupported doc type '{doc_type}' (expected one of adr, bdr, prd, issue)")
 }
 
@@ -55,7 +55,7 @@ fn unsupported_type_message(doc_type: &str) -> String {
 /// frontmatter block only — never a serde round-trip, so body placeholders
 /// and frontmatter guidance comments outside those three keys survive
 /// byte-for-byte.
-fn fill_frontmatter(template: &str, type_value: &str, timestamp: &str) -> String {
+pub(crate) fn fill_frontmatter(template: &str, type_value: &str, timestamp: &str) -> String {
     let lines: Vec<&str> = template.lines().collect();
     let Some(close) = frontmatter_close_index(&lines) else {
         return template.to_string();
@@ -76,7 +76,7 @@ fn fill_frontmatter(template: &str, type_value: &str, timestamp: &str) -> String
     filled.join("\n") + "\n"
 }
 
-fn frontmatter_close_index(lines: &[&str]) -> Option<usize> {
+pub(crate) fn frontmatter_close_index(lines: &[&str]) -> Option<usize> {
     lines
         .iter()
         .skip(1)
@@ -93,7 +93,7 @@ fn fill_frontmatter_line(line: &str, type_value: &str, timestamp: &str) -> Strin
 
 /// Replaces the value of a `key: value` frontmatter line, preserving any
 /// trailing `# guidance comment` verbatim.
-fn replace_targeted_value(line: &str, key: &str, new_value: &str) -> Option<String> {
+pub(crate) fn replace_targeted_value(line: &str, key: &str, new_value: &str) -> Option<String> {
     let prefix = format!("{key}:");
     let rest = line.strip_prefix(&prefix)?;
     match rest.find('#') {
@@ -102,7 +102,7 @@ fn replace_targeted_value(line: &str, key: &str, new_value: &str) -> Option<Stri
     }
 }
 
-fn now_iso8601() -> String {
+pub(crate) fn now_iso8601() -> String {
     let secs = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("system clock is before the unix epoch")
