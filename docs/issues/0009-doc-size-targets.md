@@ -1,7 +1,7 @@
 ---
 type: Issue
 title: Per-type doc size targets — authoring convention in the skill corpus + advisory warning in check, plus the same-change economic rationale
-description: State per-doc-type body size targets (ADR/BDR/issue/research) as an authoring convention in the embedded living-docs skill corpus, have `check` emit an advisory (non-failing) warning when a body exceeds its target, and record the economic rationale for the docs-in-the-same-change rule where that rule lives.
+description: State the doc body size target (aim ~100 lines, advisory warning at 120 — owner-set, uniform for decision/execution records; research exempt) as an authoring convention in the embedded living-docs skill corpus, have `check` emit an advisory (non-failing) warning when a body exceeds it, and record the economic rationale for the docs-in-the-same-change rule where that rule lives.
 status: open
 labels: [slice, cli, skill-corpus, token-economy]
 blocked_by: []
@@ -35,10 +35,11 @@ Constitution → [ADR 0001](/adr/0001-living-docs-cli.md) (`check` is the doc-ga
 
 ### Scope
 
-- Corpus: per-type body-line targets (proposed starting values, tune at implementation:
-  ADR ≤ ~60, BDR ≤ ~40, issue ≤ ~80, research unbounded-but-index-summarized) with the
-  one-line rationale (output-token cost + compaction survival) and the standing rule
-  that a target is never a reason to omit a load-bearing rationale.
+- Corpus: body-line targets set by the owner (2026-07-19): **aim ~100 lines, advisory
+  warning at 120**, uniform across decision/execution records (ADR, BDR, PRD, issue);
+  research stays unbounded-but-index-summarized (long-form evidence by nature). State
+  the one-line rationale (output-token cost + compaction survival) and the standing
+  rule that a target is never a reason to omit a load-bearing rationale.
 - Corpus: next to the docs-in-the-same-change rule, add the `0053` Finding-3 economic
   rationale — same-session hot-context writing is output-token-dominant; deferring docs
   re-pays the input context cold.
