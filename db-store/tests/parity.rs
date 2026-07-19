@@ -332,12 +332,13 @@ fn reconstructed_tail_preserves_both_field_order_and_the_concrete_ordinal_sequen
 
     assert_eq!(
         ordinals,
-        vec![0, 1, 2, 3, 4],
+        vec![0, 1, 2, 3],
         "ordinals must be the sequential 0..N encounter positions, not a constant"
     );
     assert_eq!(
         keys,
-        vec!["status", "labels", "blocked_by", "tracker", "timestamp"]
+        vec!["labels", "blocked_by", "tracker", "timestamp"],
+        "status has a typed column and never lands in the EAV tail (issue 0008, ADR 0015, S1)"
     );
 
     let db_store =
