@@ -2,7 +2,7 @@
 type: Issue
 title: Per-type doc size targets — authoring convention in the skill corpus + advisory warning in check, plus the same-change economic rationale
 description: State the doc body size target (aim ~100 lines, advisory warning at 120 — owner-set, uniform for decision/execution records; research exempt) as an authoring convention in the embedded living-docs skill corpus, have `check` emit an advisory (non-failing) warning when a body exceeds it, and record the economic rationale for the docs-in-the-same-change rule where that rule lives.
-status: open
+status: done
 labels: [slice, cli, skill-corpus, token-economy]
 blocked_by: []
 tracker:
