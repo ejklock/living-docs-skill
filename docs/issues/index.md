@@ -7,6 +7,9 @@ one slice per fresh context, starting from the skeleton.
 
 ## Open
 
+* [0008 — living-docs brief — deterministic pre-filled scaffold, judgment slots left empty](0008-brief-scaffold.md) - open
+* [0009 — Per-type doc size targets (skill corpus + advisory check warning) + the same-change economic rationale](0009-doc-size-targets.md) - open
+
 ## Closed
 
 * [0001 — Walking skeleton — Cargo workspace + living-docs-core + fs-store + thin cli](0001-workspace-core-skeleton.md) - done
