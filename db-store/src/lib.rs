@@ -19,7 +19,7 @@ use std::path::{Path, PathBuf};
 use living_docs_core::store::{DocStore, SearchIndex};
 use sea_orm::{
     ColumnTrait, ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr, EntityTrait,
-    QueryFilter, QueryOrder,
+    FromQueryResult, QueryFilter, QueryOrder, QuerySelect,
 };
 use sea_orm_migration::MigratorTrait;
 
@@ -103,6 +103,154 @@ fn project_to_view(model: entity::projects::Model) -> ProjectView {
         slug: model.slug,
         name: model.name,
     }
+}
+
+/// One record's nav-tree entry: enough to group and order the web three-pane
+/// shell's sidebar by doc type without a second lookup (issue 0008, ADR
+/// 0015, S1).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NavEntry {
+    pub doc_type: String,
+    pub number: Option<i32>,
+    pub title: String,
+    pub path: String,
+}
+
+/// A [`NavEntry`]'s raw column projection, used to select `DISTINCT` rows
+/// over just the nav-relevant columns rather than the full [`entity::Model`]
+/// (whose `project_id` would defeat cross-project dedup).
+#[derive(Debug, FromQueryResult)]
+struct NavRow {
+    doc_type: String,
+    number: Option<i32>,
+    title: String,
+    path: String,
+}
+
+/// Lists every distinct record path, spanning every project, ordered by
+/// `doc_type` then `number` then `path` — the order the web three-pane
+/// shell's nav tree groups and renders by (issue 0008, ADR 0015, S1). The
+/// web front's nav links are path-addressed with no project dimension
+/// (`/record/<path>`, issue 0005), so two projects synced from identical
+/// bundles must collapse to one [`NavEntry`] per distinct `path` here —
+/// project-scoped nav is an explicitly deferred follow-up (issue 0008, ADR
+/// 0015, S2 browser-gate finding).
+pub async fn records_by_type(conn: &DatabaseConnection) -> Result<Vec<NavEntry>> {
+    let rows = Records::find()
+        .select_only()
+        .column(Column::DocType)
+        .column(Column::Number)
+        .column(Column::Title)
+        .column(Column::Path)
+        .distinct()
+        .order_by_asc(Column::DocType)
+        .order_by_asc(Column::Number)
+        .order_by_asc(Column::Path)
+        .into_model::<NavRow>()
+        .all(conn)
+        .await?;
+    Ok(rows.into_iter().map(nav_row_to_nav_entry).collect())
+}
+
+fn nav_row_to_nav_entry(row: NavRow) -> NavEntry {
+    NavEntry {
+        doc_type: row.doc_type,
+        number: row.number,
+        title: row.title,
+        path: row.path,
+    }
+}
+
+/// A record related to another by a supersede edge, carrying the target's
+/// path and title rather than its raw `NNNN` number — the shape the web
+/// front's supersede-chain link needs to render a clickable reference
+/// (issue 0008, ADR 0015, S1), unlike [`resolve_supersedes`]/
+/// [`resolve_superseded_by`] which resolve to the raw frontmatter number for
+/// [`load_record`]'s canonical round trip.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RelatedRef {
+    pub path: String,
+    pub title: String,
+}
+
+/// A record's metadata for the web three-pane shell's detail pane: its doc
+/// type, status, both supersede directions (as path+title link targets),
+/// and its tags (issue 0008, ADR 0015, S1).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RecordMeta {
+    pub doc_type: String,
+    pub status: Option<String>,
+    pub supersedes: Vec<RelatedRef>,
+    pub superseded_by: Vec<RelatedRef>,
+    pub tags: Vec<String>,
+}
+
+/// Looks up `path`'s metadata, spanning every project like [`record_by_path`]
+/// (kept unscoped for the web front, which is not project-aware until issue
+/// 0005 slice 0005-C). Returns `None` when no record exists at that path,
+/// never an error.
+pub async fn record_meta(conn: &DatabaseConnection, path: &str) -> Result<Option<RecordMeta>> {
+    let Some(model) = Records::find()
+        .filter(Column::Path.eq(path))
+        .one(conn)
+        .await?
+    else {
+        return Ok(None);
+    };
+
+    let supersedes = related_refs_from(conn, model.id).await?;
+    let superseded_by = related_refs_to(conn, model.id).await?;
+    let tags = load_sorted_tags(conn, model.id).await?;
+
+    Ok(Some(RecordMeta {
+        doc_type: model.doc_type,
+        status: model.status,
+        supersedes,
+        superseded_by,
+        tags,
+    }))
+}
+
+/// `record_id`'s outgoing supersede edges (this record supersedes the
+/// targets), resolved to each target's path+title.
+async fn related_refs_from(conn: &DatabaseConnection, record_id: i32) -> Result<Vec<RelatedRef>> {
+    let target_ids: Vec<i32> = relations::Entity::find()
+        .filter(relations::Column::Kind.eq(SUPERSEDE_RELATION_KIND))
+        .filter(relations::Column::FromRecordId.eq(record_id))
+        .all(conn)
+        .await?
+        .into_iter()
+        .map(|relation| relation.to_record_id)
+        .collect();
+    related_refs_for_ids(conn, &target_ids).await
+}
+
+/// `record_id`'s incoming supersede edges (this record is superseded by the
+/// sources), resolved to each source's path+title.
+async fn related_refs_to(conn: &DatabaseConnection, record_id: i32) -> Result<Vec<RelatedRef>> {
+    let source_ids: Vec<i32> = relations::Entity::find()
+        .filter(relations::Column::Kind.eq(SUPERSEDE_RELATION_KIND))
+        .filter(relations::Column::ToRecordId.eq(record_id))
+        .all(conn)
+        .await?
+        .into_iter()
+        .map(|relation| relation.from_record_id)
+        .collect();
+    related_refs_for_ids(conn, &source_ids).await
+}
+
+async fn related_refs_for_ids(conn: &DatabaseConnection, ids: &[i32]) -> Result<Vec<RelatedRef>> {
+    let records = Records::find()
+        .filter(Column::Id.is_in(ids.to_owned()))
+        .all(conn)
+        .await?;
+    Ok(records
+        .into_iter()
+        .map(|record| RelatedRef {
+            path: record.path,
+            title: record.title,
+        })
+        .collect())
 }
 
 /// Result alias for this crate's fallible operations, using SeaORM's own
@@ -379,6 +527,7 @@ async fn load_record(
         supersedes,
         superseded_by,
         tags: record_tags,
+        status: model.status,
         frontmatter_tail,
     }))
 }
@@ -627,6 +776,146 @@ mod tests {
         let projects = list_projects(&conn).await.expect("list projects");
 
         assert!(projects.is_empty());
+    }
+
+    #[tokio::test]
+    async fn records_by_type_orders_by_doc_type_then_number_then_path() {
+        let conn = connect_in_memory().await.expect("connect");
+        migrate(&conn).await.expect("migrate");
+        let (store, bundle) = sync::test_support::mixed_type_corpus();
+        sync::sync(&conn, &store, &bundle).await.expect("sync");
+
+        let entries = records_by_type(&conn).await.expect("records_by_type");
+
+        assert_eq!(
+            entries,
+            vec![
+                NavEntry {
+                    doc_type: "ADR".to_owned(),
+                    number: Some(1),
+                    title: "First ADR".to_owned(),
+                    path: "adr/0001-first-adr.md".to_owned(),
+                },
+                NavEntry {
+                    doc_type: "ADR".to_owned(),
+                    number: Some(2),
+                    title: "Second ADR".to_owned(),
+                    path: "adr/0002-second-adr.md".to_owned(),
+                },
+                NavEntry {
+                    doc_type: "BDR".to_owned(),
+                    number: Some(1),
+                    title: "First BDR".to_owned(),
+                    path: "bdr/0001-first-bdr.md".to_owned(),
+                },
+            ]
+        );
+    }
+
+    #[tokio::test]
+    async fn records_by_type_dedupes_identical_paths_synced_into_two_projects() {
+        let conn = connect_in_memory().await.expect("connect");
+        migrate(&conn).await.expect("migrate");
+        let (store_a, bundle_a) = sync::test_support::mixed_type_corpus();
+        sync::sync_project(&conn, &store_a, &bundle_a, "team-a")
+            .await
+            .expect("sync team-a");
+        let (store_b, bundle_b) = sync::test_support::mixed_type_corpus();
+        sync::sync_project(&conn, &store_b, &bundle_b, "team-b")
+            .await
+            .expect("sync team-b");
+
+        let entries = records_by_type(&conn).await.expect("records_by_type");
+
+        assert_eq!(
+            entries,
+            vec![
+                NavEntry {
+                    doc_type: "ADR".to_owned(),
+                    number: Some(1),
+                    title: "First ADR".to_owned(),
+                    path: "adr/0001-first-adr.md".to_owned(),
+                },
+                NavEntry {
+                    doc_type: "ADR".to_owned(),
+                    number: Some(2),
+                    title: "Second ADR".to_owned(),
+                    path: "adr/0002-second-adr.md".to_owned(),
+                },
+                NavEntry {
+                    doc_type: "BDR".to_owned(),
+                    number: Some(1),
+                    title: "First BDR".to_owned(),
+                    path: "bdr/0001-first-bdr.md".to_owned(),
+                },
+            ],
+            "records_by_type must return each distinct path exactly once even when \
+             two projects sync from identical bundles"
+        );
+    }
+
+    #[tokio::test]
+    async fn records_by_type_returns_an_empty_vector_when_nothing_has_synced() {
+        let conn = connect_in_memory().await.expect("connect");
+        migrate(&conn).await.expect("migrate");
+
+        let entries = records_by_type(&conn).await.expect("records_by_type");
+
+        assert!(entries.is_empty());
+    }
+
+    #[tokio::test]
+    async fn record_meta_resolves_both_supersede_directions_with_status_and_tags() {
+        let conn = connect_in_memory().await.expect("connect");
+        migrate(&conn).await.expect("migrate");
+        let (store, bundle) = sync::test_support::superseding_corpus();
+        sync::sync(&conn, &store, &bundle).await.expect("sync");
+
+        let superseded = record_meta(&conn, "adr/0001-quokka-caching.md")
+            .await
+            .expect("query record_meta for superseded record")
+            .expect("superseded record exists");
+        assert_eq!(superseded.doc_type, "ADR");
+        assert_eq!(superseded.status, None);
+        assert!(superseded.supersedes.is_empty());
+        assert_eq!(
+            superseded.superseded_by,
+            vec![RelatedRef {
+                path: "adr/0002-quokka-caching-v2.md".to_owned(),
+                title: "Quokka Caching V2".to_owned(),
+            }]
+        );
+        assert_eq!(superseded.tags, vec!["caching".to_owned()]);
+
+        let superseding = record_meta(&conn, "adr/0002-quokka-caching-v2.md")
+            .await
+            .expect("query record_meta for superseding record")
+            .expect("superseding record exists");
+        assert_eq!(superseding.status, Some("Accepted".to_owned()));
+        assert_eq!(
+            superseding.supersedes,
+            vec![RelatedRef {
+                path: "adr/0001-quokka-caching.md".to_owned(),
+                title: "Quokka Caching".to_owned(),
+            }]
+        );
+        assert!(superseding.superseded_by.is_empty());
+        assert_eq!(
+            superseding.tags,
+            vec!["caching".to_owned(), "performance".to_owned()]
+        );
+    }
+
+    #[tokio::test]
+    async fn record_meta_returns_none_for_an_unknown_path() {
+        let conn = connect_in_memory().await.expect("connect");
+        migrate(&conn).await.expect("migrate");
+
+        let meta = record_meta(&conn, "adr/9999-missing.md")
+            .await
+            .expect("record_meta on an unknown path is not an error");
+
+        assert!(meta.is_none());
     }
 
     #[test]

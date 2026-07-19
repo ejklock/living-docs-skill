@@ -168,6 +168,7 @@ async fn insert_record<C: ConnectionTrait>(
         title: ActiveValue::Set(extracted.title),
         description: ActiveValue::Set(extracted.description),
         body: ActiveValue::Set(extracted.body),
+        status: ActiveValue::Set(extracted.status),
         ..Default::default()
     }
     .insert(conn)
@@ -432,6 +433,7 @@ async fn insert_record_row<C: ConnectionTrait>(
         title: ActiveValue::Set(extracted.title.clone()),
         description: ActiveValue::Set(extracted.description.clone()),
         body: ActiveValue::Set(extracted.body.clone()),
+        status: ActiveValue::Set(extracted.status.clone()),
         ..Default::default()
     }
     .insert(conn)
@@ -453,6 +455,7 @@ async fn update_record_row<C: ConnectionTrait>(
         title: ActiveValue::Set(extracted.title.clone()),
         description: ActiveValue::Set(extracted.description.clone()),
         body: ActiveValue::Set(extracted.body.clone()),
+        status: ActiveValue::Set(extracted.status.clone()),
         ..Default::default()
     };
     let updated = model.update(conn).await?;
@@ -706,6 +709,67 @@ pub(crate) mod test_support {
         files.insert(bundle.join("adr").join("0001-quokka-caching.md"), doc);
         (MemoryStore { files }, bundle)
     }
+
+    /// Two ADR records: one with a `status:` frontmatter key, one without,
+    /// so a sync test can assert the read-model's `status` column is
+    /// populated for the first and `NULL`/`None` for the second (issue
+    /// 0008, ADR 0015, S1).
+    pub(crate) fn corpus_with_and_without_status() -> (MemoryStore, PathBuf) {
+        let bundle = PathBuf::from("/bundle-status");
+        let mut files = BTreeMap::new();
+        files.insert(
+            bundle.join("adr").join("0001-with-status.md"),
+            "---\ntype: ADR\ntitle: With Status\ndescription: d.\nstatus: Accepted\n---\nBody.\n"
+                .to_owned(),
+        );
+        files.insert(
+            bundle.join("adr").join("0002-without-status.md"),
+            "---\ntype: ADR\ntitle: Without Status\ndescription: d.\n---\nBody.\n".to_owned(),
+        );
+        (MemoryStore { files }, bundle)
+    }
+
+    /// Three records spanning two doc types and non-sequential filesystem
+    /// insertion order, so a nav-listing test can assert the query itself
+    /// orders by doc type, then number, then path, rather than relying on
+    /// insertion order (issue 0008, ADR 0015, S1).
+    pub(crate) fn mixed_type_corpus() -> (MemoryStore, PathBuf) {
+        let bundle = PathBuf::from("/bundle-mixed");
+        let mut files = BTreeMap::new();
+        files.insert(
+            bundle.join("bdr").join("0001-first-bdr.md"),
+            "---\ntype: BDR\ntitle: First BDR\ndescription: d.\n---\nBody.\n".to_owned(),
+        );
+        files.insert(
+            bundle.join("adr").join("0002-second-adr.md"),
+            "---\ntype: ADR\ntitle: Second ADR\ndescription: d.\n---\nBody.\n".to_owned(),
+        );
+        files.insert(
+            bundle.join("adr").join("0001-first-adr.md"),
+            "---\ntype: ADR\ntitle: First ADR\ndescription: d.\n---\nBody.\n".to_owned(),
+        );
+        (MemoryStore { files }, bundle)
+    }
+
+    /// A superseded/superseding ADR pair, each carrying tags, so a
+    /// `record_meta` test can assert both supersede directions resolve to
+    /// the related record's path+title and that tags are attached (issue
+    /// 0008, ADR 0015, S1).
+    pub(crate) fn superseding_corpus() -> (MemoryStore, PathBuf) {
+        let bundle = PathBuf::from("/bundle-supersede");
+        let mut files = BTreeMap::new();
+        files.insert(
+            bundle.join("adr").join("0001-quokka-caching.md"),
+            "---\ntype: ADR\ntitle: Quokka Caching\ndescription: d.\nsuperseded_by: 0002\ntags: [caching]\n---\nBody.\n"
+                .to_owned(),
+        );
+        files.insert(
+            bundle.join("adr").join("0002-quokka-caching-v2.md"),
+            "---\ntype: ADR\ntitle: Quokka Caching V2\ndescription: d.\nstatus: Accepted\nsupersedes: 0001\ntags: [caching, performance]\n---\nBody.\n"
+                .to_owned(),
+        );
+        (MemoryStore { files }, bundle)
+    }
 }
 
 #[cfg(test)]
@@ -833,5 +897,30 @@ mod tests {
             .await
             .expect("query records for project");
         assert_eq!(stored.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn sync_persists_status_from_frontmatter_and_none_when_absent() {
+        let conn = connect_in_memory().await.expect("connect");
+        migrate(&conn).await.expect("migrate");
+        let (store, bundle) = super::test_support::corpus_with_and_without_status();
+
+        sync(&conn, &store, &bundle).await.expect("sync");
+
+        let with_status = Records::find()
+            .filter(Column::Path.eq("adr/0001-with-status.md"))
+            .one(&conn)
+            .await
+            .expect("query with-status record")
+            .expect("with-status record exists");
+        assert_eq!(with_status.status, Some("Accepted".to_owned()));
+
+        let without_status = Records::find()
+            .filter(Column::Path.eq("adr/0002-without-status.md"))
+            .one(&conn)
+            .await
+            .expect("query without-status record")
+            .expect("without-status record exists");
+        assert_eq!(without_status.status, None);
     }
 }
