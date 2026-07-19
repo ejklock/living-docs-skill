@@ -1,7 +1,7 @@
 ---
 name: research-artifacts
 description: Organize, format, and index research as OKF-conformant knowledge bundles — dated, sourced, append-only snapshots of the external evidence behind a decision (technology evaluations, library comparisons, industry-practice surveys). Use when recording research output, structuring a docs/research/ session, enforcing source discipline (primary sources, vendor-COI flags, inference-vs-fact labels, confidence levels), or wiring the research → decision → issue traceable chain. Pairs with deep-research (which gathers/verifies the evidence) and living-docs (which owns the ADR/BDR/issue artifacts research feeds into).
-version: "0.6.0"
+version: "0.7.0"
 metadata:
   type: skill
   layer: procedural
