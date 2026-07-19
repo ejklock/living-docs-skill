@@ -3,8 +3,8 @@
 The five Core invariants (in the living-docs SKILL.md) govern *organization and lifecycle*; the **Open Knowledge Format** governs the *file format* so the corpus stays portable and agent-parseable. Every doc in the system is also an OKF concept. Load the `okf-knowledge-format` skill (it vendors the spec) when authoring or checking format.
 
 > **OKF is a thin, swappable dependency — not a foundation (version risk).** OKF is **v0.1
-> from a single vendor**; a backward-incompatible v0.2 is a real possibility. The invariants
-> above do **not** depend on OKF — they depend only on a small set of frontmatter fields, so an
+> from a single vendor**; a backward-incompatible v0.2 is a real possibility. The five Core
+> invariants do **not** depend on OKF — they depend only on a small set of frontmatter fields, so an
 > OKF break cannot take the governance layer down with it. Keep the boundary explicit:
 > - **Required by Living Docs** (the fact contract `living-docs check` enforces): a non-empty
 >   `type`, and `status` + `superseded_by` on superseded records. These are *ours*; they survive
