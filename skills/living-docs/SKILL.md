@@ -1,7 +1,7 @@
 ---
 name: living-docs
 description: Run a project's documentation as a living system — docs-first issues/PRDs, MADR-lite ADRs (supersede, never delete), Behavior Decision Records (BDRs), a project constitution, research artifacts, living Mermaid architecture diagrams, and semantic-index organization where every doc lands in exactly one place and indexes never drift. Use when setting up or maintaining project docs, writing an ADR/PRD/BDR/constitution/issue/research note, defining a term or acronym in the glossary, drawing or updating an architecture/flow/sequence diagram, splitting an oversized doc into an index, or enforcing the no-drift maintenance rule.
-version: "0.6.0"
+version: "0.7.0"
 metadata:
   type: skill
   layer: procedural
@@ -29,7 +29,7 @@ stub:**
 Piped output is minified JSON (machine default); `--plain` for human text, `--json` to force
 JSON. Topics: adr, prd, bdr, constitution, issue-workflow, glossary, architecture-diagrams,
 semantic-index, doc-language, citation, procedure, enforcement-modes, check, okf-format,
-doc-trail, about (run --list for the full set).
+doc-trail, size-targets, about (run --list for the full set).
 
 ---
 
@@ -62,6 +62,7 @@ When in doubt, re-derive the right action from these five. The rules files below
 - Drawing or updating an **architecture, data-flow, or tool-calling diagram** → `living-docs skill living-docs --topic architecture-diagrams`.
 - Defining a **term or acronym** the docs use → add it to the **glossary** (`docs/context/glossary.md`), one home per term → `living-docs skill living-docs --topic glossary`.
 - A doc has grown too large or mixes concerns → **split into a semantic index** → `living-docs skill living-docs --topic semantic-index`.
+- Sizing a record's body (aim ~100 lines, `check` advises at 120; research exempt; never trim a load-bearing rationale) → `living-docs skill living-docs --topic size-targets`.
 - Enforcing the **no-drift maintenance rule** after any structural change → `living-docs skill living-docs --topic enforcement-modes` (refusal triggers) and `living-docs skill living-docs --topic procedure` (maintaining loop).
 - Authoring or checking the **OKF format** of any doc (frontmatter `type`, reserved `index.md`/`log.md`, bundle-relative links, `# References`) → `living-docs skill living-docs --topic okf-format`.
 - Deciding **which language** the docs are written in (default English; user may override at session start and pin it) → `living-docs skill living-docs --topic doc-language`.

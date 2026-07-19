@@ -39,6 +39,18 @@ enum Command {
         doc_type: String,
         title: String,
     },
+    /// `new` plus deterministic pre-fill (issue 0008): frontmatter title,
+    /// numbered title heading, a trail comment, and every judgment section
+    /// collapsed to a marked empty `<!-- judgment: ... -->` slot the
+    /// authoring model fills.
+    Brief {
+        doc_type: String,
+        title: String,
+        /// Git range (e.g. HEAD~3..HEAD) whose touched files are listed —
+        /// verbatim from `git diff --name-only` — under the context slot.
+        #[arg(long)]
+        from_diff: Option<String>,
+    },
     Index {
         doc_type: Option<String>,
         /// Restrict the rendered index to records whose effective visibility
@@ -220,6 +232,11 @@ fn main() -> ExitCode {
     match cli.command {
         Command::Next { doc_type } => commands::next::run(&cli.docs_dir, &doc_type),
         Command::New { doc_type, title } => run_new(cli.backend, &cli.docs_dir, &doc_type, &title),
+        Command::Brief {
+            doc_type,
+            title,
+            from_diff,
+        } => run_brief(cli.backend, &cli.docs_dir, &doc_type, &title, from_diff),
         Command::Index {
             doc_type,
             visibility,
@@ -261,6 +278,48 @@ fn run_new(backend: Backend, docs_dir: &Path, doc_type: &str, title: &str) -> Ex
         Ok(store) => commands::new::run(store.as_ref(), docs_dir, doc_type, title),
         Err(err) => report_failure(&err),
     }
+}
+
+fn run_brief(
+    backend: Backend,
+    docs_dir: &Path,
+    doc_type: &str,
+    title: &str,
+    from_diff: Option<String>,
+) -> ExitCode {
+    let diff = match from_diff.map(|range| resolve_diff(&range)).transpose() {
+        Ok(diff) => diff,
+        Err(err) => return report_failure(&err),
+    };
+    match build_backend_store(backend, docs_dir) {
+        Ok(store) => commands::brief::run(store.as_ref(), docs_dir, doc_type, title, diff.as_ref()),
+        Err(err) => report_failure(&err),
+    }
+}
+
+/// Resolves `--from-diff` in the front so `living-docs-core` stays I/O-free:
+/// the touched-file list is exactly `git diff --name-only <range>` against
+/// the current working directory's repository.
+fn resolve_diff(range: &str) -> Result<commands::brief::DiffContext, String> {
+    let output = std::process::Command::new("git")
+        .args(["diff", "--name-only", range])
+        .output()
+        .map_err(|e| format!("failed to run git diff --name-only {range}: {e}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "git diff --name-only {range} failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
+    }
+    let files = String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .filter(|line| !line.is_empty())
+        .map(str::to_string)
+        .collect();
+    Ok(commands::brief::DiffContext {
+        range: range.to_string(),
+        files,
+    })
 }
 
 fn run_index(
