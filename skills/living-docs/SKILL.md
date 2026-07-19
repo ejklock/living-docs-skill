@@ -29,7 +29,7 @@ stub:**
 Piped output is minified JSON (machine default); `--plain` for human text, `--json` to force
 JSON. Topics: adr, prd, bdr, constitution, issue-workflow, glossary, architecture-diagrams,
 semantic-index, doc-language, citation, procedure, enforcement-modes, check, okf-format,
-doc-trail, about (run --list for the full set).
+doc-trail, size-targets, about (run --list for the full set).
 
 ---
 
@@ -62,6 +62,7 @@ When in doubt, re-derive the right action from these five. The rules files below
 - Drawing or updating an **architecture, data-flow, or tool-calling diagram** → `living-docs skill living-docs --topic architecture-diagrams`.
 - Defining a **term or acronym** the docs use → add it to the **glossary** (`docs/context/glossary.md`), one home per term → `living-docs skill living-docs --topic glossary`.
 - A doc has grown too large or mixes concerns → **split into a semantic index** → `living-docs skill living-docs --topic semantic-index`.
+- Sizing a record's body (aim ~100 lines, `check` advises at 120; research exempt; never trim a load-bearing rationale) → `living-docs skill living-docs --topic size-targets`.
 - Enforcing the **no-drift maintenance rule** after any structural change → `living-docs skill living-docs --topic enforcement-modes` (refusal triggers) and `living-docs skill living-docs --topic procedure` (maintaining loop).
 - Authoring or checking the **OKF format** of any doc (frontmatter `type`, reserved `index.md`/`log.md`, bundle-relative links, `# References`) → `living-docs skill living-docs --topic okf-format`.
 - Deciding **which language** the docs are written in (default English; user may override at session start and pin it) → `living-docs skill living-docs --topic doc-language`.
