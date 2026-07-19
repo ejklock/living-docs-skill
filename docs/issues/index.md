@@ -7,6 +7,8 @@ one slice per fresh context, starting from the skeleton.
 
 ## Open
 
+* [0008 — Three-pane web shell with metadata panel and Cmd+K palette](0008-three-pane-web-shell-with-metadata-panel-and-cmd-k-palette.md) - open
+
 ## Closed
 
 * [0001 — Walking skeleton — Cargo workspace + living-docs-core + fs-store + thin cli](0001-workspace-core-skeleton.md) - done
