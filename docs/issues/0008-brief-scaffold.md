@@ -2,7 +2,7 @@
 type: Issue
 title: living-docs brief — deterministic pre-filled scaffold that leaves only the judgment slots for the authoring model
 description: A `brief` subcommand that extends `new` by pre-filling everything derivable from the repo (frontmatter, next number, timestamp, cross-links, git-derived touched files) and emitting the template with explicitly marked empty judgment slots — so the authoring model fills gaps instead of generating whole files.
-status: open
+status: done
 labels: [slice, cli, token-economy]
 blocked_by: []
 tracker:
