@@ -39,7 +39,9 @@ pub mod records {
     /// project (`UNIQUE(project_id, path)`, not globally). `identity_kind`
     /// discriminates which of `number`/`concept_id` is the record's
     /// identity (ADR 0007 decision 2); this slice populates both fields
-    /// from `doc_type` without yet enforcing the XOR.
+    /// from `doc_type` without yet enforcing the XOR. `status` is the
+    /// frontmatter `status:` value, `None` when the doc carries no such key
+    /// (issue 0008, ADR 0015, S1).
     #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
     #[sea_orm(table_name = "records")]
     pub struct Model {
@@ -54,6 +56,7 @@ pub mod records {
         pub title: String,
         pub description: String,
         pub body: String,
+        pub status: Option<String>,
     }
 
     #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

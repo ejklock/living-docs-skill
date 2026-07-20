@@ -24,3 +24,4 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0012 — Worldwide PII detection is checksum-tiered, two-stage, and deterministic](0012-worldwide-pii-detection-is-checksum-tiered-two-stage-and-deterministic.md) - Accepted
 * [0013 — Mermaid validation runs in-process via merman-core, not a Docker mermaid-cli shell-out](0013-mermaid-validation-runs-in-process-via-merman-core-not-a-docker-mermaid-cli-shell-out.md) - Accepted
 * [0014 — The CLI serves skill content from an embedded corpus; harness SKILL.md files are slim stubs](0014-the-cli-serves-skill-content-from-an-embedded-corpus-harness-skill-md-files-are-slim-stubs.md) - Accepted
+* [0015 — Web UX follows the three-pane doc-site archetype with a search-first Cmd+K palette](0015-web-ux-follows-the-three-pane-doc-site-archetype-with-search-first-cmd-k-palette.md) - Accepted

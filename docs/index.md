@@ -11,5 +11,7 @@ and its tooling live here, under the same trail the skill teaches.
 
 * [Constitution](constitution.md) - the north star, scope boundaries, data model, non-negotiables
 * [ADRs](adr/) - how the skill and its tooling are structured, and why
+* [BDRs](bdr/) - behavior decision records: expected observable behavior at the edges
+* [PRDs](prd/) - product requirement docs for larger feature surfaces
 * [Issues](issues/) - the vertical, demoable slices that build the living-docs system
 * [Research](research/) - external, sourced evidence backing the decisions (e.g. the worldwide PII catalog)

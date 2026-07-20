@@ -361,7 +361,6 @@ async fn frontmatter_tail_excludes_typed_and_relation_keys_and_preserves_ordinal
     assert_eq!(
         ordered,
         vec![
-            ("status", "Accepted"),
             ("labels", "important"),
             ("blocked_by", "0002"),
             ("tracker", "JIRA-42"),
@@ -370,9 +369,11 @@ async fn frontmatter_tail_excludes_typed_and_relation_keys_and_preserves_ordinal
         "the tail must reconstruct in source encounter order by ascending ordinal"
     );
     assert!(
-        tail.iter()
-            .all(|field| field.key != "type" && field.key != "title" && field.key != "description"),
-        "type/title/description are typed columns and must not appear in the tail"
+        tail.iter().all(|field| field.key != "type"
+            && field.key != "title"
+            && field.key != "description"
+            && field.key != "status"),
+        "type/title/description/status are typed columns and must not appear in the tail"
     );
 }
 

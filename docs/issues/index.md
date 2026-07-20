@@ -7,6 +7,8 @@ one slice per fresh context, starting from the skeleton.
 
 ## Open
 
+* [0008 — Three-pane web shell with metadata panel and Cmd+K palette](0008-three-pane-web-shell-with-metadata-panel-and-cmd-k-palette.md) - open
+
 ## Closed
 
 * [0008 — living-docs brief — deterministic pre-filled scaffold, judgment slots left empty](0008-brief-scaffold.md) - done

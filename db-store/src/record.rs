@@ -30,7 +30,7 @@ const NUMBERED_DOC_TYPES: [&str; 4] = ["adr", "bdr", "prd", "issue"];
 /// Frontmatter keys that already have a universal typed column or dedicated
 /// handling elsewhere, and therefore never land in the EAV
 /// [`ExtractedRecord::frontmatter_tail`] (ADR 0007 decision 1).
-const TYPED_FRONTMATTER_KEYS: [&str; 8] = [
+const TYPED_FRONTMATTER_KEYS: [&str; 9] = [
     "type",
     "title",
     "description",
@@ -39,6 +39,7 @@ const TYPED_FRONTMATTER_KEYS: [&str; 8] = [
     "supersedes",
     "superseded_by",
     "tags",
+    "status",
 ];
 
 /// A single ranked full-text search hit: the record's bundle-relative path,
@@ -66,9 +67,11 @@ pub struct SearchHit {
 /// (unresolved to a record id — that
 /// resolution happens against a project's other records in
 /// [`crate::sync::sync_project`]); `tags` is the frontmatter's `tags`
-/// sequence, empty when absent. `frontmatter_tail` is every remaining
-/// frontmatter key with no typed column, in source encounter order, ready
-/// to insert into `frontmatter_fields` with the index as `ordinal`.
+/// sequence, empty when absent. `status` is the frontmatter `status:`
+/// value, `None` when the key is absent (issue 0008, ADR 0015, S1).
+/// `frontmatter_tail` is every remaining frontmatter key with no typed
+/// column, in source encounter order, ready to insert into
+/// `frontmatter_fields` with the index as `ordinal`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExtractedRecord {
     pub doc_type: String,
@@ -81,6 +84,7 @@ pub struct ExtractedRecord {
     pub supersedes: Option<String>,
     pub superseded_by: Option<String>,
     pub tags: Vec<String>,
+    pub status: Option<String>,
     pub frontmatter_tail: Vec<(String, String)>,
 }
 
@@ -110,6 +114,7 @@ pub fn extract_record(path: &Path, contents: &str) -> ExtractedRecord {
     let supersedes = frontmatter_scalar(frontmatter.as_ref(), "supersedes");
     let superseded_by = frontmatter_scalar(frontmatter.as_ref(), "superseded_by");
     let tags = frontmatter_sequence(frontmatter.as_ref(), "tags");
+    let status = frontmatter_scalar(frontmatter.as_ref(), "status");
     let frontmatter_tail = extract_frontmatter_tail(frontmatter.as_ref());
 
     ExtractedRecord {
@@ -123,6 +128,7 @@ pub fn extract_record(path: &Path, contents: &str) -> ExtractedRecord {
         supersedes,
         superseded_by,
         tags,
+        status,
         frontmatter_tail,
     }
 }
@@ -410,11 +416,27 @@ mod tests {
         assert_eq!(
             extracted.frontmatter_tail,
             vec![
-                ("status".to_owned(), "Accepted".to_owned()),
                 ("tracker".to_owned(), "JIRA-1".to_owned()),
                 ("timestamp".to_owned(), "2026-07-17T00:00:00Z".to_owned()),
             ]
         );
+        assert_eq!(extracted.status, Some("Accepted".to_owned()));
+    }
+
+    #[test]
+    fn extract_record_reads_status_when_present() {
+        let contents = "---\ntype: ADR\nstatus: Accepted\n---\nBody.\n";
+        let extracted = extract_record(Path::new("/bundle/adr/0001-status.md"), contents);
+
+        assert_eq!(extracted.status, Some("Accepted".to_owned()));
+    }
+
+    #[test]
+    fn extract_record_defaults_missing_status_to_none() {
+        let contents = "---\ntype: ADR\ntitle: No Status\n---\nBody.\n";
+        let extracted = extract_record(Path::new("/bundle/adr/0002-no-status.md"), contents);
+
+        assert_eq!(extracted.status, None);
     }
 
     #[test]

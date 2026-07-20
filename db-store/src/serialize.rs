@@ -15,7 +15,7 @@ const TIMESTAMP_KEY: &str = "timestamp";
 
 /// Reconstructs `record` as canonical markdown: a `---`-fenced frontmatter
 /// block in the fixed field order — `type`, `title`, `description`,
-/// `status` (if present in the tail), `supersedes`, `superseded_by`, `tags`,
+/// `status` (if present), `supersedes`, `superseded_by`, `tags`,
 /// the remaining frontmatter tail by ascending ordinal, `tracker` (if
 /// present), then `timestamp` (if present) — followed by a blank line and
 /// the body. The typed identity (`number`/`concept_id`) is never emitted:
@@ -32,7 +32,7 @@ pub fn to_canonical_markdown(record: &ExtractedRecord) -> String {
         "description: {}",
         format_scalar(&record.description)
     ));
-    push_tail_key(&mut lines, record, STATUS_KEY);
+    push_optional(&mut lines, STATUS_KEY, record.status.as_deref());
     push_optional(&mut lines, "supersedes", record.supersedes.as_deref());
     push_optional(&mut lines, "superseded_by", record.superseded_by.as_deref());
     push_tags(&mut lines, &record.tags);
@@ -89,7 +89,7 @@ fn tail_value<'a>(record: &'a ExtractedRecord, key: &str) -> Option<&'a str> {
 }
 
 fn is_special_tail_key(key: &str) -> bool {
-    key == STATUS_KEY || key == TRACKER_KEY || key == TIMESTAMP_KEY
+    key == TRACKER_KEY || key == TIMESTAMP_KEY
 }
 
 const YAML_INDICATOR_PREFIXES: &str = "!&*-?|>%@`\"'#,[]{}";
@@ -132,8 +132,8 @@ mod tests {
             supersedes: Some("0001".to_owned()),
             superseded_by: None,
             tags: vec!["caching".to_owned(), "performance".to_owned()],
+            status: Some("Accepted".to_owned()),
             frontmatter_tail: vec![
-                ("status".to_owned(), "Accepted".to_owned()),
                 ("labels".to_owned(), "important".to_owned()),
                 ("blocked_by".to_owned(), "0002".to_owned()),
                 ("tracker".to_owned(), "JIRA-42".to_owned()),
@@ -186,6 +186,7 @@ mod tests {
         assert_eq!(reparsed.supersedes, original.supersedes);
         assert_eq!(reparsed.superseded_by, original.superseded_by);
         assert_eq!(reparsed.tags, original.tags);
+        assert_eq!(reparsed.status, original.status);
         assert_eq!(reparsed.frontmatter_tail, original.frontmatter_tail);
     }
 
@@ -212,7 +213,8 @@ mod tests {
             supersedes: None,
             superseded_by: None,
             tags: vec!["glossary".to_owned()],
-            frontmatter_tail: vec![("status".to_owned(), "Active".to_owned())],
+            status: Some("Active".to_owned()),
+            frontmatter_tail: Vec::new(),
         };
 
         let markdown = to_canonical_markdown(&record);
@@ -234,6 +236,7 @@ mod tests {
             supersedes: None,
             superseded_by: None,
             tags: Vec::new(),
+            status: None,
             frontmatter_tail: Vec::new(),
         };
 
@@ -261,6 +264,7 @@ mod tests {
             supersedes: None,
             superseded_by: None,
             tags: Vec::new(),
+            status: None,
             frontmatter_tail: Vec::new(),
         };
 
@@ -269,5 +273,33 @@ mod tests {
         assert!(markdown.contains("title: \"Caching: A Deep Dive\""));
         let reparsed = extract_record(Path::new("adr/0002-caching.md"), &markdown);
         assert_eq!(reparsed.title, "Caching: A Deep Dive");
+    }
+
+    /// Asserts `status` is read from [`ExtractedRecord::status`] rather than
+    /// the frontmatter tail (issue 0008, ADR 0015, S1 round 2): the typed
+    /// field must still round-trip to a `status:` frontmatter line even
+    /// though `frontmatter_tail` never carries a `status` entry.
+    #[test]
+    fn to_canonical_markdown_emits_status_from_the_typed_field() {
+        let record = ExtractedRecord {
+            doc_type: "ADR".to_owned(),
+            number: Some(3),
+            concept_id: None,
+            identity_kind: NUMBER_IDENTITY_KIND.to_owned(),
+            title: "Typed Status".to_owned(),
+            description: "d.".to_owned(),
+            body: "Body.\n".to_owned(),
+            supersedes: None,
+            superseded_by: None,
+            tags: Vec::new(),
+            status: Some("Accepted".to_owned()),
+            frontmatter_tail: Vec::new(),
+        };
+
+        let markdown = to_canonical_markdown(&record);
+
+        assert!(markdown.contains("status: Accepted"));
+        let reparsed = extract_record(Path::new("adr/0003-typed-status.md"), &markdown);
+        assert_eq!(reparsed.status, Some("Accepted".to_owned()));
     }
 }

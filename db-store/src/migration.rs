@@ -16,6 +16,7 @@ impl MigratorTrait for Migrator {
             Box::new(CreateRecords),
             Box::new(CreateMultiProjectSchema),
             Box::new(CreateAuthoringSchema),
+            Box::new(AddRecordStatus),
         ]
     }
 }
@@ -226,6 +227,46 @@ async fn create_authoring_records_table(manager: &SchemaManager<'_>) -> Result<(
                 .to_owned(),
         )
         .await
+}
+
+/// Adds a nullable `status` column to `records`, extracted from the
+/// frontmatter `status:` key the same way `title`/`description` already are
+/// (issue 0008, ADR 0015, S1). `records` is a derived read-model rebuilt in
+/// full by [`crate::sync::sync`], but this column arrives as a genuine
+/// additive migration — never by editing [`CreateAuthoringSchema`] — so a
+/// database that has already applied earlier migrations only gains the
+/// column, it is not recreated.
+struct AddRecordStatus;
+
+impl MigrationName for AddRecordStatus {
+    fn name(&self) -> &str {
+        "m20260718_000004_add_record_status"
+    }
+}
+
+#[async_trait::async_trait]
+impl MigrationTrait for AddRecordStatus {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .alter_table(
+                Table::alter()
+                    .table(Records::Table)
+                    .add_column(ColumnDef::new(Records::Status).text())
+                    .to_owned(),
+            )
+            .await
+    }
+
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .alter_table(
+                Table::alter()
+                    .table(Records::Table)
+                    .drop_column(Records::Status)
+                    .to_owned(),
+            )
+            .await
+    }
 }
 
 /// Creates the ordered EAV frontmatter tail: one row per non-typed
@@ -523,6 +564,7 @@ enum Records {
     Title,
     Description,
     Body,
+    Status,
 }
 
 #[derive(DeriveIden)]
