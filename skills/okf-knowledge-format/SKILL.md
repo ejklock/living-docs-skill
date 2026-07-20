@@ -25,24 +25,17 @@ This SKILL.md is a **slim stub** — a trigger plus a task->topic router. The `l
 - `living-docs skill okf-knowledge-format --list` — discover every topic.
 - `living-docs skill okf-knowledge-format --topic <topic>` — load that topic.
 
-Piped output is minified JSON (machine default); `--plain` for human text, `--json` to force JSON. Topics: model, procedure, concept, index, log, about. The vendored spec lives at reference/SPEC.md.
+Piped output is minified JSON (machine default); `--plain` for human text, `--json` to force JSON. Topics: conformance, model, procedure, concept, index, log, about. The vendored spec lives at reference/SPEC.md.
 
----
-
-## Hard rules (these define conformance — §9)
-
-1. **Every non-reserved `.md` file has a parseable YAML frontmatter block** delimited by `---` on its own line at the top and a closing `---`.
-2. **Every frontmatter block has a non-empty `type` field.** `type` is the only required field. Everything else is optional.
-3. **Reserved filenames are reserved.** `index.md` (directory listing, §6) and `log.md` (update history, §7) must follow their defined structure and must **not** be used for concept documents.
-4. **`index.md` carries no frontmatter** — the sole exception is the bundle-root `index.md`, which MAY declare `okf_version: "0.1"` (§11).
-5. **Consume permissively.** Never reject a bundle for missing optional fields, unknown `type` values, unknown extra keys, broken cross-links, or a missing `index.md`. OKF stays useful as bundles grow and get partially agent-generated.
+This stub is a **pure router** (ADR 0017): it triggers and points at topics — it holds no rules inline. The **five conformance hard rules** that define OKF (§9) are a topic, not stub prose; load them before authoring or checking a bundle: `living-docs skill okf-knowledge-format --topic conformance`.
 
 ---
 
 ## When to invoke
 
 - Standing up a new knowledge bundle/catalog, or organizing existing markdown knowledge into one.
+- Reviewing the **five conformance hard rules** that define OKF (§9) → `living-docs skill okf-knowledge-format --topic conformance`.
 - Writing a **concept document** or normalizing its frontmatter → `living-docs skill okf-knowledge-format --topic concept`.
 - Adding or regenerating a directory **`index.md`** → `living-docs skill okf-knowledge-format --topic index`; or a **`log.md`** → `living-docs skill okf-knowledge-format --topic log`.
 - Deciding how to cross-link concepts, cite sources, name a `type`, or reviewing the core model / frontmatter fields / bundle structure → `living-docs skill okf-knowledge-format --topic model`.
-- Checking a corpus for **OKF conformance** (the five hard rules above), authoring a concept or maintaining a directory step by step, or refreshing the vendored spec from upstream (`scripts/update-spec.sh`) → `living-docs skill okf-knowledge-format --topic procedure`.
+- Checking a corpus for **OKF conformance**, authoring a concept or maintaining a directory step by step, or refreshing the vendored spec from upstream (`scripts/update-spec.sh`) → `living-docs skill okf-knowledge-format --topic procedure`.
