@@ -2,9 +2,9 @@
 type: ADR
 title: The CLI serves skill content from an embedded corpus; harness SKILL.md files are slim stubs
 description: Embed the skills/** tree in the living-docs binary and expose it via a `skill` subcommand (list, full body, per-topic); install ships a slim stub per harness that points at the CLI for detail, instead of copying the full rules/ + templates/ tree into every harness.
-status: Accepted
+status: Superseded
 supersedes:
-superseded_by:
+superseded_by: 0017
 tags: [documentation, tooling, skill-distribution, tokens, cli]
 timestamp: 2026-07-18T19:40:42Z
 ---

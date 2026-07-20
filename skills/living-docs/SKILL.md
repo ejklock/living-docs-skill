@@ -27,23 +27,17 @@ stub:**
 - `living-docs skill living-docs --topic <topic>` — load that topic's full rules (+ template).
 
 Piped output is minified JSON (machine default); `--plain` for human text, `--json` to force
-JSON. Topics: adr, prd, bdr, constitution, issue-workflow, glossary, architecture-diagrams,
-semantic-index, doc-language, citation, procedure, enforcement-modes, check, okf-format,
-doc-trail, size-targets, about (run --list for the full set).
+JSON. Topics: spine, procedure, adr, prd, bdr, constitution, issue-workflow, glossary,
+architecture-diagrams, semantic-index, doc-language, citation, enforcement-modes, check,
+okf-format, doc-trail, size-targets, about (run --list for the full set).
 
----
+This stub is a **pure router** (ADR 0017): it triggers and points at topics — it holds no rules
+inline. The **five core invariants** and the **CLI-owns-the-mechanics hard rule** are topics, not
+stub prose; load them before authoring:
 
-## Core invariants (the spine)
-
-These hold across every document type. Everything else is detail.
-
-1. **Docs-first.** Author the body in the repo (`docs/…`) *before* publishing anywhere external (tracker, wiki). The repo file is the source of truth; the external copy is a mirror.
-2. **One home per fact.** Each concept, decision, or requirement lives in exactly one file. No duplication — cross-reference instead of copying. Duplicated prose is drift waiting to happen.
-3. **Indexed or it doesn't exist.** Every doc is reachable from an index (an `index.md` listing in its directory, and the bundle-root `docs/index.md` that the project guide links). No orphan files.
-4. **Supersede, never rewrite history.** Decisions and requirements are append-only records. When something changes, mark the old record superseded and write a new one — never silently edit the past.
-5. **No structural change without its doc.** New module, moved files, schema change, new data flow → update the relevant doc *and its diagram* in the same change. No "I'll document it later."
-
-When in doubt, re-derive the right action from these five. The rules files below are just these invariants applied to each document type.
+- The five invariants (the spine) → `living-docs skill living-docs --topic spine`.
+- Authoring mechanics — CLI owns every deterministic step, you write only the prose →
+  `living-docs skill living-docs --topic procedure`.
 
 ---
 

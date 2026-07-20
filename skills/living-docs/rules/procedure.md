@@ -1,5 +1,21 @@
 # Procedure
 
+## Authoring mechanics — CLI-first (hard rule)
+
+The dividing line is **determinism**: a step with a single correct output given its inputs is
+the CLI's job; the judgment prose (the "why") is yours to write directly in the file. Applied:
+
+- **Use the CLI verb for every mechanical step — never hand-do it:** `new` (number + frontmatter
+  + skeleton), `supersede <old> <new>` (links + status on both records), `index` (regenerate the
+  listing), `check` (the gate, must pass), `export`/`brief` (byte-stable materialization /
+  pre-filled scaffold).
+- **Write the body prose directly.** The CLI must never author rationale, so there is no
+  paragraph-editing verb — editing the body is a normal edit, not a process error. What *is* a
+  process error is hand-numbering a doc, hand-writing frontmatter, hand-maintaining an index row,
+  or hand-wiring `supersedes`/`superseded_by` when `supersede` does it deterministically.
+- **When a deterministic frontmatter mutation has no verb yet** (e.g. set status, add a tag) and
+  you keep doing it by hand, harden it into a new CLI verb rather than normalizing the hand-edit.
+
 ## Setting up living docs in a new project
 
 1. **Ask the enforcement-mode question** (see *Enforcement modes* → *First-run question*) before anything else, since no preference is persisted yet. Record the answer as the `## Living Docs` block in the project guide; default to `strict` if the user has no preference.

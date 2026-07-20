@@ -25,6 +25,8 @@ This SKILL.md is a **slim stub** — a trigger plus a task->topic router. The `l
 
 Piped output is minified JSON (machine default); `--plain` for human text, `--json` to force JSON. Topics: rules, structure, research-report, research-index, research-general-references, about.
 
+This stub is a **pure router** (ADR 0017): it triggers and points at topics — it holds no rules inline. The source discipline and the research → decision → issue chain are topics, loaded before authoring via `--topic rules` / `--topic structure`.
+
 ---
 
 ## When to invoke
