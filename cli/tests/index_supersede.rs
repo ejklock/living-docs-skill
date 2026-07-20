@@ -47,6 +47,19 @@ fn run_supersede(docs: &Path, old: &str, new: &str) -> Output {
         .expect("failed to run living-docs supersede")
 }
 
+fn run_status(docs: &Path, number: &str, new_status: &str) -> Output {
+    living_docs()
+        .args([
+            "--docs-dir",
+            docs.to_str().unwrap(),
+            "status",
+            number,
+            new_status,
+        ])
+        .output()
+        .expect("failed to run living-docs status")
+}
+
 fn write_record(docs: &Path, dir: &str, filename: &str, title: &str, status: &str) {
     let type_dir = docs.join(dir);
     fs::create_dir_all(&type_dir).unwrap();
@@ -613,6 +626,92 @@ fn supersede_fails_when_a_record_number_does_not_exist() {
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("no record found"), "got: {stderr}");
+
+    let _ = fs::remove_dir_all(&docs);
+}
+
+#[test]
+fn status_sets_the_field_and_preserves_body_and_other_frontmatter() {
+    let docs = temp_dir("status-set");
+    assert!(run_new(&docs, "adr", "A Decision").status.success());
+
+    let output = run_status(&docs, "0001", "Accepted");
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let contents = fs::read_to_string(docs.join("adr/0001-a-decision.md")).unwrap();
+    assert!(contents.contains("status: Accepted"), "got: {contents}");
+    assert!(
+        contents.contains("We will <the choice, in active voice"),
+        "body lost: {contents}"
+    );
+    assert!(
+        contents.contains("# Proposed | Accepted | Superseded | Deprecated"),
+        "comment lost: {contents}"
+    );
+
+    let _ = fs::remove_dir_all(&docs);
+}
+
+#[test]
+fn status_rejects_superseded_and_points_to_the_supersede_command_leaving_the_file_unchanged() {
+    let docs = temp_dir("status-reject-superseded");
+    assert!(run_new(&docs, "adr", "A Decision").status.success());
+    let before = fs::read_to_string(docs.join("adr/0001-a-decision.md")).unwrap();
+
+    let output = run_status(&docs, "0001", "Superseded");
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("living-docs supersede"), "got: {stderr}");
+
+    let after = fs::read_to_string(docs.join("adr/0001-a-decision.md")).unwrap();
+    assert_eq!(before, after, "file must be left unchanged");
+
+    let _ = fs::remove_dir_all(&docs);
+}
+
+#[test]
+fn status_rejects_an_unknown_value_leaving_the_file_unchanged() {
+    let docs = temp_dir("status-reject-unknown");
+    assert!(run_new(&docs, "adr", "A Decision").status.success());
+    let before = fs::read_to_string(docs.join("adr/0001-a-decision.md")).unwrap();
+
+    let output = run_status(&docs, "0001", "Acepted");
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("Proposed"), "got: {stderr}");
+    assert!(stderr.contains("Accepted"), "got: {stderr}");
+    assert!(stderr.contains("Deprecated"), "got: {stderr}");
+
+    let after = fs::read_to_string(docs.join("adr/0001-a-decision.md")).unwrap();
+    assert_eq!(before, after, "file must be left unchanged");
+
+    let _ = fs::remove_dir_all(&docs);
+}
+
+#[test]
+fn status_setting_the_current_status_again_is_a_byte_identical_no_op() {
+    let docs = temp_dir("status-idempotent");
+    assert!(run_new(&docs, "adr", "A Decision").status.success());
+    let before = fs::read(docs.join("adr/0001-a-decision.md")).unwrap();
+
+    let output = run_status(&docs, "0001", "Proposed");
+
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let after = fs::read(docs.join("adr/0001-a-decision.md")).unwrap();
+    assert_eq!(
+        before, after,
+        "re-setting the same status must be byte-identical"
+    );
 
     let _ = fs::remove_dir_all(&docs);
 }
