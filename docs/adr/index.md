@@ -15,7 +15,6 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0003 — Storage backend is config-selected, mutually exclusive, and both modes authoritative](0003-storage-backend-model.md) - Proposed
 * [0004 — db-mode runs on ParadeDB by default with SQLite opt-in, over SeaORM](0004-db-engine-and-data-layer.md) - Proposed
 * [0005 — Normalized DB schema — projects root, typed records with an EAV tail, typed relations](0005-normalized-schema.md) - Proposed
-* [0006 — The web view is a read-only axum server reusing living-docs-core](0006-web-read-only-axum.md) - Proposed
 * [0007 — db-mode authoring data model and lossless export contract](0007-db-mode-authoring-data-model-and-lossless-export-contract.md) - Proposed
 * [0008 — BDR carries a required Contract section (public API + agent tool schemas)](0008-bdr-contract-section.md) - Accepted
 * [0009 — Document visibility is default-deny frontmatter data, validated and index-aware](0009-document-visibility-model.md) - Accepted
@@ -23,5 +22,11 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0011 — Secret and PII detection stays deterministic — a curated ruleset plus Shannon entropy, never ML](0011-leak-detection-stays-deterministic-curated-ruleset-plus-shannon-entropy-never-ml.md) - Accepted
 * [0012 — Worldwide PII detection is checksum-tiered, two-stage, and deterministic](0012-worldwide-pii-detection-is-checksum-tiered-two-stage-and-deterministic.md) - Accepted
 * [0013 — Mermaid validation runs in-process via merman-core, not a Docker mermaid-cli shell-out](0013-mermaid-validation-runs-in-process-via-merman-core-not-a-docker-mermaid-cli-shell-out.md) - Accepted
-* [0014 — The CLI serves skill content from an embedded corpus; harness SKILL.md files are slim stubs](0014-the-cli-serves-skill-content-from-an-embedded-corpus-harness-skill-md-files-are-slim-stubs.md) - Accepted
 * [0015 — Web UX follows the three-pane doc-site archetype with a search-first Cmd+K palette](0015-web-ux-follows-the-three-pane-doc-site-archetype-with-search-first-cmd-k-palette.md) - Accepted
+* [0016 — Atlas makes the web a db-mode authoring front, superseding web read-only](0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md) - Proposed
+* [0017 — SKILL.md stubs are pure routers; the spine and all detail move to CLI topics](0017-skill-md-stubs-are-pure-routers-the-spine-and-all-detail-move-to-cli-topics.md) - Proposed
+
+## Superseded
+
+* [0006 — The web view is a read-only axum server reusing living-docs-core](0006-web-read-only-axum.md) - Superseded
+* [0014 — The CLI serves skill content from an embedded corpus; harness SKILL.md files are slim stubs](0014-the-cli-serves-skill-content-from-an-embedded-corpus-harness-skill-md-files-are-slim-stubs.md) - Superseded

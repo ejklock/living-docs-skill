@@ -86,3 +86,11 @@ All of the following must pass on every PR. No exceptions, no deferrals.
 | Mutation testing (changed code, per file) | `<mutation testing >= N% on changed code, per file>` |
 
 The docs-update rule from rule 1 is also a quality gate: a PR failing the docs check does not merge.
+
+### 10. Author docs through the living-docs CLI — never hand-do deterministic steps
+
+The dividing line is determinism: any documentation step with a single correct output given its inputs goes through the `living-docs` CLI; only the judgment prose (the "why") is authored by hand, directly in the file.
+
+- Use the CLI verb for every mechanical step: `living-docs new <type> "<title>"` (number + frontmatter + skeleton), `living-docs supersede <old> <new>` (wires `supersedes`/`superseded_by` + status on both records), `living-docs index [type]` (regenerates the index), `living-docs check` (the doc-gate, must pass), `living-docs export`/`brief` (byte-stable materialization / pre-filled scaffold).
+- Write the body prose directly — there is no paragraph-editing verb, because wrapping a text edit in the CLI adds no determinism. Editing the body is a normal edit; hand-numbering a doc, hand-writing frontmatter, hand-maintaining an index row, or hand-wiring supersede links is a process error.
+- When a deterministic frontmatter mutation has no verb yet (e.g. set status, add a tag) and it keeps being done by hand, harden it into a new CLI verb rather than normalizing the hand-edit.

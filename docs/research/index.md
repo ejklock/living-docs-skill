@@ -5,3 +5,4 @@ append-only (evidence is dated) and sourced; an accepted recommendation becomes 
 spawns implementation slices.
 
 * [Worldwide PII detection catalog — deterministic regex + checksum reference](0001-worldwide-pii-detection-catalog.md)
+* [Ontology tooling and the code-to-docs bridge — Rust-native options for a living-docs knowledge layer](0002-ontology-tooling-codegraph-docs-bridge.md)
