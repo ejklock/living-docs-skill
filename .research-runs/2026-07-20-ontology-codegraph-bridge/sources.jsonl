@@ -1,0 +1,36 @@
+{"id":1,"url":"https://www.w3.org/TR/skos-reference/","title":"SKOS Simple Knowledge Organization System Reference (W3C Rec)","type":"spec","tier":1}
+{"id":2,"url":"https://www.w3.org/TR/skos-primer/","title":"SKOS Primer (W3C)","type":"spec","tier":1}
+{"id":3,"url":"https://www.w3.org/TR/annotation-model/","title":"Web Annotation Data Model (W3C Rec)","type":"spec","tier":1}
+{"id":4,"url":"https://github.com/oxigraph/oxigraph","title":"Oxigraph repository","type":"repo","tier":1}
+{"id":5,"url":"https://crates.io/api/v1/crates/oxigraph","title":"oxigraph crate metadata 0.5.9 (2026-06-18)","type":"registry","tier":1}
+{"id":6,"url":"https://github.com/pchampin/sophia_rs","title":"sophia_rs repository","type":"repo","tier":1}
+{"id":7,"url":"https://github.com/phillord/horned-owl","title":"horned-owl repository","type":"repo","tier":1}
+{"id":8,"url":"https://crates.io/api/v1/crates/horned-owl","title":"horned-owl crate metadata 2.1.0 (2026-07-17)","type":"registry","tier":1}
+{"id":9,"url":"https://crates.io/api/v1/crates/rdftk_skos","title":"rdftk_skos crate metadata 0.2.0 (2021-06-14, dormant)","type":"registry","tier":1}
+{"id":10,"url":"https://sourcegraph.com/blog/announcing-scip","title":"SCIP - a better code indexing format than LSIF","type":"eng-blog","tier":1}
+{"id":11,"url":"https://microsoft.github.io/language-server-protocol/specifications/lsif/0.4.0/specification/","title":"LSIF Specification 0.4.0","type":"spec","tier":1}
+{"id":12,"url":"https://kythe.io/docs/kythe-storage.html","title":"Kythe Storage Model","type":"doc","tier":1}
+{"id":13,"url":"https://link.springer.com/chapter/10.1007/978-3-319-68204-4_2","title":"CodeOntology: RDF-ization of Source Code (ISWC 2017)","type":"paper","tier":1}
+{"id":14,"url":"https://github.com/codeontology","title":"CodeOntology org (last activity 2021-2022)","type":"repo","tier":1}
+{"id":15,"url":"https://en.wikipedia.org/wiki/Code_property_graph","title":"Code Property Graph (Yamaguchi et al. IEEE S&P 2014)","type":"encyclopedia","tier":2}
+{"id":16,"url":"https://arxiv.org/pdf/2002.09440","title":"A Toolkit for Generating Code Knowledge Graphs (GraphGen4Code)","type":"paper","tier":1}
+{"id":17,"url":"https://arxiv.org/abs/2503.07967","title":"Code Digital Twin (Peng, Wang)","type":"paper","tier":1}
+{"id":18,"url":"https://www.linkedin.com/blog/engineering/knowledge/building-the-linkedin-knowledge-graph","title":"Building the LinkedIn Knowledge Graph","type":"eng-blog","tier":1}
+{"id":19,"url":"https://www.semantic-mediawiki.org/wiki/Help:RDF_export","title":"Semantic MediaWiki Help:RDF export","type":"doc","tier":1}
+{"id":20,"url":"https://www.mediawiki.org/wiki/Wikibase/DataModel","title":"Wikibase DataModel","type":"doc","tier":1}
+{"id":21,"url":"https://professional.wiki/en/articles/managing-data-in-mediawiki","title":"Managing Data in MediaWiki: SMW vs Wikibase vs Cargo","type":"vendor-doc","tier":2}
+{"id":22,"url":"https://www.mediawiki.org/wiki/Extension:Cargo/Cargo_and_Semantic_MediaWiki","title":"Extension:Cargo and Semantic MediaWiki","type":"doc","tier":1}
+{"id":23,"url":"https://wiki.dendron.so/notes/c5e5adde-5459-409b-b34d-a0d75cbb1052/","title":"Dendron Schemas / Hierarchies","type":"doc","tier":1}
+{"id":24,"url":"https://github.com/neo4j-labs/neosemantics","title":"neosemantics (n10s) repository","type":"repo","tier":1}
+{"id":25,"url":"https://neo4j.com/labs/neosemantics/4.3/importing-ontologies/","title":"neosemantics Importing Ontologies","type":"doc","tier":1}
+{"id":26,"url":"https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0144578","title":"Property Graph vs RDF Triple Store: Glycan Substructure Search (PLOS ONE 2015)","type":"paper","tier":1}
+{"id":27,"url":"https://github.com/kuzudb/kuzu","title":"KuzuDB repository (archived 2025-10-10)","type":"repo","tier":1}
+{"id":28,"url":"https://jena.apache.org/documentation/tdb2/","title":"Apache Jena TDB2 Documentation","type":"doc","tier":1}
+{"id":29,"url":"https://martinfowler.com/bliki/UbiquitousLanguage.html","title":"Ubiquitous Language (Fowler)","type":"practitioner","tier":1}
+{"id":30,"url":"https://www.domainlanguage.com/wp-content/uploads/2016/05/DDD_Reference_2015-03.pdf","title":"Domain-Driven Design Reference (Evans, 2015)","type":"primary","tier":1}
+{"id":31,"url":"https://tianpan.co/blog/2026-04-17-graphrag-vs-vector-rag-knowledge-graphs","title":"GraphRAG vs Vector RAG","type":"blog","tier":2}
+{"id":32,"url":"https://dzone.com/articles/rdf-triple-stores-vs-labeled-property-graphs-whats","title":"RDF Triple Stores vs Labeled Property Graphs (Ontotext/DZone)","type":"vendor-adjacent","tier":2}
+{"id":33,"url":"https://cgi.csc.liv.ac.uk/~valli/OWLED2015/OWLED_2015_paper_9.pdf","title":"Lifting EMMeT to OWL: Getting the Most from SKOS (OWLED 2015)","type":"paper","tier":1}
+{"id":34,"url":"https://www.loc.gov/standards/mads/rdf/","title":"MADS/RDF; LCSH SKOS and Linked Data (arXiv:0805.2855)","type":"doc+paper","tier":1}
+{"id":35,"url":"https://aclanthology.org/2025.ldk-1.34.pdf","title":"EuroVoc as SKOS Linked Data (LDK 2025)","type":"paper","tier":1}
+{"id":36,"url":"https://model-engineering.info/publications/papers/ER24-Requirements2Code.pdf","title":"Establishing Traceability between NL Requirements and Software Artifacts (ER 2024) [PDF fetch blocked]","type":"paper","tier":1}

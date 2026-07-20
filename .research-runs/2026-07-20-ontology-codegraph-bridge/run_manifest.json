@@ -1,0 +1,21 @@
+{
+  "query": "open-source ontology tooling and its bridge to a code knowledge graph (codegraph) and a living-docs semantic index — Rust-native options prioritized",
+  "mode": "standard",
+  "epistemic_mode": "falsify",
+  "hypothesis": "A lightweight, Rust-native ontology layer (a SKOS controlled vocabulary held in an RDF store such as Oxigraph, with sophia as the toolkit) can bridge codegraph's symbol graph and the living-docs semantic index without introducing a non-Rust service — preserving the locked 'one language, one build' decision. Semantic MediaWiki / Wikibase are the best prior art for the wiki+ontology surface.",
+  "falsifiers": [
+    "F1: The Rust RDF ecosystem (Oxigraph, sophia, horned-owl) is immature or unmaintained, forcing a non-Rust service.",
+    "F2: SKOS is too weak for the code<->human bridge; OWL inference is actually required (heavier stack).",
+    "F3: A better-fit approach (property graph / Neo4j n10s, or a code-ontology standard like SCIP/LSIF/Kythe/CodeOntology) beats RDF-in-Rust.",
+    "F4: The Semantic MediaWiki / Wikibase model does not map to a docs-per-project wiki; different prior art fits better."
+  ],
+  "decision": "Which ontology substrate + serialization the Living Docs Atlas wiki adopts, and whether it stays Rust-native — feeding the future ADRs on repo structure (monorepo vs split) and the wiki PRD.",
+  "assumptions": [
+    "The web front stays Rust/axum reusing living-docs-core (locked decision).",
+    "codegraph is an available SQLite knowledge graph of code symbols and edges.",
+    "The docs already carry a semantic-index organization (living-docs skill)."
+  ],
+  "providers": ["WebSearch", "WebFetch", "GitHub"],
+  "started": "2026-07-20",
+  "current_date": "2026-07-20"
+}
