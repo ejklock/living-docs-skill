@@ -20,3 +20,7 @@
 
 # Dev-env docker-compose secrets (issue 0007) — only env.example is committed
 /.env
+
+# cargo-mutants scratch output — regenerated per run, never committed
+mutants.out/
+mutants.out.old/

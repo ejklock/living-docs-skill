@@ -64,6 +64,14 @@ enum Command {
         old: String,
         new: String,
     },
+    /// Sets a record's `status:` frontmatter field directly — for the
+    /// `Proposed`/`Accepted`/`Deprecated` lifecycle only. `Superseded` is
+    /// rejected; use `supersede`, which also wires the
+    /// `supersedes`/`superseded_by` links.
+    Status {
+        number: String,
+        new_status: String,
+    },
     Next {
         doc_type: String,
     },
@@ -242,6 +250,9 @@ fn main() -> ExitCode {
             visibility,
         } => run_index(cli.backend, &cli.docs_dir, doc_type, visibility),
         Command::Supersede { old, new } => run_supersede(cli.backend, &cli.docs_dir, &old, &new),
+        Command::Status { number, new_status } => {
+            run_status(cli.backend, &cli.docs_dir, &number, &new_status)
+        }
         Command::Check {
             paths,
             mermaid_only,
@@ -337,6 +348,13 @@ fn run_index(
 fn run_supersede(backend: Backend, docs_dir: &Path, old: &str, new: &str) -> ExitCode {
     match build_backend_store(backend, docs_dir) {
         Ok(store) => commands::supersede::run(store.as_ref(), docs_dir, old, new),
+        Err(err) => report_failure(&err),
+    }
+}
+
+fn run_status(backend: Backend, docs_dir: &Path, number: &str, new_status: &str) -> ExitCode {
+    match build_backend_store(backend, docs_dir) {
+        Ok(store) => commands::status::run(store.as_ref(), docs_dir, number, new_status),
         Err(err) => report_failure(&err),
     }
 }

@@ -2,7 +2,7 @@
 type: ADR
 title: Atlas makes the web a db-mode authoring front, superseding web read-only
 description: The Living Docs Atlas web front becomes writable, but only in db-mode where the database is the single authoritative store (ADR 0003) — so there is still no second source of truth and no cross-backend sync; in file-mode the web stays read-only, and intra-db concurrency is single-store optimistic (a per-record revision precondition), never a merge.
-status: Proposed
+status: Accepted
 supersedes: 0006
 superseded_by:
 tags: [architecture, web, authoring, atlas, db-mode, source-of-truth, concurrency]
