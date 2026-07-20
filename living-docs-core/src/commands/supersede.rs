@@ -36,7 +36,7 @@ fn supersede(store: &dyn DocStore, docs_dir: &Path, old: &str, new: &str) -> Res
     Ok(())
 }
 
-fn parse_record_number(arg: &str) -> Result<u32, String> {
+pub(crate) fn parse_record_number(arg: &str) -> Result<u32, String> {
     arg.parse()
         .map_err(|_| format!("'{arg}' is not a valid record number"))
 }
@@ -44,8 +44,13 @@ fn parse_record_number(arg: &str) -> Result<u32, String> {
 /// Finds the record whose filename opens with `number`'s zero-padded `NNNN-`
 /// prefix among every path the active store lists under `docs_dir` — backend
 /// agnostic, so a db-mode store's own project-scoped enumeration is honored
-/// exactly like a filesystem walk.
-fn find_record(store: &dyn DocStore, docs_dir: &Path, number: u32) -> Result<PathBuf, String> {
+/// exactly like a filesystem walk. Shared with `status.rs` (lesson 3717: no
+/// duplicated record-resolution logic).
+pub(crate) fn find_record(
+    store: &dyn DocStore,
+    docs_dir: &Path,
+    number: u32,
+) -> Result<PathBuf, String> {
     let prefix = format!("{number:04}-");
     store
         .list(docs_dir)
@@ -68,8 +73,9 @@ fn matches_record_prefix(path: &Path, prefix: &str) -> bool {
 /// the body survive untouched — then writes the result back once. Templates
 /// ship most supersede keys as an empty line to fill; when a key is absent
 /// entirely (e.g. BDR/PRD templates have no `supersedes` line), it is
-/// inserted at the end of the frontmatter block instead.
-fn set_frontmatter_fields(
+/// inserted at the end of the frontmatter block instead. Shared with
+/// `status.rs` (lesson 3717: no duplicated frontmatter-mutation logic).
+pub(crate) fn set_frontmatter_fields(
     store: &dyn DocStore,
     path: &Path,
     fields: &[(&str, String)],
