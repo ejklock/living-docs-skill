@@ -24,3 +24,6 @@
 # cargo-mutants scratch output — regenerated per run, never committed
 mutants.out/
 mutants.out.old/
+
+# deep-research working stores — scratch, never committed; live under ~/.cache/deep-research/
+.research-runs/
