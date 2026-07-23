@@ -7,10 +7,14 @@ one slice per fresh context, starting from the skeleton.
 
 ## Open
 
-* [0008 — Three-pane web shell with metadata panel and Cmd+K palette](0008-three-pane-web-shell-with-metadata-panel-and-cmd-k-palette.md) - open
+* [0010 — Atlas create — db-mode authoring walking skeleton (mode guard, revision, transactional write+check)](0010-atlas-create-db-mode-authoring-walking-skeleton.md) - open
+* [0011 — Atlas edit — optimistic concurrency via a revision precondition](0011-atlas-edit-optimistic-concurrency-via-revision-precondition.md) - open
+* [0012 — Atlas supersede — browser parity with the CLI supersede verb](0012-atlas-supersede-browser-parity-with-the-cli-supersede-verb.md) - open
+* [0013 — Atlas delete — a new verb with no CLI precedent](0013-atlas-delete-a-new-verb-with-no-cli-precedent.md) - open
 
 ## Closed
 
+* [0008 — Three-pane web shell with metadata panel and Cmd+K palette](0008-three-pane-web-shell-with-metadata-panel-and-cmd-k-palette.md) - done
 * [0008 — living-docs brief — deterministic pre-filled scaffold, judgment slots left empty](0008-brief-scaffold.md) - done
 * [0009 — Per-type doc size targets (skill corpus + advisory check warning) + the same-change economic rationale](0009-doc-size-targets.md) - done
 

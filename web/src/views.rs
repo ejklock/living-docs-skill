@@ -186,26 +186,103 @@ fn result_item(hit: &SearchHit) -> Markup {
     }
 }
 
-fn record_href(path: &str) -> String {
+pub(crate) fn record_href(path: &str) -> String {
     format!("/record/{path}")
 }
 
-/// Renders a single record's center-pane content: the back link plus
-/// `body_html`, already rendered from markdown by the caller and injected
-/// verbatim. The body's own leading `# Title` markdown heading is the
-/// page's sole `h1` (issue 0008, ADR 0015, S3) — this view renders no h1 of
-/// its own, so a record page never carries two.
-pub fn record_page(body_html: &str) -> Markup {
+/// A record page's supersede confirm form render state (ADR 0016, issue
+/// 0012): `href` to post the confirmation to, `value` pre-filling the
+/// superseding record's number input (the caller's last submission on a
+/// rejected commit, empty for a fresh page load), and `error`, when `Some`,
+/// rendered above the form.
+pub struct SupersedeFormState<'a> {
+    pub href: &'a str,
+    pub value: &'a str,
+    pub error: Option<&'a str>,
+}
+
+/// Renders a single record's center-pane content: the back link, a
+/// discoverable "Edit" link when `edit_href` is `Some` (db-mode only — ADR
+/// 0016, issue 0011), the supersede confirm form when `supersede` is `Some`
+/// (db-mode only — ADR 0016, issue 0012), the delete confirm form when
+/// `delete` is `Some` (db-mode only, and only for a not-yet-deleted record —
+/// ADR 0018, issue 0013 slice B), and `body_html`, already rendered from
+/// markdown by the caller and injected verbatim. The body's own leading
+/// `# Title` markdown heading is the page's sole `h1` (issue 0008, ADR
+/// 0015, S3) — this view renders no h1 of its own, so a record page never
+/// carries two.
+pub fn record_page(
+    body_html: &str,
+    edit_href: Option<&str>,
+    supersede: Option<SupersedeFormState<'_>>,
+    delete: Option<DeleteFormState<'_>>,
+) -> Markup {
     html! {
         a href="/" { "← Back to search" }
+        @if let Some(edit_href) = edit_href {
+            a href=(edit_href) class="edit-link" { "Edit" }
+        }
+        @if let Some(supersede) = supersede {
+            (supersede_form(&supersede))
+        }
+        @if let Some(delete) = delete {
+            (delete_form(&delete))
+        }
         (PreEscaped(body_html))
     }
 }
 
+/// A record page's delete confirm form render state (ADR 0018, issue 0013
+/// slice B): `href` to post the confirmation to, and `error`, when `Some`,
+/// rendered above the form — the delete form submits no fields of its own,
+/// unlike the supersede form's `new` input.
+pub struct DeleteFormState<'a> {
+    pub href: &'a str,
+    pub error: Option<&'a str>,
+}
+
+/// The delete confirm form itself: no input fields, a "Delete" submit
+/// button, and an error slot above the button when `state.error` is `Some` —
+/// [`record_page`]'s own extracted piece, mirroring [`supersede_form`]'s
+/// shape.
+fn delete_form(state: &DeleteFormState<'_>) -> Markup {
+    html! {
+        form action=(state.href) method="post" class="delete-form" {
+            @if let Some(error) = state.error {
+                p class="form-error" { (error) }
+            }
+            button type="submit" { "Delete" }
+        }
+    }
+}
+
+/// The supersede confirm form itself: a bare-number text input named `new`,
+/// a "Supersede" submit button, and an error slot above the input when
+/// `state.error` is `Some` — [`record_page`]'s own extracted piece, kept
+/// separate so that function stays a flat sequence of the page's parts.
+fn supersede_form(state: &SupersedeFormState<'_>) -> Markup {
+    html! {
+        form action=(state.href) method="post" class="supersede-form" {
+            @if let Some(error) = state.error {
+                p class="form-error" { (error) }
+            }
+            input
+                type="text"
+                name="new"
+                value=(state.value)
+                placeholder="Superseding record number";
+            button type="submit" { "Supersede" }
+        }
+    }
+}
+
 /// Renders the right-pane metadata panel for a record (issue 0008, ADR
-/// 0015, S3): its doc type, an optional status badge, its supersede chain
-/// in both directions as links to `/record/<path>` (each section omitted
-/// when its list is empty), and its tags as chips (omitted when empty).
+/// 0015, S3): its doc type, a badge — the "Deleted" badge when
+/// `meta.deleted_at` is set (ADR 0018, issue 0013 slice B), otherwise the
+/// status badge when `meta.status` is `Some`; only one of the two is ever
+/// shown — its supersede chain in both directions as links to
+/// `/record/<path>` (each section omitted when its list is empty), and its
+/// tags as chips (omitted when empty).
 pub fn metadata_panel(meta: &RecordMeta) -> Markup {
     html! {
         section class="meta-panel" {
@@ -213,7 +290,9 @@ pub fn metadata_panel(meta: &RecordMeta) -> Markup {
                 span class="meta-label" { "Type" }
                 span class="meta-value" { (meta.doc_type) }
             }
-            @if let Some(status) = &meta.status {
+            @if meta.deleted_at.is_some() {
+                (deleted_badge())
+            } @else if let Some(status) = &meta.status {
                 (status_badge(status))
             }
             @if !meta.supersedes.is_empty() {
@@ -233,6 +312,16 @@ fn status_badge(status: &str) -> Markup {
     let modifier = status_modifier(status);
     html! {
         span class=(format!("status-badge status-{modifier}")) { (status) }
+    }
+}
+
+/// The badge shown once a record's `deleted_at` is set (ADR 0018, issue
+/// 0013 slice B) — mirrors [`status_badge`]'s shape but with a fixed
+/// modifier and label, since a soft-deleted record's own former status is no
+/// longer meaningful to show.
+fn deleted_badge() -> Markup {
+    html! {
+        span class="status-badge status-deleted" { "Deleted" }
     }
 }
 
@@ -260,6 +349,63 @@ fn tags_section(tags: &[String]) -> Markup {
             @for tag in tags {
                 span class="tag" { (tag) }
             }
+        }
+    }
+}
+
+/// The doc types Atlas's create form offers — the same four
+/// `living_docs_core::paths::dir_for` accepts (ADR 0016, issue 0010 slice
+/// 3): `adr`, `bdr`, `prd`, `issue`.
+const CREATABLE_DOC_TYPES: [&str; 4] = ["adr", "bdr", "prd", "issue"];
+
+/// Renders `POST /new`'s create form: a doc-type select, a title input, and
+/// a submit button, in the same plain (label-less) input style
+/// `search_form`/`project_filter` already use. `doc_type`/`title` preserve
+/// the caller's last submission across a failed create (re-render after a
+/// rejected write); `error`, when `Some`, renders its message above the
+/// form.
+pub fn create_form(doc_type: Option<&str>, title: Option<&str>, error: Option<&str>) -> Markup {
+    html! {
+        h1 { "New record" }
+        @if let Some(error) = error {
+            p class="form-error" { (error) }
+        }
+        form action="/new" method="post" {
+            (doc_type_select(doc_type))
+            input type="text" name="title" value=(title.unwrap_or_default()) placeholder="Title";
+            button type="submit" { "Create" }
+        }
+    }
+}
+
+fn doc_type_select(selected: Option<&str>) -> Markup {
+    html! {
+        select name="doc_type" {
+            @for option in CREATABLE_DOC_TYPES {
+                option value=(option) selected[selected == Some(option)] { (option) }
+            }
+        }
+    }
+}
+
+/// Renders `POST /edit/{*path}`'s edit form (ADR 0016, issue 0011): a
+/// content textarea pre-filled with `content`, a hidden `base_revision`
+/// field carrying the optimistic-concurrency precondition, and a submit
+/// button. `path`/`content`/`base_revision` preserve the caller's last
+/// submission across a failed edit (a failing `check`) or a stale-revision
+/// reload — for a stale rejection the caller passes the CURRENT server
+/// content and revision, never the rejected submission (ADR 0016: reject,
+/// never merge). `error`, when `Some`, renders its message above the form.
+pub fn edit_form(path: &str, content: &str, base_revision: i64, error: Option<&str>) -> Markup {
+    html! {
+        h1 { "Edit record" }
+        @if let Some(error) = error {
+            p class="form-error" { (error) }
+        }
+        form action=(format!("/edit/{path}")) method="post" {
+            textarea name="content" { (content) }
+            input type="hidden" name="base_revision" value=(base_revision);
+            button type="submit" { "Save" }
         }
     }
 }
@@ -379,13 +525,106 @@ mod tests {
 
     #[test]
     fn record_page_injects_the_preescaped_body_and_carries_no_view_level_h1() {
-        let rendered =
-            record_page("<h1>Quokka Caching Strategy</h1>\n<p>Body.</p>\n").into_string();
+        let rendered = record_page(
+            "<h1>Quokka Caching Strategy</h1>\n<p>Body.</p>\n",
+            None,
+            None,
+            None,
+        )
+        .into_string();
 
         assert!(rendered.contains("<h1>Quokka Caching Strategy</h1>"));
         assert!(rendered.contains("<p>Body.</p>"));
         assert_eq!(rendered.matches("<h1").count(), 1);
         assert!(rendered.contains("← Back to search"));
+    }
+
+    #[test]
+    fn record_page_omits_the_edit_link_when_edit_href_is_none() {
+        let rendered = record_page("<p>Body.</p>\n", None, None, None).into_string();
+
+        assert!(!rendered.contains("class=\"edit-link\""));
+    }
+
+    #[test]
+    fn record_page_renders_the_edit_link_when_edit_href_is_some() {
+        let rendered =
+            record_page("<p>Body.</p>\n", Some("/edit/adr/0001-a.md"), None, None).into_string();
+
+        assert!(rendered.contains("href=\"/edit/adr/0001-a.md\" class=\"edit-link\""));
+        assert!(rendered.contains(">Edit<"));
+    }
+
+    #[test]
+    fn record_page_omits_the_supersede_form_when_supersede_is_none() {
+        let rendered = record_page("<p>Body.</p>\n", None, None, None).into_string();
+
+        assert!(!rendered.contains("class=\"supersede-form\""));
+    }
+
+    #[test]
+    fn record_page_renders_the_supersede_form_when_supersede_is_some() {
+        let supersede = SupersedeFormState {
+            href: "/supersede/adr/0001-a.md",
+            value: "",
+            error: None,
+        };
+
+        let rendered = record_page("<p>Body.</p>\n", None, Some(supersede), None).into_string();
+
+        assert!(rendered.contains("<form action=\"/supersede/adr/0001-a.md\" method=\"post\""));
+        assert!(rendered.contains("name=\"new\""));
+        assert!(rendered.contains(">Supersede<"));
+        assert!(!rendered.contains("form-error"));
+    }
+
+    #[test]
+    fn record_page_supersede_form_preserves_the_submitted_value_and_shows_the_error() {
+        let supersede = SupersedeFormState {
+            href: "/supersede/adr/0001-a.md",
+            value: "0099",
+            error: Some("no record found for 0099"),
+        };
+
+        let rendered = record_page("<p>Body.</p>\n", None, Some(supersede), None).into_string();
+
+        assert!(rendered.contains("class=\"form-error\""));
+        assert!(rendered.contains("no record found for 0099"));
+        assert!(rendered.contains("value=\"0099\""));
+    }
+
+    #[test]
+    fn record_page_omits_the_delete_form_when_delete_is_none() {
+        let rendered = record_page("<p>Body.</p>\n", None, None, None).into_string();
+
+        assert!(!rendered.contains("class=\"delete-form\""));
+    }
+
+    #[test]
+    fn record_page_renders_the_delete_form_when_delete_is_some() {
+        let delete = DeleteFormState {
+            href: "/delete/issue/0001-a.md",
+            error: None,
+        };
+
+        let rendered = record_page("<p>Body.</p>\n", None, None, Some(delete)).into_string();
+
+        assert!(rendered.contains("<form action=\"/delete/issue/0001-a.md\" method=\"post\""));
+        assert!(rendered.contains(">Delete<"));
+        assert!(!rendered.contains("form-error"));
+    }
+
+    #[test]
+    fn record_page_delete_form_shows_the_error_when_present() {
+        let delete = DeleteFormState {
+            href: "/delete/adr/0001-a.md",
+            error: Some("adr/0001-a.md: doc type 'ADR' is not eligible for delete"),
+        };
+
+        let rendered = record_page("<p>Body.</p>\n", None, None, Some(delete)).into_string();
+
+        assert!(rendered.contains("class=\"form-error\""));
+        assert!(rendered.contains("is not eligible for delete"));
     }
 
     fn related_ref(path: &str, title: &str) -> RelatedRef {
@@ -408,6 +647,8 @@ mod tests {
             supersedes,
             superseded_by,
             tags: tags.into_iter().map(str::to_owned).collect(),
+            revision: 1,
+            deleted_at: None,
         }
     }
 
@@ -438,6 +679,38 @@ mod tests {
         let rendered = metadata_panel(&meta).into_string();
 
         assert!(!rendered.contains("status-badge"));
+    }
+
+    fn deleted(mut meta: RecordMeta) -> RecordMeta {
+        meta.deleted_at = Some(1_700_000_000);
+        meta
+    }
+
+    #[test]
+    fn metadata_panel_renders_the_deleted_badge_when_deleted_at_is_set() {
+        let meta = deleted(record_meta("Issue", None, vec![], vec![], vec![]));
+
+        let rendered = metadata_panel(&meta).into_string();
+
+        assert!(rendered.contains("class=\"status-badge status-deleted\""));
+        assert!(rendered.contains(">Deleted<"));
+    }
+
+    #[test]
+    fn metadata_panel_shows_the_deleted_badge_instead_of_the_status_badge_when_both_apply() {
+        let meta = deleted(record_meta(
+            "Issue",
+            Some("Accepted"),
+            vec![],
+            vec![],
+            vec![],
+        ));
+
+        let rendered = metadata_panel(&meta).into_string();
+
+        assert!(rendered.contains(">Deleted<"));
+        assert!(!rendered.contains("status-accepted"));
+        assert!(!rendered.contains(">Accepted<"));
     }
 
     #[test]
@@ -487,6 +760,86 @@ mod tests {
         let rendered = metadata_panel(&meta).into_string();
 
         assert!(!rendered.contains("class=\"tag\""));
+    }
+
+    #[test]
+    fn create_form_without_prefill_renders_an_empty_form_and_no_error() {
+        let rendered = create_form(None, None, None).into_string();
+
+        assert!(rendered.contains("<form action=\"/new\" method=\"post\""));
+        assert!(rendered.contains("name=\"doc_type\""));
+        assert!(rendered.contains("name=\"title\""));
+        assert!(!rendered.contains("form-error"));
+    }
+
+    #[test]
+    fn create_form_lists_every_creatable_doc_type_option() {
+        let rendered = create_form(None, None, None).into_string();
+
+        for doc_type in ["adr", "bdr", "prd", "issue"] {
+            assert!(
+                rendered.contains(&format!("value=\"{doc_type}\"")),
+                "missing option for {doc_type}: {rendered}"
+            );
+        }
+    }
+
+    #[test]
+    fn create_form_preserves_the_submitted_doc_type_and_title_on_re_render() {
+        let rendered = create_form(Some("bdr"), Some("Draft Behavior"), None).into_string();
+
+        assert!(rendered.contains("<option value=\"bdr\" selected>bdr</option>"));
+        assert!(rendered.contains("value=\"Draft Behavior\""));
+    }
+
+    #[test]
+    fn create_form_renders_the_error_message_above_the_form() {
+        let rendered =
+            create_form(Some("adr"), Some("Broken"), Some("check failed: orphan")).into_string();
+
+        assert!(rendered.contains("class=\"form-error\""));
+        assert!(rendered.contains("check failed: orphan"));
+    }
+
+    #[test]
+    fn create_form_escapes_a_title_containing_markup() {
+        let rendered = create_form(None, Some("<script>alert(1)</script>"), None).into_string();
+
+        assert!(!rendered.contains("<script>"));
+        assert!(rendered.contains("&lt;script&gt;"));
+    }
+
+    #[test]
+    fn edit_form_posts_to_the_record_path_and_prefills_content_and_base_revision() {
+        let rendered = edit_form("adr/0001-a.md", "Body text.", 3, None).into_string();
+
+        assert!(rendered.contains("<form action=\"/edit/adr/0001-a.md\" method=\"post\""));
+        assert!(rendered.contains("<textarea name=\"content\">Body text.</textarea>"));
+        assert!(rendered.contains("name=\"base_revision\" value=\"3\""));
+        assert!(!rendered.contains("form-error"));
+    }
+
+    #[test]
+    fn edit_form_renders_the_error_message_above_the_form() {
+        let rendered = edit_form(
+            "adr/0001-a.md",
+            "Body text.",
+            3,
+            Some("check failed: orphan"),
+        )
+        .into_string();
+
+        assert!(rendered.contains("class=\"form-error\""));
+        assert!(rendered.contains("check failed: orphan"));
+    }
+
+    #[test]
+    fn edit_form_escapes_content_containing_markup() {
+        let rendered =
+            edit_form("adr/0001-a.md", "<script>alert(1)</script>", 1, None).into_string();
+
+        assert!(!rendered.contains("<script>"));
+        assert!(rendered.contains("&lt;script&gt;"));
     }
 
     #[test]

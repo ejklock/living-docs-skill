@@ -104,10 +104,76 @@ fn seed_index_skeleton(docs: &Path, adr_entries: &[&str]) {
     .unwrap();
 }
 
+/// Every "fill this in" example link the ADR template embeds verbatim
+/// (`research/NNNN-<slug>.md`, `prd/NNNN-<slug>.md`, and the References
+/// section's literal `adr/url`) — broken by design until an author replaces
+/// them (see `backend_db_check_reaches_the_same_verdict_as_file_mode_check_on_the_equivalent_corpus`).
+/// `--backend db new` now commits through `write_checked`, which runs the
+/// same link-validity invariant as `check`, so exercising its happy path
+/// requires these exact literal targets to already resolve on disk.
+/// `research`/`prd` targets are materialized as directories, not files: a
+/// broken-link check only asks `Path::exists()`, which a directory
+/// satisfies, whereas a same-named *file* would itself be walked as a
+/// (frontmatter-less, unindexed) record by either backend's `.md` scan.
+fn seed_adr_placeholder_link_targets(docs: &Path) {
+    fs::create_dir_all(docs.join("research").join("NNNN-<slug>.md")).unwrap();
+    fs::create_dir_all(docs.join("prd").join("NNNN-<slug>.md")).unwrap();
+    fs::create_dir_all(docs.join("adr")).unwrap();
+    fs::write(docs.join("adr").join("url"), "").unwrap();
+}
+
+/// A bundle-root `index.md` linking to the type's `index.md`, with the type
+/// directory's own `index.md` deliberately absent — the freshly bootstrapped
+/// shape a real project has before its first record is ever created,
+/// proving `--backend db new` no longer needs `seed_index_skeleton`'s
+/// pre-seeded link (issue 0010 slice 2b: `write_checked` now regenerates the
+/// type's `index.md` from the post-insert snapshot before `check` runs).
+fn seed_root_index_only(docs: &Path) {
+    fs::create_dir_all(docs.join("adr")).unwrap();
+    fs::write(docs.join("index.md"), "# Index\n\n- [ADRs](adr/index.md)\n").unwrap();
+    assert!(
+        !docs.join("adr").join("index.md").exists(),
+        "this fixture must not pre-seed adr/index.md"
+    );
+}
+
+#[test]
+fn backend_db_new_succeeds_against_a_freshly_bootstrapped_project_with_no_pre_seeded_index_link() {
+    let docs = temp_dir("fresh-bootstrap");
+    let (db_path, db_url) = temp_sqlite_url("fresh-bootstrap");
+    seed_root_index_only(&docs);
+    seed_adr_placeholder_link_targets(&docs);
+
+    let new_output = run_db(&db_url, &docs, &["new", "adr", "First Decision"]);
+    assert!(
+        new_output.status.success(),
+        "stderr: {}",
+        stderr_of(&new_output)
+    );
+
+    let stdout = stdout_of(&new_output);
+    let printed_path = stdout.lines().next().expect("stdout has a first line");
+    assert!(
+        printed_path.ends_with("adr/0001-first-decision.md"),
+        "got: {printed_path}"
+    );
+
+    let index_contents = fs::read_to_string(docs.join("adr").join("index.md"))
+        .expect("write_checked must have regenerated adr/index.md");
+    assert!(
+        index_contents.contains("0001-first-decision.md"),
+        "got: {index_contents}"
+    );
+
+    cleanup(&docs, &db_path);
+}
+
 #[test]
 fn backend_db_new_persists_the_record_and_a_second_new_allocates_past_it() {
     let docs = temp_dir("retrieve");
     let (db_path, db_url) = temp_sqlite_url("retrieve");
+    seed_index_skeleton(&docs, &["0001-first", "0002-second"]);
+    seed_adr_placeholder_link_targets(&docs);
 
     let first = run_db(&db_url, &docs, &["new", "adr", "First"]);
     assert!(first.status.success(), "stderr: {}", stderr_of(&first));
@@ -115,7 +181,8 @@ fn backend_db_new_persists_the_record_and_a_second_new_allocates_past_it() {
 
     let second = run_db(&db_url, &docs, &["new", "adr", "Second"]);
     assert!(second.status.success(), "stderr: {}", stderr_of(&second));
-    let printed_path = stdout_of(&second).trim().to_string();
+    let stdout = stdout_of(&second);
+    let printed_path = stdout.lines().next().expect("stdout has a first line");
     assert!(
         printed_path.ends_with("adr/0002-second.md"),
         "got: {printed_path}"
@@ -137,13 +204,20 @@ fn backend_db_check_reaches_the_same_verdict_as_file_mode_check_on_the_equivalen
     let docs_db = temp_dir("verdict-db");
     let (db_path, db_url) = temp_sqlite_url("verdict");
 
+    // Seeded identically (and before `new`) on both sides: db-mode's `new`
+    // now commits through `write_checked`, which requires these same
+    // invariants to already hold, where file-mode's `new` never checked at
+    // all — seeding both the same way keeps the corpora equivalent so the
+    // verdict comparison below stays meaningful.
+    seed_index_skeleton(&docs_fs, &["0001-x"]);
+    seed_adr_placeholder_link_targets(&docs_fs);
     let new_fs = run_fs(&docs_fs, &["new", "adr", "X"]);
     assert!(new_fs.status.success(), "stderr: {}", stderr_of(&new_fs));
-    seed_index_skeleton(&docs_fs, &["0001-x"]);
 
+    seed_index_skeleton(&docs_db, &["0001-x"]);
+    seed_adr_placeholder_link_targets(&docs_db);
     let new_db = run_db(&db_url, &docs_db, &["new", "adr", "X"]);
     assert!(new_db.status.success(), "stderr: {}", stderr_of(&new_db));
-    seed_index_skeleton(&docs_db, &["0001-x"]);
 
     let check_fs = run_check(&docs_fs);
     let check_db = run_db(&db_url, &docs_db, &["check"]);
@@ -172,6 +246,7 @@ fn backend_db_check_ignores_a_record_that_only_exists_on_disk() {
     let docs = temp_dir("check-catches-gap");
     let (db_path, db_url) = temp_sqlite_url("check-catches-gap");
     seed_index_skeleton(&docs, &["0001-x"]);
+    seed_adr_placeholder_link_targets(&docs);
 
     let new_output = run_db(&db_url, &docs, &["new", "adr", "X"]);
     assert!(
@@ -283,6 +358,8 @@ fn backend_db_export_is_idempotent_producing_byte_identical_output_on_a_second_r
 fn backend_db_supersede_persists_status_and_relation_through_the_port_and_round_trips_on_export() {
     let docs = temp_dir("supersede-db");
     let (db_path, db_url) = temp_sqlite_url("supersede-db");
+    seed_index_skeleton(&docs, &["0001-old-decision", "0002-new-decision"]);
+    seed_adr_placeholder_link_targets(&docs);
 
     let old = run_db(&db_url, &docs, &["new", "adr", "Old Decision"]);
     assert!(old.status.success(), "stderr: {}", stderr_of(&old));
@@ -337,6 +414,8 @@ fn backend_db_supersede_persists_status_and_relation_through_the_port_and_round_
 fn backend_db_supersede_fails_when_a_record_number_does_not_exist() {
     let docs = temp_dir("supersede-db-missing");
     let (db_path, db_url) = temp_sqlite_url("supersede-db-missing");
+    seed_index_skeleton(&docs, &["0001-only-decision"]);
+    seed_adr_placeholder_link_targets(&docs);
 
     let only = run_db(&db_url, &docs, &["new", "adr", "Only Decision"]);
     assert!(only.status.success(), "stderr: {}", stderr_of(&only));
@@ -373,6 +452,13 @@ fn backend_db_index_regenerates_the_filesystem_index_from_db_records_matching_fi
         stderr_of(&index_fs)
     );
 
+    // This seeding exists only so db-mode's `new` calls below (now gated by
+    // `write_checked`) can commit at all — `index` preserves everything
+    // above its first generator-managed heading, so the seeded raw listing
+    // is removed again once `new` is done and before `index` regenerates the
+    // file, to match fs-mode's fresh (never pre-seeded) starting point.
+    seed_index_skeleton(&docs_db, &["0001-first-decision", "0002-second-decision"]);
+    seed_adr_placeholder_link_targets(&docs_db);
     assert!(run_db(&db_url, &docs_db, &["new", "adr", "First Decision"])
         .status
         .success());
@@ -381,6 +467,7 @@ fn backend_db_index_regenerates_the_filesystem_index_from_db_records_matching_fi
             .status
             .success()
     );
+    fs::remove_file(docs_db.join("adr").join("index.md")).unwrap();
     let index_db = run_db(&db_url, &docs_db, &["index", "adr"]);
     assert!(
         index_db.status.success(),
@@ -397,6 +484,34 @@ fn backend_db_index_regenerates_the_filesystem_index_from_db_records_matching_fi
 
     let _ = fs::remove_dir_all(&docs_fs);
     cleanup(&docs_db, &db_path);
+}
+
+#[test]
+fn backend_db_new_honors_the_global_engine_flag_requiring_database_url_for_paradedb() {
+    let docs = temp_dir("engine-paradedb-required");
+
+    let output = living_docs()
+        .env_remove("DATABASE_URL")
+        .args([
+            "--backend",
+            "db",
+            "--engine",
+            "paradedb",
+            "--docs-dir",
+            docs.to_str().unwrap(),
+            "new",
+            "adr",
+            "First",
+        ])
+        .output()
+        .expect("failed to run living-docs");
+
+    assert!(!output.status.success());
+    let stderr = stderr_of(&output);
+    assert!(stderr.contains("DATABASE_URL"), "got: {stderr}");
+    assert!(!docs.join("adr/0001-first.md").exists());
+
+    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]

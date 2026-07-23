@@ -17,6 +17,8 @@ impl MigratorTrait for Migrator {
             Box::new(CreateMultiProjectSchema),
             Box::new(CreateAuthoringSchema),
             Box::new(AddRecordStatus),
+            Box::new(AddRecordRevision),
+            Box::new(AddRecordDeletedAt),
         ]
     }
 }
@@ -263,6 +265,96 @@ impl MigrationTrait for AddRecordStatus {
                 Table::alter()
                     .table(Records::Table)
                     .drop_column(Records::Status)
+                    .to_owned(),
+            )
+            .await
+    }
+}
+
+/// Adds a non-null `revision` column to `records`, defaulted to `1` for
+/// every existing row, as the optimistic-concurrency counter Atlas's
+/// authoring write path checks against (ADR 0016, issue 0010 S1). Like
+/// [`AddRecordStatus`], this is a genuine additive migration — never by
+/// editing [`CreateAuthoringSchema`] — so a database that has already
+/// applied earlier migrations only gains the column, it is not recreated.
+/// The counter's bump-on-write logic lands in issue 0010 slice 2; this
+/// migration only adds the column and its default.
+struct AddRecordRevision;
+
+impl MigrationName for AddRecordRevision {
+    fn name(&self) -> &str {
+        "m20260719_000005_add_record_revision"
+    }
+}
+
+#[async_trait::async_trait]
+impl MigrationTrait for AddRecordRevision {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .alter_table(
+                Table::alter()
+                    .table(Records::Table)
+                    .add_column(
+                        ColumnDef::new(Records::Revision)
+                            .big_integer()
+                            .not_null()
+                            .default(1),
+                    )
+                    .to_owned(),
+            )
+            .await
+    }
+
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .alter_table(
+                Table::alter()
+                    .table(Records::Table)
+                    .drop_column(Records::Revision)
+                    .to_owned(),
+            )
+            .await
+    }
+}
+
+/// Adds a nullable `deleted_at` column to `records`, `NULL` for every
+/// existing row — `NULL` means "not deleted" (ADR 0018, issue 0013 slice A).
+/// Stored as Unix-epoch seconds (`big_integer`) rather than a native
+/// timestamp column: see [`crate::entity::records::Model::deleted_at`]'s
+/// docblock for why. Like [`AddRecordStatus`]/[`AddRecordRevision`], this is a
+/// genuine additive migration — never by editing [`CreateAuthoringSchema`]
+/// — so a database that has already applied earlier migrations only gains
+/// the column, it is not recreated. The query-path filters that exclude a
+/// soft-deleted record from the nav tree, search, and the snapshot every
+/// write goes through land alongside `crate::DbDocStore::delete_checked` in
+/// this same slice.
+struct AddRecordDeletedAt;
+
+impl MigrationName for AddRecordDeletedAt {
+    fn name(&self) -> &str {
+        "m20260722_000006_add_record_deleted_at"
+    }
+}
+
+#[async_trait::async_trait]
+impl MigrationTrait for AddRecordDeletedAt {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .alter_table(
+                Table::alter()
+                    .table(Records::Table)
+                    .add_column(ColumnDef::new(Records::DeletedAt).big_integer().null())
+                    .to_owned(),
+            )
+            .await
+    }
+
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .alter_table(
+                Table::alter()
+                    .table(Records::Table)
+                    .drop_column(Records::DeletedAt)
                     .to_owned(),
             )
             .await
@@ -565,6 +657,8 @@ enum Records {
     Description,
     Body,
     Status,
+    Revision,
+    DeletedAt,
 }
 
 #[derive(DeriveIden)]

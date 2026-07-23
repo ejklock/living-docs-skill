@@ -2,10 +2,9 @@
 type: Issue
 title: Three-pane web shell with metadata panel and Cmd+K palette
 description: Implement the ADR 0015 web UX — type-grouped nav tree, record body pane, status/supersede metadata panel, and a progressive-enhancement Cmd+K search palette.
-status: open
+status: done
 labels: [web, ux]
 blocked_by: []
-tracker:
 timestamp: 2026-07-19T02:22:09Z
 ---
 

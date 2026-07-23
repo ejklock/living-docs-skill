@@ -2,10 +2,8 @@
 type: ADR
 title: db-mode runs on ParadeDB by default with SQLite opt-in, over SeaORM
 description: The database backend defaults to ParadeDB (Postgres + BM25) with SQLite (+FTS5) as an opt-in engine, accessed through SeaORM for portable normalized CRUD while full-text search is hand-written raw SQL per engine.
-status: Proposed
-supersedes:
-superseded_by:
-tags: [architecture, database, paradedb, postgres, sqlite, seaorm, search, data-layer]
+status: Accepted
+tags: [architecture, data-layer, database, paradedb, postgres, seaorm, search, sqlite]
 timestamp: 2026-07-16T00:00:00Z
 ---
 

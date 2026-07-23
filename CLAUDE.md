@@ -71,10 +71,13 @@ fronts:
   cheap *because* the boundary already exists. **Reconsider only when** a front needs an
   independent deploy cadence or separate ownership; until then, splitting adds release
   friction for no gain.
-- **Two interchangeable adapters.** `fs-store` and `db-store` are equal-weight backends
-  behind `DocStore`, selected by config/flag. Because both can be authoritative, the
-  **sync/conflict contract between them must be defined explicitly** (an ADR before code) —
-  do not leave "which one wins" implicit.
+- **Config-selected, mutually exclusive backends (ADR 0003).** `fs-store` and `db-store`
+  sit behind `DocStore`, chosen by config/flag — never both at once. Exactly one backend is
+  authoritative per deployment (file-mode: `.md` in git; db-mode: the database), so there is
+  **no bidirectional sync and no source-of-truth conflict to resolve** — that framing was
+  considered and explicitly rejected. ADR 0016 layers Atlas's write path on top of this:
+  browser authoring is db-mode-only, gated by a per-record `revision` optimistic-concurrency
+  precondition, never a cross-backend merge.
 - **Web = Rust/axum reusing `living-docs-core`.** One language, one build, no model drift
   between CLI and web. Web reads the db-store projection.
 - **CLI search defaults to the DB backend**, FTS5-powered (`living-docs search "..."`),
