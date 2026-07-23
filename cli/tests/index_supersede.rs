@@ -535,6 +535,138 @@ fn index_visibility_private_filter_includes_absent_visibility_records() {
     let _ = fs::remove_dir_all(&docs);
 }
 
+fn write_raw(docs: &Path, dir: &str, filename: &str, contents: &str) {
+    let type_dir = docs.join(dir);
+    fs::create_dir_all(&type_dir).unwrap();
+    fs::write(type_dir.join(filename), contents).unwrap();
+}
+
+#[test]
+fn index_migrates_a_hand_maintained_table_format_index_into_the_canonical_bullet_listing() {
+    let docs = temp_dir("table-migration");
+    let adr_dir = docs.join("adr");
+    fs::create_dir_all(&adr_dir).unwrap();
+    let preamble = "# ADRs\n\nA hand-written intro paragraph that must survive.\n\n";
+    fs::write(
+        adr_dir.join("index.md"),
+        format!(
+            "{preamble}| # | Decision | Status |\n|---|---|---|\n| [0001](0001-old.md) | Old Decision | Superseded |\n"
+        ),
+    )
+    .unwrap();
+    write_record(&docs, "adr", "0001-old.md", "Old Decision", "Superseded");
+    write_record(
+        &docs,
+        "adr",
+        "0002-current.md",
+        "Current Decision",
+        "Accepted",
+    );
+
+    let first = run_index(&docs, Some("adr"));
+    assert!(
+        first.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+
+    let first_contents = fs::read_to_string(adr_dir.join("index.md")).unwrap();
+    assert!(
+        first_contents.starts_with(preamble),
+        "got: {first_contents}"
+    );
+    assert!(
+        !first_contents.contains('|'),
+        "table not migrated away: {first_contents}"
+    );
+    assert_eq!(
+        first_contents.matches("0001-old.md").count(),
+        1,
+        "duplicated row: {first_contents}"
+    );
+    assert!(
+        first_contents.contains("* [0002 — Current Decision](0002-current.md) - Accepted"),
+        "got: {first_contents}"
+    );
+    assert!(
+        first_contents.contains("* [0001 — Old Decision](0001-old.md) - Superseded"),
+        "got: {first_contents}"
+    );
+
+    let second = run_index(&docs, Some("adr"));
+    assert!(second.status.success());
+    let second_contents = fs::read_to_string(adr_dir.join("index.md")).unwrap();
+    assert_eq!(
+        first_contents, second_contents,
+        "migrated table-format index is not idempotent on a second run"
+    );
+
+    let _ = fs::remove_dir_all(&docs);
+}
+
+#[test]
+fn index_falls_back_to_the_h1_heading_and_warns_when_title_frontmatter_is_absent() {
+    let docs = temp_dir("missing-title");
+    write_raw(
+        &docs,
+        "adr",
+        "0007-legacy.md",
+        "---\ntype: ADR\nstatus: Accepted\nsupersedes:\nsuperseded_by:\ntags: []\n---\n\n# ADR 0007 — Legacy Decision\n\nBody.\n",
+    );
+
+    let output = run_index(&docs, Some("adr"));
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let contents = fs::read_to_string(docs.join("adr/index.md")).unwrap();
+    assert!(
+        contents.contains("* [0007 — Legacy Decision](0007-legacy.md) - Accepted"),
+        "got: {contents}"
+    );
+    assert!(
+        !contents.contains("[0007 — ]"),
+        "title silently blanked: {contents}"
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("0007-legacy.md"), "got: {stderr}");
+    assert!(stderr.contains("title"), "got: {stderr}");
+
+    let _ = fs::remove_dir_all(&docs);
+}
+
+#[test]
+fn index_renders_the_full_title_when_frontmatter_title_is_an_unquoted_scalar_with_special_characters(
+) {
+    let docs = temp_dir("special-char-title");
+    write_raw(
+        &docs,
+        "adr",
+        "0007-special.md",
+        "---\ntype: ADR\ntitle: Provenance audit: vs Matt Pocock's skills; remove derivative\nstatus: Accepted\nsupersedes:\nsuperseded_by:\ntags: []\n---\n\n# Special\n\nBody.\n",
+    );
+
+    let output = run_index(&docs, Some("adr"));
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let contents = fs::read_to_string(docs.join("adr/index.md")).unwrap();
+    assert!(
+        contents.contains(
+            "* [0007 — Provenance audit: vs Matt Pocock's skills; remove derivative](0007-special.md) - Accepted"
+        ),
+        "got: {contents}"
+    );
+
+    let _ = fs::remove_dir_all(&docs);
+}
+
 fn run_new(docs: &Path, doc_type: &str, title: &str) -> Output {
     living_docs()
         .args(["--docs-dir", docs.to_str().unwrap(), "new", doc_type, title])
