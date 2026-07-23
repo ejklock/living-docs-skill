@@ -1,6 +1,9 @@
 ---
 type: Reference
+title: Foo
+description: ""
 ---
+
 # Foo
 
 - [a](./bar.md "Title")

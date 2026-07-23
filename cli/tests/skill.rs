@@ -70,6 +70,22 @@ fn list_prints_every_embedded_skill_and_the_adr_topic() {
     assert!(stdout.contains("adr"), "got:\n{stdout}");
 }
 
+/// ADR 0019, AC ac-s4-3: the `living-docs` SKILL.md stub carries the exact
+/// same body-only instruction `new` prints and the root `--help` about text
+/// carries.
+#[test]
+fn body_carries_the_body_only_instruction_matching_new_and_help() {
+    let output = run_skill(&["living-docs", "--plain"]);
+    let stdout = stdout_of(&output);
+
+    assert!(
+        stdout.contains(
+            "Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs status` / `supersede` / `index`."
+        ),
+        "got:\n{stdout}"
+    );
+}
+
 #[test]
 fn body_prints_the_skill_md_h1() {
     let output = run_skill(&["living-docs", "--plain"]);

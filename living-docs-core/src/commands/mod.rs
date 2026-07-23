@@ -1,5 +1,6 @@
 pub mod brief;
 pub mod export;
+pub mod fmt;
 pub mod index;
 pub mod leak_gate;
 pub mod new;

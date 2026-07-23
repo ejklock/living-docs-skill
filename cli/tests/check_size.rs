@@ -41,7 +41,7 @@ fn adr_with_body_lines(body_lines: usize) -> String {
         .map(|i| format!("line {i}"))
         .collect::<Vec<_>>()
         .join("\n");
-    format!("---\ntype: ADR\n---\n{body}\n")
+    format!("---\ntype: ADR\ntitle: Doc\ndescription: A minimal record.\n---\n{body}\n")
 }
 
 fn indexed_bundle_with(label: &str, record: &str) -> PathBuf {
@@ -106,7 +106,9 @@ fn research_is_exempt_from_the_size_advisory() {
     write(
         &bundle,
         "research/0001-note.md",
-        &format!("---\ntype: Research\n---\n{long_body}\n"),
+        &format!(
+            "---\ntype: Research\ntitle: Note\ndescription: A minimal record.\n---\n{long_body}\n"
+        ),
     );
 
     let output = run_check(&bundle);
@@ -123,7 +125,7 @@ fn a_real_violation_still_fails_and_the_size_advisory_still_prints_alongside_it(
     write(
         &bundle,
         "adr/0002-orphan.md",
-        "---\ntype: ADR\n---\n# Orphan\n",
+        "---\ntype: ADR\ntitle: Orphan\ndescription: An unreachable record.\n---\n# Orphan\n",
     );
 
     let output = run_check(&bundle);

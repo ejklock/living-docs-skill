@@ -6,8 +6,7 @@
 //! never writes rationale prose (ADR 0001 determinism boundary).
 
 use crate::commands::new::{
-    fill_frontmatter, frontmatter_close_index, now_iso8601, replace_targeted_value,
-    unsupported_type_message,
+    fill_frontmatter, fill_frontmatter_title, now_iso8601, unsupported_type_message,
 };
 use crate::commands::next::next_number_from_store;
 use crate::paths;
@@ -160,32 +159,6 @@ fn trail_comment_for(doc_type: &str) -> &'static str {
     }
 }
 
-fn fill_frontmatter_title(content: &str, title: &str) -> String {
-    let lines: Vec<&str> = content.lines().collect();
-    let Some(close) = frontmatter_close_index(&lines) else {
-        return content.to_string();
-    };
-
-    let filled: Vec<String> = lines
-        .iter()
-        .enumerate()
-        .map(|(i, &line)| {
-            if i == 0 || i >= close {
-                line.to_string()
-            } else {
-                replace_targeted_value(line, "title", &yaml_quote(title))
-                    .unwrap_or_else(|| line.to_string())
-            }
-        })
-        .collect();
-
-    filled.join("\n") + "\n"
-}
-
-fn yaml_quote(value: &str) -> String {
-    format!("\"{}\"", value.replace('\\', "\\\\").replace('"', "\\\""))
-}
-
 fn replace_judgment_sections(content: &str, slots: &[(&str, &str)]) -> String {
     let lines: Vec<&str> = content.lines().collect();
     let mut out: Vec<String> = Vec::new();
@@ -284,6 +257,18 @@ mod tests {
         )
     }
 
+    fn briefed_with_title(title: &str) -> String {
+        brief_content(
+            TEMPLATE,
+            "adr",
+            "ADR",
+            "2026-07-19T00:00:00Z",
+            7,
+            title,
+            None,
+        )
+    }
+
     #[test]
     fn every_judgment_section_collapses_to_exactly_its_marker() {
         let content = briefed(None);
@@ -298,9 +283,18 @@ mod tests {
     #[test]
     fn the_frontmatter_title_and_the_numbered_heading_are_filled() {
         let content = briefed(None);
-        assert!(content.contains("title: \"Choose X\""));
+        assert!(content.contains("title: Choose X\n"));
         assert!(content.contains("# 0007. Choose X\n"));
         assert!(!content.contains("<Short decision title>"));
+    }
+
+    #[test]
+    fn the_frontmatter_title_is_quoted_exactly_when_the_canonical_serializer_would_quote_it() {
+        let content = briefed_with_title("Caching: A Deep Dive");
+        assert!(content.contains(&format!(
+            "title: {}\n",
+            crate::record::format_scalar("Caching: A Deep Dive")
+        )));
     }
 
     #[test]
@@ -329,11 +323,6 @@ mod tests {
             files: Vec::new(),
         };
         assert_eq!(briefed(Some(&diff)), briefed(None));
-    }
-
-    #[test]
-    fn yaml_quote_escapes_backslashes_and_quotes() {
-        assert_eq!(yaml_quote(r#"a "b" \c"#), r#""a \"b\" \\c""#);
     }
 
     #[test]

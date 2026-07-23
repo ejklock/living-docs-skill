@@ -3,9 +3,7 @@ type: Research
 title: Worldwide PII detection catalog — deterministic regex + checksum reference
 description: A source-cited catalog of ~70 PII identifiers across 20+ countries (Brazil in depth) with regex + check-digit validation algorithms and a tiering by validation strength, compiled to drive the deterministic leak-gate PII layer. No ML, no external binaries.
 status: Accepted
-supersedes:
-superseded_by:
-tags: [research, pii, privacy, leak-prevention, brazil, checksum, methodology]
+tags: [brazil, checksum, leak-prevention, methodology, pii, privacy, research]
 timestamp: 2026-07-17T23:55:00Z
 ---
 

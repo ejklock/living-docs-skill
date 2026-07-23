@@ -8,5 +8,6 @@ pub mod commands;
 pub mod frontmatter;
 pub mod paths;
 pub mod pii;
+pub mod record;
 pub mod store;
 pub mod templates;

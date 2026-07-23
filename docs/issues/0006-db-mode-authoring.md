@@ -5,7 +5,6 @@ description: Make the database an authoritative authoring backend (new/index/sup
 status: done
 labels: [slice, database, authoring, schema]
 blocked_by: [2, 5]
-tracker:
 timestamp: 2026-07-16T00:00:00Z
 ---
 

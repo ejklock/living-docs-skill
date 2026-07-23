@@ -112,7 +112,7 @@ fn broken_image_destination_is_reported_broken() {
     write(
         &bundle,
         "foo.md",
-        "---\ntype: Reference\n---\n# Foo\n\n![missing](./no-such.png)\n",
+        "---\ntype: Reference\ntitle: Foo\ndescription: A minimal record.\n---\n# Foo\n\n![missing](./no-such.png)\n",
     );
 
     let output = run_check(&bundle);
@@ -138,13 +138,13 @@ fn bundle_relative_link_to_an_existing_file_is_clean() {
     write(
         &bundle,
         "foo.md",
-        "---\ntype: Reference\n---\n# Foo\n\n[a](/a/target.md)\n",
+        "---\ntype: Reference\ntitle: Foo\ndescription: A minimal record.\n---\n# Foo\n\n[a](/a/target.md)\n",
     );
     write(&bundle, "a/index.md", "# A\n\n- [Target](target.md)\n");
     write(
         &bundle,
         "a/target.md",
-        "---\ntype: Reference\n---\n# Target\n",
+        "---\ntype: Reference\ntitle: Target\ndescription: A minimal record.\n---\n# Target\n",
     );
 
     let output = run_check(&bundle);
@@ -167,7 +167,7 @@ fn external_and_anchor_only_links_are_never_flagged() {
     write(
         &bundle,
         "foo.md",
-        "---\ntype: Reference\n---\n# Foo\n\n[site](https://example.com/missing)\n[mail](mailto:a@b.com)\n[phone](tel:+15551234567)\n[anchor](#nowhere)\n",
+        "---\ntype: Reference\ntitle: Foo\ndescription: A minimal record.\n---\n# Foo\n\n[site](https://example.com/missing)\n[mail](mailto:a@b.com)\n[phone](tel:+15551234567)\n[anchor](#nowhere)\n",
     );
 
     let output = run_check(&bundle);

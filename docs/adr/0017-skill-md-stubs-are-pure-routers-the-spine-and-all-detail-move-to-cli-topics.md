@@ -4,8 +4,7 @@ title: SKILL.md stubs are pure routers; the spine and all detail move to CLI top
 description: Every embedded skill's SKILL.md becomes a pure router — frontmatter trigger, a "Using this skill" progressive-disclosure block, and a task→topic table — with all substantive prose (including the five core invariants) relocated into CLI-served topics; this supersedes ADR 0014's clause that kept the spine inline in the stub.
 status: Accepted
 supersedes: 0014
-superseded_by:
-tags: [documentation, tooling, skill-distribution, progressive-disclosure, cli, tokens]
+tags: [cli, documentation, progressive-disclosure, skill-distribution, tokens, tooling]
 timestamp: 2026-07-20T15:29:03Z
 ---
 

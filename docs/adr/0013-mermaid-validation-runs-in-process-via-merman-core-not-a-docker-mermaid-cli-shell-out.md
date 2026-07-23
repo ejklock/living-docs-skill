@@ -3,9 +3,7 @@ type: ADR
 title: Mermaid validation runs in-process via merman-core, not a Docker mermaid-cli shell-out
 description: Replace the Docker `mermaid-cli` shell-out in `check`/`check --mermaid-only` with the pure-Rust `merman-core` parser, gated by a conformance corpus that fails CI if the parser ever diverges from the expected accept/reject on our fixtures.
 status: Accepted
-supersedes:
-superseded_by:
-tags: [documentation, tooling, mermaid, determinism, dependencies]
+tags: [dependencies, determinism, documentation, mermaid, tooling]
 timestamp: 2026-07-18T16:10:15Z
 ---
 

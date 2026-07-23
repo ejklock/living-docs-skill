@@ -2,15 +2,15 @@
 type: BDR
 title: <Short behavior title>
 description: <One sentence — the observable behavior this specifies.>
-status: Draft               # Draft | Accepted | Implemented | Superseded
-superseded_by:              # NNNN, set when a later BDR replaces this one
-tags: []
+status: Draft
 timestamp: <ISO 8601 datetime>
 ---
 
 # NNNN. <Short behavior title>
 
-<!-- Status lives in frontmatter (`status`), not a body line. -->
+<!-- Status lives in frontmatter (`status`: Draft | Accepted | Implemented | Superseded),
+     not a body line. `superseded_by` is absent by default; `living-docs supersede`
+     adds it when a later BDR replaces this one. -->
 
 ## Context
 

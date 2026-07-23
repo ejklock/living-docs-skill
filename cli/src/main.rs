@@ -12,7 +12,7 @@ mod skill;
 #[command(
     name = "living-docs",
     version,
-    about = "Deterministic layer of Living Docs authoring"
+    about = "Deterministic layer of Living Docs authoring. Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs status` / `supersede` / `index`."
 )]
 struct Cli {
     /// Root of the docs bundle. Overridable so tests can point at a temp tree.
@@ -28,6 +28,14 @@ struct Cli {
     /// the active backend (ADR 0007: `index.md` is fs-only).
     #[arg(long, global = true, value_enum, default_value = "fs")]
     backend: Backend,
+
+    /// Which database engine `db sync`/`search`, and any `--backend db`
+    /// authoring command, connects to: ParadeDB via `$DATABASE_URL` (the
+    /// default, ADR 0004) or the local embedded SQLite/FTS5 file (`sqlite`,
+    /// opt-in, falling back to `.living-docs/index.db` when `$DATABASE_URL`
+    /// is unset).
+    #[arg(long, global = true, value_enum, default_value = "paradedb")]
+    engine: Engine,
 
     #[command(subcommand)]
     command: Command,
@@ -86,6 +94,14 @@ enum Command {
         #[arg(long)]
         mermaid_only: bool,
     },
+    /// Canonicalizes every concept record's frontmatter in place — the
+    /// remediation verb for `check`'s canonical-frontmatter invariant (ADR
+    /// 0019). Matches `check`'s own `[BUNDLE_ROOT]` argument rather than the
+    /// global `--docs-dir`; fs-backend only, since db-mode is canonical by
+    /// construction on export.
+    Fmt {
+        paths: Vec<PathBuf>,
+    },
     /// Materializes every record the active `--backend` lists back into
     /// conformant `.md` files under `out_dir` — the lossless round-trip
     /// fitness function (ADR 0007, issue 0006 slice 0006-D2).
@@ -98,8 +114,9 @@ enum Command {
         #[arg(long, value_delimiter = ',')]
         visibility: Option<Vec<String>>,
     },
-    /// Operate on the derived read-model (SQLite/FTS5 by default, or ParadeDB
-    /// with `--engine paradedb`).
+    /// Operate on the derived read-model — ParadeDB via `$DATABASE_URL` by
+    /// default (ADR 0004), or the local embedded SQLite/FTS5 file with
+    /// `--engine sqlite`.
     Db {
         #[command(subcommand)]
         cmd: DbCmd,
@@ -119,10 +136,6 @@ enum Command {
     /// Full-text search the derived read-model, ranked best-match-first.
     Search {
         query: String,
-        /// Which database backend to search: the local SQLite/FTS5 file, or
-        /// ParadeDB via `$DATABASE_URL`.
-        #[arg(long, value_enum, default_value = "sqlite")]
-        engine: Engine,
         /// Narrow results to one project's slug. Omitted spans every
         /// project, labeling each hit by the project it belongs to (ADR
         /// 0005, issue 0005 slice 0005-C1).
@@ -161,10 +174,6 @@ enum DbCmd {
     /// Rebuild the read-model from every doc `--docs-dir` lists, scoped to
     /// one named project (ADR 0005, issue 0005 slice 0005-B).
     Sync {
-        /// Which database backend to sync into: the local SQLite/FTS5 file,
-        /// or ParadeDB via `$DATABASE_URL`.
-        #[arg(long, value_enum, default_value = "sqlite")]
-        engine: Engine,
         /// The project slug to sync into. Defaults to a slug derived from
         /// `--docs-dir`'s own directory name, keeping single-project usage
         /// working without naming a project explicitly.
@@ -173,8 +182,10 @@ enum DbCmd {
     },
 }
 
-/// The database backend to connect to, selectable per invocation (ADR 0004,
-/// issue 0004).
+/// The database backend to connect to, selectable via the global `--engine`
+/// flag (ADR 0004, issue 0004). `Paradedb` is the default, requiring
+/// `$DATABASE_URL`; `Sqlite` is opt-in and falls back to the local embedded
+/// read-model when `$DATABASE_URL` is unset.
 #[derive(Clone, Copy, Debug, ValueEnum)]
 enum Engine {
     Sqlite,
@@ -239,41 +250,49 @@ fn main() -> ExitCode {
     let cli = Cli::parse();
     match cli.command {
         Command::Next { doc_type } => commands::next::run(&cli.docs_dir, &doc_type),
-        Command::New { doc_type, title } => run_new(cli.backend, &cli.docs_dir, &doc_type, &title),
+        Command::New { doc_type, title } => {
+            run_new(cli.backend, cli.engine, &cli.docs_dir, &doc_type, &title)
+        }
         Command::Brief {
             doc_type,
             title,
             from_diff,
-        } => run_brief(cli.backend, &cli.docs_dir, &doc_type, &title, from_diff),
+        } => run_brief(
+            cli.backend,
+            cli.engine,
+            &cli.docs_dir,
+            &doc_type,
+            &title,
+            from_diff,
+        ),
         Command::Index {
             doc_type,
             visibility,
-        } => run_index(cli.backend, &cli.docs_dir, doc_type, visibility),
-        Command::Supersede { old, new } => run_supersede(cli.backend, &cli.docs_dir, &old, &new),
+        } => run_index(cli.backend, cli.engine, &cli.docs_dir, doc_type, visibility),
+        Command::Supersede { old, new } => {
+            run_supersede(cli.backend, cli.engine, &cli.docs_dir, &old, &new)
+        }
         Command::Status { number, new_status } => {
-            run_status(cli.backend, &cli.docs_dir, &number, &new_status)
+            run_status(cli.backend, cli.engine, &cli.docs_dir, &number, &new_status)
         }
         Command::Check {
             paths,
             mermaid_only,
         } if mermaid_only => check::run_mermaid_only(&paths),
-        Command::Check { paths, .. } => run_check(cli.backend, &cli.docs_dir, paths),
+        Command::Check { paths, .. } => run_check(cli.backend, cli.engine, &cli.docs_dir, paths),
+        Command::Fmt { paths } => run_fmt(&cli.docs_dir, paths),
         Command::Export {
             out_dir,
             visibility,
-        } => run_export(cli.backend, &cli.docs_dir, &out_dir, visibility),
+        } => run_export(cli.backend, cli.engine, &cli.docs_dir, &out_dir, visibility),
         Command::LeakGate {
             bundle,
             check_tier3,
         } => run_leak_gate(&bundle, check_tier3),
         Command::Db {
-            cmd: DbCmd::Sync { engine, project },
-        } => run_db_sync(&cli.docs_dir, engine, project),
-        Command::Search {
-            query,
-            engine,
-            project,
-        } => run_search(&query, engine, project),
+            cmd: DbCmd::Sync { project },
+        } => run_db_sync(&cli.docs_dir, cli.engine, project),
+        Command::Search { query, project } => run_search(&query, cli.engine, project),
         Command::Skill {
             name,
             topic,
@@ -284,15 +303,61 @@ fn main() -> ExitCode {
     }
 }
 
-fn run_new(backend: Backend, docs_dir: &Path, doc_type: &str, title: &str) -> ExitCode {
-    match build_backend_store(backend, docs_dir) {
-        Ok(store) => commands::new::run(store.as_ref(), docs_dir, doc_type, title),
-        Err(err) => report_failure(&err),
+fn run_new(
+    backend: Backend,
+    engine: Engine,
+    docs_dir: &Path,
+    doc_type: &str,
+    title: &str,
+) -> ExitCode {
+    match backend {
+        Backend::Fs => match build_backend_store(backend, engine, docs_dir) {
+            Ok(store) => commands::new::run(store.as_ref(), docs_dir, doc_type, title),
+            Err(err) => report_failure(&err),
+        },
+        Backend::Db => run_new_db(engine, docs_dir, doc_type, title),
     }
+}
+
+/// `--backend db new`'s own path: unlike `Backend::Fs` (which delegates
+/// straight to [`commands::new::run`]'s plain [`living_docs_core::store::DocStore::write`]),
+/// db-mode plans the target path with [`commands::new::plan`] and commits it
+/// through [`db_store::DbDocStore::write_checked`], so an invalid record is
+/// rejected before it is ever visible (ADR 0016, issue 0010 slice 2).
+fn run_new_db(engine: Engine, docs_dir: &Path, doc_type: &str, title: &str) -> ExitCode {
+    let store = match build_db_doc_store(engine, docs_dir) {
+        Ok(store) => store,
+        Err(err) => return report_failure(&err),
+    };
+    match commands::new::plan(&store, docs_dir, doc_type, title) {
+        Ok((target_path, filled)) => commit_new_db(&store, &target_path, &filled),
+        Err(err) => report_new_db_failure(&err),
+    }
+}
+
+fn commit_new_db(store: &db_store::DbDocStore, target_path: &Path, filled: &str) -> ExitCode {
+    match store.write_checked(target_path, filled) {
+        Ok(_) => {
+            println!("{}", target_path.display());
+            println!("{}", commands::new::BODY_ONLY_INSTRUCTION);
+            ExitCode::SUCCESS
+        }
+        Err(err) => report_new_db_failure(&err.to_string()),
+    }
+}
+
+/// Mirrors [`commands::new::run`]'s own failure wording exactly, so
+/// db-mode's `plan`/`write_checked` errors print and exit identically to
+/// fs-mode's `scaffold` errors — the only new outcome db-mode can now reach
+/// that fs-mode never could is a failing `check` from `write_checked`.
+fn report_new_db_failure(message: &str) -> ExitCode {
+    eprintln!("living-docs new: {message}");
+    ExitCode::from(2)
 }
 
 fn run_brief(
     backend: Backend,
+    engine: Engine,
     docs_dir: &Path,
     doc_type: &str,
     title: &str,
@@ -302,7 +367,7 @@ fn run_brief(
         Ok(diff) => diff,
         Err(err) => return report_failure(&err),
     };
-    match build_backend_store(backend, docs_dir) {
+    match build_backend_store(backend, engine, docs_dir) {
         Ok(store) => commands::brief::run(store.as_ref(), docs_dir, doc_type, title, diff.as_ref()),
         Err(err) => report_failure(&err),
     }
@@ -335,33 +400,46 @@ fn resolve_diff(range: &str) -> Result<commands::brief::DiffContext, String> {
 
 fn run_index(
     backend: Backend,
+    engine: Engine,
     docs_dir: &Path,
     doc_type: Option<String>,
     visibility: Option<Vec<String>>,
 ) -> ExitCode {
-    match build_backend_store(backend, docs_dir) {
+    match build_backend_store(backend, engine, docs_dir) {
         Ok(store) => commands::index::run(store.as_ref(), docs_dir, doc_type, visibility),
         Err(err) => report_failure(&err),
     }
 }
 
-fn run_supersede(backend: Backend, docs_dir: &Path, old: &str, new: &str) -> ExitCode {
-    match build_backend_store(backend, docs_dir) {
+fn run_supersede(
+    backend: Backend,
+    engine: Engine,
+    docs_dir: &Path,
+    old: &str,
+    new: &str,
+) -> ExitCode {
+    match build_backend_store(backend, engine, docs_dir) {
         Ok(store) => commands::supersede::run(store.as_ref(), docs_dir, old, new),
         Err(err) => report_failure(&err),
     }
 }
 
-fn run_status(backend: Backend, docs_dir: &Path, number: &str, new_status: &str) -> ExitCode {
-    match build_backend_store(backend, docs_dir) {
+fn run_status(
+    backend: Backend,
+    engine: Engine,
+    docs_dir: &Path,
+    number: &str,
+    new_status: &str,
+) -> ExitCode {
+    match build_backend_store(backend, engine, docs_dir) {
         Ok(store) => commands::status::run(store.as_ref(), docs_dir, number, new_status),
         Err(err) => report_failure(&err),
     }
 }
 
-fn run_check(backend: Backend, docs_dir: &Path, paths: Vec<PathBuf>) -> ExitCode {
+fn run_check(backend: Backend, engine: Engine, docs_dir: &Path, paths: Vec<PathBuf>) -> ExitCode {
     let bundle = check_bundle(backend, docs_dir, paths);
-    match build_backend_store(backend, &bundle) {
+    match build_backend_store(backend, engine, &bundle) {
         Ok(store) => check::run(store.as_ref(), &bundle),
         Err(err) => report_failure(&err),
     }
@@ -381,13 +459,24 @@ fn check_bundle(backend: Backend, docs_dir: &Path, paths: Vec<PathBuf>) -> PathB
     }
 }
 
+/// `fmt` is fs-backend only (db-mode is canonical by construction on
+/// export), so it needs no `build_backend_store`/`Engine` plumbing — it
+/// reuses [`check_bundle`]'s `[BUNDLE_ROOT]` resolution against a fixed
+/// [`fs_store::FsStore`], the same way [`run_leak_gate`] always inspects a
+/// materialized filesystem bundle regardless of `--backend`.
+fn run_fmt(docs_dir: &Path, paths: Vec<PathBuf>) -> ExitCode {
+    let bundle = check_bundle(Backend::Fs, docs_dir, paths);
+    commands::fmt::run(&fs_store::FsStore::new(), &bundle)
+}
+
 fn run_export(
     backend: Backend,
+    engine: Engine,
     docs_dir: &Path,
     out_dir: &Path,
     visibility: Option<Vec<String>>,
 ) -> ExitCode {
-    match build_backend_store(backend, docs_dir) {
+    match build_backend_store(backend, engine, docs_dir) {
         Ok(store) => commands::export::export(store.as_ref(), docs_dir, out_dir, visibility),
         Err(err) => report_failure(&err),
     }
@@ -400,19 +489,27 @@ fn run_leak_gate(bundle: &Path, check_tier3: bool) -> ExitCode {
     commands::leak_gate::run(&fs_store::FsStore::new(), bundle, check_tier3)
 }
 
-fn build_backend_store(backend: Backend, root: &Path) -> Result<Box<dyn DocStore>, String> {
+fn build_backend_store(
+    backend: Backend,
+    engine: Engine,
+    root: &Path,
+) -> Result<Box<dyn DocStore>, String> {
     match backend {
         Backend::Fs => Ok(Box::new(fs_store::FsStore::new())),
-        Backend::Db => build_db_doc_store(root).map(|store| Box::new(store) as Box<dyn DocStore>),
+        Backend::Db => {
+            build_db_doc_store(engine, root).map(|store| Box::new(store) as Box<dyn DocStore>)
+        }
     }
 }
 
 /// Opens (migrating if needed) the db backend's connection, bootstraps
 /// `root`'s project if this is its first use, then hands back a
 /// [`db_store::DbDocStore`] scoped to it — the `--backend db` counterpart
-/// of [`fs_store::FsStore::new`].
-fn build_db_doc_store(root: &Path) -> Result<db_store::DbDocStore, String> {
-    let url = Engine::Sqlite.resolve_url()?;
+/// of [`fs_store::FsStore::new`]. `engine` resolves the connection string
+/// exactly as `db sync`/`search` do (ADR 0004: ParadeDB default, SQLite
+/// opt-in), so `--backend db` authoring honors the same `--engine` choice.
+fn build_db_doc_store(engine: Engine, root: &Path) -> Result<db_store::DbDocStore, String> {
+    let url = engine.resolve_url()?;
     let project_slug = derive_project_slug(root);
     let runtime = build_runtime().map_err(|e| e.to_string())?;
     runtime
@@ -643,6 +740,19 @@ fn report_failure(message: &str) -> ExitCode {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clap::CommandFactory;
+
+    #[test]
+    fn root_help_about_carries_the_same_body_only_instruction_new_prints() {
+        let about = Cli::command()
+            .get_about()
+            .expect("the root command carries an about string")
+            .to_string();
+        assert!(
+            about.contains(commands::new::BODY_ONLY_INSTRUCTION),
+            "got: {about}"
+        );
+    }
 
     #[test]
     fn engine_sqlite_resolves_to_the_local_read_model_url_when_database_url_is_unset() {

@@ -5,7 +5,6 @@ description: Add a derived SQLite + FTS5 read-model built from the .md corpus an
 status: done
 labels: [slice, search, findability]
 blocked_by: [1]
-tracker:
 timestamp: 2026-07-16T00:00:00Z
 ---
 

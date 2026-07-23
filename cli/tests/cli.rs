@@ -85,6 +85,23 @@ fn next_ignores_files_without_the_nnnn_dash_prefix() {
     let _ = fs::remove_dir_all(&docs);
 }
 
+/// ADR 0019, AC ac-s4-3: the root `--help` about text carries the same
+/// body-only instruction `new` prints after a created path.
+#[test]
+fn root_help_carries_the_body_only_instruction() {
+    let output = living_docs()
+        .arg("--help")
+        .output()
+        .expect("failed to run living-docs --help");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    assert!(stdout.contains("Write ONLY the body below the closing"));
+    assert!(stdout.contains("living-docs status"));
+    assert!(stdout.contains("supersede"));
+    assert!(stdout.contains("index"));
+}
+
 #[test]
 fn unknown_subcommand_exits_with_code_2() {
     let output = living_docs()

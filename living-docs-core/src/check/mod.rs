@@ -12,6 +12,7 @@
 //! `check::graph`'s directory-index parsing reads them straight from disk —
 //! that traversal is documented at its own call site.
 
+mod canonical;
 mod graph;
 pub(crate) mod links;
 mod mermaid;
@@ -41,27 +42,51 @@ pub fn run(store: &dyn DocStore, bundle: &Path) -> ExitCode {
         return ExitCode::from(2);
     }
 
-    let all_md = store.list(bundle).unwrap_or_default();
-    let root_index = bundle.join("index.md");
-    let mut reporter = Reporter::new();
-
     println!("Living Docs lint — bundle: {}", bundle.display());
     println!();
+
+    let mut reporter = Reporter::new();
+    let doc_count = run_all_checks(store, bundle, &mut reporter);
+
+    reporter.finish(doc_count)
+}
+
+/// Every invariant `check` validates, without the surrounding
+/// `bundle.is_dir()` guard, header, or verdict rendering — shared by
+/// [`run`] (which prints the verdict) and [`check_violations`] (which
+/// returns the raw list, for a caller like `db_store::DbDocStore::write_checked`
+/// that gates a write on the same invariants without printing anything).
+/// Returns the number of docs `store` enumerated under `bundle`.
+fn run_all_checks(store: &dyn DocStore, bundle: &Path, reporter: &mut Reporter) -> usize {
+    let all_md = store.list(bundle).unwrap_or_default();
+    let root_index = bundle.join("index.md");
 
     if !root_index.is_file() {
         reporter.report(&root_index, "missing bundle-root index.md (invariant 3)");
     }
 
-    records::check_frontmatter_and_format(store, &all_md, &root_index, &mut reporter);
-    graph::check_directory_membership(bundle, &all_md, &mut reporter);
-    graph::check_reachability(bundle, &root_index, &all_md, &mut reporter);
-    links::check_links(store, bundle, &all_md, &mut reporter);
-    records::check_supersede_chain(store, &all_md, &mut reporter);
+    records::check_frontmatter_and_format(store, &all_md, &root_index, reporter);
+    graph::check_directory_membership(bundle, &all_md, reporter);
+    graph::check_reachability(bundle, &root_index, &all_md, reporter);
+    links::check_links(store, bundle, &all_md, reporter);
+    records::check_supersede_chain(store, &all_md, reporter);
+    canonical::check_canonical_frontmatter(store, &all_md, reporter);
 
-    mermaid::check_bundle(&all_md, &mut reporter);
-    size::check_body_size(store, &all_md, &mut reporter);
+    mermaid::check_bundle(&all_md, reporter);
+    size::check_body_size(store, &all_md, reporter);
 
-    reporter.finish(all_md.len())
+    all_md.len()
+}
+
+/// The same invariants [`run`] validates, returned as a plain violation list
+/// rather than printed and turned into an [`ExitCode`] — the mechanism a
+/// transactional write+check verb (e.g. `db_store::DbDocStore::write_checked`)
+/// needs to gate a commit on `check` passing without emitting `check`'s own
+/// stdout report.
+pub fn check_violations(store: &dyn DocStore, bundle: &Path) -> Vec<(String, String)> {
+    let mut reporter = Reporter::new();
+    run_all_checks(store, bundle, &mut reporter);
+    reporter.into_violations()
 }
 
 pub(crate) fn file_name_str(path: &Path) -> String {
@@ -115,6 +140,10 @@ impl Reporter {
     pub(crate) fn advise(&mut self, file: &Path, message: impl Into<String>) {
         self.advisories
             .push((file.display().to_string(), message.into()));
+    }
+
+    fn into_violations(self) -> Vec<(String, String)> {
+        self.violations
     }
 
     fn finish(self, doc_count: usize) -> ExitCode {
@@ -228,7 +257,7 @@ mod tests {
         let mut files = BTreeMap::new();
         files.insert(
             bundle.root.join("adr").join("0001-doc.md"),
-            "---\ntype: ADR\n---\n# Doc\n\nBody.\n".to_string(),
+            "---\ntype: ADR\ntitle: Doc\ndescription: \"\"\n---\n\n# Doc\n\nBody.\n".to_string(),
         );
         let store = MapStore { files };
 

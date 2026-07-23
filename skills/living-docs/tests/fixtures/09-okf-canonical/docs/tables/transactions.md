@@ -1,16 +1,10 @@
 ---
 type: BigQuery Table
-resource: https://bigquery.googleapis.com/v2/projects/bigquery-public-data/datasets/crypto_bitcoin/tables/transactions
 title: Bitcoin Transactions
 description: A comprehensive table detailing all transactions on the Bitcoin blockchain.
-tags:
-- bitcoin
-- blockchain
-- transactions
-- crypto
-- public data
-- etl
-timestamp: '2026-05-28T22:45:04+00:00'
+tags: [bitcoin, blockchain, crypto, etl, public data, transactions]
+resource: https://bigquery.googleapis.com/v2/projects/bigquery-public-data/datasets/crypto_bitcoin/tables/transactions
+timestamp: 2026-05-28T22:45:04+00:00
 ---
 
 The `transactions` table in the [crypto_bitcoin](../datasets/crypto_bitcoin.md) dataset provides a complete record of every transaction ever processed on the Bitcoin blockchain. Each row represents a single transaction, offering granular details such as its hash, size, associated [block](blocks.md) information (hash, number, timestamp), and the total input and output values. Importantly, it includes detailed arrays for both [inputs](inputs.md) and [outputs](outputs.md), each specifying spent transaction details, script information, involved addresses, and values. This table is essential for in-depth analysis of transaction flows, tracing funds, and understanding the economic activity within the Bitcoin network. The grain is one row per transaction, with data spanning the entire history of the Bitcoin blockchain, partitioned by `block_timestamp_month`.

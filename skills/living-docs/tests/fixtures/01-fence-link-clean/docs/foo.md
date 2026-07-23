@@ -1,6 +1,9 @@
 ---
 type: Reference
+title: Foo
+description: ""
 ---
+
 # Foo
 
 An example link that must NOT be followed:

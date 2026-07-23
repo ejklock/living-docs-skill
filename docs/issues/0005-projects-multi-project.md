@@ -5,7 +5,6 @@ description: Introduce the projects table as the DB root, ingest multiple projec
 status: done
 labels: [slice, database, multi-project, schema]
 blocked_by: [2]
-tracker:
 timestamp: 2026-07-16T00:00:00Z
 ---
 

@@ -5,7 +5,6 @@ description: State the doc body size target (aim ~100 lines, advisory warning at
 status: done
 labels: [slice, cli, skill-corpus, token-economy]
 blocked_by: []
-tracker:
 timestamp: 2026-07-19T00:00:00Z
 ---
 

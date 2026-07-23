@@ -5,7 +5,6 @@ description: Serve a read-only, server-rendered axum web view that searches the 
 status: done
 labels: [slice, web, findability]
 blocked_by: [2]
-tracker:
 timestamp: 2026-07-16T00:00:00Z
 ---
 

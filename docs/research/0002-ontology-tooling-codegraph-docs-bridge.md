@@ -3,9 +3,7 @@ type: Research
 title: Ontology tooling and the code-to-docs bridge — Rust-native options for a living-docs knowledge layer
 description: A source-cited survey of open-source ontology tooling evaluated as the bridge between codegraph's symbol graph and the living-docs semantic index. Finding — an embedded, Rust-native RDF store (Oxigraph) with a SKOS concept scheme is the least-cost substrate; SKOS is sufficient until logical reasoning is required; the wiki prior art is Dendron+Cargo, not Semantic MediaWiki/Wikibase; and the bridge layer should be built only after an eval corpus shows FTS+embeddings failing.
 status: Accepted
-supersedes:
-superseded_by:
-tags: [research, ontology, knowledge-graph, skos, rdf, oxigraph, codegraph, semantic-index, wiki, rust]
+tags: [codegraph, knowledge-graph, ontology, oxigraph, rdf, research, rust, semantic-index, skos, wiki]
 timestamp: 2026-07-20T00:00:00Z
 ---
 

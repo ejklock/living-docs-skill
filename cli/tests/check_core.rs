@@ -46,20 +46,53 @@ fn write(bundle: &Path, rel: &str, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
-#[test]
-fn fixture_04_quoted_and_commented_frontmatter_is_clean() {
-    let output = run_check(&fixture("04-frontmatter-quoted-commented"));
-    assert_eq!(output.status.code(), Some(0));
-    let stdout = stdout_of(&output);
-    assert!(stdout.contains("no invariant violations"));
-    assert!(!stdout.contains("non-empty 'type'"));
+fn run_fmt(bundle: &Path) -> Output {
+    living_docs()
+        .args(["fmt", bundle.to_str().unwrap()])
+        .output()
+        .expect("failed to run living-docs fmt")
 }
 
+fn run_new(docs_dir: &Path, doc_type: &str, title: &str) -> Output {
+    living_docs()
+        .args([
+            "--docs-dir",
+            docs_dir.to_str().unwrap(),
+            "new",
+            doc_type,
+            title,
+        ])
+        .output()
+        .expect("failed to run living-docs new")
+}
+
+/// The fixture's `type` value is spread across three files as a double-quoted,
+/// single-quoted, and trailing-commented scalar to prove the type-extraction
+/// invariant tolerates all three forms — a concern independent of ADR 0019's
+/// canonical round-trip check, which now (correctly) flags all three as
+/// hand-written, since none of them matches `living-docs fmt`'s plain,
+/// comment-free output.
 #[test]
-fn fixture_06_block_scalar_type_is_clean() {
+fn fixture_04_quoted_and_commented_frontmatter_parses_type_but_fails_the_canonical_check() {
+    let output = run_check(&fixture("04-frontmatter-quoted-commented"));
+    let stdout = stdout_of(&output);
+
+    assert_eq!(output.status.code(), Some(1));
+    assert!(!stdout.contains("non-empty 'type'"));
+    assert!(stdout.contains("living-docs fmt"));
+}
+
+/// The fixture's `type: |\n  ADR\n` block scalar proves the type-extraction
+/// invariant tolerates YAML block-scalar syntax, independent of the canonical
+/// check, which (correctly) flags it as non-canonical.
+#[test]
+fn fixture_06_block_scalar_type_parses_but_fails_the_canonical_check() {
     let output = run_check(&fixture("06-block-scalar-ok"));
-    assert_eq!(output.status.code(), Some(0));
-    assert!(stdout_of(&output).contains("no invariant violations"));
+    let stdout = stdout_of(&output);
+
+    assert_eq!(output.status.code(), Some(1));
+    assert!(!stdout.contains("non-empty 'type'"));
+    assert!(stdout.contains("living-docs fmt"));
 }
 
 #[test]
@@ -132,7 +165,7 @@ fn constitution_md_is_exempt_from_the_directory_index_listing_requirement() {
     write(
         &bundle,
         "constitution.md",
-        "---\ntype: Constitution\n---\n# Constitution\n",
+        "---\ntype: Constitution\ntitle: Constitution\ndescription: \"\"\n---\n\n# Constitution\n",
     );
 
     let output = run_check(&bundle);
@@ -196,7 +229,7 @@ fn invalid_visibility_value_fails_and_correcting_it_to_the_domain_passes() {
     write(
         &bundle,
         "concept.md",
-        "---\ntype: Reference\nvisibility: pubic\n---\n# Concept\n",
+        "---\ntype: Reference\ntitle: Concept\ndescription: \"\"\nvisibility: pubic\n---\n\n# Concept\n",
     );
 
     let output = run_check(&bundle);
@@ -213,7 +246,7 @@ fn invalid_visibility_value_fails_and_correcting_it_to_the_domain_passes() {
     write(
         &bundle,
         "concept.md",
-        "---\ntype: Reference\nvisibility: public\n---\n# Concept\n",
+        "---\ntype: Reference\ntitle: Concept\ndescription: \"\"\nvisibility: public\n---\n\n# Concept\n",
     );
 
     let output = run_check(&bundle);
@@ -240,9 +273,13 @@ fn supersede_status_is_case_insensitive_and_a_valid_chain_is_clean() {
     write(
         &bundle,
         "0001-old.md",
-        "---\ntype: ADR\nstatus: superseded\nsuperseded_by: \"0002\"\n---\n# Old\n",
+        "---\ntype: ADR\ntitle: Old\ndescription: \"\"\nstatus: superseded\nsuperseded_by: 0002\n---\n\n# Old\n",
     );
-    write(&bundle, "0002-new.md", "---\ntype: ADR\n---\n# New\n");
+    write(
+        &bundle,
+        "0002-new.md",
+        "---\ntype: ADR\ntitle: New\ndescription: \"\"\n---\n\n# New\n",
+    );
 
     let output = run_check(&bundle);
     let stdout = stdout_of(&output);
@@ -255,4 +292,68 @@ fn supersede_status_is_case_insensitive_and_a_valid_chain_is_clean() {
     assert!(stdout.contains("no invariant violations"));
 
     let _ = fs::remove_dir_all(&bundle);
+}
+
+/// ADR 0019, AC ac-s3-1: a hand-written record (here, a YAML comment on
+/// `type:` and a reordered `title:` key) fails `check` with a violation
+/// naming `living-docs fmt`, and the same record passes after `fmt` rewrites
+/// it — the deterministic remediation loop the check's message promises.
+#[test]
+fn hand_written_frontmatter_fails_check_and_passes_after_fmt() {
+    let bundle = temp_bundle("hand-written-fmt-roundtrip");
+    write(
+        &bundle,
+        "adr/0001-doc.md",
+        "---\ntitle: Hand Written\ntype: ADR  # a comment\ndescription: Written by hand.\n---\n\n# Hand Written\n\nBody.\n",
+    );
+
+    let before = run_check(&bundle);
+    let before_stdout = stdout_of(&before);
+    assert_eq!(before.status.code(), Some(1), "got:\n{before_stdout}");
+    assert!(
+        before_stdout.contains("living-docs fmt"),
+        "got:\n{before_stdout}"
+    );
+
+    let fmt_output = run_fmt(&bundle);
+    assert!(
+        fmt_output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&fmt_output.stderr)
+    );
+
+    let after = run_check(&bundle);
+    let after_stdout = stdout_of(&after);
+    assert!(
+        !after_stdout.contains("living-docs fmt"),
+        "expected fmt to clear the canonical violation, got:\n{after_stdout}"
+    );
+
+    let _ = fs::remove_dir_all(&bundle);
+}
+
+/// ADR 0019, AC ac-s3-2: a fresh `new` scaffold, for every doc type carrying
+/// a template, is a canonical round-trip fixed point — `check` reports no
+/// canonical violation on it, with no `fmt` pass required.
+#[test]
+fn fresh_new_scaffold_is_a_canonical_round_trip_fixed_point_for_every_doc_type() {
+    for doc_type in ["adr", "bdr", "prd", "issue"] {
+        let docs = temp_bundle(&format!("fresh-scaffold-{doc_type}"));
+
+        let new_output = run_new(&docs, doc_type, "Fixed Point");
+        assert!(
+            new_output.status.success(),
+            "{doc_type}: stderr: {}",
+            String::from_utf8_lossy(&new_output.stderr)
+        );
+
+        let output = run_check(&docs);
+        let stdout = stdout_of(&output);
+        assert!(
+            !stdout.contains("living-docs fmt"),
+            "{doc_type} scaffold is not a canonical round-trip fixed point:\n{stdout}"
+        );
+
+        let _ = fs::remove_dir_all(&docs);
+    }
 }

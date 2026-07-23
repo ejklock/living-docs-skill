@@ -31,7 +31,8 @@ fn new_scaffolds_0001_on_an_empty_tree() {
     let output = run_new(&docs, "adr", "My Title");
 
     assert!(output.status.success());
-    let printed_path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let printed_path = stdout.lines().next().expect("stdout has a first line");
     assert!(
         printed_path.ends_with("adr/0001-my-title.md"),
         "got: {printed_path}"
@@ -136,6 +137,79 @@ fn new_rejects_an_unsupported_doc_type() {
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("unsupported doc type"));
     assert!(!docs.join("constitution").exists());
+
+    let _ = fs::remove_dir_all(&docs);
+}
+
+/// ADR 0019, AC ac-s4-1: `new`'s title argument is CLI-filled into the
+/// scaffold's frontmatter `title:` line, for every doc type that carries a
+/// title placeholder.
+#[test]
+fn new_fills_the_frontmatter_title_from_the_argument_for_every_doc_type() {
+    for (doc_type, dir_name) in [
+        ("adr", "adr"),
+        ("bdr", "bdr"),
+        ("prd", "prd"),
+        ("issue", "issues"),
+    ] {
+        let docs = temp_dir(&format!("title-{doc_type}"));
+
+        let output = run_new(&docs, doc_type, "My Decision");
+        assert!(output.status.success());
+
+        let path = docs.join(format!("{dir_name}/0001-my-decision.md"));
+        let contents = fs::read_to_string(&path).unwrap();
+        let title_line = contents
+            .lines()
+            .find(|line| line.starts_with("title:"))
+            .unwrap_or_else(|| panic!("{doc_type}: no title: line, got:\n{contents}"));
+        assert_eq!(
+            title_line, "title: My Decision",
+            "{doc_type}: got:\n{contents}"
+        );
+
+        let _ = fs::remove_dir_all(&docs);
+    }
+}
+
+/// A title requiring YAML quoting is filled using the same canonical
+/// quoting `living-docs fmt`/`check` expect (`record::format_scalar`), not a
+/// local rule — so the scaffold stays a canonical round-trip fixed point.
+#[test]
+fn new_quotes_a_title_containing_a_colon_exactly_as_the_canonical_serializer_would() {
+    let docs = temp_dir("title-quoted");
+
+    let output = run_new(&docs, "adr", "Caching: A Deep Dive");
+
+    assert!(output.status.success());
+    let contents = fs::read_to_string(docs.join("adr/0001-caching-a-deep-dive.md")).unwrap();
+    assert!(
+        contents.contains("title: \"Caching: A Deep Dive\"\n"),
+        "got:\n{contents}"
+    );
+
+    let _ = fs::remove_dir_all(&docs);
+}
+
+/// ADR 0019, AC ac-s4-2: `new`'s stdout carries the created path followed by
+/// the body-only instruction, naming status/supersede/index as the CLI
+/// verbs that own frontmatter and indexes.
+#[test]
+fn new_stdout_ends_with_the_body_only_instruction_after_the_created_path() {
+    let docs = temp_dir("instruction");
+
+    let output = run_new(&docs, "adr", "Instructed Decision");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let mut lines = stdout.lines();
+    let first_line = lines.next().expect("stdout has a first line");
+    assert!(first_line.ends_with("adr/0001-instructed-decision.md"));
+    let instruction_line = lines.next().expect("stdout has a second line");
+    assert!(instruction_line.contains("Write ONLY the body below the closing"));
+    assert!(instruction_line.contains("living-docs status"));
+    assert!(instruction_line.contains("supersede"));
+    assert!(instruction_line.contains("index"));
 
     let _ = fs::remove_dir_all(&docs);
 }

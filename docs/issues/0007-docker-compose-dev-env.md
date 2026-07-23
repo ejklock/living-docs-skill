@@ -5,7 +5,6 @@ description: Extend the existing Docker-always dev setup with a docker-compose s
 status: done
 labels: [enabling, tooling, infra, docker]
 blocked_by: [1]
-tracker:
 timestamp: 2026-07-16T00:00:00Z
 ---
 

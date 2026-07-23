@@ -11,12 +11,12 @@ use living_docs_core::store::DocStore;
 use sea_orm::sea_query::Query;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DatabaseConnection, DbBackend,
-    DbErr, EntityTrait, QueryFilter, Statement, TransactionTrait,
+    DbErr, EntityTrait, QueryFilter, QueryOrder, Statement, TransactionTrait,
 };
 
 use crate::entity::{frontmatter_fields, projects, record_tags, relations, tags};
 use crate::entity::{ActiveModel, Column, Entity as Records, Model};
-use crate::record::{extract_record, is_reserved, ExtractedRecord};
+use crate::record::{extract_record, is_reserved, ExtractedRecord, TailValue};
 use crate::Result;
 
 /// The slug [`sync`] assigns every record to: the single project every
@@ -185,26 +185,122 @@ async fn insert_record<C: ConnectionTrait>(
     })
 }
 
+/// Marks a `frontmatter_fields.value` row as one element of a
+/// `TailValue::Sequence`, distinguishing it from a `TailValue::Scalar` row
+/// with no change to `frontmatter_fields`'s `(record_id, key, value,
+/// ordinal)` shape (ADR 0007 decision 1 unchanged, ADR 0019 slice S3b): a
+/// user-authored scalar is free-form text but never opens with this control
+/// character, so its presence unambiguously flags a sequence element. Never
+/// seen outside this module's own [`encode_tail_value`]/[`decode_tail_run`]
+/// pair — it never reaches a `.md` file.
+const TAIL_SEQUENCE_MARKER: char = '\u{1}';
+
 /// Inserts one `frontmatter_fields` row per tail entry, `ordinal` set to
-/// its position in `tail` so the tail reconstructs by ascending `ordinal`
-/// in the same order it was encountered in the source frontmatter.
+/// its position in the flattened row sequence so the tail reconstructs by
+/// ascending `ordinal` in the same order it was encountered in the source
+/// frontmatter. A [`TailValue::Sequence`] flattens to one marked row per
+/// element (see [`encode_tail_value`]), so a list-valued key spans more than
+/// one row sharing that key.
 async fn insert_frontmatter_tail<C: ConnectionTrait>(
     conn: &C,
     record_id: i32,
-    tail: &[(String, String)],
+    tail: &[(String, TailValue)],
 ) -> Result<()> {
-    for (ordinal, (key, value)) in tail.iter().enumerate() {
-        frontmatter_fields::ActiveModel {
-            record_id: ActiveValue::Set(record_id),
-            key: ActiveValue::Set(key.clone()),
-            value: ActiveValue::Set(value.clone()),
-            ordinal: ActiveValue::Set(ordinal as i32),
-            ..Default::default()
+    let mut ordinal = 0i32;
+    for (key, value) in tail {
+        for row_value in encode_tail_value(value) {
+            frontmatter_fields::ActiveModel {
+                record_id: ActiveValue::Set(record_id),
+                key: ActiveValue::Set(key.clone()),
+                value: ActiveValue::Set(row_value),
+                ordinal: ActiveValue::Set(ordinal),
+                ..Default::default()
+            }
+            .insert(conn)
+            .await?;
+            ordinal += 1;
         }
-        .insert(conn)
-        .await?;
     }
     Ok(())
+}
+
+/// Flattens one tail entry's value into the `frontmatter_fields.value`
+/// strings it becomes: a [`TailValue::Scalar`] is exactly one unmarked
+/// value; a [`TailValue::Sequence`] is one [`TAIL_SEQUENCE_MARKER`]-prefixed
+/// value per element, or — for an empty sequence — a single marker-only
+/// value, so the key still survives the round trip with no elements. See
+/// [`decode_tail_run`] for the inverse.
+fn encode_tail_value(value: &TailValue) -> Vec<String> {
+    match value {
+        TailValue::Scalar(scalar) => vec![scalar.clone()],
+        TailValue::Sequence(items) if items.is_empty() => {
+            vec![TAIL_SEQUENCE_MARKER.to_string()]
+        }
+        TailValue::Sequence(items) => items
+            .iter()
+            .map(|item| format!("{TAIL_SEQUENCE_MARKER}{item}"))
+            .collect(),
+    }
+}
+
+/// Reassembles `record_id`'s ordered [`TailValue`] tail from its
+/// `frontmatter_fields` rows — the read-side counterpart to
+/// [`insert_frontmatter_tail`], reused by `db_store::load_record`.
+pub(crate) async fn load_frontmatter_tail<C: ConnectionTrait>(
+    conn: &C,
+    record_id: i32,
+) -> Result<Vec<(String, TailValue)>> {
+    let rows = frontmatter_fields::Entity::find()
+        .filter(frontmatter_fields::Column::RecordId.eq(record_id))
+        .order_by_asc(frontmatter_fields::Column::Ordinal)
+        .all(conn)
+        .await?;
+    Ok(group_tail_rows(&rows))
+}
+
+/// Groups ordinal-ordered `frontmatter_fields` rows back into tail entries:
+/// each maximal run of consecutive rows sharing the same `key` becomes one
+/// `(key, TailValue)` pair, decoded by [`decode_tail_run`]. A key never
+/// repeats non-contiguously — a YAML mapping key is unique — so grouping by
+/// adjacency alone is exact.
+fn group_tail_rows(rows: &[frontmatter_fields::Model]) -> Vec<(String, TailValue)> {
+    let mut tail = Vec::new();
+    let mut start = 0;
+    while start < rows.len() {
+        let key = &rows[start].key;
+        let run_len = rows[start..]
+            .iter()
+            .take_while(|row| &row.key == key)
+            .count();
+        tail.push((key.clone(), decode_tail_run(&rows[start..start + run_len])));
+        start += run_len;
+    }
+    tail
+}
+
+/// Decodes one same-key run of rows into its [`TailValue`]: a single
+/// unmarked row is a [`TailValue::Scalar`]; a single marker-only row is an
+/// empty [`TailValue::Sequence`]; any other run (a single marked row, or
+/// more than one row) is a [`TailValue::Sequence`] of each row's
+/// marker-stripped value, in row order.
+fn decode_tail_run(run: &[frontmatter_fields::Model]) -> TailValue {
+    if let [only] = run {
+        match strip_sequence_marker(&only.value) {
+            None => return TailValue::Scalar(only.value.clone()),
+            Some("") => return TailValue::Sequence(Vec::new()),
+            Some(_) => {}
+        }
+    }
+    let items = run
+        .iter()
+        .filter_map(|row| strip_sequence_marker(&row.value))
+        .map(str::to_owned)
+        .collect();
+    TailValue::Sequence(items)
+}
+
+fn strip_sequence_marker(value: &str) -> Option<&str> {
+    value.strip_prefix(TAIL_SEQUENCE_MARKER)
 }
 
 fn relative_path(bundle: &Path, path: &Path) -> String {
@@ -405,7 +501,7 @@ async fn upsert_record_row<C: ConnectionTrait>(
     }
 }
 
-async fn find_record<C: ConnectionTrait>(
+pub(crate) async fn find_record<C: ConnectionTrait>(
     conn: &C,
     project_id: i32,
     path: &str,
@@ -415,6 +511,25 @@ async fn find_record<C: ConnectionTrait>(
         .filter(Column::Path.eq(path))
         .one(conn)
         .await
+}
+
+/// Create-only counterpart to [`upsert_record`]: inserts a brand-new record
+/// row and resolves its frontmatter tail, relations, and tags, without
+/// checking whether one already exists at `path` and without opening its
+/// own transaction — so `db_store::DbDocStore::write_checked` (issue 0010
+/// slice 2) can run the insert inside a transaction it already owns, then
+/// gate the commit on `check` before ever committing it.
+pub(crate) async fn insert_new_record<C: ConnectionTrait>(
+    conn: &C,
+    project_id: i32,
+    path: &str,
+    extracted: &ExtractedRecord,
+) -> Result<i32> {
+    let record_id = insert_record_row(conn, project_id, path, extracted).await?;
+    replace_frontmatter_tail(conn, record_id, &extracted.frontmatter_tail).await?;
+    resolve_write_relations(conn, project_id, path, record_id, extracted).await?;
+    replace_write_tags(conn, project_id, record_id, &extracted.tags).await?;
+    Ok(record_id)
 }
 
 async fn insert_record_row<C: ConnectionTrait>(
@@ -462,10 +577,56 @@ async fn update_record_row<C: ConnectionTrait>(
     Ok(updated.id)
 }
 
+/// Update counterpart to [`insert_new_record`]: replaces an already-existing
+/// `record_id`'s row, frontmatter tail, resolved relations, and tags from
+/// `extracted`, and bumps its `revision` to `new_revision` — the
+/// revision-aware edit path `db_store::DbDocStore::update_checked` (ADR
+/// 0016, issue 0011) runs inside its own caller-owned transaction. Kept
+/// separate from [`update_record_row`] (behind [`upsert_record`]/
+/// [`upsert_record_row`]), which CLI supersede/status keep using in db-mode
+/// and which never bumps `revision`.
+pub(crate) async fn update_existing_record<C: ConnectionTrait>(
+    conn: &C,
+    project_id: i32,
+    path: &str,
+    record_id: i32,
+    extracted: &ExtractedRecord,
+    new_revision: i64,
+) -> Result<()> {
+    update_record_row_with_revision(conn, record_id, extracted, new_revision).await?;
+    replace_frontmatter_tail(conn, record_id, &extracted.frontmatter_tail).await?;
+    resolve_write_relations(conn, project_id, path, record_id, extracted).await?;
+    replace_write_tags(conn, project_id, record_id, &extracted.tags).await?;
+    Ok(())
+}
+
+async fn update_record_row_with_revision<C: ConnectionTrait>(
+    conn: &C,
+    record_id: i32,
+    extracted: &ExtractedRecord,
+    new_revision: i64,
+) -> Result<i32> {
+    let model = ActiveModel {
+        id: ActiveValue::Set(record_id),
+        doc_type: ActiveValue::Set(extracted.doc_type.clone()),
+        number: ActiveValue::Set(extracted.number),
+        concept_id: ActiveValue::Set(extracted.concept_id.clone()),
+        identity_kind: ActiveValue::Set(extracted.identity_kind.clone()),
+        title: ActiveValue::Set(extracted.title.clone()),
+        description: ActiveValue::Set(extracted.description.clone()),
+        body: ActiveValue::Set(extracted.body.clone()),
+        status: ActiveValue::Set(extracted.status.clone()),
+        revision: ActiveValue::Set(new_revision),
+        ..Default::default()
+    };
+    let updated = model.update(conn).await?;
+    Ok(updated.id)
+}
+
 async fn replace_frontmatter_tail<C: ConnectionTrait>(
     conn: &C,
     record_id: i32,
-    tail: &[(String, String)],
+    tail: &[(String, TailValue)],
 ) -> Result<()> {
     frontmatter_fields::Entity::delete_many()
         .filter(frontmatter_fields::Column::RecordId.eq(record_id))
@@ -770,6 +931,21 @@ pub(crate) mod test_support {
         );
         (MemoryStore { files }, bundle)
     }
+
+    /// A single issue-style record whose tail carries a non-empty
+    /// list-valued `labels:` key and an empty list-valued `blocked_by:` key
+    /// (ADR 0019 slice S3b), so a sync test can assert both survive the
+    /// insert/load round trip through `frontmatter_fields`.
+    pub(crate) fn list_valued_tail_corpus() -> (MemoryStore, PathBuf) {
+        let bundle = PathBuf::from("/bundle-list-tail");
+        let mut files = BTreeMap::new();
+        files.insert(
+            bundle.join("issues").join("0001-list-tail.md"),
+            "---\ntype: Issue\ntitle: List Tail\ndescription: d.\nstatus: open\nlabels: [slice, skeleton]\nblocked_by: []\n---\nBody.\n"
+                .to_owned(),
+        );
+        (MemoryStore { files }, bundle)
+    }
 }
 
 #[cfg(test)]
@@ -922,5 +1098,60 @@ mod tests {
             .expect("query without-status record")
             .expect("without-status record exists");
         assert_eq!(without_status.status, None);
+    }
+
+    /// Asserts the sync/load round trip preserves a list-valued tail key's
+    /// elements and order, and that an empty list survives as an empty
+    /// sequence rather than vanishing from the tail entirely (ADR 0019
+    /// slice S3b, closing ADR 0007's lossless-export gap for `labels:`/
+    /// `blocked_by:`-shaped keys).
+    #[tokio::test]
+    async fn sync_and_load_round_trips_a_list_valued_frontmatter_tail_key() {
+        let conn = connect_in_memory().await.expect("connect");
+        migrate(&conn).await.expect("migrate");
+        let (store, bundle) = super::test_support::list_valued_tail_corpus();
+
+        sync(&conn, &store, &bundle).await.expect("sync");
+
+        let record = Records::find()
+            .filter(Column::Path.eq("issues/0001-list-tail.md"))
+            .one(&conn)
+            .await
+            .expect("query record")
+            .expect("record was synced");
+
+        let tail = load_frontmatter_tail(&conn, record.id)
+            .await
+            .expect("load frontmatter tail");
+
+        assert_eq!(
+            tail,
+            vec![
+                (
+                    "labels".to_owned(),
+                    TailValue::Sequence(vec!["slice".to_owned(), "skeleton".to_owned()])
+                ),
+                ("blocked_by".to_owned(), TailValue::Sequence(Vec::new())),
+            ]
+        );
+    }
+
+    #[test]
+    fn encode_tail_value_marks_every_sequence_element_and_leaves_a_scalar_unmarked() {
+        assert_eq!(
+            encode_tail_value(&TailValue::Scalar("important".to_owned())),
+            vec!["important".to_owned()]
+        );
+        assert_eq!(
+            encode_tail_value(&TailValue::Sequence(vec!["a".to_owned(), "b".to_owned()])),
+            vec![
+                format!("{TAIL_SEQUENCE_MARKER}a"),
+                format!("{TAIL_SEQUENCE_MARKER}b"),
+            ]
+        );
+        assert_eq!(
+            encode_tail_value(&TailValue::Sequence(Vec::new())),
+            vec![TAIL_SEQUENCE_MARKER.to_string()]
+        );
     }
 }
