@@ -23,6 +23,10 @@ use std::path::Path;
 
 use serde_yaml::Value;
 
+use crate::frontmatter::{
+    frontmatter_block, parse_frontmatter, read_scalar_strict, scalar_to_string,
+};
+
 /// The `identity_kind` discriminator for a sequentially numbered doc
 /// (`NNNN`, e.g. adr/bdr/prd/issue).
 pub const NUMBER_IDENTITY_KIND: &str = "number";
@@ -104,19 +108,20 @@ pub enum TailValue {
 /// project-relative path: it is the sole source of the typed identity (see
 /// [`extract_identity`]) and the filename-stem title fallback. Pure: no I/O.
 pub fn extract_record(path: &Path, contents: &str) -> ExtractedRecord {
-    let frontmatter = frontmatter_block(contents).and_then(parse_frontmatter);
+    let block = frontmatter_block(contents);
+    let frontmatter = block.and_then(parse_frontmatter);
     let body = strip_frontmatter(contents).to_owned();
 
-    let doc_type = frontmatter_scalar(frontmatter.as_ref(), "type").unwrap_or_default();
+    let doc_type = frontmatter_scalar(block, "type").unwrap_or_default();
     let (number, concept_id, identity_kind) = extract_identity(path, &doc_type);
-    let description = frontmatter_scalar(frontmatter.as_ref(), "description").unwrap_or_default();
-    let title = frontmatter_scalar(frontmatter.as_ref(), "title")
+    let description = frontmatter_scalar(block, "description").unwrap_or_default();
+    let title = frontmatter_scalar(block, "title")
         .or_else(|| first_heading(&body))
         .unwrap_or_else(|| filename_stem(path));
-    let supersedes = frontmatter_scalar(frontmatter.as_ref(), "supersedes");
-    let superseded_by = frontmatter_scalar(frontmatter.as_ref(), "superseded_by");
+    let supersedes = frontmatter_scalar(block, "supersedes");
+    let superseded_by = frontmatter_scalar(block, "superseded_by");
     let tags = frontmatter_sequence(frontmatter.as_ref(), "tags");
-    let status = frontmatter_scalar(frontmatter.as_ref(), "status");
+    let status = frontmatter_scalar(block, "status");
     let frontmatter_tail = extract_frontmatter_tail(frontmatter.as_ref());
 
     ExtractedRecord {
@@ -216,20 +221,12 @@ fn tail_value_from_yaml(value: &Value) -> Option<TailValue> {
     scalar_to_string(value).map(TailValue::Scalar)
 }
 
-fn frontmatter_block(contents: &str) -> Option<&str> {
-    let rest = contents.strip_prefix("---\n")?;
-    let end = rest.find("\n---")?;
-    Some(&rest[..end])
-}
-
-fn parse_frontmatter(block: &str) -> Option<Value> {
-    serde_yaml::from_str(block).ok()
-}
-
-fn frontmatter_scalar(frontmatter: Option<&Value>, key: &str) -> Option<String> {
-    let mapping = frontmatter?.as_mapping()?;
-    let value = mapping.get(Value::String(key.to_owned()))?;
-    scalar_to_string(value)
+/// [`extract_record`]'s typed-scalar reads (`type`, `title`, `description`,
+/// `supersedes`, `superseded_by`, `status`), delegating to the crate's
+/// shared strict reader ([`read_scalar_strict`]) once `block` has already
+/// been sliced.
+fn frontmatter_scalar(block: Option<&str>, key: &str) -> Option<String> {
+    read_scalar_strict(block?, key)
 }
 
 /// Reads `key` as a YAML sequence of scalars (the `tags: [a, b]` shape),
@@ -245,15 +242,6 @@ fn frontmatter_sequence(frontmatter: Option<&Value>, key: &str) -> Vec<String> {
         return Vec::new();
     };
     sequence.iter().filter_map(scalar_to_string).collect()
-}
-
-fn scalar_to_string(value: &Value) -> Option<String> {
-    match value {
-        Value::String(s) if !s.is_empty() => Some(s.clone()),
-        Value::Number(n) => Some(n.to_string()),
-        Value::Bool(b) => Some(b.to_string()),
-        _ => None,
-    }
 }
 
 fn strip_frontmatter(contents: &str) -> &str {

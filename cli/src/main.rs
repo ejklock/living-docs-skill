@@ -249,7 +249,7 @@ fn is_default_local_sqlite(engine: Engine, url: &str) -> bool {
 fn main() -> ExitCode {
     let cli = Cli::parse();
     match cli.command {
-        Command::Next { doc_type } => commands::next::run(&cli.docs_dir, &doc_type),
+        Command::Next { doc_type } => run_next(&cli.docs_dir, &doc_type),
         Command::New { doc_type, title } => {
             run_new(cli.backend, cli.engine, &cli.docs_dir, &doc_type, &title)
         }
@@ -301,6 +301,10 @@ fn main() -> ExitCode {
             plain,
         } => run_skill(name, topic, list, json, plain),
     }
+}
+
+fn run_next(docs_dir: &Path, doc_type: &str) -> ExitCode {
+    commands::next::run(docs_dir, doc_type)
 }
 
 fn run_new(

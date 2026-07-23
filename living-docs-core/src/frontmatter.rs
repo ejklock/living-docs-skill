@@ -23,19 +23,37 @@ pub fn read_scalar(path: &Path, key: &str) -> Option<String> {
 /// cause 3), so [`raw_scalar_line`] recovers `key`'s value straight from its
 /// physical line whenever the mapping parse can't produce it.
 pub fn read_scalar_from_str(contents: &str, key: &str) -> Option<String> {
-    let block = extract_frontmatter_block(contents)?;
-    mapping_scalar(block, key).or_else(|| raw_scalar_line(block, key))
+    let block = frontmatter_block(contents)?;
+    read_scalar_strict(block, key).or_else(|| raw_scalar_line(block, key))
 }
 
-fn extract_frontmatter_block(contents: &str) -> Option<&str> {
+/// The raw text between the opening `---` fence and its closing `---` of a
+/// record's frontmatter — the single slicer shared by every reader in this
+/// crate that needs the frontmatter's raw YAML text rather than a value
+/// already parsed from it (`record::extract_record`, `check::records`,
+/// `check::canonical`).
+pub(crate) fn frontmatter_block(contents: &str) -> Option<&str> {
     let rest = contents.strip_prefix("---\n")?;
     let end = rest.find("\n---")?;
     Some(&rest[..end])
 }
 
-fn mapping_scalar(block: &str, key: &str) -> Option<String> {
-    let document: Value = serde_yaml::from_str(block).ok()?;
-    let mapping = document.as_mapping()?;
+/// Parses an already-sliced frontmatter `block` into a [`Value`], the single
+/// `serde_yaml` entry point shared with [`read_scalar_strict`] and
+/// `record::extract_record` (which reuses the parsed mapping across several
+/// scalar/sequence lookups instead of reparsing per key).
+pub(crate) fn parse_frontmatter(block: &str) -> Option<Value> {
+    serde_yaml::from_str(block).ok()
+}
+
+/// Reads `key` as a top-level scalar via the canonical `serde_yaml` mapping
+/// parse only — no [`raw_scalar_line`] fallback. Shared by
+/// `record::extract_record` and `check::records`'s per-file frontmatter
+/// checks, both of which want the strict reading and never the lenient
+/// recovery [`read_scalar_from_str`] layers on top of it.
+pub(crate) fn read_scalar_strict(block: &str, key: &str) -> Option<String> {
+    let mapping = parse_frontmatter(block)?;
+    let mapping = mapping.as_mapping()?;
     let value = mapping.get(Value::String(key.to_string()))?;
     scalar_to_string(value)
 }
@@ -70,7 +88,7 @@ fn strip_matching_quotes(raw: &str, quote: char) -> Option<&str> {
     Some(inner)
 }
 
-fn scalar_to_string(value: &Value) -> Option<String> {
+pub(crate) fn scalar_to_string(value: &Value) -> Option<String> {
     match value {
         Value::String(s) if !s.is_empty() => Some(s.clone()),
         Value::Number(n) => Some(n.to_string()),
@@ -174,5 +192,22 @@ mod tests {
         let contents = "---\ntitle: Broken: value\nmeta:\n  type: Reference\n---\n# Body\n";
 
         assert_eq!(read_scalar_from_str(contents, "type"), None);
+    }
+
+    #[test]
+    fn read_scalar_strict_rejects_an_invalid_yaml_plain_scalar_that_the_lenient_reader_recovers() {
+        let contents = "---\ntype: ADR\ntitle: Provenance audit: vs Matt Pocock's skills; remove derivative\n---\n# Body\n";
+        let block = frontmatter_block(contents).expect("frontmatter block");
+
+        assert_eq!(
+            read_scalar_strict(block, "title"),
+            None,
+            "the strict reader must never fall back to raw_scalar_line (issue 0021 cause 3)"
+        );
+        assert_eq!(
+            read_scalar_from_str(contents, "title"),
+            Some("Provenance audit: vs Matt Pocock's skills; remove derivative".to_string()),
+            "the lenient reader stays the only caller that recovers this shape"
+        );
     }
 }

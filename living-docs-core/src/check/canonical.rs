@@ -12,6 +12,7 @@
 
 use super::records::is_reserved;
 use super::{file_name_str, Reporter};
+use crate::frontmatter::frontmatter_block;
 use crate::record::{extract_record, to_canonical_markdown};
 use crate::store::DocStore;
 use std::path::PathBuf;
@@ -46,48 +47,12 @@ pub(crate) fn check_canonical_frontmatter(
     }
 }
 
-/// The raw text between the opening `---` fence and its closing `---`,
-/// mirroring `crate::record`'s own private frontmatter-slicing helper —
-/// duplicated rather than exposed across the crate boundary because it is a
-/// three-line string slice, not the canonical model itself.
-fn frontmatter_block(contents: &str) -> Option<&str> {
-    let rest = contents.strip_prefix("---\n")?;
-    let end = rest.find("\n---")?;
-    Some(&rest[..end])
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::MapStore;
     use std::collections::BTreeMap;
-    use std::io;
     use std::path::Path;
-
-    struct MapStore {
-        files: BTreeMap<PathBuf, String>,
-    }
-
-    impl DocStore for MapStore {
-        fn list(&self, root: &Path) -> io::Result<Vec<PathBuf>> {
-            Ok(self
-                .files
-                .keys()
-                .filter(|path| path.starts_with(root))
-                .cloned()
-                .collect())
-        }
-
-        fn read(&self, path: &Path) -> io::Result<String> {
-            self.files
-                .get(path)
-                .cloned()
-                .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "not found"))
-        }
-
-        fn write(&self, _path: &Path, _contents: &str) -> io::Result<()> {
-            Ok(())
-        }
-    }
 
     fn store_with(path: &str, contents: &str) -> (MapStore, Vec<PathBuf>) {
         let mut files = BTreeMap::new();

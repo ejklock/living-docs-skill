@@ -173,8 +173,8 @@ impl Reporter {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::MapStore;
     use std::collections::BTreeMap;
-    use std::io;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
@@ -187,32 +187,6 @@ mod tests {
         let reporter = Reporter::new();
         let code = reporter.finish(3);
         assert_eq!(format!("{code:?}"), format!("{:?}", ExitCode::SUCCESS));
-    }
-
-    struct MapStore {
-        files: BTreeMap<PathBuf, String>,
-    }
-
-    impl DocStore for MapStore {
-        fn list(&self, root: &Path) -> io::Result<Vec<PathBuf>> {
-            Ok(self
-                .files
-                .keys()
-                .filter(|path| path.starts_with(root))
-                .cloned()
-                .collect())
-        }
-
-        fn read(&self, path: &Path) -> io::Result<String> {
-            self.files
-                .get(path)
-                .cloned()
-                .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "not found"))
-        }
-
-        fn write(&self, _path: &Path, _contents: &str) -> io::Result<()> {
-            Ok(())
-        }
     }
 
     struct ScratchBundle {

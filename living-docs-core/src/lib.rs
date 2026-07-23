@@ -11,3 +11,6 @@ pub mod pii;
 pub mod record;
 pub mod store;
 pub mod templates;
+
+#[cfg(test)]
+mod test_support;
