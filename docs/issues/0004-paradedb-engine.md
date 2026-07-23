@@ -5,7 +5,6 @@ description: Add ParadeDB/Postgres with BM25 search as a second db engine behind
 status: done
 labels: [slice, database, paradedb, search]
 blocked_by: [2, 7]
-tracker:
 timestamp: 2026-07-16T00:00:00Z
 ---
 

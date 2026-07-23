@@ -11,6 +11,18 @@ pub fn dir_for(doc_type: &str) -> Option<&'static str> {
     }
 }
 
+/// Maps a docs-tree subdirectory name back to its doc-type token — the
+/// exact reverse of [`dir_for`].
+pub fn doc_type_for_dir(dir_name: &str) -> Option<&'static str> {
+    match dir_name {
+        "adr" => Some("adr"),
+        "bdr" => Some("bdr"),
+        "prd" => Some("prd"),
+        "issues" => Some("issue"),
+        _ => None,
+    }
+}
+
 /// Maps a doc-type token to the canonical value written to the frontmatter
 /// `type` field.
 pub fn frontmatter_type_for(doc_type: &str) -> Option<&'static str> {
@@ -61,6 +73,29 @@ mod tests {
         assert_eq!(dir_for("constitution"), None);
         assert_eq!(dir_for("glossary"), None);
         assert_eq!(dir_for(""), None);
+    }
+
+    #[test]
+    fn doc_type_for_dir_maps_the_plural_issues_directory_to_issue() {
+        assert_eq!(doc_type_for_dir("issues"), Some("issue"));
+        assert_eq!(doc_type_for_dir("adr"), Some("adr"));
+        assert_eq!(doc_type_for_dir("bdr"), Some("bdr"));
+        assert_eq!(doc_type_for_dir("prd"), Some("prd"));
+    }
+
+    #[test]
+    fn doc_type_for_dir_rejects_unknown_directories() {
+        assert_eq!(doc_type_for_dir("constitution"), None);
+        assert_eq!(doc_type_for_dir("issue"), None);
+        assert_eq!(doc_type_for_dir(""), None);
+    }
+
+    #[test]
+    fn doc_type_for_dir_is_the_exact_reverse_of_dir_for() {
+        for doc_type in ["adr", "bdr", "prd", "issue"] {
+            let dir = dir_for(doc_type).expect("known doc type has a directory");
+            assert_eq!(doc_type_for_dir(dir), Some(doc_type));
+        }
     }
 
     #[test]

@@ -38,7 +38,7 @@ fn brief_scaffolds_a_numbered_record_with_filled_title_and_byte_identical_judgme
 
     assert!(output.status.success());
     let contents = fs::read_to_string(docs.join("adr/0001-choose-x-over-y.md")).unwrap();
-    assert!(contents.contains("title: \"Choose X Over Y\""));
+    assert!(contents.contains("title: Choose X Over Y\n"));
     assert!(contents.contains("# 0001. Choose X Over Y"));
     assert!(contents.contains("## Context\n\n<!-- judgment: context -->\n"));
     assert!(contents.contains("## Decision\n\n<!-- judgment: decision -->\n"));

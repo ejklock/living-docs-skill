@@ -3,9 +3,8 @@ type: ADR
 title: The web view is a read-only axum server reusing living-docs-core
 description: The query web front is a Rust/axum server that reuses living-docs-core and reads the db-store read-model; it is read-only (no authoring in the browser), server-rendered, and never a second source of truth.
 status: Superseded
-supersedes:
 superseded_by: 0016
-tags: [architecture, web, axum, read-only, front, search]
+tags: [architecture, axum, front, read-only, search, web]
 timestamp: 2026-07-16T00:00:00Z
 ---
 

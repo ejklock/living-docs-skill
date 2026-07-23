@@ -1,15 +1,23 @@
 use crate::commands::next::next_number_from_store;
 use crate::paths;
+use crate::record::format_scalar;
 use crate::store::DocStore;
 use crate::templates;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+/// The point-of-use teaching line (ADR 0019, decision 3): printed after
+/// `new`'s created path, and repeated verbatim in the root `--help` about
+/// text and the `living-docs` SKILL.md stub, so an agent meets the
+/// CLI-owns-the-mechanics rule at the moment it authors a record.
+pub const BODY_ONLY_INSTRUCTION: &str = "Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs status` / `supersede` / `index`.";
+
 pub fn run(store: &dyn DocStore, docs_dir: &Path, doc_type: &str, title: &str) -> ExitCode {
     match scaffold(store, docs_dir, doc_type, title, &now_iso8601()) {
         Ok(path) => {
             println!("{}", path.display());
+            println!("{BODY_ONLY_INSTRUCTION}");
             ExitCode::SUCCESS
         }
         Err(message) => {
@@ -19,13 +27,18 @@ pub fn run(store: &dyn DocStore, docs_dir: &Path, doc_type: &str, title: &str) -
     }
 }
 
-fn scaffold(
+/// Computes `new`'s target path and filled content without writing it —
+/// the pure planning half of [`scaffold`], reused by [`plan`] (with
+/// today's timestamp) and by any caller (e.g.
+/// `db_store::DbDocStore::write_checked`) that needs to run its own
+/// transactional write instead of [`crate::store::DocStore::write`].
+fn plan_at(
     store: &dyn DocStore,
     docs_dir: &Path,
     doc_type: &str,
     title: &str,
     timestamp: &str,
-) -> Result<PathBuf, String> {
+) -> Result<(PathBuf, String), String> {
     let dir_name = paths::dir_for(doc_type).ok_or_else(|| unsupported_type_message(doc_type))?;
     let frontmatter_type = paths::frontmatter_type_for(doc_type)
         .expect("dir_for and frontmatter_type_for cover the same doc types");
@@ -41,6 +54,31 @@ fn scaffold(
     }
 
     let filled = fill_frontmatter(template, frontmatter_type, timestamp);
+    let filled = fill_frontmatter_title(&filled, title);
+    Ok((target_path, filled))
+}
+
+/// Plans `new`'s target path and filled content, timestamped now, without
+/// writing it — the counterpart a caller uses when it owns its own write
+/// (e.g. a transactional write+check verb) instead of going through
+/// [`scaffold`]'s call to [`crate::store::DocStore::write`].
+pub fn plan(
+    store: &dyn DocStore,
+    docs_dir: &Path,
+    doc_type: &str,
+    title: &str,
+) -> Result<(PathBuf, String), String> {
+    plan_at(store, docs_dir, doc_type, title, &now_iso8601())
+}
+
+fn scaffold(
+    store: &dyn DocStore,
+    docs_dir: &Path,
+    doc_type: &str,
+    title: &str,
+    timestamp: &str,
+) -> Result<PathBuf, String> {
+    let (target_path, filled) = plan_at(store, docs_dir, doc_type, title, timestamp)?;
     store
         .write(&target_path, &filled)
         .map_err(|e| e.to_string())?;
@@ -82,6 +120,34 @@ pub(crate) fn frontmatter_close_index(lines: &[&str]) -> Option<usize> {
         .skip(1)
         .position(|&l| l == "---")
         .map(|i| i + 1)
+}
+
+/// Fills the frontmatter `title:` line with `title`, quoted exactly as
+/// [`crate::record::to_canonical_markdown`] would (via
+/// [`format_scalar`]) — never a local quoting rule — so a fresh scaffold's
+/// frontmatter is already a canonical-check fixed point (ADR 0019). Shared
+/// with [`crate::commands::brief::run`], which applies the same fill on top
+/// of its own pre-filled sections.
+pub(crate) fn fill_frontmatter_title(content: &str, title: &str) -> String {
+    let lines: Vec<&str> = content.lines().collect();
+    let Some(close) = frontmatter_close_index(&lines) else {
+        return content.to_string();
+    };
+
+    let filled: Vec<String> = lines
+        .iter()
+        .enumerate()
+        .map(|(i, &line)| {
+            if i == 0 || i >= close {
+                line.to_string()
+            } else {
+                replace_targeted_value(line, "title", &format_scalar(title))
+                    .unwrap_or_else(|| line.to_string())
+            }
+        })
+        .collect();
+
+    filled.join("\n") + "\n"
 }
 
 fn fill_frontmatter_line(line: &str, type_value: &str, timestamp: &str) -> String {
@@ -178,6 +244,44 @@ mod tests {
             fill_frontmatter(template, "ADR", "2026-07-14T00:00:00Z"),
             template
         );
+    }
+
+    #[test]
+    fn fill_frontmatter_title_replaces_the_placeholder_with_the_argument() {
+        let template =
+            "---\ntype: ADR\ntitle: <Short decision title>\nstatus: Proposed\n---\n\n# Body\n";
+        let filled = fill_frontmatter_title(template, "My Decision");
+
+        assert!(filled.contains("title: My Decision\n"));
+        assert!(!filled.contains("<Short decision title>"));
+    }
+
+    #[test]
+    fn fill_frontmatter_title_quotes_exactly_as_the_canonical_serializer_would() {
+        let template =
+            "---\ntype: ADR\ntitle: <Short decision title>\nstatus: Proposed\n---\n\n# Body\n";
+        let filled = fill_frontmatter_title(template, "Caching: A Deep Dive");
+
+        assert!(filled.contains(&format!(
+            "title: {}\n",
+            format_scalar("Caching: A Deep Dive")
+        )));
+    }
+
+    #[test]
+    fn fill_frontmatter_title_leaves_the_body_untouched() {
+        let template =
+            "---\ntype: Issue\ntitle: <Issue title>\n---\n\n## <Issue title>\n\n<intro guidance>\n";
+        let filled = fill_frontmatter_title(template, "Fix It");
+
+        assert!(filled.contains("## <Issue title>"));
+        assert!(filled.contains("<intro guidance>"));
+    }
+
+    #[test]
+    fn fill_frontmatter_title_without_a_closing_fence_returns_the_content_unchanged() {
+        let content = "no frontmatter here\n";
+        assert_eq!(fill_frontmatter_title(content, "My Decision"), content);
     }
 
     #[test]
@@ -310,6 +414,7 @@ mod tests {
         assert!(persisted.contains("type: ADR"));
         assert!(persisted.contains("status: Proposed"));
         assert!(persisted.contains("timestamp: 2026-07-17T00:00:00Z"));
+        assert!(persisted.contains("title: Persisted Decision"));
     }
 
     /// `list` deliberately omits the record `read` still serves, simulating

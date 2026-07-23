@@ -41,7 +41,20 @@ pub mod records {
     /// identity (ADR 0007 decision 2); this slice populates both fields
     /// from `doc_type` without yet enforcing the XOR. `status` is the
     /// frontmatter `status:` value, `None` when the doc carries no such key
-    /// (issue 0008, ADR 0015, S1).
+    /// (issue 0008, ADR 0015, S1). `revision` is the optimistic-concurrency
+    /// counter that starts at 1 for every record and is bumped on each
+    /// authoring write (ADR 0016; the bumping write path lands in issue
+    /// 0010 slice 2 — this slice only adds the column and its default).
+    /// `deleted_at` is `None` for a live record; `Some(unix_seconds)` marks
+    /// it soft-deleted (ADR 0018, issue 0013 slice A) — excluded from the
+    /// nav tree, search, and every regenerated `index.md`, but still
+    /// readable by a direct query. Stored as a plain Unix-epoch-seconds
+    /// `i64` rather than `sea_orm::entity::prelude::DateTimeUtc`: the
+    /// latter requires sea-orm's `with-chrono` feature, which this
+    /// workspace's `sea-orm` dependency does not enable, so introducing it
+    /// would mean a Cargo.toml/Cargo.lock change outside this column's
+    /// scope — `i64` mirrors the same crate-local-primitive precedent
+    /// `revision` already sets on this struct.
     #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
     #[sea_orm(table_name = "records")]
     pub struct Model {
@@ -57,6 +70,8 @@ pub mod records {
         pub description: String,
         pub body: String,
         pub status: Option<String>,
+        pub revision: i64,
+        pub deleted_at: Option<i64>,
     }
 
     #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

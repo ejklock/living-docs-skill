@@ -5,7 +5,6 @@ description: A `brief` subcommand that extends `new` by pre-filling everything d
 status: done
 labels: [slice, cli, token-economy]
 blocked_by: []
-tracker:
 timestamp: 2026-07-19T00:00:00Z
 ---
 

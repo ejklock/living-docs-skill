@@ -75,7 +75,7 @@ async fn sqlite_search(
                 FROM records_fts \
                 JOIN records r ON r.id = records_fts.rowid \
                 JOIN projects p ON p.id = r.project_id \
-                WHERE records_fts MATCH ?1";
+                WHERE records_fts MATCH ?1 AND r.deleted_at IS NULL";
     let statement = match scope {
         Some(slug) => Statement::from_sql_and_values(
             conn.get_database_backend(),
@@ -105,7 +105,7 @@ async fn postgres_search(
                 paradedb.match('title', $1), \
                 paradedb.match('body', $1), \
                 paradedb.match('description', $1)\
-                ])";
+                ]) AND r.deleted_at IS NULL";
     let statement = match scope {
         Some(slug) => Statement::from_sql_and_values(
             DbBackend::Postgres,

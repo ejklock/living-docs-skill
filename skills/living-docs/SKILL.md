@@ -35,6 +35,8 @@ This stub is a **pure router** (ADR 0017): it triggers and points at topics — 
 inline. The **five core invariants** and the **CLI-owns-the-mechanics hard rule** are topics, not
 stub prose; load them before authoring:
 
+Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs status` / `supersede` / `index`. (ADR 0019)
+
 - The five invariants (the spine) → `living-docs skill living-docs --topic spine`.
 - Authoring mechanics — CLI owns every deterministic step, you write only the prose →
   `living-docs skill living-docs --topic procedure`.

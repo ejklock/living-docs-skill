@@ -3,9 +3,7 @@ type: ADR
 title: Web UX follows the three-pane doc-site archetype with a search-first Cmd+K palette
 description: The web front adopts the doc-site three-pane layout (type-grouped nav tree, rendered record, metadata/relations panel) with FTS5-backed search-first navigation via a Cmd+K palette — not a Notion-style block editor UX.
 status: Accepted
-supersedes:
-superseded_by:
-tags: [web, ux, frontend]
+tags: [frontend, ux, web]
 timestamp: 2026-07-19T02:16:09Z
 ---
 

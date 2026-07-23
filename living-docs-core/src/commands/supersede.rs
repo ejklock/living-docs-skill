@@ -12,7 +12,12 @@ pub fn run(store: &dyn DocStore, docs_dir: &Path, old: &str, new: &str) -> ExitC
     }
 }
 
-fn supersede(store: &dyn DocStore, docs_dir: &Path, old: &str, new: &str) -> Result<(), String> {
+pub fn supersede(
+    store: &dyn DocStore,
+    docs_dir: &Path,
+    old: &str,
+    new: &str,
+) -> Result<(), String> {
     let old_number = parse_record_number(old)?;
     let new_number = parse_record_number(new)?;
 

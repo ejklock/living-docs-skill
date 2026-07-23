@@ -2,17 +2,14 @@
 type: Issue
 title: <Issue title>
 description: <One sentence — the change and its motivation.>
-status: open                # open | in-progress | closed | superseded
-labels: []                  # tracker labels
-blocked_by: []              # issue numbers this depends on
-tracker:                    # #NN once published to the tracker
+status: open
 timestamp: <ISO 8601 datetime>
 ---
 
-<!-- OKF frontmatter above carries the tracker metadata (number, labels, blocked-by,
-     status) that previously lived only in the directory index. Everything BELOW the
-     closing `---` is the issue body and MUST stay byte-identical to the published
-     tracker body — strip the frontmatter when publishing. -->
+<!-- OKF frontmatter above carries the tracker metadata (`status`: open | in-progress |
+     closed | superseded) that previously lived only in the directory index. Everything
+     BELOW the closing `---` is the issue body and MUST stay byte-identical to the
+     published tracker body — strip the frontmatter when publishing. -->
 
 ## <Issue title>
 

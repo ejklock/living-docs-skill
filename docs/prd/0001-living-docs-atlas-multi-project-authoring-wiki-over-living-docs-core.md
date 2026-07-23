@@ -3,8 +3,7 @@ type: PRD
 title: Living Docs Atlas — multi-project authoring wiki over living-docs-core
 description: A web surface to navigate across projects and their docs, author/edit/create/delete/supersede through the deterministic core, search full-text, and (gated) surface a code-to-concept ontology bridge — evolving the read-only web front into an authoring wiki without breaking the determinism boundary or the one-language build.
 status: Draft
-superseded_by:
-tags: [prd, atlas, web, authoring, wiki, multi-project, glossary, ontology, codegraph, search]
+tags: [atlas, authoring, codegraph, glossary, multi-project, ontology, prd, search, web, wiki]
 timestamp: 2026-07-20T14:45:52Z
 ---
 

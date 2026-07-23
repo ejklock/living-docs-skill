@@ -5,7 +5,6 @@ description: Extract the standalone cli crate into a workspace with a hexagonal 
 status: done
 labels: [slice, skeleton, refactor]
 blocked_by: []
-tracker:
 timestamp: 2026-07-16T00:00:00Z
 ---
 

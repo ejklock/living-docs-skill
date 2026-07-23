@@ -65,7 +65,7 @@ fn db_sync_then_search_finds_the_seeded_record_and_ranks_it_first_while_a_no_mat
         "This document discusses logging conventions.",
     );
 
-    let sync_output = run(&cwd, &docs, &["db", "sync"]);
+    let sync_output = run(&cwd, &docs, &["--engine", "sqlite", "db", "sync"]);
     assert!(
         sync_output.status.success(),
         "stderr: {}",
@@ -78,7 +78,7 @@ fn db_sync_then_search_finds_the_seeded_record_and_ranks_it_first_while_a_no_mat
     );
     assert!(cwd.join(".living-docs").join("index.db").exists());
 
-    let hit_output = run(&cwd, &docs, &["search", "quokka"]);
+    let hit_output = run(&cwd, &docs, &["--engine", "sqlite", "search", "quokka"]);
     assert!(
         hit_output.status.success(),
         "stderr: {}",
@@ -98,7 +98,11 @@ fn db_sync_then_search_finds_the_seeded_record_and_ranks_it_first_while_a_no_mat
         "got: {hit_stdout}"
     );
 
-    let miss_output = run(&cwd, &docs, &["search", "zzzznomatch"]);
+    let miss_output = run(
+        &cwd,
+        &docs,
+        &["--engine", "sqlite", "search", "zzzznomatch"],
+    );
     assert!(
         miss_output.status.success(),
         "stderr: {}",
@@ -129,11 +133,59 @@ fn search_before_a_db_sync_fails_with_a_helpful_hint() {
         "Body text.",
     );
 
-    let output = run(&cwd, &docs, &["search", "decision"]);
+    let output = run(&cwd, &docs, &["--engine", "sqlite", "search", "decision"]);
 
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("living-docs db sync"), "got: {stderr}");
+
+    let _ = fs::remove_dir_all(&docs);
+    let _ = fs::remove_dir_all(&cwd);
+}
+
+#[test]
+fn search_defaults_to_paradedb_and_requires_database_url_when_none_is_set() {
+    let docs = temp_dir("docs-default-engine");
+    let cwd = temp_dir("cwd-default-engine");
+
+    let output = living_docs()
+        .current_dir(&cwd)
+        .env_remove("DATABASE_URL")
+        .args(["--docs-dir", docs.to_str().unwrap(), "search", "anything"])
+        .output()
+        .expect("failed to run living-docs");
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("DATABASE_URL"), "got: {stderr}");
+
+    let _ = fs::remove_dir_all(&docs);
+    let _ = fs::remove_dir_all(&cwd);
+}
+
+#[test]
+fn db_sync_defaults_to_paradedb_and_requires_database_url_when_none_is_set() {
+    let docs = temp_dir("docs-default-sync-engine");
+    let cwd = temp_dir("cwd-default-sync-engine");
+    write_record(
+        &docs,
+        "adr",
+        "0001-only.md",
+        "Only Decision",
+        "The only seeded record.",
+        "Body text.",
+    );
+
+    let output = living_docs()
+        .current_dir(&cwd)
+        .env_remove("DATABASE_URL")
+        .args(["--docs-dir", docs.to_str().unwrap(), "db", "sync"])
+        .output()
+        .expect("failed to run living-docs");
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("DATABASE_URL"), "got: {stderr}");
 
     let _ = fs::remove_dir_all(&docs);
     let _ = fs::remove_dir_all(&cwd);

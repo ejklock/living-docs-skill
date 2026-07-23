@@ -2,15 +2,15 @@
 type: PRD
 title: <Feature / capability name>
 description: <One sentence — what capability this specifies.>
-status: Draft               # Draft | Accepted | Implemented | Superseded
-superseded_by:              # NNNN, set when a later PRD replaces this one
-tags: []
+status: Draft
 timestamp: <ISO 8601 datetime>
 ---
 
 # NNNN. <Feature / capability name>
 
-<!-- Status lives in frontmatter (`status`), not a body line. -->
+<!-- Status lives in frontmatter (`status`: Draft | Accepted | Implemented | Superseded),
+     not a body line. `superseded_by` is absent by default; `living-docs supersede`
+     adds it when a later PRD replaces this one. -->
 
 ## Problem / Motivation
 

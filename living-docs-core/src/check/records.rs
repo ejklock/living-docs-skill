@@ -6,8 +6,8 @@
 //! both invariants validate whichever backend `check::run` is given.
 
 use super::{file_name_str, Reporter};
+use crate::frontmatter::{frontmatter_block, read_scalar_strict};
 use crate::store::DocStore;
-use serde_yaml::Value;
 use std::path::{Path, PathBuf};
 
 pub(crate) fn is_reserved(basename: &str) -> bool {
@@ -19,30 +19,12 @@ pub(crate) fn has_frontmatter(contents: &str) -> bool {
 }
 
 /// Reads a top-level scalar from `contents`' leading `---`-fenced YAML
-/// frontmatter block. Mirrors `crate::frontmatter::read_scalar`, operating
-/// on already-read content instead of a path so callers can source it from
-/// any `DocStore`.
+/// frontmatter block via the crate's shared strict reader — no
+/// `raw_scalar_line` fallback, so an invalid-YAML plain scalar the lenient
+/// `crate::frontmatter::read_scalar_from_str` would recover instead reports
+/// as absent here.
 fn frontmatter_scalar(contents: &str, key: &str) -> Option<String> {
-    let block = extract_frontmatter_block(contents)?;
-    let document: Value = serde_yaml::from_str(block).ok()?;
-    let mapping = document.as_mapping()?;
-    let value = mapping.get(Value::String(key.to_string()))?;
-    scalar_to_string(value)
-}
-
-fn extract_frontmatter_block(contents: &str) -> Option<&str> {
-    let rest = contents.strip_prefix("---\n")?;
-    let end = rest.find("\n---")?;
-    Some(&rest[..end])
-}
-
-fn scalar_to_string(value: &Value) -> Option<String> {
-    match value {
-        Value::String(s) if !s.is_empty() => Some(s.clone()),
-        Value::Number(n) => Some(n.to_string()),
-        Value::Bool(b) => Some(b.to_string()),
-        _ => None,
-    }
+    read_scalar_strict(frontmatter_block(contents)?, key)
 }
 
 /// Every non-reserved `.md` needs frontmatter with a non-empty top-level `type`.
@@ -173,8 +155,8 @@ fn sibling_record_exists(dir: &Path, sb: &str, all_md: &[PathBuf]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::MapStore;
     use std::collections::BTreeMap;
-    use std::io;
     use std::process::ExitCode;
 
     #[test]
@@ -200,32 +182,6 @@ mod tests {
         let all_md = vec![Path::new("docs/bdr").join("0007-old.md")];
 
         assert!(!sibling_record_exists(dir, "0007", &all_md));
-    }
-
-    struct MapStore {
-        files: BTreeMap<PathBuf, String>,
-    }
-
-    impl DocStore for MapStore {
-        fn list(&self, root: &Path) -> io::Result<Vec<PathBuf>> {
-            Ok(self
-                .files
-                .keys()
-                .filter(|path| path.starts_with(root))
-                .cloned()
-                .collect())
-        }
-
-        fn read(&self, path: &Path) -> io::Result<String> {
-            self.files
-                .get(path)
-                .cloned()
-                .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "not found"))
-        }
-
-        fn write(&self, _path: &Path, _contents: &str) -> io::Result<()> {
-            Ok(())
-        }
     }
 
     fn exit_code_is_success(code: ExitCode) -> bool {

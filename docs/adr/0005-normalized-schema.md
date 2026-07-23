@@ -2,10 +2,8 @@
 type: ADR
 title: Normalized DB schema — projects root, typed records with an EAV tail, typed relations
 description: The database is fully normalized around a `projects` root with typed `records` columns for universal fields, an EAV `frontmatter_fields` table for the type-specific tail, and typed join tables for tags and relations — with identity chosen per DocType and check parity guaranteed against file-mode.
-status: Proposed
-supersedes:
-superseded_by:
-tags: [architecture, database, schema, normalization, eav, identity, check, multi-project]
+status: Accepted
+tags: [architecture, check, database, eav, identity, multi-project, normalization, schema]
 timestamp: 2026-07-16T00:00:00Z
 ---
 

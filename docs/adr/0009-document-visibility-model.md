@@ -3,9 +3,7 @@ type: ADR
 title: Document visibility is default-deny frontmatter data, validated and index-aware
 description: Adopt a visibility frontmatter field (private/public/showcase, absent means private) that check validates and the index can filter, so which docs are publishable is human-declared data an LLM never re-judges.
 status: Accepted
-supersedes:
-superseded_by:
-tags: [documentation, visibility, publishing, methodology]
+tags: [documentation, methodology, publishing, visibility]
 timestamp: 2026-07-17T21:29:53Z
 ---
 

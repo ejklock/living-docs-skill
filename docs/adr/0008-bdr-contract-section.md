@@ -3,9 +3,7 @@ type: ADR
 title: BDR carries a required Contract section (public API + agent tool schemas)
 description: Every BDR must name the observable contract that realizes the behavior — public function/method/class signatures and, for agentic systems, agent tool schemas — while keeping the internal call graph out.
 status: Accepted
-supersedes:
-superseded_by:
-tags: [documentation, bdr, methodology]
+tags: [bdr, documentation, methodology]
 timestamp: 2026-07-17T21:01:45Z
 ---
 

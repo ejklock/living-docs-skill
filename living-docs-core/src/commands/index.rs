@@ -2,7 +2,7 @@ use crate::frontmatter;
 use crate::paths;
 use crate::store::DocStore;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 const SUPPORTED_TYPES: [&str; 4] = ["adr", "bdr", "prd", "issue"];
@@ -40,6 +40,24 @@ fn regenerate(
     doc_type: &str,
     visibility_filter: Option<&[String]>,
 ) -> Result<(), String> {
+    let (index_path, content) = compute(store, docs_dir, doc_type, visibility_filter)?;
+    let type_dir = index_path.parent().unwrap_or(docs_dir);
+    fs::create_dir_all(type_dir).map_err(|e| e.to_string())?;
+    fs::write(&index_path, content).map_err(|e| e.to_string())
+}
+
+/// Computes `doc_type`'s regenerated `index.md` path and full content,
+/// reading the current on-disk file (if any) to preserve its preamble and
+/// reading the records feeding its body through `store`, without touching
+/// the filesystem itself — the pure step both [`regenerate`] (CLI `index`)
+/// and `db-store`'s `write_checked` build on, the latter needing to inspect
+/// and control the write/rollback timing itself.
+pub fn compute(
+    store: &dyn DocStore,
+    docs_dir: &Path,
+    doc_type: &str,
+    visibility_filter: Option<&[String]>,
+) -> Result<(PathBuf, String), String> {
     let dir_name = paths::dir_for(doc_type).ok_or_else(|| unsupported_type_message(doc_type))?;
     let type_dir = docs_dir.join(dir_name);
     let records: Vec<Record> = collect_records(store, docs_dir, &type_dir)?
@@ -52,8 +70,7 @@ fn regenerate(
     let preamble = preamble_for(&existing, doc_type);
     let body = render_body(doc_type, &records);
 
-    fs::create_dir_all(&type_dir).map_err(|e| e.to_string())?;
-    fs::write(&index_path, format!("{preamble}{body}")).map_err(|e| e.to_string())
+    Ok((index_path, format!("{preamble}{body}")))
 }
 
 fn unsupported_type_message(doc_type: &str) -> String {
@@ -111,7 +128,7 @@ fn record_from_path(store: &dyn DocStore, path: &Path) -> Option<Record> {
     let filename = path.file_name()?.to_str()?.to_string();
     let number = numbered_prefix(&filename)?;
     let contents = store.read(path).ok()?;
-    let title = frontmatter::read_scalar_from_str(&contents, "title").unwrap_or_default();
+    let title = title_for_record(&contents, path, number);
     let status = frontmatter::read_scalar_from_str(&contents, "status").unwrap_or_default();
     let visibility = frontmatter::read_scalar_from_str(&contents, "visibility")
         .unwrap_or_else(|| DEFAULT_VISIBILITY.to_string());
@@ -122,6 +139,59 @@ fn record_from_path(store: &dyn DocStore, path: &Path) -> Option<Record> {
         filename,
         visibility,
     })
+}
+
+/// The record's rendered title: its frontmatter `title:` when present and
+/// parseable, otherwise its first `# ` H1 heading with a leading numbering
+/// prefix stripped (issue 0021 cause 2 — legacy records that only ever
+/// carried the title in their heading). A stderr warning names `path`
+/// whenever the fallback fires, since a blank/substituted title is otherwise
+/// invisible in the rendered index; only when the H1 is also absent does the
+/// title stay empty (still warned).
+fn title_for_record(contents: &str, path: &Path, number: u32) -> String {
+    if let Some(title) = frontmatter::read_scalar_from_str(contents, "title") {
+        return title;
+    }
+    let fallback = first_heading(contents)
+        .map(|heading| strip_heading_number_prefix(&heading, number))
+        .unwrap_or_default();
+    warn_missing_title(path, &fallback);
+    fallback
+}
+
+fn first_heading(contents: &str) -> Option<String> {
+    contents
+        .lines()
+        .find_map(|line| line.strip_prefix("# ").map(|title| title.trim().to_owned()))
+}
+
+/// Strips a leading `ADR NNNN — `, `NNNN. `, or `NNNN — ` numbering prefix
+/// (`NNNN` being `number` zero-padded to four digits) from `heading`, in
+/// that order, leaving it untouched when none matches.
+fn strip_heading_number_prefix(heading: &str, number: u32) -> String {
+    let padded = format!("{number:04}");
+    [
+        format!("ADR {padded} — "),
+        format!("{padded}. "),
+        format!("{padded} — "),
+    ]
+    .into_iter()
+    .find_map(|prefix| heading.strip_prefix(prefix.as_str()).map(str::to_owned))
+    .unwrap_or_else(|| heading.to_owned())
+}
+
+fn warn_missing_title(path: &Path, fallback: &str) {
+    if fallback.is_empty() {
+        eprintln!(
+            "living-docs index: {} has no parseable 'title' frontmatter and no H1 heading; rendering an empty title",
+            path.display()
+        );
+    } else {
+        eprintln!(
+            "living-docs index: {} has no parseable 'title' frontmatter; using its H1 heading {fallback:?}",
+            path.display()
+        );
+    }
 }
 
 fn numbered_prefix(filename: &str) -> Option<u32> {
@@ -251,13 +321,44 @@ fn find_boundary_offset(existing: &str) -> Option<usize> {
     None
 }
 
-/// Any generator-managed heading (`## `, whatever its text) or listing row
-/// is a boundary, whichever comes first. A single prefix check — rather than
-/// pinning the exact heading text per type — is what lets a legacy issues
-/// index still carrying `## Done`/`## Open` sections migrate cleanly: the
-/// first `## ` line is found and replaced, regardless of its old wording.
+/// Any generator-managed heading (`## `, whatever its text), bullet listing
+/// row, or hand-maintained Markdown table listing row is a boundary,
+/// whichever comes first. A single prefix check — rather than pinning the
+/// exact heading text per type — is what lets a legacy issues index still
+/// carrying `## Done`/`## Open` sections migrate cleanly: the first `## `
+/// line is found and replaced, regardless of its old wording. Recognizing a
+/// table listing row too (issue 0021 cause 1) is what turns a hand-maintained
+/// table-format index into a single migration pass instead of a silent
+/// append below it.
 fn is_boundary_line(line: &str) -> bool {
-    line.starts_with("## ") || line.starts_with("* [")
+    line.starts_with("## ") || line.starts_with("* [") || is_table_listing_row(line)
+}
+
+/// True for a Markdown table row (`| cell | cell | ... |`) whose first cell
+/// is either a numbered-listing header (`| # |`) or a record link
+/// (`| [NNNN](...)` / `| [NNNN-...`) — the two shapes a hand-maintained
+/// record table uses in place of the generator's bullet format.
+fn is_table_listing_row(line: &str) -> bool {
+    let Some(first_cell) = first_table_cell(line) else {
+        return false;
+    };
+    first_cell == "#" || is_record_link_cell(first_cell)
+}
+
+fn first_table_cell(line: &str) -> Option<&str> {
+    let rest = line.trim_start().strip_prefix('|')?;
+    let cell = rest.split('|').next()?;
+    Some(cell.trim())
+}
+
+fn is_record_link_cell(cell: &str) -> bool {
+    let Some(after_bracket) = cell.strip_prefix('[') else {
+        return false;
+    };
+    after_bracket.len() >= 4
+        && after_bracket
+            .get(..4)
+            .is_some_and(|digits| digits.chars().all(|c| c.is_ascii_digit()))
 }
 
 fn fallback_preamble(existing: &str, doc_type: &str) -> String {
@@ -348,6 +449,33 @@ mod tests {
             &existing[offset..],
             "## Done\n\n* [0001 — X](0001-x.md) - closed\n"
         );
+    }
+
+    #[test]
+    fn find_boundary_offset_locates_a_hand_maintained_table_header_row() {
+        let existing = "# ADRs\n\nIntro.\n\n| # | Decision | Status |\n|---|---|---|\n| [0001](0001-x.md) | X | Accepted |\n";
+        let offset = find_boundary_offset(existing).unwrap();
+        assert_eq!(
+            &existing[offset..],
+            "| # | Decision | Status |\n|---|---|---|\n| [0001](0001-x.md) | X | Accepted |\n"
+        );
+    }
+
+    #[test]
+    fn is_boundary_line_detects_a_numbered_listing_table_header() {
+        assert!(is_boundary_line("| # | Decision | Status |"));
+    }
+
+    #[test]
+    fn is_boundary_line_detects_a_table_row_whose_first_cell_is_a_record_link() {
+        assert!(is_boundary_line("| [0001](0001-x.md) | X | Accepted |"));
+        assert!(is_boundary_line("| [0007-legacy-row | X | Accepted |"));
+    }
+
+    #[test]
+    fn is_boundary_line_ignores_an_unrelated_table_row() {
+        assert!(!is_boundary_line("| Some | Other | Row |"));
+        assert!(!is_boundary_line("Just prose, not a table at all."));
     }
 
     #[test]
@@ -454,6 +582,75 @@ mod tests {
         fn write(&self, _path: &Path, _contents: &str) -> io::Result<()> {
             Ok(())
         }
+    }
+
+    #[test]
+    fn compute_returns_the_index_path_and_content_regenerate_would_write_without_touching_disk() {
+        let mut files = BTreeMap::new();
+        files.insert(
+            PathBuf::from("/bundle/adr/0001-first.md"),
+            "---\ntype: ADR\ntitle: First\nstatus: Accepted\n---\n# First\n".to_string(),
+        );
+        let store = MapStore { files };
+
+        let (index_path, content) =
+            compute(&store, Path::new("/bundle"), "adr", None).expect("compute should succeed");
+
+        assert_eq!(index_path, PathBuf::from("/bundle/adr/index.md"));
+        assert_eq!(
+            content,
+            "# ADRs\n\n## Active\n\n* [0001 — First](0001-first.md) - Accepted\n"
+        );
+        assert!(
+            !index_path.exists(),
+            "compute must not write anything to disk"
+        );
+    }
+
+    #[test]
+    fn compute_rejects_an_unsupported_doc_type() {
+        let store = MapStore {
+            files: BTreeMap::new(),
+        };
+
+        let result = compute(&store, Path::new("/bundle"), "glossary", None);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn title_for_record_prefers_a_present_frontmatter_title_over_the_h1_heading() {
+        let contents = "---\ntitle: Frontmatter Title\n---\n# ADR 0007 — Heading Title\n";
+        let title = title_for_record(contents, Path::new("adr/0007-x.md"), 7);
+        assert_eq!(title, "Frontmatter Title");
+    }
+
+    #[test]
+    fn title_for_record_falls_back_to_the_h1_heading_stripping_the_adr_number_prefix() {
+        let contents = "---\ntype: ADR\n---\n# ADR 0007 — Heading Title\n";
+        let title = title_for_record(contents, Path::new("adr/0007-x.md"), 7);
+        assert_eq!(title, "Heading Title");
+    }
+
+    #[test]
+    fn title_for_record_falls_back_to_the_h1_heading_stripping_a_bare_numbered_dot_prefix() {
+        let contents = "---\ntype: ADR\n---\n# 0007. Heading Title\n";
+        let title = title_for_record(contents, Path::new("adr/0007-x.md"), 7);
+        assert_eq!(title, "Heading Title");
+    }
+
+    #[test]
+    fn title_for_record_falls_back_to_the_h1_heading_stripping_a_bare_numbered_dash_prefix() {
+        let contents = "---\ntype: ADR\n---\n# 0007 — Heading Title\n";
+        let title = title_for_record(contents, Path::new("adr/0007-x.md"), 7);
+        assert_eq!(title, "Heading Title");
+    }
+
+    #[test]
+    fn title_for_record_is_empty_when_neither_frontmatter_nor_h1_carry_a_title() {
+        let contents = "---\ntype: ADR\n---\nBody with no heading.\n";
+        let title = title_for_record(contents, Path::new("adr/0007-x.md"), 7);
+        assert_eq!(title, "");
     }
 
     #[test]
