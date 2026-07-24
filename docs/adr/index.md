@@ -26,9 +26,10 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0016 — Atlas makes the web a db-mode authoring front, superseding web read-only](0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md) - Accepted
 * [0017 — SKILL.md stubs are pure routers; the spine and all detail move to CLI topics](0017-skill-md-stubs-are-pure-routers-the-spine-and-all-detail-move-to-cli-topics.md) - Accepted
 * [0018 — Atlas delete is a soft-delete, scoped to non-decision doc types, refused on inbound relations](0018-atlas-delete-is-a-soft-delete-scoped-to-non-decision-doc-types-refused-on-inbound-relations.md) - Accepted
-* [0019 — Hand-written record frontmatter is blocked at write time, detected by check, and taught at point of use](0019-hand-written-record-frontmatter-is-blocked-at-write-time-detected-by-check-and-taught-at-point-of-use.md) - Proposed
+* [0020 — Hand-write hook is scoped to CLI-owned type directories, not the whole bundle](0020-hand-write-hook-is-scoped-to-cli-owned-type-directories-not-the-whole-bundle.md) - Accepted
 
 ## Superseded
 
 * [0006 — The web view is a read-only axum server reusing living-docs-core](0006-web-read-only-axum.md) - Superseded
 * [0014 — The CLI serves skill content from an embedded corpus; harness SKILL.md files are slim stubs](0014-the-cli-serves-skill-content-from-an-embedded-corpus-harness-skill-md-files-are-slim-stubs.md) - Superseded
+* [0019 — Hand-written record frontmatter is blocked at write time, detected by check, and taught at point of use](0019-hand-written-record-frontmatter-is-blocked-at-write-time-detected-by-check-and-taught-at-point-of-use.md) - Superseded
