@@ -6,7 +6,7 @@
 679 cli/tests/hooks_install.rs
 933 cli/tests/index_supersede.rs
 469 cli/tests/new.rs
-2694 db-store/src/lib.rs
+2681 db-store/src/lib.rs
 712 db-store/src/migration.rs
 478 db-store/tests/authoring.rs
 433 db-store/tests/ingestion.rs

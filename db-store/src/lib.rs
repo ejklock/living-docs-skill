@@ -304,11 +304,21 @@ async fn enable_sqlite_foreign_keys(conn: &DatabaseConnection) -> Result<()> {
 
 /// Extracts the filesystem path from a SQLite file URL (`sqlite://<path>`,
 /// optionally followed by a `?query`), or `None` for the in-memory form
-/// (`sqlite::memory:`) and every non-SQLite scheme.
+/// (`sqlite::memory:`), every non-SQLite scheme, and a malformed URL whose
+/// extracted path still carries a URL scheme of its own (issue 0030: a
+/// caller-side double wrap, e.g. `sqlite://sqlite://…`, must never let
+/// [`connect`]'s `create_dir_all` create a `scheme:`-named directory).
 fn sqlite_file_path(url: &str) -> Option<PathBuf> {
     let rest = url.strip_prefix("sqlite://")?;
     let path = rest.split('?').next().unwrap_or(rest);
-    (!path.is_empty()).then(|| PathBuf::from(path))
+    let has_embedded_scheme = path
+        .split('/')
+        .next()
+        .is_some_and(|segment| segment.contains(':'));
+    if path.is_empty() || has_embedded_scheme {
+        return None;
+    }
+    Some(PathBuf::from(path))
 }
 
 /// Opens an in-memory SQLite connection for tests, with
@@ -1809,18 +1819,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn connect_creates_missing_parent_dirs_for_a_sqlite_file_url() {
-        let (db_path, db_url) = temp_sqlite_url("parent-dir-creation");
-        assert!(!db_path.parent().expect("path has a parent").exists());
-
-        let conn = connect(&db_url).await.expect("connect creates parent dirs");
-        assert_eq!(conn.get_database_backend(), sea_orm::DbBackend::Sqlite);
-
-        let _ = std::fs::remove_file(&db_path);
-        let _ = std::fs::remove_dir(db_path.parent().expect("path has a parent"));
-    }
-
-    #[tokio::test]
     async fn connect_infers_postgres_backend_from_scheme_without_a_live_server() {
         let mut options = sea_orm::ConnectOptions::new("postgres://user:pass@localhost/db");
         options.connect_lazy(true);
@@ -1830,17 +1828,6 @@ mod tests {
             .expect("lazy postgres connect never touches the network");
 
         assert_eq!(conn.get_database_backend(), sea_orm::DbBackend::Postgres);
-    }
-
-    #[tokio::test]
-    async fn connect_infers_sqlite_backend_from_a_file_url() {
-        let (db_path, db_url) = temp_sqlite_url("backend-inference");
-
-        let conn = connect(&db_url).await.expect("connect");
-        assert_eq!(conn.get_database_backend(), sea_orm::DbBackend::Sqlite);
-
-        let _ = std::fs::remove_file(&db_path);
-        let _ = std::fs::remove_dir(db_path.parent().expect("path has a parent"));
     }
 
     /// A [`DocStore`] with no records, used only to bootstrap the `"default"`

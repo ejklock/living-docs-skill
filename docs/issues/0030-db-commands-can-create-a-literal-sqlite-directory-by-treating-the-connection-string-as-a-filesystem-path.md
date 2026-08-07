@@ -2,7 +2,7 @@
 type: Issue
 title: db commands can create a literal 'sqlite:' directory by treating the connection string as a filesystem path
 description: <One sentence — the change and its motivation.>
-status: open
+status: closed
 timestamp: 2026-08-06T21:03:43Z
 ---
 
