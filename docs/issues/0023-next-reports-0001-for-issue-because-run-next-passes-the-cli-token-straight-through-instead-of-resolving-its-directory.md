@@ -2,7 +2,7 @@
 type: Issue
 title: next reports 0001 for issue because run_next passes the CLI token straight through instead of resolving its directory
 description: Fix run_next to resolve the CLI token to its record directory via paths::dir_for before scanning, the way new already does.
-status: Proposed
+status: closed
 timestamp: 2026-08-03T12:09:03Z
 ---
 

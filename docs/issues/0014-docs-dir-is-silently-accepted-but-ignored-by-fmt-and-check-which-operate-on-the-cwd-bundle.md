@@ -2,7 +2,7 @@
 type: Issue
 title: "--docs-dir is silently accepted but ignored by fmt and check, which operate on the cwd bundle"
 description: Make fmt and check either honor --docs-dir or hard-error on it, so the flag can never silently rewrite a different tree than the one the user pointed at.
-status: Proposed
+status: closed
 timestamp: 2026-07-30T18:58:08Z
 ---
 

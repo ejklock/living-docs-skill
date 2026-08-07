@@ -2,7 +2,7 @@
 type: Issue
 title: Template placeholders are fragile for programmatic editing
 description: Give body placeholders a fenced, uniform marker format (or a --body-file option) so programmatic edit tooling does not depend on byte-exact angle-bracket matching.
-status: Proposed
+status: closed
 timestamp: 2026-08-03T12:05:00Z
 ---
 

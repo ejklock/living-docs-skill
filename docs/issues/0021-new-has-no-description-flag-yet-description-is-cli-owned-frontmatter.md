@@ -2,7 +2,7 @@
 type: Issue
 title: new has no --description flag, yet description is CLI-owned frontmatter
 description: Add a --description flag (and a later describe verb) so new no longer seeds a placeholder the user must hand-edit, contradicting the CLI-ownership contract.
-status: Proposed
+status: closed
 timestamp: 2026-08-03T12:05:00Z
 ---
 

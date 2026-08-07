@@ -2,7 +2,7 @@
 type: Issue
 title: describe and status resolve record numbers ambiguously across doc-type directories
 description: Bare record numbers are only unique per directory, so describe/status silently mutate the first registry match — add a type-qualified reference and fail on ambiguity. Cannot self-describe via CLI precisely because 0025 collides with ADR 0025.
-status: open
+status: closed
 timestamp: 2026-08-05T20:18:36Z
 ---
 
