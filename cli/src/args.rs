@@ -69,6 +69,11 @@ pub(crate) enum Command {
         #[arg(long, value_delimiter = ',')]
         visibility: Option<Vec<String>>,
     },
+    /// `old` and `new` each accept a bare `NNNN` or a type-qualified
+    /// `TYPE/NNNN` reference (e.g. `issue/0028`) — required when the same
+    /// number exists in more than one doc-type directory, since a bare
+    /// `NNNN` fails loudly on that collision instead of guessing (issue
+    /// 0029/0025).
     Supersede {
         old: String,
         new: String,
@@ -76,7 +81,10 @@ pub(crate) enum Command {
     /// Sets a record's `status:` frontmatter field directly — for the
     /// `Proposed`/`Accepted`/`Deprecated` lifecycle only. `Superseded` is
     /// rejected; use `supersede`, which also wires the
-    /// `supersedes`/`superseded_by` links.
+    /// `supersedes`/`superseded_by` links. `number` accepts a bare `NNNN`
+    /// or a type-qualified `TYPE/NNNN` reference (e.g. `issue/0028`),
+    /// required when the same number exists in more than one doc-type
+    /// directory (issue 0029/0025).
     Status {
         number: String,
         new_status: String,
@@ -85,7 +93,10 @@ pub(crate) enum Command {
     /// CLI-owned counterpart to hand-editing the placeholder, reusing the
     /// same record-resolution and frontmatter-mutation helpers `status`
     /// uses (issue 0021, part 2 of 2). Unlike `status`, no vocabulary
-    /// constrains the sentence; any string is accepted.
+    /// constrains the sentence; any string is accepted. `number` accepts a
+    /// bare `NNNN` or a type-qualified `TYPE/NNNN` reference (e.g.
+    /// `issue/0028`), required when the same number exists in more than one
+    /// doc-type directory (issue 0029/0025).
     Describe {
         number: String,
         description: String,
