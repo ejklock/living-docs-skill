@@ -16,11 +16,11 @@ const DEFAULT_DOCS_DIR: &str = "docs";
 #[tokio::main]
 async fn main() {
     let args = Args::parse(env::args().skip(1));
-    let db_path = db_path();
-    let conn = db_store::connect(&sqlite_url(&db_path))
+    let db_url = db_url();
+    let conn = db_store::connect(&db_url)
         .await
         .expect("connect to the read-model database");
-    let authoring = authoring_config(args.backend, &db_path, &args.docs_dir);
+    let authoring = authoring_config(args.backend, &db_url, &args.docs_dir);
     let app = web::build_router(conn, authoring);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], port()));
@@ -33,12 +33,21 @@ async fn main() {
         .expect("serve the axum app");
 }
 
-fn db_path() -> String {
-    env::var("DATABASE_URL").unwrap_or_else(|_| DEFAULT_DB_PATH.to_owned())
+/// Resolves this binary's read-model connection URL: `DATABASE_URL` is a
+/// COMPLETE connection URL, honored verbatim when set (ADR 0004, mirroring
+/// `cli/src/config.rs`'s `Engine::Sqlite`), never a bare path to re-wrap —
+/// re-wrapping an already-complete `sqlite://…` value double-scheme'd it
+/// into `sqlite://sqlite://…` (issue 0030). Falls back to
+/// `sqlite://{DEFAULT_DB_PATH}?mode=rwc` when unset.
+fn db_url() -> String {
+    db_url_with(|name| env::var(name))
 }
 
-fn sqlite_url(path: &str) -> String {
-    format!("sqlite://{path}?mode=rwc")
+/// [`db_url`]'s env lookup extracted behind a closure so tests can exercise
+/// both branches without mutating the process's real environment (mirrors
+/// `cli/src/config.rs`'s `Engine::resolve_url_with`).
+fn db_url_with(lookup_env: impl Fn(&str) -> Result<String, env::VarError>) -> String {
+    lookup_env("DATABASE_URL").unwrap_or_else(|_| format!("sqlite://{DEFAULT_DB_PATH}?mode=rwc"))
 }
 
 fn port() -> u16 {
@@ -94,16 +103,16 @@ fn parse_backend(value: &str) -> Backend {
 }
 
 /// Builds Atlas's [`web::AuthoringConfig`] for `--backend db`, reusing the
-/// same connection URL this binary already computes for its read-model
-/// connection (`sqlite_url(db_path)`) — `None` for `--backend fs`, which is
-/// what keeps `/new` unregistered in `web::build_router`.
+/// same resolved connection URL this binary already opened for its
+/// read-model connection (see [`db_url`]) — `None` for `--backend fs`, which
+/// is what keeps `/new` unregistered in `web::build_router`.
 fn authoring_config(
     backend: Backend,
-    db_path: &str,
+    db_url: &str,
     docs_dir: &Path,
 ) -> Option<web::AuthoringConfig> {
     (backend == Backend::Db).then(|| web::AuthoringConfig {
-        db_url: sqlite_url(db_path),
+        db_url: db_url.to_owned(),
         docs_root: docs_dir.to_path_buf(),
     })
 }
@@ -157,12 +166,27 @@ mod tests {
     fn authoring_config_carries_the_resolved_db_url_and_docs_root_for_the_db_backend() {
         let config = authoring_config(
             Backend::Db,
-            ".living-docs/index.db",
+            "sqlite://.living-docs/index.db?mode=rwc",
             Path::new("client-docs"),
         )
         .expect("db backend must configure authoring");
 
         assert_eq!(config.db_url, "sqlite://.living-docs/index.db?mode=rwc");
         assert_eq!(config.docs_root, PathBuf::from("client-docs"));
+    }
+
+    #[test]
+    fn db_url_returns_a_full_database_url_verbatim_with_no_double_scheme() {
+        let url = db_url_with(|_| Ok("sqlite:///tmp/hermetic.db?mode=rwc".to_owned()));
+
+        assert_eq!(url, "sqlite:///tmp/hermetic.db?mode=rwc");
+        assert!(!url.contains("sqlite://sqlite://"));
+    }
+
+    #[test]
+    fn db_url_falls_back_to_the_default_local_sqlite_url_when_unset() {
+        let url = db_url_with(|_| Err(env::VarError::NotPresent));
+
+        assert_eq!(url, "sqlite://.living-docs/index.db?mode=rwc");
     }
 }
