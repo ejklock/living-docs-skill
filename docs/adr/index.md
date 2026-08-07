@@ -39,6 +39,7 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0031 — The knowledge graph is a typed bi-temporal edge set in the existing relational store](0031-the-knowledge-graph-is-a-typed-bi-temporal-edge-set-in-the-existing-relational-store.md) - Proposed
 * [0032 — Doc-code lineage is declared, not inferred](0032-doc-code-lineage-is-declared-not-inferred.md) - Proposed
 * [0033 — New consumers are fronts in the workspace, never new repos, until a deploy-cadence or ownership trigger fires](0033-new-consumers-are-fronts-in-the-workspace-never-new-repos-until-a-deploy-cadence-or-ownership-trigger-fires.md) - Proposed
+* [0034 — Artifacts are directory-bundle records: a canonical README plus a validated file manifest on a new Bundle identity](0034-artifacts-are-directory-bundle-records-a-canonical-readme-plus-a-validated-file-manifest-on-a-new-bundle-identity.md) - Proposed
 
 ## Superseded
 

@@ -19,6 +19,9 @@ one slice per fresh context, starting from the skeleton.
 * [0024 — Doc-code pairing for living-docs: commit trailers, covers-based drift detection, and executable acceptance](0024-doc-code-pairing-for-living-docs-commit-trailers-covers-based-drift-detection-and-executable-acceptance.md) - open
 * [0026 — Corpus import: seed the knowledge graph read-model from real repos to make graph slices demoable from day one](0026-corpus-import-seed-the-knowledge-graph-read-model-from-real-repos-to-make-graph-slices-demoable-from-day-one.md) - open
 * [0027 — MCP front: expose living-docs core verbs as MCP tools](0027-mcp-front-expose-living-docs-core-verbs-as-mcp-tools.md) - open
+* [0031 — Bundle identity variant plus the artifact registry row and new artifact scaffolds a directory bundle with README](0031-bundle-identity-variant-plus-the-artifact-registry-row-and-new-artifact-scaffolds-a-directory-bundle-with-readme.md) - open
+* [0032 — check validates the artifact file manifest: missing listed file fails, unlisted orphan file warns](0032-check-validates-the-artifact-file-manifest-missing-listed-file-fails-unlisted-orphan-file-warns.md) - open
+* [0033 — index renders the Artifacts partition and the db-store projection indexes the artifact README body](0033-index-renders-the-artifacts-partition-and-the-db-store-projection-indexes-the-artifact-readme-body.md) - open
 
 ## Closed
 
