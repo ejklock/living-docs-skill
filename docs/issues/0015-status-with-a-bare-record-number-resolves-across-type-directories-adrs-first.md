@@ -2,7 +2,7 @@
 type: Issue
 title: status with a bare record number resolves across type directories, ADRs first
 description: Accept a type qualifier on status and hard-error on an ambiguous bare record number, so a number shared across type directories can no longer mutate the wrong record.
-status: Proposed
+status: closed
 timestamp: 2026-07-30T18:58:44Z
 ---
 

@@ -85,6 +85,45 @@ fn next_ignores_files_without_the_nnnn_dash_prefix() {
     let _ = fs::remove_dir_all(&docs);
 }
 
+/// Regression for the `next issue` footgun: `issue` is the only registered
+/// token whose directory (`issues`) differs from the token itself, so this
+/// is the one case that catches `run_next` passing the raw token straight
+/// through instead of resolving it via `paths::dir_for` first.
+#[test]
+fn next_issue_resolves_the_token_to_the_issues_directory() {
+    let docs = temp_dir("next-issue-token");
+    let issues_dir = docs.join("issues");
+    fs::create_dir_all(&issues_dir).unwrap();
+    fs::write(issues_dir.join("0001-first.md"), "content").unwrap();
+    fs::write(issues_dir.join("0004-fourth.md"), "content").unwrap();
+
+    let output = living_docs()
+        .args(["--docs-dir", docs.to_str().unwrap(), "next", "issue"])
+        .output()
+        .expect("failed to run living-docs");
+
+    assert!(output.status.success());
+    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "0005");
+
+    let _ = fs::remove_dir_all(&docs);
+}
+
+#[test]
+fn next_on_an_unknown_doc_type_token_exits_nonzero_and_prints_no_number() {
+    let docs = temp_dir("next-unknown-token");
+
+    let output = living_docs()
+        .args(["--docs-dir", docs.to_str().unwrap(), "next", "glossary"])
+        .output()
+        .expect("failed to run living-docs");
+
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stdout).trim().is_empty());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("glossary"));
+
+    let _ = fs::remove_dir_all(&docs);
+}
+
 /// ADR 0019, AC ac-s4-3: the root `--help` about text carries the same
 /// body-only instruction `new` prints after a created path.
 #[test]
