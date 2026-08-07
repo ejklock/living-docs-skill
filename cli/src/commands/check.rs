@@ -21,15 +21,17 @@ pub(crate) fn run_check(
 
 /// The db backend has no notion of `check`'s `[BUNDLE_ROOT]` positional
 /// argument — its `DocStore` is scoped to `--docs-dir` at construction — so
-/// it always checks `docs_dir`, ignoring `paths`; the fs backend keeps its
-/// existing `lint-docs.sh`-compatible behavior unchanged.
+/// it always checks `docs_dir`, ignoring `paths`. The fs backend prefers a
+/// positional `[BUNDLE_ROOT]` when given one, and otherwise falls back to
+/// `docs_dir` — so `--docs-dir X fmt`/`check` operates on `X`, never a
+/// hardcoded `docs`.
 pub(crate) fn check_bundle(backend: Backend, docs_dir: &Path, paths: Vec<PathBuf>) -> PathBuf {
     match backend {
         Backend::Db => docs_dir.to_path_buf(),
         Backend::Fs => paths
             .into_iter()
             .next()
-            .unwrap_or_else(|| PathBuf::from("docs")),
+            .unwrap_or_else(|| docs_dir.to_path_buf()),
     }
 }
 
@@ -58,8 +60,14 @@ mod tests {
     }
 
     #[test]
-    fn check_bundle_defaults_to_docs_for_the_fs_backend_when_no_paths_are_given() {
+    fn check_bundle_falls_back_to_docs_dir_for_the_fs_backend_when_no_paths_are_given() {
         let bundle = check_bundle(Backend::Fs, Path::new("/repo/docs"), Vec::new());
-        assert_eq!(bundle, PathBuf::from("docs"));
+        assert_eq!(bundle, PathBuf::from("/repo/docs"));
+    }
+
+    #[test]
+    fn check_bundle_honors_a_custom_docs_dir_for_the_fs_backend_when_no_paths_are_given() {
+        let bundle = check_bundle(Backend::Fs, Path::new("/repo/custom"), Vec::new());
+        assert_eq!(bundle, PathBuf::from("/repo/custom"));
     }
 }
