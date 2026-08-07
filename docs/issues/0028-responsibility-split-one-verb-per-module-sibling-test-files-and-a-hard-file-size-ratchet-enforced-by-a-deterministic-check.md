@@ -2,7 +2,7 @@
 type: Issue
 title: "Responsibility split: one verb per module, sibling test files, and a hard file-size ratchet enforced by a deterministic check"
 description: Mechanical responsibility split (verb-per-module in cli, phase modules in db-store sync, sibling test files) plus a 400-line hard cap enforced by a ratcheting check-file-size.sh — maintainability becomes a gate, not an advisory.
-status: open
+status: closed
 timestamp: 2026-08-05T20:49:48Z
 ---
 

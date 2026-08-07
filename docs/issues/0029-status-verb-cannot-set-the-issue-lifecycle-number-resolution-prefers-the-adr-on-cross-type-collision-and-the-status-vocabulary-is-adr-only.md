@@ -2,7 +2,7 @@
 type: Issue
 title: "status verb cannot set the issue lifecycle: number resolution prefers the ADR on cross-type collision and the status vocabulary is ADR-only"
 description: <One sentence — the change and its motivation.>
-status: open
+status: closed
 timestamp: 2026-08-06T20:33:19Z
 ---
 
