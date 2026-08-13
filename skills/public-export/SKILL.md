@@ -10,7 +10,7 @@ description: >-
   deterministic leak gate, and a human-gated clean-history publish. The
   three-bucket model — scaffold (public), accumulation (never), curated showcase
   (deliberately published). Invocable as /public-export.
-version: "0.10.2"
+version: "0.10.3"
 metadata:
   type: skill
   layer: procedural
