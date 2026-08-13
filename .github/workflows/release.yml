@@ -70,10 +70,12 @@ jobs:
             os: macos-latest
           - target: x86_64-apple-darwin
             os: macos-latest
+          # ubuntu-22.04 (glibc 2.35): binaries must run on Debian bookworm
+          # containers (glibc 2.36); ubuntu-latest (24.04, glibc 2.39) breaks them.
           - target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
+            os: ubuntu-22.04
           - target: aarch64-unknown-linux-gnu
-            os: ubuntu-latest
+            os: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
 
