@@ -46,6 +46,7 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0038 — Record bodies are authorable as section-keyed JSON through new --json](0038-record-bodies-are-authorable-as-section-keyed-json-through-new-json.md) - Proposed
 * [0039 — CLI-produced records carry an ephemeral HMAC provenance seal that check verifies](0039-cli-produced-records-carry-an-ephemeral-hmac-provenance-seal-that-check-verifies.md) - Proposed
 * [0040 — migrate --apply is a CLI-front transaction over the mechanical subset](0040-migrate-apply-is-a-cli-front-transaction-over-the-mechanical-subset.md) - Proposed
+* [0041 — make cli-install fetches the released binary and install.sh resolves the latest release by default](0041-make-cli-install-fetches-the-released-binary-and-install-sh-resolves-the-latest-release-by-default.md) - Accepted
 
 ## Superseded
 

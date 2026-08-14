@@ -115,9 +115,9 @@ build is the `living-docs` checker: a single self-contained Rust binary, no host
 lychee/yq/jq) needed. Install it once:
 
 ```bash
-./install.sh cli        # downloads the matching release asset (cargo build-from-source fallback)
+./install.sh cli        # downloads the latest release asset (LIVING_DOCS_VERSION pins a tag; cargo build-from-source fallback)
 # or:
-make cli-install        # native cargo install
+make cli-install        # thin wrapper over `./install.sh cli` — fetches the latest release, no cargo build
 ```
 
 Then, before opening a PR:
