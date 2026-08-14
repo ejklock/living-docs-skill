@@ -9,6 +9,7 @@ pub(crate) mod fmt;
 pub(crate) mod hooks_cmd;
 pub(crate) mod index;
 pub(crate) mod leak_gate;
+pub(crate) mod migrate;
 pub(crate) mod new;
 pub(crate) mod next;
 pub(crate) mod search;

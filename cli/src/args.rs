@@ -129,6 +129,11 @@ pub(crate) enum Command {
     Fmt {
         paths: Vec<PathBuf>,
     },
+    /// Read-only adaptation advisor (ADR 0037): prints an ordered plan of
+    /// RUN (mechanical), AUTHOR (judgment) or ADOPT (bootstrap) steps.
+    Migrate {
+        paths: Vec<PathBuf>,
+    },
     /// Materializes every record the active `--backend` lists back into
     /// conformant `.md` files under `out_dir` — the lossless round-trip
     /// fitness function (ADR 0007, issue 0006 slice 0006-D2).

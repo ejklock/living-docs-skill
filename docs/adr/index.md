@@ -42,6 +42,7 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0034 — Artifacts are directory-bundle records: a canonical README plus a validated file manifest on a new Bundle identity](0034-artifacts-are-directory-bundle-records-a-canonical-readme-plus-a-validated-file-manifest-on-a-new-bundle-identity.md) - Proposed
 * [0035 — Requirement IDs are PRD-scoped EARS statements and check traces BDR coverage](0035-requirement-ids-are-prd-scoped-ears-statements-and-check-traces-bdr-coverage.md) - Proposed
 * [0036 — Architecture views are a registry doc type on a Named identity with a kind-sequenced generated index](0036-architecture-views-are-a-registry-doc-type-on-a-named-identity-with-a-kind-sequenced-generated-index.md) - Proposed
+* [0037 — Migration is a deterministic advisor verb plus skill-guided judgment](0037-migration-is-a-deterministic-advisor-verb-plus-skill-guided-judgment.md) - Proposed
 
 ## Superseded
 

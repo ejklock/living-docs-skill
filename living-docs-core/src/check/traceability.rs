@@ -89,7 +89,7 @@ fn ids_cited_by_linking_bdrs(prd_file_name: &str, bdrs: &[String]) -> BTreeSet<S
 /// Every `FR-N` / `NFR-N` token in `text`, boundary-checked on both sides so
 /// `NFR-1` is never also counted as `FR-1`, `XFR-1` matches nothing, and a
 /// digit-less `FR-` or letter-trailed `FR-1x` is not an ID.
-fn requirement_ids(text: &str) -> BTreeSet<String> {
+pub(crate) fn requirement_ids(text: &str) -> BTreeSet<String> {
     text.match_indices("FR-")
         .filter_map(|(at, _)| requirement_id_at(text, at))
         .collect()

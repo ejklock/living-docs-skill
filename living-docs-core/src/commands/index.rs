@@ -410,7 +410,7 @@ fn is_boundary_line(line: &str) -> bool {
 /// is either a numbered-listing header (`| # |`) or a record link
 /// (`| [NNNN](...)` / `| [NNNN-...`) — the two shapes a hand-maintained
 /// record table uses in place of the generator's bullet format.
-fn is_table_listing_row(line: &str) -> bool {
+pub(crate) fn is_table_listing_row(line: &str) -> bool {
     let Some(first_cell) = first_table_cell(line) else {
         return false;
     };

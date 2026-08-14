@@ -28,7 +28,7 @@ stub:**
 
 Piped output is minified JSON (machine default); `--plain` for human text, `--json` to force
 JSON. Topics: spine, procedure, adr, prd, bdr, constitution, issue-workflow, glossary,
-architecture-diagrams, semantic-index, doc-language, citation, enforcement-modes, check,
+architecture-diagrams, semantic-index, doc-language, citation, enforcement-modes, check, migration,
 okf-format, doc-trail, size-targets, about (run --list for the full set).
 
 This stub is a **pure router** (ADR 0017): it triggers and points at topics — it holds no rules
@@ -47,7 +47,8 @@ Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned
 
 - Standing up documentation for a project (creating `docs/` structure, the docs index, ADR/issue/BDR/constitution directories) → `living-docs skill living-docs --topic procedure`.
 - **First time living-docs runs in a project** (no `## Living Docs` block in the project guide) → ask the enforcement-mode question and persist the answer → `living-docs skill living-docs --topic enforcement-modes`.
-- **Adopting living-docs in an existing/brownfield project** (decisions already made but undocumented) → `living-docs skill living-docs --topic procedure` (*Adopting living docs in an existing project*): inventory the decisions, **confirm each with the user before recording any ADR**, never back-fill by inference alone.
+- **Adopting living-docs in an existing/brownfield project** (decisions already made but undocumented) → run `living-docs migrate` for the ordered `ADOPT` plan (ADR 0037), then `living-docs skill living-docs --topic migration` and `--topic procedure` (*Adopting living docs in an existing project*): inventory the decisions, **confirm each with the user before recording any ADR**, never back-fill by inference alone.
+- **Adapting a bundle authored under an older Living Docs organization** (single `architecture.md`, kind-less views, ID-less PRD requirements, hand-maintained table indexes) → run `living-docs migrate` and execute its `RUN`/`AUTHOR` steps in the printed order → `living-docs skill living-docs --topic migration`.
 - Writing or editing an **ADR** (an architectural/implementation decision) → `living-docs skill living-docs --topic adr` (load `--topic procedure` first if not already loaded this session).
 - Writing or editing a **PRD** (a product/feature requirement spec) → `living-docs skill living-docs --topic prd` (load `--topic procedure` first if not already loaded this session).
 - Writing or editing a **BDR** (observable behavior — inputs, outputs, Given/When/Then scenarios, **and the Test Design matrix for how each is tested**) → `living-docs skill living-docs --topic bdr` (load `--topic procedure` first if not already loaded this session). A test-strategy *decision* (non-default level/technique, bar deviation) is an ADR `tags: [testing]`, not a new record type (no "TDR").

@@ -19,7 +19,7 @@ pub(crate) mod links;
 mod mermaid;
 mod records;
 mod size;
-mod traceability;
+pub(crate) mod traceability;
 
 use crate::doc_type::{self, Identity};
 use crate::store::DocStore;
