@@ -135,7 +135,7 @@ fn walk_md_files(dir: &Path, out: &mut Vec<PathBuf>) {
 pub(crate) fn is_bundle_singleton(bundle: &Path, path: &Path) -> bool {
     doc_type::DOC_TYPES.iter().any(|spec| match spec.identity {
         Identity::Singleton { file } => path == bundle.join(file),
-        Identity::Numbered { .. } => false,
+        Identity::Numbered { .. } | Identity::Named { .. } => false,
     })
 }
 

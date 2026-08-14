@@ -24,7 +24,10 @@ fn run_over(files: Vec<(&str, String)>) -> Reporter {
 }
 
 fn messages(entries: &[(String, String)]) -> Vec<&str> {
-    entries.iter().map(|(_, message)| message.as_str()).collect()
+    entries
+        .iter()
+        .map(|(_, message)| message.as_str())
+        .collect()
 }
 
 #[test]
@@ -110,7 +113,10 @@ fn nfr_ids_participate_and_are_never_mistaken_for_fr_ids() {
     let reporter = run_over(vec![
         (
             "/b/prd/0001-p.md",
-            prd("Implemented", "| NFR-1 | Performance | scenario | CI floor |"),
+            prd(
+                "Implemented",
+                "| NFR-1 | Performance | scenario | CI floor |",
+            ),
         ),
         (
             "/b/bdr/0002-b.md",

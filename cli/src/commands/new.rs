@@ -13,13 +13,16 @@ pub(crate) fn run_new(
     doc_type: &str,
     title: &str,
     description: Option<&str>,
+    kind: Option<&str>,
 ) -> ExitCode {
     match backend {
         Backend::Fs => match build_backend_store(backend, engine, docs_dir) {
-            Ok(store) => commands::new::run(store.as_ref(), docs_dir, doc_type, title, description),
+            Ok(store) => {
+                commands::new::run(store.as_ref(), docs_dir, doc_type, title, description, kind)
+            }
             Err(err) => report_failure(&err),
         },
-        Backend::Db => run_new_db(engine, docs_dir, doc_type, title, description),
+        Backend::Db => run_new_db(engine, docs_dir, doc_type, title, description, kind),
     }
 }
 
@@ -34,12 +37,13 @@ fn run_new_db(
     doc_type: &str,
     title: &str,
     description: Option<&str>,
+    kind: Option<&str>,
 ) -> ExitCode {
     let store = match build_db_doc_store(engine, docs_dir) {
         Ok(store) => store,
         Err(err) => return report_failure(&err),
     };
-    match commands::new::plan(&store, docs_dir, doc_type, title, description) {
+    match commands::new::plan(&store, docs_dir, doc_type, title, description, kind) {
         Ok((target_path, filled)) => commit_new_db(&store, &target_path, &filled),
         Err(err) => report_new_db_failure(&err),
     }

@@ -54,7 +54,7 @@ fn numbered_type_tokens_and_dirs() -> Vec<(&'static str, &'static str)> {
         .iter()
         .filter_map(|spec| match spec.identity {
             Identity::Numbered { dir } => Some((spec.token, dir)),
-            Identity::Singleton { .. } => None,
+            Identity::Singleton { .. } | Identity::Named { .. } => None,
         })
         .collect()
 }

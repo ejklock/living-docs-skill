@@ -177,8 +177,7 @@ fn run_reads_record_content_through_the_store_even_when_no_file_backs_it_on_disk
 /// the sibling lookup is driven by the store's own enumeration
 /// (`DocStore::list`), not a filesystem re-scan.
 #[test]
-fn run_reports_a_supersede_target_the_store_omits_even_though_a_same_named_file_exists_on_disk()
-{
+fn run_reports_a_supersede_target_the_store_omits_even_though_a_same_named_file_exists_on_disk() {
     let bundle = ScratchBundle::new("store-omits-target");
     fs::write(
         bundle.root.join("adr").join("0002-other.md"),

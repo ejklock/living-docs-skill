@@ -47,6 +47,12 @@ pub(crate) enum Command {
         /// instead of the template's placeholder (issue 0021).
         #[arg(long)]
         description: Option<String>,
+        /// Architecture views only (ADR 0036): seeds the frontmatter
+        /// `kind:` field from the C4/arc42 vocabulary (context, container,
+        /// component, flow, sequence, state, data-model, deployment) that
+        /// orders the generated architecture index.
+        #[arg(long)]
+        kind: Option<String>,
     },
     /// `new` plus deterministic pre-fill (issue 0008): frontmatter title,
     /// numbered title heading, a trail comment, and every judgment section

@@ -20,6 +20,7 @@ fn main() -> ExitCode {
             doc_type,
             title,
             description,
+            kind,
         } => commands::new::run_new(
             cli.backend,
             cli.engine,
@@ -27,6 +28,7 @@ fn main() -> ExitCode {
             &doc_type,
             &title,
             description.as_deref(),
+            kind.as_deref(),
         ),
         Command::Brief {
             doc_type,

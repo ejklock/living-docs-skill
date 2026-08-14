@@ -67,7 +67,7 @@ apply_edit() {
 
 guard_write() {
   if [ ! -e "$FILE" ]; then
-    deny "records are scaffolded by the CLI — run \`living-docs new <adr|bdr|prd|issue|research> \"<title>\"\` (numbering + frontmatter + skeleton), then write ONLY the body below the closing ---. Binary missing? \`make build\`."
+    deny "records are scaffolded by the CLI — run \`living-docs new <adr|bdr|prd|issue|research|view> \"<title>\"\` (numbering + frontmatter + skeleton), then write ONLY the body below the closing ---. Binary missing? \`make build\`."
   fi
   deny_unless_owned_lines_kept "$(cat "$FILE")" "$(json_field '.tool_input.content')"
 }
@@ -107,14 +107,19 @@ TOOL="$(json_field '.tool_name')"
 FILE="$(json_field '.tool_input.file_path')"
 [ -n "$FILE" ] || allow
 
-[[ "$FILE" =~ (^|/)"$BUNDLE"/(adr|bdr|prd|issues|research)/([^/]+)$ ]] || allow
+[[ "$FILE" =~ (^|/)"$BUNDLE"/(adr|bdr|prd|issues|research|architecture)/([^/]+)$ ]] || allow
+DIR="${BASH_REMATCH[2]}"
 NAME="${BASH_REMATCH[3]}"
 
 if [ "$NAME" = "index.md" ]; then
   deny "type indexes are generated — run \`living-docs index\` instead of writing $NAME by hand."
 fi
 
-[[ "$NAME" =~ ^[0-9]{4}-.*\.md$ ]] || allow
+if [ "$DIR" = "architecture" ]; then
+  [[ "$NAME" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*\.md$ ]] || allow
+else
+  [[ "$NAME" =~ ^[0-9]{4}-.*\.md$ ]] || allow
+fi
 
 case "$TOOL" in
 Write) guard_write ;;

@@ -1,8 +1,12 @@
 use crate::commands::next::next_number_from_store;
+
+mod fill;
 use crate::doc_type::{self, Identity};
 use crate::paths;
-use crate::record::format_scalar;
 use crate::store::DocStore;
+pub(crate) use fill::{
+    fill_frontmatter, fill_frontmatter_description, fill_frontmatter_kind, fill_frontmatter_title,
+};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -19,6 +23,7 @@ pub fn run(
     doc_type: &str,
     title: &str,
     description: Option<&str>,
+    kind: Option<&str>,
 ) -> ExitCode {
     match scaffold(
         store,
@@ -26,6 +31,7 @@ pub fn run(
         doc_type,
         title,
         description,
+        kind,
         &now_iso8601(),
     ) {
         Ok(path) => {
@@ -51,6 +57,7 @@ fn plan_at(
     doc_type: &str,
     title: &str,
     description: Option<&str>,
+    kind: Option<&str>,
     timestamp: &str,
 ) -> Result<(PathBuf, String), String> {
     let spec = doc_type::spec_for(doc_type).ok_or_else(|| unsupported_type_message(doc_type))?;
@@ -63,6 +70,7 @@ fn plan_at(
     let filled = fill_frontmatter(spec.template, spec.frontmatter, timestamp);
     let filled = fill_frontmatter_title(&filled, title);
     let filled = fill_frontmatter_description(&filled, description);
+    let filled = fill_frontmatter_kind(&filled, spec, kind)?;
     Ok((target_path, filled))
 }
 
@@ -87,6 +95,9 @@ fn target_path_for(
                 .join(format!("{number:04}-{}.md", paths::slugify(title))))
         }
         Identity::Singleton { file } => Ok(docs_dir.join(file)),
+        Identity::Named { dir: dir_name } => Ok(docs_dir
+            .join(dir_name)
+            .join(format!("{}.md", paths::slugify(title)))),
     }
 }
 
@@ -100,6 +111,7 @@ pub fn plan(
     doc_type: &str,
     title: &str,
     description: Option<&str>,
+    kind: Option<&str>,
 ) -> Result<(PathBuf, String), String> {
     plan_at(
         store,
@@ -107,6 +119,7 @@ pub fn plan(
         doc_type,
         title,
         description,
+        kind,
         &now_iso8601(),
     )
 }
@@ -117,9 +130,18 @@ fn scaffold(
     doc_type: &str,
     title: &str,
     description: Option<&str>,
+    kind: Option<&str>,
     timestamp: &str,
 ) -> Result<PathBuf, String> {
-    let (target_path, filled) = plan_at(store, docs_dir, doc_type, title, description, timestamp)?;
+    let (target_path, filled) = plan_at(
+        store,
+        docs_dir,
+        doc_type,
+        title,
+        description,
+        kind,
+        timestamp,
+    )?;
     store
         .write(&target_path, &filled)
         .map_err(|e| e.to_string())?;
@@ -136,128 +158,6 @@ pub(crate) fn unsupported_type_message(doc_type: &str) -> String {
         .collect::<Vec<_>>()
         .join(", ");
     format!("unsupported doc type '{doc_type}' (expected one of {supported})")
-}
-
-/// Targeted line-edit fill of `type`/`status`/`timestamp` inside the leading
-/// frontmatter block only — never a serde round-trip, so body placeholders
-/// and frontmatter guidance comments outside those three keys survive
-/// byte-for-byte. `status` is seeded with `type_value`'s own resolved
-/// [`doc_type::DocTypeSpec::status_vocabulary`]'s first entry (ADR 0029)
-/// rather than a hardcoded literal, so `new issue "t"` seeds `status: open`
-/// while `new adr "t"` still seeds `status: Proposed`.
-pub(crate) fn fill_frontmatter(template: &str, type_value: &str, timestamp: &str) -> String {
-    let lines: Vec<&str> = template.lines().collect();
-    let Some(close) = frontmatter_close_index(&lines) else {
-        return template.to_string();
-    };
-    let status_value = seed_status_for(type_value);
-
-    let filled: Vec<String> = lines
-        .iter()
-        .enumerate()
-        .map(|(i, &line)| {
-            if i == 0 || i >= close {
-                line.to_string()
-            } else {
-                fill_frontmatter_line(line, type_value, status_value, timestamp)
-            }
-        })
-        .collect();
-
-    filled.join("\n") + "\n"
-}
-
-/// The `status:` value a fresh record of `type_value`'s doc type should seed,
-/// resolved from that type's own registry row rather than a hardcoded
-/// literal (ADR 0029). Falls back to `"Proposed"` — the constant's prior
-/// hardcoded value — when `type_value` does not resolve to a registered type
-/// or that type's vocabulary is empty (e.g. Constitution, whose own `Draft |
-/// Ratified | Amended` vocabulary is out of this fn's scope).
-fn seed_status_for(type_value: &str) -> &'static str {
-    doc_type::spec_for_frontmatter(type_value)
-        .and_then(|spec| spec.status_vocabulary.first())
-        .copied()
-        .unwrap_or("Proposed")
-}
-
-pub(crate) fn frontmatter_close_index(lines: &[&str]) -> Option<usize> {
-    lines
-        .iter()
-        .skip(1)
-        .position(|&l| l == "---")
-        .map(|i| i + 1)
-}
-
-/// Fills the frontmatter `title:` line with `title`, quoted exactly as
-/// [`crate::record::to_canonical_markdown`] would (via
-/// [`format_scalar`]) — never a local quoting rule — so a fresh scaffold's
-/// frontmatter is already a canonical-check fixed point (ADR 0019). Shared
-/// with [`crate::commands::brief::run`], which applies the same fill on top
-/// of its own pre-filled sections.
-pub(crate) fn fill_frontmatter_title(content: &str, title: &str) -> String {
-    let lines: Vec<&str> = content.lines().collect();
-    let Some(close) = frontmatter_close_index(&lines) else {
-        return content.to_string();
-    };
-
-    let filled: Vec<String> = lines
-        .iter()
-        .enumerate()
-        .map(|(i, &line)| {
-            if i == 0 || i >= close {
-                line.to_string()
-            } else {
-                replace_targeted_value(line, "title", &format_scalar(title))
-                    .unwrap_or_else(|| line.to_string())
-            }
-        })
-        .collect();
-
-    filled.join("\n") + "\n"
-}
-
-/// Fills the frontmatter `description:` line with `description`, quoted via
-/// [`format_scalar`] exactly as [`fill_frontmatter_title`] fills `title:` —
-/// the CLI-owned counterpart to hand-editing the placeholder (issue 0021).
-/// Delegates to [`crate::commands::supersede::apply_frontmatter_field`], the
-/// same insert-or-replace primitive `describe` uses, so a template missing a
-/// `description:` line gets one inserted rather than the value being
-/// silently dropped. A `None` `description` is a deliberate no-op: `content`
-/// returns unchanged and today's placeholder behavior stays intact.
-pub(crate) fn fill_frontmatter_description(content: &str, description: Option<&str>) -> String {
-    let Some(description) = description else {
-        return content.to_string();
-    };
-
-    crate::commands::supersede::apply_frontmatter_field(
-        content,
-        "description",
-        &format_scalar(description),
-    )
-    .unwrap_or_else(|| content.to_string())
-}
-
-fn fill_frontmatter_line(
-    line: &str,
-    type_value: &str,
-    status_value: &str,
-    timestamp: &str,
-) -> String {
-    replace_targeted_value(line, "type", type_value)
-        .or_else(|| replace_targeted_value(line, "status", status_value))
-        .or_else(|| replace_targeted_value(line, "timestamp", timestamp))
-        .unwrap_or_else(|| line.to_string())
-}
-
-/// Replaces the value of a `key: value` frontmatter line, preserving any
-/// trailing `# guidance comment` verbatim.
-pub(crate) fn replace_targeted_value(line: &str, key: &str, new_value: &str) -> Option<String> {
-    let prefix = format!("{key}:");
-    let rest = line.strip_prefix(&prefix)?;
-    match rest.find('#') {
-        Some(hash_idx) => Some(format!("{prefix} {new_value} {}", &rest[hash_idx..])),
-        None => Some(format!("{prefix} {new_value}")),
-    }
 }
 
 pub(crate) fn now_iso8601() -> String {
@@ -294,466 +194,6 @@ fn civil_date_from_unix_days(days: i64) -> (i64, u32, u32) {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use std::cell::RefCell;
-    use std::collections::BTreeMap;
-    use std::io;
-
-    #[test]
-    fn fill_frontmatter_sets_type_status_and_timestamp() {
-        let template = "---\ntype: ADR\nstatus: Proposed            # Proposed | Accepted\ntimestamp: <ISO 8601 datetime>\n---\n\n# Body\n<placeholder>\n";
-        let filled = fill_frontmatter(template, "ADR", "2026-07-14T00:00:00Z");
-
-        assert!(filled.contains("type: ADR"));
-        assert!(filled.contains("status: Proposed"));
-        assert!(filled.contains("timestamp: 2026-07-14T00:00:00Z"));
-    }
-
-    #[test]
-    fn fill_frontmatter_preserves_the_guidance_comment_verbatim() {
-        let template = "---\ntype: ADR\nstatus: Proposed            # Proposed | Accepted | Superseded | Deprecated\ntimestamp: <ISO 8601 datetime>\n---\n\n# Body\n";
-        let filled = fill_frontmatter(template, "ADR", "2026-07-14T00:00:00Z");
-
-        assert!(filled.contains("# Proposed | Accepted | Superseded | Deprecated"));
-    }
-
-    #[test]
-    fn fill_frontmatter_leaves_the_body_untouched() {
-        let template = "---\ntype: BDR\nstatus: Draft               # Draft | Accepted\ntimestamp: <ISO 8601 datetime>\n---\n\n<!-- Status lives in frontmatter (`status`), not a body line. -->\n<Replace the diagram above with a flowchart...>\n";
-        let filled = fill_frontmatter(template, "BDR", "2026-07-14T00:00:00Z");
-
-        assert!(
-            filled.contains("<!-- Status lives in frontmatter (`status`), not a body line. -->")
-        );
-        assert!(filled.contains("<Replace the diagram above with a flowchart...>"));
-    }
-
-    #[test]
-    fn fill_frontmatter_without_a_closing_fence_returns_the_template_unchanged() {
-        let template = "no frontmatter here\n";
-        assert_eq!(
-            fill_frontmatter(template, "ADR", "2026-07-14T00:00:00Z"),
-            template
-        );
-    }
-
-    /// ADR 0029 AC4: the seeded `status:` comes from each type's own
-    /// `status_vocabulary[0]`, not a hardcoded literal — issue seeds `open`,
-    /// bdr/prd/research seed `Draft`, adr still seeds `Proposed`.
-    #[test]
-    fn fill_frontmatter_seeds_each_types_own_first_vocabulary_value() {
-        let template =
-            "---\ntype: <TYPE>\nstatus: <STATUS>\ntimestamp: <ISO 8601 datetime>\n---\n\n# Body\n";
-
-        let cases = [
-            ("ADR", "Proposed"),
-            ("BDR", "Draft"),
-            ("PRD", "Draft"),
-            ("Issue", "open"),
-            ("Research", "Draft"),
-        ];
-
-        for (frontmatter_type, expected_status) in cases {
-            let filled = fill_frontmatter(template, frontmatter_type, "2026-07-14T00:00:00Z");
-            assert!(
-                filled.contains(&format!("status: {expected_status}")),
-                "{frontmatter_type} expected status: {expected_status}, got: {filled}"
-            );
-        }
-    }
-
-    #[test]
-    fn fill_frontmatter_falls_back_to_proposed_for_an_unresolvable_type() {
-        let template = "---\ntype: Glossary\nstatus: <STATUS>\n---\n\n# Body\n";
-        let filled = fill_frontmatter(template, "Glossary", "2026-07-14T00:00:00Z");
-
-        assert!(filled.contains("status: Proposed"), "got: {filled}");
-    }
-
-    #[test]
-    fn fill_frontmatter_title_replaces_the_placeholder_with_the_argument() {
-        let template =
-            "---\ntype: ADR\ntitle: <Short decision title>\nstatus: Proposed\n---\n\n# Body\n";
-        let filled = fill_frontmatter_title(template, "My Decision");
-
-        assert!(filled.contains("title: My Decision\n"));
-        assert!(!filled.contains("<Short decision title>"));
-    }
-
-    #[test]
-    fn fill_frontmatter_title_quotes_exactly_as_the_canonical_serializer_would() {
-        let template =
-            "---\ntype: ADR\ntitle: <Short decision title>\nstatus: Proposed\n---\n\n# Body\n";
-        let filled = fill_frontmatter_title(template, "Caching: A Deep Dive");
-
-        assert!(filled.contains(&format!(
-            "title: {}\n",
-            format_scalar("Caching: A Deep Dive")
-        )));
-    }
-
-    #[test]
-    fn fill_frontmatter_title_leaves_the_body_untouched() {
-        let template =
-            "---\ntype: Issue\ntitle: <Issue title>\n---\n\n## <Issue title>\n\n<intro guidance>\n";
-        let filled = fill_frontmatter_title(template, "Fix It");
-
-        assert!(filled.contains("## <Issue title>"));
-        assert!(filled.contains("<intro guidance>"));
-    }
-
-    #[test]
-    fn fill_frontmatter_title_without_a_closing_fence_returns_the_content_unchanged() {
-        let content = "no frontmatter here\n";
-        assert_eq!(fill_frontmatter_title(content, "My Decision"), content);
-    }
-
-    #[test]
-    fn fill_frontmatter_description_replaces_the_placeholder_with_the_argument() {
-        let template = "---\ntype: ADR\ndescription: <One sentence — the decision and its scope.>\nstatus: Proposed\n---\n\n# Body\n";
-        let filled =
-            fill_frontmatter_description(template, Some("A concise decision description."));
-
-        assert!(filled.contains("description: A concise decision description.\n"));
-        assert!(!filled.contains("<One sentence"));
-    }
-
-    #[test]
-    fn fill_frontmatter_description_quotes_exactly_as_the_canonical_serializer_would() {
-        let template = "---\ntype: ADR\ndescription: <One sentence — the decision and its scope.>\nstatus: Proposed\n---\n\n# Body\n";
-        let filled = fill_frontmatter_description(template, Some("Caching: A Deep Dive"));
-
-        assert!(filled.contains(&format!(
-            "description: {}\n",
-            format_scalar("Caching: A Deep Dive")
-        )));
-    }
-
-    #[test]
-    fn fill_frontmatter_description_leaves_the_body_untouched() {
-        let template = "---\ntype: Issue\ndescription: <One sentence>\n---\n\n## <Issue title>\n\n<intro guidance>\n";
-        let filled = fill_frontmatter_description(template, Some("Fix it"));
-
-        assert!(filled.contains("## <Issue title>"));
-        assert!(filled.contains("<intro guidance>"));
-    }
-
-    #[test]
-    fn fill_frontmatter_description_without_a_closing_fence_returns_the_content_unchanged() {
-        let content = "no frontmatter here\n";
-        assert_eq!(
-            fill_frontmatter_description(content, Some("A description")),
-            content
-        );
-    }
-
-    #[test]
-    fn fill_frontmatter_description_is_a_no_op_when_none_is_given() {
-        let template =
-            "---\ntype: ADR\ndescription: <One sentence — the decision and its scope.>\n---\n\n# Body\n";
-        assert_eq!(fill_frontmatter_description(template, None), template);
-    }
-
-    #[test]
-    fn fill_frontmatter_description_inserts_the_line_when_the_frontmatter_lacks_it() {
-        let template = "---\ntype: ADR\nstatus: Proposed\n---\n\n# Body\n";
-        let filled = fill_frontmatter_description(template, Some("A concise sentence."));
-
-        assert!(
-            filled.contains("description: A concise sentence.\n"),
-            "got: {filled}"
-        );
-        assert!(filled.contains("type: ADR\n"));
-        assert!(filled.contains("status: Proposed\n"));
-        assert!(filled.contains("# Body\n"));
-    }
-
-    #[test]
-    fn civil_date_from_unix_days_matches_known_calendar_dates() {
-        assert_eq!(civil_date_from_unix_days(0), (1970, 1, 1));
-        assert_eq!(civil_date_from_unix_days(1), (1970, 1, 2));
-        assert_eq!(civil_date_from_unix_days(31), (1970, 2, 1));
-    }
-
-    #[test]
-    fn now_iso8601_has_the_expected_shape() {
-        let timestamp = now_iso8601();
-        assert_eq!(timestamp.len(), 20);
-        assert_eq!(&timestamp[4..5], "-");
-        assert_eq!(&timestamp[7..8], "-");
-        assert_eq!(&timestamp[10..11], "T");
-        assert_eq!(&timestamp[13..14], ":");
-        assert_eq!(&timestamp[16..17], ":");
-        assert_eq!(&timestamp[19..20], "Z");
-    }
-
-    #[test]
-    fn unsupported_type_message_names_the_offending_type() {
-        assert!(unsupported_type_message("constitution").contains("constitution"));
-    }
-
-    /// ADR 0026 fitness function C: the message is generated from
-    /// `DOC_TYPES` rather than a hand-maintained list, so it can never omit
-    /// a token the registry actually supports.
-    #[test]
-    fn unsupported_type_message_lists_every_registry_token() {
-        let message = unsupported_type_message("bogus");
-        for spec in doc_type::DOC_TYPES {
-            assert!(
-                message.contains(spec.token),
-                "{message:?} is missing registry token {:?}",
-                spec.token
-            );
-        }
-    }
-
-    /// A minimal in-memory [`DocStore`] test double, so `scaffold`'s tests
-    /// need no filesystem at all — `living-docs-core` depends on no
-    /// concrete adapter (issue 0006 slice 0006-D2).
-    struct MapStore {
-        files: RefCell<BTreeMap<PathBuf, String>>,
-    }
-
-    impl MapStore {
-        fn new() -> Self {
-            Self {
-                files: RefCell::new(BTreeMap::new()),
-            }
-        }
-
-        fn seeded(seed: &[(&str, &str)]) -> Self {
-            let files = seed
-                .iter()
-                .map(|(path, contents)| (PathBuf::from(path), (*contents).to_string()))
-                .collect();
-            Self {
-                files: RefCell::new(files),
-            }
-        }
-    }
-
-    impl DocStore for MapStore {
-        fn list(&self, root: &Path) -> io::Result<Vec<PathBuf>> {
-            Ok(self
-                .files
-                .borrow()
-                .keys()
-                .filter(|path| path.starts_with(root))
-                .cloned()
-                .collect())
-        }
-
-        fn read(&self, path: &Path) -> io::Result<String> {
-            self.files
-                .borrow()
-                .get(path)
-                .cloned()
-                .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "not found"))
-        }
-
-        fn write(&self, path: &Path, contents: &str) -> io::Result<()> {
-            self.files
-                .borrow_mut()
-                .insert(path.to_path_buf(), contents.to_string());
-            Ok(())
-        }
-    }
-
-    #[test]
-    fn scaffold_allocates_number_one_in_an_empty_type_directory() {
-        let store = MapStore::new();
-
-        let target = scaffold(
-            &store,
-            Path::new("/bundle"),
-            "adr",
-            "First Decision",
-            None,
-            "2026-07-17T00:00:00Z",
-        )
-        .expect("scaffold should succeed");
-
-        assert_eq!(target, PathBuf::from("/bundle/adr/0001-first-decision.md"));
-    }
-
-    #[test]
-    fn scaffold_writes_a_singleton_constitution_with_no_number_or_slug() {
-        let store = MapStore::new();
-
-        let target = scaffold(
-            &store,
-            Path::new("/bundle"),
-            "constitution",
-            "Acme Constitution",
-            None,
-            "2026-07-17T00:00:00Z",
-        )
-        .expect("scaffold should succeed");
-
-        assert_eq!(target, PathBuf::from("/bundle/constitution.md"));
-        let persisted = store
-            .read(&target)
-            .expect("scaffold must persist through DocStore::write");
-        assert!(persisted.contains("type: Constitution"));
-        assert!(persisted.contains("title: Acme Constitution"));
-    }
-
-    #[test]
-    fn scaffold_refuses_a_second_constitution() {
-        let store = MapStore::seeded(&[("/bundle/constitution.md", "existing content")]);
-
-        let err = scaffold(
-            &store,
-            Path::new("/bundle"),
-            "constitution",
-            "Acme Constitution",
-            None,
-            "2026-07-17T00:00:00Z",
-        )
-        .expect_err("a second constitution must be refused");
-
-        assert!(err.contains("already exists"), "got: {err}");
-        assert_eq!(
-            store.read(Path::new("/bundle/constitution.md")).unwrap(),
-            "existing content"
-        );
-    }
-
-    #[test]
-    fn scaffold_allocates_max_existing_number_plus_one_through_next_number_from_store() {
-        let store = MapStore::seeded(&[
-            ("/bundle/adr/0001-first.md", "content"),
-            ("/bundle/adr/0004-fourth.md", "content"),
-        ]);
-
-        let target = scaffold(
-            &store,
-            Path::new("/bundle"),
-            "adr",
-            "Fifth Decision",
-            None,
-            "2026-07-17T00:00:00Z",
-        )
-        .expect("scaffold should succeed");
-
-        assert_eq!(target, PathBuf::from("/bundle/adr/0005-fifth-decision.md"));
-    }
-
-    #[test]
-    fn scaffold_persists_the_filled_record_through_the_stores_write_method() {
-        let store = MapStore::new();
-
-        let target = scaffold(
-            &store,
-            Path::new("/bundle"),
-            "adr",
-            "Persisted Decision",
-            None,
-            "2026-07-17T00:00:00Z",
-        )
-        .expect("scaffold should succeed");
-
-        let persisted = store
-            .read(&target)
-            .expect("scaffold must persist through DocStore::write");
-        assert!(persisted.contains("type: ADR"));
-        assert!(persisted.contains("status: Proposed"));
-        assert!(persisted.contains("timestamp: 2026-07-17T00:00:00Z"));
-        assert!(persisted.contains("title: Persisted Decision"));
-    }
-
-    #[test]
-    fn scaffold_seeds_the_description_placeholder_when_none_is_given() {
-        let store = MapStore::new();
-
-        let target = scaffold(
-            &store,
-            Path::new("/bundle"),
-            "adr",
-            "Placeholder Description",
-            None,
-            "2026-07-17T00:00:00Z",
-        )
-        .expect("scaffold should succeed");
-
-        let persisted = store
-            .read(&target)
-            .expect("scaffold must persist through DocStore::write");
-        assert!(
-            persisted.contains("description: <One sentence"),
-            "got: {persisted}"
-        );
-    }
-
-    #[test]
-    fn scaffold_writes_the_given_description_when_some_is_passed() {
-        let store = MapStore::new();
-
-        let target = scaffold(
-            &store,
-            Path::new("/bundle"),
-            "adr",
-            "Described Decision",
-            Some("A concise sentence describing the change."),
-            "2026-07-17T00:00:00Z",
-        )
-        .expect("scaffold should succeed");
-
-        let persisted = store
-            .read(&target)
-            .expect("scaffold must persist through DocStore::write");
-        assert!(
-            persisted.contains("description: A concise sentence describing the change."),
-            "got: {persisted}"
-        );
-        assert!(!persisted.contains("<One sentence"));
-    }
-
-    /// `list` deliberately omits the record `read` still serves, simulating
-    /// a store whose enumeration and lookup can disagree — proving the
-    /// clobber guard checks `DocStore::read` directly rather than trusting
-    /// `DocStore::list`'s allocation to have already ruled the path out.
-    struct StaleListingStore {
-        files: BTreeMap<PathBuf, String>,
-    }
-
-    impl DocStore for StaleListingStore {
-        fn list(&self, _root: &Path) -> io::Result<Vec<PathBuf>> {
-            Ok(Vec::new())
-        }
-
-        fn read(&self, path: &Path) -> io::Result<String> {
-            self.files
-                .get(path)
-                .cloned()
-                .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "not found"))
-        }
-
-        fn write(&self, _path: &Path, _contents: &str) -> io::Result<()> {
-            Ok(())
-        }
-    }
-
-    #[test]
-    fn scaffold_refuses_to_clobber_a_path_the_store_already_serves_even_when_listing_omits_it() {
-        let mut files = BTreeMap::new();
-        files.insert(
-            PathBuf::from("/bundle/adr/0001-first-decision.md"),
-            "existing".to_string(),
-        );
-        let store = StaleListingStore { files };
-
-        let err = scaffold(
-            &store,
-            Path::new("/bundle"),
-            "adr",
-            "First Decision",
-            None,
-            "2026-07-17T00:00:00Z",
-        )
-        .expect_err("clobbering an existing store record must fail");
-
-        assert!(err.contains("already exists"), "got: {err}");
-    }
-}
+mod scaffold_tests;
+#[cfg(test)]
+mod tests;

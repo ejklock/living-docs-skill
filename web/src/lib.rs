@@ -372,7 +372,7 @@ fn create_record(
     let store = db_store::DbDocStore::new(db_url, docs_root.to_path_buf())
         .map_err(|err| CreateError::Plan(err.to_string()))?;
     let (target_path, filled) =
-        living_docs_core::commands::new::plan(&store, docs_root, doc_type, title, None)
+        living_docs_core::commands::new::plan(&store, docs_root, doc_type, title, None, None)
             .map_err(CreateError::Plan)?;
     let filled = fill_title(&filled, title);
     store

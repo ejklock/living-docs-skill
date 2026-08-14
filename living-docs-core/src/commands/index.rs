@@ -6,15 +6,23 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-/// Every Numbered-identity registry token, in [`doc_type::DOC_TYPES`] order —
-/// the set `index` regenerates when invoked with no explicit type (ADR 0026).
+mod named;
+
+/// Every registry token with a directory to index — Numbered and Named
+/// identities alike (ADR 0026, ADR 0036) — in [`doc_type::DOC_TYPES`]
+/// order: the set `index` regenerates when invoked with no explicit type.
 /// A [`Identity::Singleton`] type has no directory to index, so the bare
 /// sweep excludes it — regenerating it would need a directory that `new`
 /// never creates for a singleton.
 fn all_type_tokens() -> Vec<String> {
     doc_type::DOC_TYPES
         .iter()
-        .filter(|spec| matches!(spec.identity, Identity::Numbered { .. }))
+        .filter(|spec| {
+            matches!(
+                spec.identity,
+                Identity::Numbered { .. } | Identity::Named { .. }
+            )
+        })
         .map(|spec| spec.token.to_string())
         .collect()
 }
@@ -82,17 +90,37 @@ pub fn compute(
 ) -> Result<(PathBuf, String), String> {
     let dir_name = numbered_dir_for(doc_type)?;
     let type_dir = docs_dir.join(dir_name);
-    let records: Vec<Record> = collect_records(store, docs_dir, &type_dir)?
-        .into_iter()
-        .filter(|record| record_visible(record, visibility_filter))
-        .collect();
-
     let index_path = type_dir.join("index.md");
     let existing = fs::read_to_string(&index_path).unwrap_or_default();
     let preamble = preamble_for(&existing, doc_type);
-    let body = render_body(doc_type, &records);
+    let body = body_for(store, docs_dir, doc_type, &type_dir, visibility_filter)?;
 
     Ok((index_path, format!("{preamble}{body}")))
+}
+
+/// Renders `doc_type`'s listing body along its identity shape: a Named type
+/// delegates to [`named::render_body`] (kind-ranked view rows, ADR 0036),
+/// a Numbered one collects `NNNN-*.md` records and renders along its
+/// registry partition axis.
+fn body_for(
+    store: &dyn DocStore,
+    docs_dir: &Path,
+    doc_type: &str,
+    type_dir: &Path,
+    visibility_filter: Option<&[String]>,
+) -> Result<String, String> {
+    let is_named = matches!(
+        doc_type::spec_for(doc_type).map(|spec| spec.identity),
+        Some(Identity::Named { .. })
+    );
+    if is_named {
+        return named::render_body(store, docs_dir, type_dir, visibility_filter);
+    }
+    let records: Vec<Record> = collect_records(store, docs_dir, type_dir)?
+        .into_iter()
+        .filter(|record| record_visible(record, visibility_filter))
+        .collect();
+    Ok(render_body(doc_type, &records))
 }
 
 /// Resolves the numbered-series directory `index` regenerates for
@@ -104,7 +132,7 @@ pub fn compute(
 fn numbered_dir_for(doc_type: &str) -> Result<&'static str, String> {
     let spec = doc_type::spec_for(doc_type).ok_or_else(|| unsupported_type_message(doc_type))?;
     match spec.identity {
-        Identity::Numbered { dir } => Ok(dir),
+        Identity::Numbered { dir } | Identity::Named { dir } => Ok(dir),
         Identity::Singleton { file } => {
             Err(singleton_has_no_directory_index_message(doc_type, file))
         }
@@ -421,461 +449,6 @@ fn heading_title_for(doc_type: &str) -> &'static str {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// ADR 0026 fitness function B (index half): the token set `index`
-    /// regenerates with no explicit type equals the registry's
-    /// Identity::Numbered token set, in the registry's own order.
-    #[test]
-    fn all_type_tokens_matches_every_numbered_registry_token_in_order() {
-        assert_eq!(
-            all_type_tokens(),
-            vec!["adr", "bdr", "prd", "issue", "research"]
-        );
-    }
-
-    /// The `constitution` row is a deliberate exclusion, not an oversight:
-    /// a singleton has no directory index for the bare sweep to regenerate.
-    #[test]
-    fn all_type_tokens_excludes_the_constitution_singleton() {
-        assert!(!all_type_tokens().contains(&"constitution".to_string()));
-    }
-
-    #[test]
-    fn numbered_prefix_accepts_four_digit_dash_form() {
-        assert_eq!(numbered_prefix("0007-old.md"), Some(7));
-    }
-
-    #[test]
-    fn numbered_prefix_rejects_index_and_malformed_names() {
-        assert_eq!(numbered_prefix("index.md"), None);
-        assert_eq!(numbered_prefix("12-old.md"), None);
-        assert_eq!(numbered_prefix("abcd-old.md"), None);
-    }
-
-    #[test]
-    fn render_row_matches_the_locked_row_format() {
-        let record = Record {
-            number: 7,
-            title: "My Title".to_string(),
-            status: "Proposed".to_string(),
-            filename: "0007-my-title.md".to_string(),
-            visibility: "private".to_string(),
-        };
-        assert_eq!(
-            render_row(&record),
-            "* [0007 — My Title](0007-my-title.md) - Proposed"
-        );
-    }
-
-    #[test]
-    fn fallback_preamble_is_minimal_for_a_fresh_file() {
-        assert_eq!(fallback_preamble("", "adr"), "# ADRs\n\n");
-    }
-
-    #[test]
-    fn fallback_preamble_wraps_unmarked_existing_content() {
-        assert_eq!(
-            fallback_preamble("Custom intro.\n", "prd"),
-            "Custom intro.\n\n"
-        );
-    }
-
-    #[test]
-    fn find_boundary_offset_locates_the_adr_active_heading() {
-        let existing = "# ADRs\n\nIntro.\n\n## Active\n\n* [0001 — X](0001-x.md) - Proposed\n";
-        let offset = find_boundary_offset(existing).unwrap();
-        assert_eq!(
-            &existing[offset..],
-            "## Active\n\n* [0001 — X](0001-x.md) - Proposed\n"
-        );
-    }
-
-    #[test]
-    fn find_boundary_offset_locates_the_first_row_for_non_adr_types() {
-        let existing = "# PRDs\n\nIntro.\n\n* [0001 — X](0001-x.md) - Draft\n";
-        let offset = find_boundary_offset(existing).unwrap();
-        assert_eq!(&existing[offset..], "* [0001 — X](0001-x.md) - Draft\n");
-    }
-
-    #[test]
-    fn find_boundary_offset_locates_a_legacy_heading_regardless_of_its_text() {
-        let existing = "# Issues\n\nIntro.\n\n## Done\n\n* [0001 — X](0001-x.md) - closed\n";
-        let offset = find_boundary_offset(existing).unwrap();
-        assert_eq!(
-            &existing[offset..],
-            "## Done\n\n* [0001 — X](0001-x.md) - closed\n"
-        );
-    }
-
-    #[test]
-    fn find_boundary_offset_locates_a_hand_maintained_table_header_row() {
-        let existing = "# ADRs\n\nIntro.\n\n| # | Decision | Status |\n|---|---|---|\n| [0001](0001-x.md) | X | Accepted |\n";
-        let offset = find_boundary_offset(existing).unwrap();
-        assert_eq!(
-            &existing[offset..],
-            "| # | Decision | Status |\n|---|---|---|\n| [0001](0001-x.md) | X | Accepted |\n"
-        );
-    }
-
-    #[test]
-    fn is_boundary_line_detects_a_numbered_listing_table_header() {
-        assert!(is_boundary_line("| # | Decision | Status |"));
-    }
-
-    #[test]
-    fn is_boundary_line_detects_a_table_row_whose_first_cell_is_a_record_link() {
-        assert!(is_boundary_line("| [0001](0001-x.md) | X | Accepted |"));
-        assert!(is_boundary_line("| [0007-legacy-row | X | Accepted |"));
-    }
-
-    #[test]
-    fn is_boundary_line_ignores_an_unrelated_table_row() {
-        assert!(!is_boundary_line("| Some | Other | Row |"));
-        assert!(!is_boundary_line("Just prose, not a table at all."));
-    }
-
-    #[test]
-    fn is_open_status_treats_closed_done_and_superseded_case_insensitively_as_closed() {
-        assert!(!is_open_status("closed"));
-        assert!(!is_open_status("Closed"));
-        assert!(!is_open_status("done"));
-        assert!(!is_open_status("Done"));
-        assert!(!is_open_status("Superseded"));
-    }
-
-    #[test]
-    fn is_open_status_treats_open_in_progress_and_unknown_as_open() {
-        assert!(is_open_status("open"));
-        assert!(is_open_status("in-progress"));
-        assert!(is_open_status("Mystery"));
-        assert!(is_open_status(""));
-    }
-
-    #[test]
-    fn is_active_status_treats_superseded_and_deprecated_as_not_active() {
-        assert!(!is_active_status("Superseded"));
-        assert!(!is_active_status("Deprecated"));
-    }
-
-    #[test]
-    fn is_active_status_treats_draft_accepted_and_implemented_as_active() {
-        assert!(is_active_status("Draft"));
-        assert!(is_active_status("Accepted"));
-        assert!(is_active_status("Implemented"));
-        assert!(is_active_status("Proposed"));
-    }
-
-    #[test]
-    fn render_partitioned_pins_the_adr_active_superseded_byte_shape() {
-        let records = vec![
-            Record {
-                number: 1,
-                title: "Old".to_string(),
-                status: "Superseded".to_string(),
-                filename: "0001-old.md".to_string(),
-                visibility: "private".to_string(),
-            },
-            Record {
-                number: 2,
-                title: "Current".to_string(),
-                status: "Accepted".to_string(),
-                filename: "0002-current.md".to_string(),
-                visibility: "private".to_string(),
-            },
-        ];
-
-        let body = render_partitioned(&records, "Active", "Superseded", is_active_status);
-
-        assert_eq!(
-            body,
-            "## Active\n\n* [0002 — Current](0002-current.md) - Accepted\n\n## Superseded\n\n* [0001 — Old](0001-old.md) - Superseded\n"
-        );
-    }
-
-    #[test]
-    fn render_partitioned_emits_only_the_first_heading_when_the_second_bucket_is_empty() {
-        let records = vec![Record {
-            number: 1,
-            title: "Only".to_string(),
-            status: "open".to_string(),
-            filename: "0001-only.md".to_string(),
-            visibility: "private".to_string(),
-        }];
-
-        let body = render_partitioned(&records, "Open", "Closed", is_open_status);
-
-        assert_eq!(body, "## Open\n\n* [0001 — Only](0001-only.md) - open\n");
-    }
-
-    use std::collections::BTreeMap;
-    use std::io;
-    use std::path::PathBuf;
-
-    /// A minimal in-memory [`DocStore`] test double, proving `collect_records`
-    /// reads a record's title/status through the port rather than the
-    /// filesystem — the same double pattern used by `export.rs`/`new.rs`.
-    struct MapStore {
-        files: BTreeMap<PathBuf, String>,
-    }
-
-    impl DocStore for MapStore {
-        fn list(&self, root: &Path) -> io::Result<Vec<PathBuf>> {
-            Ok(self
-                .files
-                .keys()
-                .filter(|path| path.starts_with(root))
-                .cloned()
-                .collect())
-        }
-
-        fn read(&self, path: &Path) -> io::Result<String> {
-            self.files
-                .get(path)
-                .cloned()
-                .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "not found"))
-        }
-
-        fn write(&self, _path: &Path, _contents: &str) -> io::Result<()> {
-            Ok(())
-        }
-    }
-
-    #[test]
-    fn compute_returns_the_index_path_and_content_regenerate_would_write_without_touching_disk() {
-        let mut files = BTreeMap::new();
-        files.insert(
-            PathBuf::from("/bundle/adr/0001-first.md"),
-            "---\ntype: ADR\ntitle: First\nstatus: Accepted\n---\n# First\n".to_string(),
-        );
-        let store = MapStore { files };
-
-        let (index_path, content) =
-            compute(&store, Path::new("/bundle"), "adr", None).expect("compute should succeed");
-
-        assert_eq!(index_path, PathBuf::from("/bundle/adr/index.md"));
-        assert_eq!(
-            content,
-            "# ADRs\n\n## Active\n\n* [0001 — First](0001-first.md) - Accepted\n"
-        );
-        assert!(
-            !index_path.exists(),
-            "compute must not write anything to disk"
-        );
-    }
-
-    #[test]
-    fn regenerate_is_a_no_op_when_the_type_directory_does_not_exist() {
-        let store = MapStore {
-            files: BTreeMap::new(),
-        };
-        let docs_dir = std::env::temp_dir().join(format!(
-            "living-docs-index-regenerate-noop-{}",
-            std::process::id()
-        ));
-        let type_dir = docs_dir.join("research");
-        assert!(!type_dir.exists());
-
-        let result = regenerate(&store, &docs_dir, "research", None);
-
-        assert!(result.is_ok());
-        assert!(
-            !type_dir.exists(),
-            "regenerate must not create the type directory when it is absent"
-        );
-    }
-
-    #[test]
-    fn compute_rejects_an_unsupported_doc_type() {
-        let store = MapStore {
-            files: BTreeMap::new(),
-        };
-
-        let result = compute(&store, Path::new("/bundle"), "glossary", None);
-
-        assert!(result.is_err());
-    }
-
-    /// `index constitution` gets its own message, not the unsupported-type
-    /// one — the type IS supported, it just has no directory index, and the
-    /// unsupported-type message would list the very token the caller used.
-    #[test]
-    fn compute_rejects_an_explicit_constitution_index_with_its_own_message() {
-        let store = MapStore {
-            files: BTreeMap::new(),
-        };
-
-        let err = compute(&store, Path::new("/bundle"), "constitution", None)
-            .expect_err("constitution has no directory index");
-
-        assert!(err.contains("constitution.md"), "got: {err}");
-        assert!(
-            !err.contains("expected one of"),
-            "must not reuse the unsupported-type message: {err}"
-        );
-    }
-
-    #[test]
-    fn title_for_record_prefers_a_present_frontmatter_title_over_the_h1_heading() {
-        let contents = "---\ntitle: Frontmatter Title\n---\n# ADR 0007 — Heading Title\n";
-        let title = title_for_record(contents, Path::new("adr/0007-x.md"), 7);
-        assert_eq!(title, "Frontmatter Title");
-    }
-
-    #[test]
-    fn title_for_record_falls_back_to_the_h1_heading_stripping_the_adr_number_prefix() {
-        let contents = "---\ntype: ADR\n---\n# ADR 0007 — Heading Title\n";
-        let title = title_for_record(contents, Path::new("adr/0007-x.md"), 7);
-        assert_eq!(title, "Heading Title");
-    }
-
-    #[test]
-    fn title_for_record_falls_back_to_the_h1_heading_stripping_a_bare_numbered_dot_prefix() {
-        let contents = "---\ntype: ADR\n---\n# 0007. Heading Title\n";
-        let title = title_for_record(contents, Path::new("adr/0007-x.md"), 7);
-        assert_eq!(title, "Heading Title");
-    }
-
-    #[test]
-    fn title_for_record_falls_back_to_the_h1_heading_stripping_a_bare_numbered_dash_prefix() {
-        let contents = "---\ntype: ADR\n---\n# 0007 — Heading Title\n";
-        let title = title_for_record(contents, Path::new("adr/0007-x.md"), 7);
-        assert_eq!(title, "Heading Title");
-    }
-
-    #[test]
-    fn title_for_record_is_empty_when_neither_frontmatter_nor_h1_carry_a_title() {
-        let contents = "---\ntype: ADR\n---\nBody with no heading.\n";
-        let title = title_for_record(contents, Path::new("adr/0007-x.md"), 7);
-        assert_eq!(title, "");
-    }
-
-    #[test]
-    fn collect_records_reads_title_and_status_through_the_store() {
-        let mut files = BTreeMap::new();
-        files.insert(
-            PathBuf::from("/bundle/adr/0001-first.md"),
-            "---\ntype: ADR\ntitle: First\nstatus: Accepted\n---\n# First\n".to_string(),
-        );
-        let store = MapStore { files };
-
-        let records = collect_records(&store, Path::new("/bundle"), &PathBuf::from("/bundle/adr"))
-            .expect("collect_records should succeed");
-
-        assert_eq!(records.len(), 1);
-        assert_eq!(records[0].title, "First");
-        assert_eq!(records[0].status, "Accepted");
-    }
-
-    #[test]
-    fn collect_records_ignores_paths_the_store_lists_outside_the_type_directory() {
-        let mut files = BTreeMap::new();
-        files.insert(
-            PathBuf::from("/bundle/adr/0001-in-scope.md"),
-            "---\ntype: ADR\ntitle: In Scope\nstatus: Proposed\n---\n# In Scope\n".to_string(),
-        );
-        files.insert(
-            PathBuf::from("/bundle/bdr/0001-other-type.md"),
-            "---\ntype: BDR\ntitle: Other Type\nstatus: Draft\n---\n# Other Type\n".to_string(),
-        );
-        let store = MapStore { files };
-
-        let records = collect_records(&store, Path::new("/bundle"), &PathBuf::from("/bundle/adr"))
-            .expect("collect_records should succeed");
-
-        assert_eq!(records.len(), 1);
-        assert_eq!(records[0].filename, "0001-in-scope.md");
-    }
-
-    #[test]
-    fn collect_records_on_an_empty_store_returns_no_records() {
-        let store = MapStore {
-            files: BTreeMap::new(),
-        };
-
-        let records = collect_records(&store, Path::new("/bundle"), &PathBuf::from("/bundle/adr"))
-            .expect("collect_records should succeed on an empty store");
-
-        assert!(records.is_empty());
-    }
-
-    #[test]
-    fn collect_records_defaults_to_private_when_visibility_is_absent() {
-        let mut files = BTreeMap::new();
-        files.insert(
-            PathBuf::from("/bundle/adr/0001-first.md"),
-            "---\ntype: ADR\ntitle: First\nstatus: Accepted\n---\n# First\n".to_string(),
-        );
-        let store = MapStore { files };
-
-        let records = collect_records(&store, Path::new("/bundle"), &PathBuf::from("/bundle/adr"))
-            .expect("collect_records should succeed");
-
-        assert_eq!(records[0].visibility, "private");
-    }
-
-    #[test]
-    fn collect_records_reads_an_explicit_visibility_value() {
-        let mut files = BTreeMap::new();
-        files.insert(
-            PathBuf::from("/bundle/adr/0001-first.md"),
-            "---\ntype: ADR\ntitle: First\nstatus: Accepted\nvisibility: public\n---\n# First\n"
-                .to_string(),
-        );
-        let store = MapStore { files };
-
-        let records = collect_records(&store, Path::new("/bundle"), &PathBuf::from("/bundle/adr"))
-            .expect("collect_records should succeed");
-
-        assert_eq!(records[0].visibility, "public");
-    }
-
-    fn record_with_visibility(visibility: &str) -> Record {
-        Record {
-            number: 1,
-            title: "Title".to_string(),
-            status: "Accepted".to_string(),
-            filename: "0001-title.md".to_string(),
-            visibility: visibility.to_string(),
-        }
-    }
-
-    #[test]
-    fn record_visible_passes_every_record_when_the_filter_is_none() {
-        assert!(record_visible(&record_with_visibility("private"), None));
-        assert!(record_visible(&record_with_visibility("public"), None));
-    }
-
-    #[test]
-    fn record_visible_excludes_a_record_outside_the_filter_set() {
-        let filter = vec!["public".to_string(), "showcase".to_string()];
-        assert!(!record_visible(
-            &record_with_visibility("private"),
-            Some(&filter)
-        ));
-    }
-
-    #[test]
-    fn record_visible_includes_a_record_inside_the_filter_set() {
-        let filter = vec!["public".to_string(), "showcase".to_string()];
-        assert!(record_visible(
-            &record_with_visibility("public"),
-            Some(&filter)
-        ));
-        assert!(record_visible(
-            &record_with_visibility("showcase"),
-            Some(&filter)
-        ));
-    }
-
-    #[test]
-    fn record_visible_default_deny_only_admits_private_when_explicitly_requested() {
-        let private_filter = vec!["private".to_string()];
-        let public_filter = vec!["public".to_string()];
-        let absent_visibility = record_with_visibility(DEFAULT_VISIBILITY);
-
-        assert!(record_visible(&absent_visibility, Some(&private_filter)));
-        assert!(!record_visible(&absent_visibility, Some(&public_filter)));
-    }
-}
+mod store_tests;
+#[cfg(test)]
+mod tests;

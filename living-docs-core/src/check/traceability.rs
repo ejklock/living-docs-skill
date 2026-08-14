@@ -68,8 +68,9 @@ fn check_prd(path: &Path, contents: &str, bdrs: &[String], reporter: &mut Report
         if covered.contains(&id) {
             continue;
         }
-        let message =
-            format!("TRACE {id} has no BDR coverage — no BDR links this PRD and cites the ID (ADR 0035)");
+        let message = format!(
+            "TRACE {id} has no BDR coverage — no BDR links this PRD and cites the ID (ADR 0035)"
+        );
         match severity {
             Severity::Advisory => reporter.advise(path, message),
             Severity::Violation => reporter.report(path, message),
