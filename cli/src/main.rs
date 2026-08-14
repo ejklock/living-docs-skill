@@ -1,4 +1,4 @@
-use args::{Cli, Command, DbCmd, HooksCmd, SkillCmd};
+use args::{Cli, Command, DbCmd, HooksCmd, SealCmd, SkillCmd};
 use clap::Parser;
 use living_docs_core::check;
 use std::process::ExitCode;
@@ -21,14 +21,18 @@ fn main() -> ExitCode {
             title,
             description,
             kind,
+            json,
         } => commands::new::run_new(
             cli.backend,
             cli.engine,
             &cli.docs_dir,
             &doc_type,
             &title,
-            description.as_deref(),
-            kind.as_deref(),
+            &commands::new::NewArgs {
+                description: description.as_deref(),
+                kind: kind.as_deref(),
+                json: json.as_deref(),
+            },
         ),
         Command::Brief {
             doc_type,
@@ -79,6 +83,7 @@ fn main() -> ExitCode {
         Command::Migrate { paths } => {
             commands::migrate::run_migrate(cli.backend, cli.engine, &cli.docs_dir, paths)
         }
+        Command::Seal { cmd: SealCmd::Init } => commands::seal_cmd::run_seal_init(&cli.docs_dir),
         Command::Export {
             out_dir,
             visibility,

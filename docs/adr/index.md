@@ -43,6 +43,8 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0035 — Requirement IDs are PRD-scoped EARS statements and check traces BDR coverage](0035-requirement-ids-are-prd-scoped-ears-statements-and-check-traces-bdr-coverage.md) - Proposed
 * [0036 — Architecture views are a registry doc type on a Named identity with a kind-sequenced generated index](0036-architecture-views-are-a-registry-doc-type-on-a-named-identity-with-a-kind-sequenced-generated-index.md) - Proposed
 * [0037 — Migration is a deterministic advisor verb plus skill-guided judgment](0037-migration-is-a-deterministic-advisor-verb-plus-skill-guided-judgment.md) - Proposed
+* [0038 — Record bodies are authorable as section-keyed JSON through new --json](0038-record-bodies-are-authorable-as-section-keyed-json-through-new-json.md) - Proposed
+* [0039 — CLI-produced records carry an ephemeral HMAC provenance seal that check verifies](0039-cli-produced-records-carry-an-ephemeral-hmac-provenance-seal-that-check-verifies.md) - Proposed
 
 ## Superseded
 

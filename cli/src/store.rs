@@ -12,7 +12,9 @@ pub(crate) fn build_backend_store(
     root: &Path,
 ) -> Result<Box<dyn DocStore>, String> {
     match backend {
-        Backend::Fs => Ok(Box::new(fs_store::FsStore::new())),
+        Backend::Fs => Ok(Box::new(SealingStore {
+            inner: fs_store::FsStore::new(),
+        })),
         Backend::Db => {
             build_db_doc_store(engine, root).map(|store| Box::new(store) as Box<dyn DocStore>)
         }
@@ -89,6 +91,32 @@ pub(crate) fn build_runtime() -> std::io::Result<tokio::runtime::Runtime> {
 pub(crate) fn report_failure(message: &str) -> ExitCode {
     eprintln!("error: {message}");
     ExitCode::FAILURE
+}
+
+/// Decorates the fs store so every CLI record write re-seals its provenance
+/// (ADR 0039) — the single choke point that keeps `new`/`brief`/`status`/
+/// `supersede`/`fmt`/`describe` sealed with zero per-verb wiring. A no-op
+/// outside a git repository or before `living-docs seal init`.
+struct SealingStore {
+    inner: fs_store::FsStore,
+}
+
+impl DocStore for SealingStore {
+    fn list(&self, root: &Path) -> io::Result<Vec<PathBuf>> {
+        self.inner.list(root)
+    }
+
+    fn read(&self, path: &Path) -> io::Result<String> {
+        self.inner.read(path)
+    }
+
+    fn write(&self, path: &Path, contents: &str) -> io::Result<()> {
+        self.inner.write(path, contents)?;
+        if let Some(seal_dir) = living_docs_core::seal::seal_dir_for(path) {
+            living_docs_core::seal::seal_record(&seal_dir, path, contents);
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]

@@ -56,9 +56,10 @@ fn adoption_steps(bundle: &Path) -> Vec<String> {
         format!("ADOPT 1. create {at}/index.md — the bundle-root index every record hangs off (invariant 3)"),
         "ADOPT 2. living-docs new constitution \"<product>\" — scope, non-negotiables (confirm content with the user)".to_string(),
         "ADOPT 3. living-docs hooks install — doc-gate pre-commit + CLI-owned authoring hooks".to_string(),
-        "ADOPT 4. back-fill standing decisions with living-docs new adr — confirm each with the user, never infer (skill topic: procedure)".to_string(),
-        format!("ADOPT 5. living-docs new view \"Context\" --kind context — first architecture view, then more kinds as they earn their place (one of {})", VIEW_KIND_ORDER.join("|")),
-        format!("ADOPT 6. living-docs index && living-docs check {at}"),
+        "ADOPT 4. living-docs seal init — baseline provenance sealing so check catches out-of-CLI writes (ADR 0039)".to_string(),
+        "ADOPT 5. back-fill standing decisions with living-docs new adr — confirm each with the user, never infer (skill topic: procedure)".to_string(),
+        format!("ADOPT 6. living-docs new view \"Context\" --kind context — first architecture view, then more kinds as they earn their place (one of {})", VIEW_KIND_ORDER.join("|")),
+        format!("ADOPT 7. living-docs index && living-docs check {at}"),
     ]
 }
 

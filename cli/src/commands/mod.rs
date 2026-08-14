@@ -12,6 +12,7 @@ pub(crate) mod leak_gate;
 pub(crate) mod migrate;
 pub(crate) mod new;
 pub(crate) mod next;
+pub(crate) mod seal_cmd;
 pub(crate) mod search;
 pub(crate) mod skill_cmd;
 pub(crate) mod status;

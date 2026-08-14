@@ -1,6 +1,7 @@
 use crate::commands::next::next_number_from_store;
 
 mod fill;
+mod sections;
 use crate::doc_type::{self, Identity};
 use crate::paths;
 use crate::store::DocStore;
@@ -15,6 +16,16 @@ use std::time::{SystemTime, UNIX_EPOCH};
 /// `new`'s created path, and repeated verbatim in the root `--help` about
 /// text and the `living-docs` SKILL.md stub, so an agent meets the
 /// CLI-owns-the-mechanics rule at the moment it authors a record.
+/// Optional authoring inputs for `new` beyond the type and title:
+/// `--description`, `--kind` (ADR 0036) and the `--json` sections payload
+/// (ADR 0038).
+#[derive(Default)]
+pub struct NewOptions<'a> {
+    pub description: Option<&'a str>,
+    pub kind: Option<&'a str>,
+    pub sections_json: Option<&'a str>,
+}
+
 pub const BODY_ONLY_INSTRUCTION: &str = "Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs status` / `supersede` / `index`.";
 
 pub fn run(
@@ -22,18 +33,9 @@ pub fn run(
     docs_dir: &Path,
     doc_type: &str,
     title: &str,
-    description: Option<&str>,
-    kind: Option<&str>,
+    opts: &NewOptions,
 ) -> ExitCode {
-    match scaffold(
-        store,
-        docs_dir,
-        doc_type,
-        title,
-        description,
-        kind,
-        &now_iso8601(),
-    ) {
+    match scaffold(store, docs_dir, doc_type, title, opts, &now_iso8601()) {
         Ok(path) => {
             println!("{}", path.display());
             println!("{BODY_ONLY_INSTRUCTION}");
@@ -56,8 +58,7 @@ fn plan_at(
     docs_dir: &Path,
     doc_type: &str,
     title: &str,
-    description: Option<&str>,
-    kind: Option<&str>,
+    opts: &NewOptions,
     timestamp: &str,
 ) -> Result<(PathBuf, String), String> {
     let spec = doc_type::spec_for(doc_type).ok_or_else(|| unsupported_type_message(doc_type))?;
@@ -69,9 +70,25 @@ fn plan_at(
 
     let filled = fill_frontmatter(spec.template, spec.frontmatter, timestamp);
     let filled = fill_frontmatter_title(&filled, title);
-    let filled = fill_frontmatter_description(&filled, description);
-    let filled = fill_frontmatter_kind(&filled, spec, kind)?;
+    let filled = fill_frontmatter_description(&filled, opts.description);
+    let filled = fill_frontmatter_kind(&filled, spec, opts.kind)?;
+    let filled = match opts.sections_json {
+        Some(payload) => {
+            sections::fill_sections(&filled, payload, title, numbered_prefix_of(&target_path))?
+        }
+        None => filled,
+    };
     Ok((target_path, filled))
+}
+
+/// The `NNNN` filename prefix of a numbered record's target path, `None`
+/// for singleton and named identities.
+fn numbered_prefix_of(path: &Path) -> Option<u32> {
+    let name = path.file_name()?.to_str()?;
+    let prefix = name.get(0..4)?;
+    (name.as_bytes().get(4) == Some(&b'-') && prefix.chars().all(|c| c.is_ascii_digit()))
+        .then(|| prefix.parse().ok())
+        .flatten()
 }
 
 /// Resolves `new`'s target path for `spec`'s identity shape: a
@@ -110,18 +127,9 @@ pub fn plan(
     docs_dir: &Path,
     doc_type: &str,
     title: &str,
-    description: Option<&str>,
-    kind: Option<&str>,
+    opts: &NewOptions,
 ) -> Result<(PathBuf, String), String> {
-    plan_at(
-        store,
-        docs_dir,
-        doc_type,
-        title,
-        description,
-        kind,
-        &now_iso8601(),
-    )
+    plan_at(store, docs_dir, doc_type, title, opts, &now_iso8601())
 }
 
 fn scaffold(
@@ -129,19 +137,10 @@ fn scaffold(
     docs_dir: &Path,
     doc_type: &str,
     title: &str,
-    description: Option<&str>,
-    kind: Option<&str>,
+    opts: &NewOptions,
     timestamp: &str,
 ) -> Result<PathBuf, String> {
-    let (target_path, filled) = plan_at(
-        store,
-        docs_dir,
-        doc_type,
-        title,
-        description,
-        kind,
-        timestamp,
-    )?;
+    let (target_path, filled) = plan_at(store, docs_dir, doc_type, title, opts, timestamp)?;
     store
         .write(&target_path, &filled)
         .map_err(|e| e.to_string())?;

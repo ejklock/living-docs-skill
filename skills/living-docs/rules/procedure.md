@@ -9,10 +9,20 @@ the CLI's job; the judgment prose (the "why") is yours to write directly in the 
   + skeleton), `supersede <old> <new>` (links + status on both records), `index` (regenerate the
   listing), `check` (the gate, must pass), `export`/`brief` (byte-stable materialization /
   pre-filled scaffold).
+- **Prefer authoring the whole record in one call: `new <type> "<title>" --json '{...}'`
+  (ADR 0038).** The payload keys are the type template's own section headings (plus `Intro`);
+  unknown keys are refused listing the valid ones. One call, no scaffold read-back, no
+  boilerplate tokens — and several records batch as chained `new --json` calls. The
+  scaffold-then-edit path stays valid when you genuinely need to think inside the file.
 - **Write the body prose directly.** The CLI must never author rationale, so there is no
   paragraph-editing verb — editing the body is a normal edit, not a process error. What *is* a
   process error is hand-numbering a doc, hand-writing frontmatter, hand-maintaining an index row,
   or hand-wiring `supersedes`/`superseded_by` when `supersede` does it deterministically.
+- **Provenance is sealed (ADR 0039).** After `living-docs seal init`, every CLI write seals the
+  record's CLI-owned frontmatter into `.git/living-docs/`; `check` then fails any record created
+  or owned-key-edited outside the CLI — including shell edits the Write-tool hook never sees.
+  After a git merge/checkout rewrites records legitimately, re-baseline with `living-docs seal
+  init`. Body prose, `description`, `tags`, and `kind` stay freely editable.
 - **When a deterministic frontmatter mutation has no verb yet** (e.g. set status, add a tag) and
   you keep doing it by hand, harden it into a new CLI verb rather than normalizing the hand-edit.
 

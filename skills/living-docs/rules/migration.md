@@ -53,6 +53,14 @@ while executing it:
 2. **Ask the enforcement-mode question first** if the project guide has no `## Living
    Docs` block, and persist the answer (`--topic enforcement-modes`).
 
+## After migrating (either scenario)
+
+Once the plan is empty, baseline provenance sealing: `living-docs seal init` (ADR 0039).
+From then on `check` catches records created or owned-key-edited outside the CLI on this
+clone; re-run `seal init` after any git merge/checkout that legitimately rewrites records.
+Author follow-up records in one call each with `new <type> "<title>" --json '{...}'`
+(ADR 0038) — section keys are the template's own headings.
+
 ## Anti-patterns
 
 - Bulk-editing legacy records to "look current" without re-running `living-docs check` —

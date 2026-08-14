@@ -57,6 +57,14 @@ impl DocStore for MapStore {
     }
 }
 
+fn opts<'a>(description: Option<&'a str>, kind: Option<&'a str>) -> NewOptions<'a> {
+    NewOptions {
+        description,
+        kind,
+        ..Default::default()
+    }
+}
+
 #[test]
 fn scaffold_allocates_number_one_in_an_empty_type_directory() {
     let store = MapStore::new();
@@ -66,8 +74,7 @@ fn scaffold_allocates_number_one_in_an_empty_type_directory() {
         Path::new("/bundle"),
         "adr",
         "First Decision",
-        None,
-        None,
+        &opts(None, None),
         "2026-07-17T00:00:00Z",
     )
     .expect("scaffold should succeed");
@@ -84,8 +91,7 @@ fn scaffold_writes_a_singleton_constitution_with_no_number_or_slug() {
         Path::new("/bundle"),
         "constitution",
         "Acme Constitution",
-        None,
-        None,
+        &opts(None, None),
         "2026-07-17T00:00:00Z",
     )
     .expect("scaffold should succeed");
@@ -107,8 +113,7 @@ fn scaffold_refuses_a_second_constitution() {
         Path::new("/bundle"),
         "constitution",
         "Acme Constitution",
-        None,
-        None,
+        &opts(None, None),
         "2026-07-17T00:00:00Z",
     )
     .expect_err("a second constitution must be refused");
@@ -132,8 +137,7 @@ fn scaffold_allocates_max_existing_number_plus_one_through_next_number_from_stor
         Path::new("/bundle"),
         "adr",
         "Fifth Decision",
-        None,
-        None,
+        &opts(None, None),
         "2026-07-17T00:00:00Z",
     )
     .expect("scaffold should succeed");
@@ -150,8 +154,7 @@ fn scaffold_persists_the_filled_record_through_the_stores_write_method() {
         Path::new("/bundle"),
         "adr",
         "Persisted Decision",
-        None,
-        None,
+        &opts(None, None),
         "2026-07-17T00:00:00Z",
     )
     .expect("scaffold should succeed");
@@ -174,8 +177,7 @@ fn scaffold_seeds_the_description_placeholder_when_none_is_given() {
         Path::new("/bundle"),
         "adr",
         "Placeholder Description",
-        None,
-        None,
+        &opts(None, None),
         "2026-07-17T00:00:00Z",
     )
     .expect("scaffold should succeed");
@@ -198,8 +200,7 @@ fn scaffold_writes_the_given_description_when_some_is_passed() {
         Path::new("/bundle"),
         "adr",
         "Described Decision",
-        Some("A concise sentence describing the change."),
-        None,
+        &opts(Some("A concise sentence describing the change."), None),
         "2026-07-17T00:00:00Z",
     )
     .expect("scaffold should succeed");
@@ -253,8 +254,7 @@ fn scaffold_refuses_to_clobber_a_path_the_store_already_serves_even_when_listing
         Path::new("/bundle"),
         "adr",
         "First Decision",
-        None,
-        None,
+        &opts(None, None),
         "2026-07-17T00:00:00Z",
     )
     .expect_err("clobbering an existing store record must fail");
@@ -271,8 +271,7 @@ fn scaffold_writes_a_named_view_at_its_slug_with_the_kind_filled() {
         Path::new("docs"),
         "view",
         "Container View",
-        None,
-        Some("container"),
+        &opts(None, Some("container")),
         "2026-08-14T00:00:00Z",
     )
     .expect("a view scaffold must succeed");

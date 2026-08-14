@@ -4,10 +4,12 @@
 
 `living-docs check [docs/]` mechanically validates invariants 2, 3, and 4 (the ones a
 machine checks better than prose): frontmatter/`type`, directory-index membership + root
-reachability, link resolution, supersede integrity, and requirement traceability — every
+reachability, link resolution, supersede integrity, requirement traceability — every
 `FR-N` / `NFR-N` a non-Draft PRD defines must be cited by a BDR that links that PRD
-(advisory at `Accepted`, violation at `Implemented`; ADR 0035). *A constraint without an
-instrument is a vibe* — so the checkable invariants get a checker. Wire it into the project's quality gate / CI;
+(advisory at `Accepted`, violation at `Implemented`; ADR 0035) — and, once `living-docs
+seal init` has baselined the clone, provenance: a record created or owned-key-edited
+outside the CLI fails with a `SEAL` violation (fail-open before init; ADR 0039). *A
+constraint without an instrument is a vibe* — so the checkable invariants get a checker. Wire it into the project's quality gate / CI;
 a docs PR that fails it does not merge. It does **not** check docs-first mirroring or "one home
 per fact" semantics — those have no sound oracle and stay with the reviewer.
 

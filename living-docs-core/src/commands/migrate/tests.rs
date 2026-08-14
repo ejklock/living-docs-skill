@@ -28,11 +28,12 @@ fn a_missing_bundle_yields_the_adopt_sequence_and_nothing_else() {
 
     let steps = plan(&store, Path::new("/d"));
 
-    assert_eq!(steps.len(), 7);
+    assert_eq!(steps.len(), 8);
     assert!(steps.iter().all(|step| step.starts_with("ADOPT ")));
     assert!(steps[0].contains("no docs bundle at /d"));
     assert!(steps[2].contains("new constitution"));
-    assert!(steps[5].contains("--kind context"));
+    assert!(steps[4].contains("seal init"));
+    assert!(steps[6].contains("--kind context"));
 }
 
 #[test]

@@ -13,11 +13,12 @@
 //! `check::graph`'s directory-index parsing reads them straight from disk —
 //! that traversal is documented at its own call site.
 
-mod canonical;
+pub(crate) mod canonical;
 mod graph;
 pub(crate) mod links;
 mod mermaid;
 mod records;
+mod seal;
 mod size;
 pub(crate) mod traceability;
 
@@ -77,6 +78,7 @@ fn run_all_checks(store: &dyn DocStore, bundle: &Path, reporter: &mut Reporter) 
 
     mermaid::check_bundle(&all_md, reporter);
     size::check_body_size(store, &all_md, reporter);
+    seal::check_seals(store, bundle, &all_md, reporter);
     traceability::check_requirement_traceability(store, &all_md, reporter);
 
     all_md.len()
