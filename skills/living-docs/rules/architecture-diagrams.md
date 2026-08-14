@@ -4,25 +4,42 @@ Architecture documentation shows *how the system fits together* — the structur
 
 Diagrams are authored in **Mermaid** so they live in version control as text, diff cleanly in PRs, and render in most viewers — no binary image drift.
 
-## Where it lives
+## Where it lives (CLI-owned, ADR 0036)
 
-- **Small project:** a single `docs/architecture.md` holding all diagrams.
-- **Grown project:** an `docs/architecture/` directory with `index.md` + one file per view, organized by the same semantic-index contract as the context index (`rules/semantic-index.md`). Split when the single file passes ~200 lines or mixes unrelated views.
+Views are registry records in `docs/architecture/`, scaffolded and indexed by the CLI —
+one file per concern, never a single mega-file:
 
-The architecture index (`index.md`, OKF reserved listing, no frontmatter) is reachable from the bundle-root `docs/index.md`. Each view file is a standalone **OKF concept** (`type: Architecture View`): frontmatter, then a single `#` H1, then `##` sections.
+```bash
+living-docs new view "Context" --kind context     # docs/architecture/context.md
+living-docs new view "Backends" --kind container
+living-docs index view                            # regenerates architecture/index.md
+```
+
+`--kind` seeds the CLI-validated `kind:` frontmatter from the closed vocabulary `context |
+container | component | flow | sequence | state | data-model | deployment`; the generated
+`architecture/index.md` sorts rows in that C4/arc42 zoom order (kind rank, then filename),
+so the index reads outside-in without hand-maintenance. The docs-handwrite hook covers
+`architecture/` exactly like the numbered type directories: records are born via `new
+view`, the index via `living-docs index`, and only the body below the closing `---` is
+hand-edited. Views carry no status and are never superseded — they are living documents
+updated in place; git history is the trail.
+
+The architecture index (`index.md`, OKF reserved listing, no frontmatter) is reachable from the bundle-root `docs/index.md`. Each view file is a standalone **OKF concept** (`type: Architecture View`): frontmatter, then a single `#` H1, then `##` sections. A legacy single `docs/architecture.md` is migrated by re-creating each of its diagrams as a view record.
 
 ## The standard views
 
 Cover the views the system actually has — don't invent diagrams for their own sake. Common ones:
 
-| View | Mermaid type | Answers |
-|---|---|---|
-| **Context / high-level** | `flowchart` / `graph` | What are the major components and how do they connect to the outside world? |
-| **Data model** | `erDiagram` | What entities exist and how do they relate? (schema, FKs, cardinality) |
-| **Module layout** | `flowchart` | How is the code organized into modules and what depends on what? |
-| **Process / data flow** | `flowchart` with direction | How does data move through a key operation (ingest, backfill, request)? |
-| **Tool-calling / request flow** | `sequenceDiagram` | How does a request actually execute across actors over time? |
-| **State** | `stateDiagram-v2` | What states does an entity move through? (lifecycles, retention) |
+| `--kind` | View | Mermaid type | Answers |
+|---|---|---|---|
+| `context` | **Context / high-level** | `flowchart` / `graph` | What are the major components and how do they connect to the outside world? |
+| `container` | **Containers** | `flowchart` | What deployable/runnable pieces exist and how do they talk? (C4 level 2) |
+| `component` | **Module layout** | `flowchart` | How is the code organized into modules and what depends on what? |
+| `flow` | **Process / data flow** | `flowchart` with direction | How does data move through a key operation (ingest, backfill, request)? |
+| `sequence` | **Tool-calling / request flow** | `sequenceDiagram` | How does a request actually execute across actors over time? |
+| `state` | **State** | `stateDiagram-v2` | What states does an entity move through? (lifecycles, retention) |
+| `data-model` | **Data model** | `erDiagram` | What entities exist and how do they relate? (schema, FKs, cardinality) |
+| `deployment` | **Deployment** | `flowchart` | Where does each container run and over what infrastructure? |
 
 ## Per-view instrument binding (which views are checked vs inspection)
 

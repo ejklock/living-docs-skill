@@ -1,9 +1,11 @@
 //! Clap argument and subcommand definitions for the `living-docs` CLI.
 
 use crate::config::{Backend, Engine};
-use crate::skill_install::Harness;
 use clap::{Parser, Subcommand};
+
+mod sub;
 use std::path::PathBuf;
+pub(crate) use sub::{DbCmd, HooksCmd, SealCmd, SkillCmd};
 
 #[derive(Parser)]
 #[command(
@@ -47,6 +49,17 @@ pub(crate) enum Command {
         /// instead of the template's placeholder (issue 0021).
         #[arg(long)]
         description: Option<String>,
+        /// Architecture views only (ADR 0036): seeds the frontmatter
+        /// `kind:` field from the C4/arc42 vocabulary (context, container,
+        /// component, flow, sequence, state, data-model, deployment) that
+        /// orders the generated architecture index.
+        #[arg(long)]
+        kind: Option<String>,
+        /// Section-keyed JSON body (ADR 0038): keys must match the type
+        /// template's headings (plus `Intro`); `-` reads stdin, `@file`
+        /// reads a file. One call authors the whole record.
+        #[arg(long)]
+        json: Option<String>,
     },
     /// `new` plus deterministic pre-fill (issue 0008): frontmatter title,
     /// numbered title heading, a trail comment, and every judgment section
@@ -123,6 +136,23 @@ pub(crate) enum Command {
     Fmt {
         paths: Vec<PathBuf>,
     },
+    /// Read-only adaptation advisor (ADR 0037): prints an ordered plan of
+    /// RUN (mechanical), AUTHOR (judgment) or ADOPT (bootstrap) steps.
+    Migrate {
+        paths: Vec<PathBuf>,
+        /// Apply the mechanical subset transactionally (ADR 0040):
+        /// snapshot, run `index` + `fmt`, roll back byte-for-byte on any
+        /// failure or check regression. AUTHOR steps are never applied.
+        #[arg(long)]
+        apply: bool,
+    },
+    /// Provenance sealing (ADR 0039): records written by the CLI carry an
+    /// HMAC seal in `.git/living-docs/` that `check` verifies (fail-open
+    /// until initialized).
+    Seal {
+        #[command(subcommand)]
+        cmd: SealCmd,
+    },
     /// Materializes every record the active `--backend` lists back into
     /// conformant `.md` files under `out_dir` — the lossless round-trip
     /// fitness function (ADR 0007, issue 0006 slice 0006-D2).
@@ -195,77 +225,6 @@ pub(crate) enum Command {
     Hooks {
         #[command(subcommand)]
         cmd: HooksCmd,
-    },
-}
-
-#[derive(Subcommand)]
-pub(crate) enum HooksCmd {
-    /// Writes the two corpus hook scripts into `<dir>/.living-docs/hooks/`
-    /// at mode 0755, materializes the pre-commit doc-gate to
-    /// `<dir>/.githooks/pre-commit` (pointing `core.hooksPath` at it), and
-    /// wires the Claude Code hooks into `<dir>/.claude/settings.json`,
-    /// idempotently — re-running replaces the living-docs entries by
-    /// identity rather than appending. The generated commands pin the
-    /// resolved `--docs-dir` bundle as a `LIVING_DOCS_BUNDLE=` prefix.
-    /// `--dry-run` reports the same plan without writing anything.
-    Install {
-        /// Target project root; defaults to the current directory.
-        #[arg(long)]
-        dir: Option<PathBuf>,
-        /// Report the plan without writing any file or directory.
-        #[arg(long)]
-        dry_run: bool,
-    },
-    /// Removes the artifacts `install` wrote — the two `.living-docs/hooks/`
-    /// scripts, `.githooks/pre-commit`, and the living-docs entries in
-    /// `<dir>/.claude/settings.json` — leaving unrelated entries and
-    /// `core.hooksPath` untouched. A clean no-op when nothing was installed.
-    /// `--dry-run` reports the same removal plan without deleting anything.
-    Uninstall {
-        /// Target project root; defaults to the current directory.
-        #[arg(long)]
-        dir: Option<PathBuf>,
-        /// Report the plan without removing any file.
-        #[arg(long)]
-        dry_run: bool,
-    },
-}
-
-#[derive(Subcommand)]
-pub(crate) enum SkillCmd {
-    /// Places the three skill directories from the embedded corpus into a
-    /// harness's skills directory (ADR 0028) — no working tree involved.
-    /// `--project` scopes the destination to the current project instead of
-    /// the harness's global, `$HOME`-rooted directory; `--dir` overrides the
-    /// destination outright.
-    Install {
-        #[arg(long, value_enum, default_value = "claude")]
-        harness: Harness,
-        #[arg(long)]
-        project: bool,
-        /// Destination root for the skill directories, overriding both
-        /// `--harness` and `--project` outright. When given, `--harness`
-        /// still parses but no longer affects where anything is placed.
-        #[arg(long)]
-        dir: Option<PathBuf>,
-        /// Report the plan without writing any file.
-        #[arg(long)]
-        dry_run: bool,
-    },
-}
-
-#[derive(Subcommand)]
-pub(crate) enum DbCmd {
-    /// Rebuild the read-model from every doc `--docs-dir` lists, scoped to
-    /// one named project (ADR 0005, issue 0005 slice 0005-B).
-    Sync {
-        /// The project slug to sync into. Defaults to a slug derived from
-        /// `--docs-dir`: its own directory name, or its parent directory's
-        /// name when the final component is literally `docs` — so every
-        /// repo's `<repo>/docs` bundle gets a project unique to that repo
-        /// instead of every repo colliding on the literal word `docs`.
-        #[arg(long)]
-        project: Option<String>,
     },
 }
 

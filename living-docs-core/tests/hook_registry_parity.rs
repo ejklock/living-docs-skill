@@ -3,8 +3,9 @@
 //! of `doc_type::DOC_TYPES` on purpose (fast, fail-open, binary-independent).
 //! The duplication is allowed to survive; drift between the copy and the
 //! registry is not. This test reads the hook script from disk and asserts
-//! both copies agree with the registry's `Identity::Numbered` rows, compared
-//! as sets so a spurious extra entry on either side fails too.
+//! both copies agree with the registry's `Identity::Numbered` and
+//! `Identity::Named` rows (the CLI-owned record directories, ADR 0036),
+//! compared as sets so a spurious extra entry on either side fails too.
 
 use living_docs_core::doc_type::{Identity, DOC_TYPES};
 use std::collections::BTreeSet;
@@ -47,7 +48,7 @@ fn registry_numbered_directories() -> BTreeSet<String> {
     DOC_TYPES
         .iter()
         .filter_map(|spec| match spec.identity {
-            Identity::Numbered { dir } => Some(dir.to_owned()),
+            Identity::Numbered { dir } | Identity::Named { dir } => Some(dir.to_owned()),
             Identity::Singleton { .. } => None,
         })
         .collect()
@@ -57,7 +58,7 @@ fn registry_numbered_tokens() -> BTreeSet<String> {
     DOC_TYPES
         .iter()
         .filter_map(|spec| match spec.identity {
-            Identity::Numbered { .. } => Some(spec.token.to_owned()),
+            Identity::Numbered { .. } | Identity::Named { .. } => Some(spec.token.to_owned()),
             Identity::Singleton { .. } => None,
         })
         .collect()

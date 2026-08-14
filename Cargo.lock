@@ -1302,7 +1302,7 @@ checksum = "92daf443525c4cce67b150400bc2316076100ce0b3686209eb8cf3c31612e6f0"
 
 [[package]]
 name = "living-docs"
-version = "0.10.3"
+version = "0.11.0"
 dependencies = [
  "clap",
  "db-store",
@@ -1318,11 +1318,14 @@ dependencies = [
 name = "living-docs-core"
 version = "0.1.0"
 dependencies = [
+ "hmac",
  "merman-core",
  "pulldown-cmark",
  "regex",
  "serde",
+ "serde_json",
  "serde_yaml",
+ "sha2 0.10.9",
 ]
 
 [[package]]

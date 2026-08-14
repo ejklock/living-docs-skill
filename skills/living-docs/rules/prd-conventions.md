@@ -9,7 +9,7 @@ Each PRD is an **OKF concept** (`type: PRD`) — see the `okf-knowledge-format` 
 - **Problem / Motivation** — the user or system pain. Lead with the problem, not the solution. If you can't state the problem without naming a solution, grill it first (`grill-me`).
 - **Goals** — what success looks like, as outcomes (not tasks).
 - **Non-goals** — what this explicitly does *not* cover. The most valuable section: it bounds scope and prevents creep.
-- **Requirements** — numbered, testable statements. Each maps to acceptance criteria.
+- **Requirements** — testable statements in EARS patterns, each with a stable PRD-scoped ID (`FR-1`, `FR-2`, …). Each maps to acceptance criteria; BDRs cite the IDs they prove (ADR 0035).
 - **Quality requirements (NFRs)** — non-functional requirements as **quality-attribute scenarios**, each bound to a verifying instrument (see rule 9). This is the home for performance/availability/scale/security requirements; a freeform "should be fast" line is not enough.
 - **Acceptance criteria** — observable conditions that prove the requirement is met.
 - **Open questions** — unresolved decisions, each ideally headed toward an ADR.
@@ -24,7 +24,7 @@ A PRD sits **under** the constitution — it specifies a feature within the prod
 1. **One capability per PRD.** Number sequentially: `docs/prd/NNNN-slug.md`. Index in `docs/prd/index.md` (OKF reserved listing, no frontmatter).
 2. **Problem before solution.** A PRD that opens with the implementation has skipped the thinking. Restate the underlying problem first.
 3. **Non-goals are mandatory.** An empty Non-goals section means scope is undefined. Name at least what tempting-but-excluded things are out.
-4. **Requirements are testable.** "The system should be fast" is not a requirement. "Search returns in <200ms at p95" is.
+4. **Requirements are testable, written in EARS patterns, and carry stable IDs.** "The system should be fast" is not a requirement. "Search returns in <200ms at p95" is. Write each functional requirement in one of the five EARS patterns — ubiquitous ("The system shall …"), event-driven ("When ⟨trigger⟩, the system shall …"), state-driven ("While ⟨state⟩, the system shall …"), unwanted behavior ("If ⟨condition⟩, then the system shall …"), optional ("Where ⟨feature⟩, the system shall …") — under a stable PRD-scoped ID (`FR-N`; NFRs are `NFR-N` in the quality table). IDs never renumber; a dropped requirement leaves a gap. Once the PRD leaves Draft, `living-docs check` traces every ID to a BDR that links this PRD and cites the ID — advisory at `Accepted`, violation at `Implemented` (ADR 0035). Provenance (instrumentalized, not invented): EARS (MAVIN et al., RE'09).
 5. **Success metrics are mandatory.** Each PRD must state how success will be measured after delivery — quantified outcomes (not task completion) that would confirm the problem is solved.
 6. **Append-only once accepted.** A PRD under active design is editable. Once accepted and being implemented, changes are recorded as amendments or new ADRs — not silent edits to the requirements.
 7. **PRDs spawn issues.** Each requirement becomes one or more issues (see `rules/issue-workflow.md`). The PRD links to them; the issues link back to the PRD.

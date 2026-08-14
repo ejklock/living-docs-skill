@@ -64,19 +64,23 @@ Omit the table that does not apply — but never the section.
 ## Scenarios
 
 Each scenario is written to convert verbatim into the project's behavioral regression
-suite. Number from 1; do not skip numbers.
+suite. Number from 1; do not skip numbers. `Proves` cites the PRD requirement IDs
+(`FR-N` / `NFR-N`) the scenario covers — coverage only counts because this BDR links the
+PRD (ADR 0035); drop the line when no PRD requirement applies.
 
 **Scenario 1: {{SCENARIO_NAME}}**
 
 - Given {{GIVEN}}
 - When {{WHEN}}
 - Then {{THEN}}
+- Proves: {{REQUIREMENT_IDS}}
 
 **Scenario 2: {{SCENARIO_NAME}}**
 
 - Given {{GIVEN}}
 - When {{WHEN}}
 - Then {{THEN}}
+- Proves: {{REQUIREMENT_IDS}}
 
 ## Test Design
 
@@ -85,7 +89,8 @@ How this behavior is tested — the single home for the **how** (an execution is
 <!-- Level: unit / integration / e2e. Input/scenario: the concrete case exercised per
      row (e.g. the boundary value, invalid-input class, failure trigger, or invariant
      checked, such as `decode(encode(x)) == x`). Asserts: the observable output or
-     state a caller/test can see. -->
+     state a caller/test can see. Proves: what the row demonstrates — cite the PRD
+     requirement ID (FR-N / NFR-N) when the row covers one (ADR 0035). -->
 
 | Case | Level | Input / scenario | Asserts (observable) | Proves |
 |---|---|---|---|---|

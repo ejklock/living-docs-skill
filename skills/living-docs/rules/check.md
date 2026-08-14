@@ -4,8 +4,12 @@
 
 `living-docs check [docs/]` mechanically validates invariants 2, 3, and 4 (the ones a
 machine checks better than prose): frontmatter/`type`, directory-index membership + root
-reachability, link resolution, and supersede integrity. *A constraint without an instrument is a
-vibe* — so the checkable invariants get a checker. Wire it into the project's quality gate / CI;
+reachability, link resolution, supersede integrity, requirement traceability — every
+`FR-N` / `NFR-N` a non-Draft PRD defines must be cited by a BDR that links that PRD
+(advisory at `Accepted`, violation at `Implemented`; ADR 0035) — and, once `living-docs
+seal init` has baselined the clone, provenance: a record created or owned-key-edited
+outside the CLI fails with a `SEAL` violation (fail-open before init; ADR 0039). *A
+constraint without an instrument is a vibe* — so the checkable invariants get a checker. Wire it into the project's quality gate / CI;
 a docs PR that fails it does not merge. It does **not** check docs-first mirroring or "one home
 per fact" semantics — those have no sound oracle and stay with the reviewer.
 
@@ -40,6 +44,7 @@ rest are judgement:
 - [ ] Architecture diagrams use Mermaid (in-repo text), match the code, and use context-index vocabulary for node/participant names.
 - [ ] Every BDR has a Mermaid diagram, a textual description, **a Contract section** (public signatures + agent tool schemas, observable-only), numbered Given/When/Then scenarios, **and a Test Design matrix** (each row names what it proves); an execution issue links the matrix rather than copying it.
 - [ ] Every NFR is a quality-attribute scenario in the PRD bound to a verifying instrument (not a freeform "should be fast" line); a structural architecture view names whether it is checked or inspection-only.
+- [ ] Every requirement a non-Draft PRD defines (`FR-N` / `NFR-N`, EARS-patterned) is cited by a BDR that links that PRD — enforced by `check` (advisory at `Accepted`, violation at `Implemented`).
 - [ ] The constitution is singular (`docs/constitution.md`) — no NNNN prefix, no index entry.
 - [ ] Each index file's links all resolve (no dangling references).
 - [ ] Any doc declaring `visibility` uses `private | public | showcase` (check enforces the domain); absent ⇒ private, and a doc meant for a public bundle carries `visibility: public | showcase`.

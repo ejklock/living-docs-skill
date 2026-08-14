@@ -25,7 +25,7 @@ const NON_CANONICAL_MESSAGE: &str =
 /// directories (`paths::doc_type_for_dir` — ADR 0020's scope, applied to the
 /// check layer by ADR 0022). Only those records are scaffolded by `new`, so
 /// only they can be expected to byte-match canonical serialization.
-fn in_cli_owned_dir(path: &Path) -> bool {
+pub(crate) fn in_cli_owned_dir(path: &Path) -> bool {
     path.parent()
         .and_then(Path::file_name)
         .and_then(|name| name.to_str())

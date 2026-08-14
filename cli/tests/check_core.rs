@@ -404,7 +404,7 @@ fn briefed_singleton_scaffold_passes_check_over_its_own_bundle() {
         .iter()
         .find_map(|spec| match spec.identity {
             Identity::Singleton { file } => Some(file),
-            Identity::Numbered { .. } => None,
+            Identity::Numbered { .. } | Identity::Named { .. } => None,
         })
         .expect("registry must carry at least one singleton row");
     assert!(

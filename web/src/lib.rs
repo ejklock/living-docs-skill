@@ -12,6 +12,7 @@
 //! and `POST /delete/{*path}`, which soft-deletes through
 //! `db_store::DbDocStore::delete_checked` (ADR 0018, issue 0013 slice B).
 
+mod create;
 pub mod views;
 
 use std::path::PathBuf;
@@ -78,7 +79,7 @@ pub fn build_router(conn: DatabaseConnection, authoring: Option<AuthoringConfig>
 
     if authoring.is_some() {
         router = router
-            .route("/new", get(new_form_handler).post(create_handler))
+            .route("/new", get(new_form_handler).post(create::create_handler))
             .route("/edit/{*path}", get(edit_form_handler).post(edit_handler))
             .route("/supersede/{*path}", axum::routing::post(supersede_handler))
             .route("/delete/{*path}", axum::routing::post(delete_handler));
@@ -282,139 +283,7 @@ pub struct CreateForm {
     title: String,
 }
 
-/// Every way `POST /new`'s handler can fail to commit a new record:
-/// [`living_docs_core::commands::new::plan`]'s own `String` error (an
-/// unsupported doc type, or a path the store already serves), or
-/// [`db_store::DbDocStore::write_checked`]'s own
-/// [`db_store::WriteCheckedError`] (most commonly a failing `check`).
-/// Opening the store itself (`DbDocStore::new`) folds into
-/// [`CreateError::Plan`] too — from the form submitter's point of view both
-/// are "this submission could not be planned", surfaced identically by
-/// [`views::create_form`]'s error slot.
-#[derive(Debug)]
-enum CreateError {
-    Plan(String),
-    Write(db_store::WriteCheckedError),
-}
-
-impl std::fmt::Display for CreateError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            CreateError::Plan(message) => write!(f, "{message}"),
-            CreateError::Write(err) => write!(f, "{err}"),
-        }
-    }
-}
-
-/// `POST /new`'s handler, mounted only when [`AuthoringConfig`] is `Some`
-/// (see [`build_router`]) — the `.expect` below is therefore always
-/// satisfied. Every `DbDocStore`/`write_checked` call happens inside
-/// [`tokio::task::spawn_blocking`]: `DbDocStore` bridges its own
-/// synchronous SeaORM runtime and must never be driven from this handler's
-/// own async task. On success, redirects (`303 See Other`) to the new
-/// record's page; on a [`CreateError`], re-renders [`views::create_form`]
-/// with the submitted fields preserved and the error's `Display` shown; a
-/// panicked blocking task becomes a `500`.
-#[allow(clippy::too_many_lines)]
-async fn create_handler(
-    State(state): State<AppState>,
-    axum::Form(input): axum::Form<CreateForm>,
-) -> Response {
-    let authoring = state
-        .authoring
-        .clone()
-        .expect("create_handler is only mounted when authoring is configured");
-    let CreateForm { doc_type, title } = input;
-    let docs_root = authoring.docs_root.clone();
-    let plan_doc_type = doc_type.clone();
-    let plan_title = title.clone();
-
-    let outcome = tokio::task::spawn_blocking(move || {
-        create_record(
-            &authoring.db_url,
-            &authoring.docs_root,
-            &plan_doc_type,
-            &plan_title,
-        )
-    })
-    .await;
-
-    match outcome {
-        Ok(Ok(target_path)) => {
-            let relative = relative_record_path(&docs_root, &target_path);
-            Redirect::to(&views::record_href(&relative)).into_response()
-        }
-        Ok(Err(err)) => {
-            create_form_response(&state.conn, &doc_type, &title, &err.to_string()).await
-        }
-        Err(_) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "internal error creating record",
-        )
-            .into_response(),
-    }
-}
-
-/// Plans and commits one new record: [`living_docs_core::commands::new::plan`]
-/// computes the target path and the template's filled content, [`fill_title`]
-/// substitutes the submitted `title` for the template's own title
-/// placeholder (never done by `plan` itself — it treats a record's title as
-/// judgment for the authoring model, but Atlas's minimal create form has no
-/// separate title-editing step), and
-/// [`db_store::DbDocStore::write_checked`] commits only if the resulting
-/// project state still passes `check`.
-fn create_record(
-    db_url: &str,
-    docs_root: &std::path::Path,
-    doc_type: &str,
-    title: &str,
-) -> std::result::Result<PathBuf, CreateError> {
-    let store = db_store::DbDocStore::new(db_url, docs_root.to_path_buf())
-        .map_err(|err| CreateError::Plan(err.to_string()))?;
-    let (target_path, filled) =
-        living_docs_core::commands::new::plan(&store, docs_root, doc_type, title, None)
-            .map_err(CreateError::Plan)?;
-    let filled = fill_title(&filled, title);
-    store
-        .write_checked(&target_path, &filled)
-        .map(|_revision| target_path)
-        .map_err(CreateError::Write)
-}
-
-/// Substitutes `title` for the frontmatter `title:` line's placeholder
-/// value, the one field `living_docs_core::commands::new::fill_frontmatter`
-/// deliberately leaves untouched — mirrors that function's own bounded,
-/// guidance-comment-preserving, line-targeted replace, scoped to the
-/// frontmatter block only (before its closing `---`), so nothing outside it
-/// is ever touched. `title` is YAML-double-quote-escaped rather than
-/// substituted raw: an unescaped colon or quote in a free-text browser
-/// field would otherwise produce malformed frontmatter.
-fn fill_title(filled: &str, title: &str) -> String {
-    let lines: Vec<&str> = filled.lines().collect();
-    let Some(close) = lines
-        .iter()
-        .skip(1)
-        .position(|&line| line == "---")
-        .map(|index| index + 1)
-    else {
-        return filled.to_owned();
-    };
-
-    let updated: Vec<String> = lines
-        .iter()
-        .enumerate()
-        .map(|(index, &line)| {
-            if index == 0 || index >= close {
-                line.to_owned()
-            } else {
-                replace_title_line(line, title).unwrap_or_else(|| line.to_owned())
-            }
-        })
-        .collect();
-    updated.join("\n") + "\n"
-}
-
-fn replace_title_line(line: &str, title: &str) -> Option<String> {
+pub(crate) fn replace_title_line(line: &str, title: &str) -> Option<String> {
     let rest = line.strip_prefix("title:")?;
     let quoted = yaml_double_quoted(title);
     match rest.find('#') {
@@ -446,7 +315,10 @@ fn yaml_double_quoted(value: &str) -> String {
 /// mirrors `db_store::DbDocStore`'s own private `relative_path` so a
 /// freshly created record's redirect target matches exactly what
 /// `GET /record/{*path}` will read it back at.
-fn relative_record_path(docs_root: &std::path::Path, target_path: &std::path::Path) -> String {
+pub(crate) fn relative_record_path(
+    docs_root: &std::path::Path,
+    target_path: &std::path::Path,
+) -> String {
     target_path
         .strip_prefix(docs_root)
         .unwrap_or(target_path)
@@ -454,7 +326,7 @@ fn relative_record_path(docs_root: &std::path::Path, target_path: &std::path::Pa
         .into_owned()
 }
 
-async fn create_form_response(
+pub(crate) async fn create_form_response(
     conn: &DatabaseConnection,
     doc_type: &str,
     title: &str,
@@ -503,7 +375,7 @@ pub struct EditForm {
 
 /// Every way `POST /edit/{*path}`'s handler can fail to commit an edit:
 /// opening the store itself failed (folds together with a `Plan`-shaped
-/// failure the way [`CreateError::Plan`] does), or
+/// failure the way [`create::CreateError::Plan`] does), or
 /// [`db_store::DbDocStore::update_checked`]'s own
 /// [`db_store::WriteCheckedError`] — most commonly a stale `base_revision`
 /// or a failing `check`.
@@ -699,7 +571,7 @@ pub struct SupersedeForm {
 
 /// Every way `POST /supersede/{*path}`'s handler can fail to commit: reading
 /// the current record or deriving its number failed (folds together with a
-/// `Plan`-shaped failure the way [`CreateError::Plan`]/[`EditError::Open`]
+/// `Plan`-shaped failure the way [`create::CreateError::Plan`]/[`EditError::Open`]
 /// do), or [`db_store::DbDocStore::supersede_checked`]'s own
 /// [`db_store::SupersedeCheckedError`] — most commonly an unresolvable
 /// target number or a failing `check`.
@@ -936,7 +808,7 @@ mod tests {
 
     #[test]
     fn fill_title_replaces_only_the_frontmatter_title_line() {
-        let filled = fill_title(TEMPLATE, "New Feature");
+        let filled = create::fill_title(TEMPLATE, "New Feature");
 
         assert!(filled.contains("title: \"New Feature\"\n"));
         assert!(filled.contains("# NNNN. <Short decision title>"));
@@ -947,7 +819,7 @@ mod tests {
     fn fill_title_preserves_a_trailing_guidance_comment() {
         let template = "---\ntitle: <placeholder>          # Fill this in\n---\nBody.\n";
 
-        let filled = fill_title(template, "My Title");
+        let filled = create::fill_title(template, "My Title");
 
         assert!(filled.contains("title: \"My Title\""));
         assert!(filled.contains("# Fill this in"));
@@ -957,12 +829,12 @@ mod tests {
     fn fill_title_leaves_content_unchanged_without_a_closing_frontmatter_fence() {
         let no_fence = "title: <placeholder>\nBody with no frontmatter fence.\n";
 
-        assert_eq!(fill_title(no_fence, "My Title"), no_fence);
+        assert_eq!(create::fill_title(no_fence, "My Title"), no_fence);
     }
 
     #[test]
     fn fill_title_escapes_a_colon_and_a_double_quote_so_the_frontmatter_stays_valid_yaml() {
-        let filled = fill_title(TEMPLATE, "Weird: \"Title\"");
+        let filled = create::fill_title(TEMPLATE, "Weird: \"Title\"");
 
         assert!(filled.contains("title: \"Weird: \\\"Title\\\"\"\n"));
     }
@@ -999,10 +871,10 @@ mod tests {
 
     #[test]
     fn create_error_display_surfaces_the_plan_message_and_the_write_error() {
-        let plan_error = CreateError::Plan("adr/0002-taken.md already exists".to_owned());
+        let plan_error = create::CreateError::Plan("adr/0002-taken.md already exists".to_owned());
         assert_eq!(plan_error.to_string(), "adr/0002-taken.md already exists");
 
-        let write_error = CreateError::Write(db_store::WriteCheckedError::AlreadyExists(
+        let write_error = create::CreateError::Write(db_store::WriteCheckedError::AlreadyExists(
             "adr/0002-taken.md".to_owned(),
         ));
         assert_eq!(write_error.to_string(), "adr/0002-taken.md already exists");
