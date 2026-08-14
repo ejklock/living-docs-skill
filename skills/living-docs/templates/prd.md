@@ -34,10 +34,16 @@ timestamp: <ISO 8601 datetime>
 
 ## Requirements
 
-<!-- Each numbered statement must be testable. -->
+<!-- Functional requirements in EARS patterns (ADR 0035): ubiquitous "The system shall ...";
+     event-driven "When {trigger}, the system shall ..."; state-driven "While {state}, the
+     system shall ..."; unwanted behavior "If {condition}, then the system shall ...";
+     optional "Where {feature}, the system shall ...". Each statement must be testable and
+     carries a stable PRD-scoped ID (FR-1, FR-2, ...). IDs never renumber; a dropped
+     requirement leaves a gap. BDRs cite the IDs they prove; `check` traces coverage once
+     this PRD leaves Draft. -->
 
-1. {{REQUIREMENT}}
-2. {{REQUIREMENT}}
+- **FR-1** — When {{TRIGGER}}, the system shall {{RESPONSE}}.
+- **FR-2** — The system shall {{REQUIREMENT}}.
 
 ## Quality requirements (NFRs)
 
@@ -48,10 +54,10 @@ verifying instrument. A quality requirement without an instrument is a vibe.
 <!-- e.g. Performance: a client issues a read to the API under 10x peak load, returns
      successfully in < 200 ms at p99, verified by a load test or CI floor. -->
 
-| Quality attribute | Scenario (source · stimulus · artifact · environment · response · measure) | Verified by |
-|---|---|---|
-| {{QUALITY_ATTRIBUTE}} | {{SCENARIO}} | {{INSTRUMENT}} |
-| {{QUALITY_ATTRIBUTE}} | {{SCENARIO}} | {{INSTRUMENT}} |
+| ID | Quality attribute | Scenario (source · stimulus · artifact · environment · response · measure) | Verified by |
+|---|---|---|---|
+| NFR-1 | {{QUALITY_ATTRIBUTE}} | {{SCENARIO}} | {{INSTRUMENT}} |
+| NFR-2 | {{QUALITY_ATTRIBUTE}} | {{SCENARIO}} | {{INSTRUMENT}} |
 
 <!-- Measure before committing to the complexity that meets the NFR; lock the measured
      floor in CI; record the decision + fitness function in an ADR. -->

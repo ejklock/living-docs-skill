@@ -13,7 +13,6 @@
 461 db-store/tests/parity.rs
 304 living-docs-core/src/check/graph.rs
 332 living-docs-core/src/check/mermaid.rs
-394 living-docs-core/src/check/mod.rs
 380 living-docs-core/src/check/records.rs
 523 living-docs-core/src/commands/brief.rs
 415 living-docs-core/src/commands/export.rs
