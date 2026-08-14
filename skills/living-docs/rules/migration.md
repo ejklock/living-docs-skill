@@ -8,10 +8,15 @@ records; you do, through the CLI verbs.
 ## The one command
 
 ```bash
-living-docs migrate [docs/]     # read-only; prints the ordered adaptation plan
+living-docs migrate [docs/]           # read-only; prints the ordered adaptation plan
+living-docs migrate [docs/] --apply   # transactionally applies the mechanical subset (ADR 0040)
 ```
 
-Safe to run anywhere, any time. Each printed step carries a parseable prefix:
+The advisor is safe to run anywhere, any time. `--apply` (fs-mode only) snapshots every
+`.md` plus the seal ledger, runs `index` + `fmt`, and rolls back byte-for-byte on any
+failure or `check` regression — then re-prints the remaining `AUTHOR` steps, which are
+**never** applied automatically. An `ADOPT` plan refuses `--apply`: bootstrap is judgment
+plus user confirmation. Each printed step carries a parseable prefix:
 
 | Prefix | Meaning | Who acts |
 |---|---|---|

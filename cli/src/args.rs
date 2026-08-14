@@ -140,6 +140,11 @@ pub(crate) enum Command {
     /// RUN (mechanical), AUTHOR (judgment) or ADOPT (bootstrap) steps.
     Migrate {
         paths: Vec<PathBuf>,
+        /// Apply the mechanical subset transactionally (ADR 0040):
+        /// snapshot, run `index` + `fmt`, roll back byte-for-byte on any
+        /// failure or check regression. AUTHOR steps are never applied.
+        #[arg(long)]
+        apply: bool,
     },
     /// Provenance sealing (ADR 0039): records written by the CLI carry an
     /// HMAC seal in `.git/living-docs/` that `check` verifies (fail-open

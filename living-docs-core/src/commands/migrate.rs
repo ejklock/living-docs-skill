@@ -31,7 +31,7 @@ pub fn run(store: &dyn DocStore, bundle: &Path) -> ExitCode {
 /// current. A bundle whose root `index.md` the store does not list is
 /// treated as absent and gets the `ADOPT` bootstrap sequence instead of a
 /// per-record scan.
-pub(crate) fn plan(store: &dyn DocStore, bundle: &Path) -> Vec<String> {
+pub fn plan(store: &dyn DocStore, bundle: &Path) -> Vec<String> {
     let all_md = store.list(bundle).unwrap_or_default();
     if !all_md.contains(&bundle.join("index.md")) {
         return adoption_steps(bundle);

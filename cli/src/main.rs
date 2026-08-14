@@ -80,8 +80,8 @@ fn main() -> ExitCode {
             commands::check::run_check(cli.backend, cli.engine, &cli.docs_dir, paths)
         }
         Command::Fmt { paths } => commands::fmt::run_fmt(&cli.docs_dir, paths),
-        Command::Migrate { paths } => {
-            commands::migrate::run_migrate(cli.backend, cli.engine, &cli.docs_dir, paths)
+        Command::Migrate { paths, apply } => {
+            commands::migrate::run_migrate(cli.backend, cli.engine, &cli.docs_dir, paths, apply)
         }
         Command::Seal { cmd: SealCmd::Init } => commands::seal_cmd::run_seal_init(&cli.docs_dir),
         Command::Export {

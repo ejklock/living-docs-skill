@@ -47,6 +47,9 @@ writes or edits anything; the judgment half is governed by the skill topic
   alternative — `migrate --apply` running `index`/`fmt` in one shot; rejected for this
   slice because the executing agent already runs printed commands verbatim, and an
   applying verb needs its own transactional/rollback story before it earns existence.
+  *(Amended by [ADR 0040](/adr/0040-migrate-apply-is-a-cli-front-transaction-over-the-mechanical-subset.md):
+  the transactional story now exists — `--apply` in the CLI front; the core advisor
+  stays read-only.)*
 - A skill-only instruction page without a verb was rejected on the standing rule: a
   constraint without an instrument is a vibe — shape detection is mechanical and belongs
   in the binary.
