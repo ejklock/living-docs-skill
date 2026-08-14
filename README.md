@@ -159,7 +159,7 @@ make check           # full gate: version sync · living-docs check the example 
                      #   validate mermaid · hostile parser fixtures · bash -n all
                      #   scripts · dry-run every harness
 make build           # build the living-docs binary natively -> target/release/living-docs
-make cli-install     # install the living-docs binary onto PATH (native cargo install)
+make cli-install     # install the living-docs binary onto PATH (fetches the latest GitHub release; LIVING_DOCS_VERSION pins a tag)
 make test-fixtures   # run the hostile/negative fixtures guarding the parsers
 ```
 

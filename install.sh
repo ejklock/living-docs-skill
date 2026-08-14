@@ -207,6 +207,25 @@ build_cli_from_source() {
   note "living-docs (built from source) -> $dest/living-docs"
 }
 
+# --- resolve the release tag to fetch: LIVING_DOCS_VERSION pins one, else the
+# --- newest published tag from the GitHub releases API (no jq, curl-pipeable) ---
+cli_resolve_tag() {
+  local pinned="${LIVING_DOCS_VERSION:-}"
+  if [[ -n "$pinned" ]]; then
+    case "$pinned" in
+      v*) printf '%s\n' "$pinned" ;;
+      *)  printf 'v%s\n' "$pinned" ;;
+    esac
+    return 0
+  fi
+
+  local latest_url="https://api.github.com/repos/$CLI_REPO/releases/latest"
+  local tag
+  tag="$(curl -fsSL "$latest_url" 2>/dev/null | grep -m1 '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]*)".*/\1/')"
+  [[ -n "$tag" ]] || return 1
+  printf '%s\n' "$tag"
+}
+
 install_cli() {
   local dest="${OVERRIDE_DIR:-$HOME/.local/bin}"
   local bin_path="$dest/living-docs"
@@ -222,7 +241,7 @@ install_cli() {
     return
   fi
 
-  local triple asset version tag base asset_url sha_url tmp
+  local triple asset tag base asset_url sha_url tmp
   if ! triple="$(cli_target_triple "$(uname -s)" "$(uname -m)")"; then
     log "unsupported platform ($(uname -s)/$(uname -m)) for a prebuilt binary; building from source"
     build_cli_from_source "$dest"
@@ -230,14 +249,17 @@ install_cli() {
   fi
 
   asset="living-docs-$triple"
-  version="$(<"$SCRIPT_DIR/VERSION")"
-  tag="v$version"
+  if ! tag="$(cli_resolve_tag)"; then
+    log "could not resolve a release tag (set LIVING_DOCS_VERSION or check network); building from source"
+    build_cli_from_source "$dest"
+    return
+  fi
   base="https://github.com/$CLI_REPO/releases/download/$tag"
   asset_url="$base/$asset"
   sha_url="$asset_url.sha256"
 
   if [[ $DRYRUN -eq 1 ]]; then
-    log "  [dry-run] would download $asset_url -> $bin_path (sha256-verified)"
+    log "  [dry-run] would download $asset_url ($tag) -> $bin_path (sha256-verified)"
     return
   fi
 

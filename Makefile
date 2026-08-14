@@ -34,7 +34,7 @@ LIVING_DOCS_BIN := target/release/living-docs
         uninstall uninstall-all check lint test-fixtures test-hooks \
         test-release-gate test-version-gate version \
         test-filesize-gate filesize \
-        allow-inventory test-allow-inventory-gate \
+        allow-inventory test-allow-inventory-gate test-install-gate \
         cli-dev-image cli-build cli-test cli-fmt cli-clippy build cli-install \
         up down db-up db-psql db-logs db-test
 
@@ -86,12 +86,13 @@ uninstall: ## Remove the global Claude Code install
 uninstall-all: ## Remove the install for every supported harness
 	$(INSTALL) all --uninstall
 
-check: version filesize allow-inventory build test-fixtures test-hooks test-release-gate test-version-gate test-filesize-gate test-allow-inventory-gate ## Check version sync, file-size ratchet, allow-inventory gate, validate install.sh, run Rust tests, living-docs check + mermaid, hook fixtures, release-asset gate fixtures, version-gate fixtures, file-size gate fixtures, allow-inventory gate fixtures, dry-run harnesses
+check: version filesize allow-inventory build test-fixtures test-hooks test-release-gate test-version-gate test-filesize-gate test-allow-inventory-gate test-install-gate ## Check version sync, file-size ratchet, allow-inventory gate, validate install.sh, run Rust tests, living-docs check + mermaid, hook fixtures, release-asset gate fixtures, version-gate fixtures, file-size gate fixtures, allow-inventory gate fixtures, install gate fixtures, dry-run harnesses
 	bash -n install.sh
 	bash -n scripts/check-version.sh
 	bash -n scripts/verify-release-assets.sh
 	bash -n scripts/check-file-size.sh
 	bash -n scripts/check-allow-inventory.sh
+	bash -n scripts/tests/install/run.sh
 	cargo test --manifest-path cli/Cargo.toml
 	$(LIVING_DOCS_BIN) check examples/linkly/docs
 	$(LIVING_DOCS_BIN) check --mermaid-only
@@ -115,6 +116,9 @@ test-filesize-gate: ## Run the check-file-size.sh fixtures, synthetic repos
 test-allow-inventory-gate: ## Run the check-allow-inventory.sh fixtures, synthetic repos
 	./scripts/tests/check-allow-inventory/run.sh
 
+test-install-gate: ## Run the install.sh fixtures (ADR 0041), stubbed curl
+	./scripts/tests/install/run.sh
+
 version: ## Assert the release version is consistent across VERSION and every SKILL.md
 	./scripts/check-version.sh
 
@@ -127,10 +131,11 @@ allow-inventory: ## Assert the clippy::too_many_lines allow annotations only shr
 lint: check ## Alias for check
 
 # --- cli/ (Rust) — Docker-always dev targets ---
-# cli-* targets run cargo inside the pinned Dockerfile.dev image. `build`/`cli-install`
-# use the host cargo instead (the "native" path) — see cli/rust-toolchain.toml for the
-# pinned version both paths agree on. NOTE: `install` is already taken by the skill
-# installer above, so the native CLI install target is `cli-install`, not `install`.
+# cli-* targets run cargo inside the pinned Dockerfile.dev image. `build` uses host
+# cargo to compile locally (see cli/rust-toolchain.toml for the pinned version) ->
+# target/release/living-docs. `cli-install` fetches the published release binary via
+# install.sh (ADR 0041); it never compiles. NOTE: `install` is already taken by the
+# skill installer above, so the release CLI install target is `cli-install`, not `install`.
 
 cli-dev-image: ## Build the pinned Rust dev image (rustfmt + clippy + build-essential)
 	docker build -f Dockerfile.dev -t $(DEV_IMAGE) .
@@ -154,8 +159,8 @@ cli-clippy: cli-dev-image ## Lint the CLI inside the dev image (clippy --all-tar
 build: ## Build the release CLI binary natively (host cargo) -> target/release/living-docs
 	cargo build --release --manifest-path cli/Cargo.toml
 
-cli-install: build ## Install the CLI binary onto PATH natively (host cargo, idempotent)
-	cargo install --path cli --force
+cli-install: ## Install the living-docs CLI from the latest GitHub release
+	$(INSTALL) cli
 
 # Provisions the ParadeDB (Postgres + BM25) service from ADR 0004 for local db-mode work.
 # The compose `web` service is deferred to issues 0004/0006.
