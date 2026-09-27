@@ -60,12 +60,12 @@ fn corpus_diagram(body: &str) -> Diagram {
     }
 }
 
-/// ADR 0013 fitness function: the conformance corpus must parse with the
+/// The conformance corpus must parse with the
 /// exact same accept/reject verdict the prior parser gave — every valid
 /// shape accepted, the broken arrow chain rejected. A parity regression
 /// in `merman-core` fails this test, not silently degrades `check`.
 #[test]
-fn validate_all_matches_the_adr_0013_conformance_corpus() {
+fn validate_all_matches_the_conformance_corpus() {
     let valid = [
         "flowchart TD\n  A[Start] --> B{Decision}\n  B -->|Yes| C[Do the thing]\n  B -->|No| D[Skip it]\n",
         "flowchart LR\n  User -->|shortens| App\n  App -->|redirects| User\n",
@@ -87,6 +87,66 @@ fn validate_all_matches_the_adr_0013_conformance_corpus() {
         1,
         "expected the broken arrow chain to be rejected"
     );
+}
+
+/// Verified `merman-core` 0.7.0 leniency, reported upstream:
+/// https://github.com/Latias94/merman/issues/150. `ParseOptions::strict()`
+/// accepts an unlabeled-arrow chain whose bare-word target text splits into
+/// two nodes with no edge between them, where mermaid.js rejects the same
+/// input ("got 'NODE_STRING'"). Pinned here so a future `merman-core`
+/// upgrade that fixes the leniency fails this test, not the other way
+/// around: when that happens, flip the assertion to rejected instead of
+/// letting the verdict change silently.
+#[test]
+fn validate_all_accepts_a_known_merman_core_leniency_pending_upstream_fix() {
+    let bare_word_target = corpus_diagram(
+        "flowchart LR\n    AX -- \"~4.0:1 today\" --> per-story disable --> GAP[blind spot]\n",
+    );
+    let bracketed_target = corpus_diagram(
+        "flowchart LR\n    AX -- \"~4.0:1 today\" --> PS[per-story disable] --> GAP[blind spot]\n",
+    );
+
+    let failures = validate_all(&[bare_word_target, bracketed_target]);
+
+    assert!(
+        failures.is_empty(),
+        "expected merman-core 0.7.0 to still accept both diagrams, but {} failed",
+        failures.len()
+    );
+}
+
+#[test]
+fn format_failure_reports_the_no_diagram_detail_verbatim() {
+    let failure = Failure {
+        file: PathBuf::from("doc.md"),
+        start_line: 5,
+        detail: "no mermaid diagram recognized in fence body".to_string(),
+    };
+
+    let line = format_failure(&failure);
+
+    assert_eq!(
+        line,
+        "FAIL doc.md:5 — invalid mermaid diagram: no mermaid diagram recognized in fence body"
+    );
+}
+
+#[test]
+fn format_failure_collapses_a_multiline_parser_detail_to_one_line() {
+    let failure = Failure {
+        file: PathBuf::from("doc.md"),
+        start_line: 7,
+        detail: "UnrecognizedToken {\n  token: Arrow,\n  expected: [\"EdgeLabel\", \"Id\"]\n}"
+            .to_string(),
+    };
+
+    let line = format_failure(&failure);
+
+    assert_eq!(
+        line,
+        "FAIL doc.md:7 — invalid mermaid diagram: UnrecognizedToken { token: Arrow, expected: [\"EdgeLabel\", \"Id\"] }"
+    );
+    assert!(!line.contains('\n'), "expected one line, got:\n{line}");
 }
 
 #[test]
