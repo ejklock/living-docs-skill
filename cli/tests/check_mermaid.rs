@@ -3,6 +3,9 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+mod common;
+use common::{run_check, write};
+
 fn living_docs() -> Command {
     Command::new(env!("CARGO_BIN_EXE_living-docs"))
 }
@@ -28,7 +31,7 @@ fn temp_dir(label: &str) -> PathBuf {
 
 /// `--plain` forces text mode regardless of the piped, non-TTY stdout a
 /// spawned test process always has, so these assertions exercise the same
-/// text rendering a human at a terminal sees (ADR 0060).
+/// text rendering a human at a terminal sees.
 fn run_mermaid_only(path: &Path) -> Output {
     living_docs()
         .args(["check", "--mermaid-only", "--plain", path.to_str().unwrap()])
@@ -151,6 +154,34 @@ fn mermaid_only_prints_text_with_plain_even_when_piped() {
         serde_json::from_str::<serde_json::Value>(stdout.trim()).is_err(),
         "expected text, not JSON, got:\n{stdout}"
     );
+}
+
+/// The full `check` (not `--mermaid-only`) reports an invalid diagram with
+/// the parser's own detail inline, not just a file:line pointer, so a reader
+/// learns what broke without a second `--mermaid-only` run.
+#[test]
+fn full_check_reports_the_parser_detail_alongside_the_file_line_pointer() {
+    let bundle = temp_dir("full-check");
+    write(
+        &bundle,
+        "index.md",
+        "# Index\n\n```mermaid\nflowchart TD\nA --> --> B\n```\n",
+    );
+
+    let output = run_check(&bundle);
+    let stdout = stdout_of(&output);
+
+    assert_eq!(output.status.code(), Some(1), "got:\n{stdout}");
+    assert!(
+        stdout.contains("index.md:3"),
+        "expected a file:line pointer, got:\n{stdout}"
+    );
+    assert!(
+        stdout.contains("invalid mermaid diagram:") && stdout.contains("expected"),
+        "expected the parser's own detail (an 'expected' token list) inline, got:\n{stdout}"
+    );
+
+    let _ = fs::remove_dir_all(&bundle);
 }
 
 #[test]

@@ -59,3 +59,4 @@ one slice per fresh context, starting from the skeleton.
 * [0048 — check stops advising on retired records and the live headings align with their titles](0048-check-stops-advising-on-retired-records-and-the-live-headings-align-with-their-titles.md) - closed
 * [0049 — check liveness and moved-source reuse the shared retired-record predicate](0049-check-liveness-and-moved-source-reuse-the-shared-retired-record-predicate.md) - closed
 * [0050 — jscpd ignores tests and markdown so the duplication gate measures production code](0050-jscpd-ignores-tests-and-markdown-so-the-duplication-gate-measures-production-code.md) - closed
+* [0051 — check mermaid accepts diagrams that mermaid.js rejects](0051-check-mermaid-accepts-diagrams-that-mermaid-js-rejects.md) - closed

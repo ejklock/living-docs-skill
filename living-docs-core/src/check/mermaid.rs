@@ -1,9 +1,12 @@
-//! Mermaid fence validation (ADR 0013) — ports `skills/living-docs/scripts/lint-mermaid.sh`.
+//! Mermaid fence validation — ports `skills/living-docs/scripts/lint-mermaid.sh`.
 //!
 //! Extracts every fenced ```mermaid``` block (optional indent, one open line +
 //! one close line) and validates each one in-process through `merman-core`'s
 //! `Engine::parse_diagram_sync`, the real Mermaid grammar parser — not a
-//! hand-rolled check and no external process of any kind.
+//! hand-rolled check and no external process of any kind. Parity with
+//! mermaid.js is bounded by the conformance corpus exercised in tests, not
+//! unbounded: a known parser leniency outside that corpus is pinned in its
+//! own test instead of being silently accepted here.
 
 use super::{collect_md_files, Reporter};
 use merman_core::{Engine, ParseOptions};
@@ -36,7 +39,7 @@ enum Outcome {
     },
 }
 
-/// `check --mermaid-only`'s findings (ADR 0060): one entry per diagram that
+/// `check --mermaid-only`'s findings: one entry per diagram that
 /// failed to parse, plus the totals a renderer needs for either its text or
 /// JSON shape. Never printed here — the CLI front renders it (`compile`'s
 /// own doc comment explains why).
@@ -59,7 +62,7 @@ pub struct MermaidError {
 /// fences under `paths` (default: git-tracked `*.md`, fixtures dir excluded),
 /// mirroring `lint-mermaid.sh`'s own default sweep — without printing or
 /// choosing an exit code, so the CLI front can render it as colored text or
-/// JSON (ADR 0060).
+/// JSON.
 pub fn compile(paths: &[PathBuf]) -> MermaidReport {
     let files = discover_files(paths);
     match check(&files) {
@@ -99,15 +102,25 @@ pub(crate) fn check_bundle(all_md: &[PathBuf], reporter: &mut Reporter) {
         return;
     };
     for f in &failures {
-        reporter.report(
-            &f.file,
-            format!(
-                "FAIL {}:{} — invalid mermaid diagram",
-                f.file.display(),
-                f.start_line
-            ),
-        );
+        reporter.report(&f.file, format_failure(f));
     }
+}
+
+/// Renders one failed diagram as the single line `check` prints: the
+/// file:line pointer plus the parser's own detail (or the no-diagram note),
+/// with every whitespace run in the detail collapsed to one space so a
+/// multi-line parser message still prints on one line.
+fn format_failure(failure: &Failure) -> String {
+    format!(
+        "FAIL {}:{} — invalid mermaid diagram: {}",
+        failure.file.display(),
+        failure.start_line,
+        collapse_whitespace(&failure.detail)
+    )
+}
+
+fn collapse_whitespace(detail: &str) -> String {
+    detail.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 fn check(files: &[PathBuf]) -> Outcome {
@@ -211,7 +224,7 @@ fn extract_from_file(file: &Path) -> Vec<Diagram> {
     diagrams
 }
 
-/// Validates every diagram against one shared `Engine`, matching ADR 0013:
+/// Validates every diagram against one shared `Engine`:
 /// `Ok(Some(_))` passes, `Err(_)`/`Ok(None)` produce a `Failure` carrying the
 /// parser's own error (or a no-diagram note) as `detail`.
 fn validate_all(diagrams: &[Diagram]) -> Vec<Failure> {
