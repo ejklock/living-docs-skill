@@ -104,7 +104,7 @@ pub(crate) fn check_supersede_chain(
 /// Visits every non-reserved, store-readable record in `all_md` — the
 /// skeleton `check_supersede_chain`, `check_heading_matches_title` and
 /// `check_owner_requirement` all walk before applying their own rule.
-fn for_each_readable_record<'a>(
+pub(super) fn for_each_readable_record<'a>(
     store: &dyn DocStore,
     all_md: &'a [PathBuf],
     mut visit: impl FnMut(&'a Path, String),
@@ -188,7 +188,7 @@ fn heading_title(contents: &str) -> Option<String> {
 /// retired, through the shared [`doc_type::DocTypeSpec::is_retired`]
 /// predicate (ADR 0063). Absent either key, or an unregistered `type`, the
 /// record is judged live — there is nothing to retire it against.
-fn is_retired_record(contents: &str) -> bool {
+pub(super) fn is_retired_record(contents: &str) -> bool {
     let Some(doc_type) = frontmatter_scalar(contents, "type") else {
         return false;
     };

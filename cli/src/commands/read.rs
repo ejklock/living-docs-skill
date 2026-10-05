@@ -13,6 +13,7 @@ pub(crate) fn run_read(docs_dir: &Path, args: ReadArgs, mode: OutputMode) -> Exi
     let options = Options {
         topic: args.topic,
         full: args.full,
+        contract: args.contract,
     };
     let store = build_store();
     let output = if mode.is_json() {

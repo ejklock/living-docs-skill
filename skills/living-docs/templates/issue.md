@@ -24,4 +24,4 @@ timestamp: <ISO 8601 datetime>
 
 ### Plan
 
-{{PLAN: the slices, for a large task}}
+{{PLAN: the slices, for a large task; Plan is detail tier, so `read --contract` omits it; a one-commit change removes this section}}

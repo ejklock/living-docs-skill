@@ -248,7 +248,7 @@ fn compile_require_owner_never_flags_a_type_that_does_not_require_owner() {
     let mut files = BTreeMap::new();
     files.insert(
         bundle.root.join("adr").join("0001-doc.md"),
-        "---\ntype: Issue\ntitle: Doc\ndescription: \"\"\nstatus: open\n---\n\n# Doc\n\nBody.\n"
+        "---\ntype: Issue\ntitle: Doc\ndescription: \"\"\nstatus: open\n---\n\n# Doc\n\n### Scope\n\nBody.\n\n### Acceptance\n\n- done\n"
             .to_string(),
     );
     let store = MapStore { files };

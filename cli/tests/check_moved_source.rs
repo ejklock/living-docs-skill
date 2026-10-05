@@ -103,7 +103,7 @@ fn a_done_issue_linking_a_superseded_record_is_clean() {
         &bundle,
         "b.md",
         &format!(
-            "---\ntype: Issue\ntitle: B\ndescription: Moved source.\nstatus: Deprecated\n---\n{}\n\n# B\n",
+            "---\ntype: Issue\ntitle: B\ndescription: Moved source.\nstatus: Deprecated\n---\n{}\n\n# B\n\n### Scope\n\n### Acceptance\n",
             deprecated_callout()
         ),
     );

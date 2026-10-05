@@ -3,12 +3,14 @@
 //! the agent-facing read of the bundle — active records only
 //! (superseded/deprecated withheld), supersede chains collapsed to the head
 //! with a one-line lineage, grouped by kind then number. `--topic` restricts
-//! to records mentioning a term (case-insensitive, title/description/body);
-//! `--full` prints bodies instead of the one-line index. Derived, never
-//! committed: the records stay the SSOT.
+//! to records mentioning a term (case-insensitive, title/description/body).
+//! `--full` prints bodies instead of the one-line index, and `--contract` the
+//! same minus detail-tier sections. Derived, never committed: the records
+//! stay the SSOT.
 
 use crate::record::{self, ExtractedRecord};
 use crate::store::DocStore;
+use crate::{doc_type, sections};
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -20,6 +22,7 @@ mod render;
 pub struct Options {
     pub topic: Option<String>,
     pub full: bool,
+    pub contract: bool,
 }
 
 /// One record that survived selection, flattened to what the renderer needs.
@@ -65,7 +68,7 @@ pub(crate) fn collect(
 
     let views: Vec<View> = active
         .iter()
-        .map(|(_, record)| view_of(record, &records))
+        .map(|(_, record)| view_of(record, &records, options.contract))
         .collect();
     (withheld, views)
 }
@@ -74,7 +77,7 @@ pub(crate) fn collect(
 /// the compiled text without capturing stdout.
 pub fn compile(store: &dyn DocStore, bundle: &Path, options: &Options) -> String {
     let (withheld, views) = collect(store, bundle, options);
-    render::render(&views, options.full, withheld)
+    render::render(&views, options.full || options.contract, withheld)
 }
 
 #[derive(Serialize)]
@@ -97,7 +100,8 @@ struct EffectiveJson {
 
 /// Minified-JSON counterpart of [`compile`]:
 /// `{"withheld":N,"records":[{"type","number","title","description",
-/// "lineage","body"?}]}` — `body` present only under `options.full`.
+/// "lineage","body"?}]}` — `body` appears under `options.full` and under
+/// `options.contract`, the latter without detail-tier sections.
 pub fn compile_json(store: &dyn DocStore, bundle: &Path, options: &Options) -> String {
     let (withheld, views) = collect(store, bundle, options);
     let records = views
@@ -108,7 +112,7 @@ pub fn compile_json(store: &dyn DocStore, bundle: &Path, options: &Options) -> S
             title: view.title,
             description: view.description,
             lineage: view.lineage,
-            body: options.full.then_some(view.body),
+            body: (options.full || options.contract).then_some(view.body),
         })
         .collect();
     serde_json::to_string(&EffectiveJson { withheld, records })
@@ -152,13 +156,20 @@ fn matches_topic(record: &ExtractedRecord, topic: Option<&str>) -> bool {
         .any(|field| field.to_lowercase().contains(topic))
 }
 
-fn view_of(record: &ExtractedRecord, all: &[(PathBuf, ExtractedRecord)]) -> View {
+fn view_of(record: &ExtractedRecord, all: &[(PathBuf, ExtractedRecord)], contract: bool) -> View {
+    let body = if contract {
+        let schema =
+            doc_type::spec_for_frontmatter(&record.doc_type).map_or(&[][..], |s| s.sections);
+        sections::contract_body(&record.body, schema)
+    } else {
+        record.body.clone()
+    };
     View {
         doc_type: record.doc_type.clone(),
         number: record.number,
         title: record.title.clone(),
         description: record.description.clone(),
-        body: record.body.clone(),
+        body,
         lineage: lineage_of(record, all),
     }
 }

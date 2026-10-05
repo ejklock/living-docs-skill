@@ -147,3 +147,62 @@ fn frontmatter_values_are_unique_so_spec_for_frontmatter_is_well_defined() {
         "DOC_TYPES has duplicate frontmatter values"
     );
 }
+
+fn required_sections_absent_from<'a>(spec: &'a DocTypeSpec, template: &str) -> Vec<&'a str> {
+    let headings = crate::sections::heading_names(template);
+    spec.sections
+        .iter()
+        .filter(|section| section.requirement == Requirement::Required)
+        .filter(|section| !crate::sections::has_section(&headings, section.name))
+        .map(|section| section.name)
+        .collect()
+}
+
+#[test]
+fn the_issue_row_declares_its_sections_in_order_with_requirement_and_tier() {
+    let declared: Vec<_> = spec_for("issue")
+        .unwrap()
+        .sections
+        .iter()
+        .map(|section| (section.name, section.requirement, section.tier))
+        .collect();
+    assert_eq!(
+        declared,
+        [
+            ("Scope", Requirement::Required, Tier::Contract),
+            ("Decision", Requirement::Optional, Tier::Contract),
+            ("Acceptance", Requirement::Required, Tier::Contract),
+            ("Plan", Requirement::Optional, Tier::Detail),
+            ("Outcome", Requirement::Optional, Tier::Detail),
+        ]
+    );
+}
+
+#[test]
+fn a_type_without_a_schema_declares_no_sections() {
+    assert!(spec_for("adr").unwrap().sections.is_empty());
+}
+
+#[test]
+fn every_required_section_is_a_heading_in_its_rows_template() {
+    for spec in DOC_TYPES {
+        assert_eq!(
+            required_sections_absent_from(spec, spec.template),
+            Vec::<&str>::new(),
+            "{} template lacks a required section",
+            spec.token
+        );
+    }
+}
+
+#[test]
+fn the_template_fitness_check_reports_a_renamed_required_heading() {
+    let spec = spec_for("issue").unwrap();
+    let renamed = spec
+        .template
+        .replace("### Acceptance", "### Acceptance criteria");
+    assert_eq!(
+        required_sections_absent_from(spec, &renamed),
+        ["Acceptance"]
+    );
+}

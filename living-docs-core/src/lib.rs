@@ -10,6 +10,7 @@ pub mod doc_type;
 pub mod frontmatter;
 pub mod paths;
 pub mod record;
+mod sections;
 pub mod store;
 pub mod templates;
 

@@ -1,7 +1,7 @@
 //! Rendering for the effective view (ADR 0050, simplified by ADR 0057): a
-//! one-line index entry per record by default, or the full body under
-//! `--full`. No tiers and no token budget — the view is the active set, read
-//! whole.
+//! one-line index entry per record by default, or the body under `--full`
+//! and `--contract`; a contract body arrives already filtered to its tier.
+//! No token budget — the view is the active set, read whole.
 
 use super::View;
 

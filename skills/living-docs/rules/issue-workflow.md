@@ -17,9 +17,13 @@ See `templates/issue.md` for the body skeleton.
 A good issue body states, in order:
 
 - **What / Why** — the change and its motivation. If it implements a PRD or ADR, link it ("Implements ADR NNNN").
-- **Scope** — what's included; for removals/refactors, what's explicitly kept.
-- **Acceptance** — observable, testable conditions for "done".
-- **Plan** — a short outline (and slicing, for large tasks) so a reader knows the approach.
+- **Scope** (required) — what's included; for removals/refactors, what's explicitly kept.
+- **Decision** (optional) — a cheap-to-reverse choice made here, with the option not taken.
+- **Acceptance** (required) — observable, testable conditions for "done".
+- **Plan** (optional) — a short outline (and slicing, for large tasks) so a reader knows the approach.
+- **Outcome** (optional) — what shipped and what was learned.
+
+`check` enforces Scope and Acceptance on live issues. Scope, Decision and Acceptance are the contract tier; Plan and Outcome are the detail tier. Orient with `living-docs read --contract`, which omits the detail tier, and open the issue file for the detail.
 
 ## Rules
 
