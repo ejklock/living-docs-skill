@@ -168,3 +168,65 @@ fn topic_filters_the_same_records_with_or_without_contract() {
     assert_eq!(titles(&["--contract"]), titles(&[]));
     assert_eq!(titles(&[]), ["Widget"]);
 }
+
+fn write_typed(bundle: &Path, rel: &str, kind: &str, body: &str) {
+    write(
+        bundle,
+        rel,
+        &format!("---\ntype: {kind}\ntitle: T\ndescription: d\nstatus: Accepted\n---\n\n{body}"),
+    );
+}
+
+#[test]
+fn a_research_note_drops_method_open_questions_and_references() {
+    let dir = temp_bundle("read-contract", "contract-research");
+    write_typed(
+        &dir,
+        "research/0001-t.md",
+        "Research",
+        "# 0001. T\n\n## Question\n\nquestion text\n\n## Method\n\nmethod text\n\n## Findings\n\nfinding text\n\n## Implications\n\nimplication text\n\n## Open Questions\n\nopen text\n\n# References\n\n- ref entry\n",
+    );
+    let out = contract_text(&dir);
+    for kept in ["question text", "finding text", "implication text"] {
+        assert!(out.contains(kept), "missing {kept:?} in {out}");
+    }
+    for dropped in ["method text", "open text", "References", "ref entry"] {
+        assert!(!out.contains(dropped), "found {dropped:?} in {out}");
+    }
+}
+
+#[test]
+fn a_constitution_drops_its_amendment_log_and_keeps_non_negotiables() {
+    let dir = temp_bundle("read-contract", "contract-constitution");
+    write_typed(
+        &dir,
+        "constitution.md",
+        "Constitution",
+        "# C\n\n## Non-negotiables\n\nrule text\n\n## Amendment Log\n\nlog text\n",
+    );
+    let out = contract_text(&dir);
+    assert!(out.contains("rule text"), "{out}");
+    assert!(
+        !out.contains("log text") && !out.contains("Amendment"),
+        "{out}"
+    );
+}
+
+#[test]
+fn an_adr_keeps_its_contract_sections_and_drops_references() {
+    let dir = temp_bundle("read-contract", "contract-adr");
+    write_typed(
+        &dir,
+        "adr/0001-t.md",
+        "ADR",
+        "# 0001. T\n\n## Context\n\nctx text\n\n## Decision\n\ndec text\n\n## Consequences\n\ncons text\n\n## Verification\n\nver text\n\n# References\n\n- adr ref entry\n",
+    );
+    let out = contract_text(&dir);
+    for kept in ["ctx text", "dec text", "cons text", "ver text"] {
+        assert!(out.contains(kept), "missing {kept:?} in {out}");
+    }
+    assert!(
+        !out.contains("References") && !out.contains("adr ref entry"),
+        "{out}"
+    );
+}

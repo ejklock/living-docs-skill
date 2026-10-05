@@ -97,21 +97,10 @@ pub struct SectionSpec {
     pub tier: Tier,
 }
 
-const fn section(name: &'static str, requirement: Requirement, tier: Tier) -> SectionSpec {
-    SectionSpec {
-        name,
-        requirement,
-        tier,
-    }
-}
-
-const ISSUE_SECTIONS: &[SectionSpec] = &[
-    section("Scope", Requirement::Required, Tier::Contract),
-    section("Decision", Requirement::Optional, Tier::Contract),
-    section("Acceptance", Requirement::Required, Tier::Contract),
-    section("Plan", Requirement::Optional, Tier::Detail),
-    section("Outcome", Requirement::Optional, Tier::Detail),
-];
+mod sections;
+use sections::{
+    ADR_SECTIONS, CONSTITUTION_SECTIONS, ISSUE_SECTIONS, PRD_SECTIONS, RESEARCH_SECTIONS,
+};
 
 impl DocTypeSpec {
     /// Whether `status` (case-insensitive) retires a record of this type:
@@ -141,7 +130,7 @@ const ADR: DocTypeSpec = DocTypeSpec {
     status_vocabulary: &["Proposed", "Accepted", "Deprecated"],
     requires_owner: true,
     terminal_statuses: &["Deprecated"],
-    sections: &[],
+    sections: ADR_SECTIONS,
 };
 
 const PRD: DocTypeSpec = DocTypeSpec {
@@ -156,7 +145,7 @@ const PRD: DocTypeSpec = DocTypeSpec {
     status_vocabulary: &["Draft", "Accepted", "Implemented", "Deprecated"],
     requires_owner: false,
     terminal_statuses: &["Deprecated"],
-    sections: &[],
+    sections: PRD_SECTIONS,
 };
 
 const ISSUE: DocTypeSpec = DocTypeSpec {
@@ -186,7 +175,7 @@ const RESEARCH: DocTypeSpec = DocTypeSpec {
     status_vocabulary: &["Draft", "Accepted"],
     requires_owner: false,
     terminal_statuses: &[],
-    sections: &[],
+    sections: RESEARCH_SECTIONS,
 };
 
 /// The closed `kind` vocabulary for architecture views, in the C4/arc42
@@ -248,7 +237,7 @@ const CONSTITUTION: DocTypeSpec = DocTypeSpec {
     status_vocabulary: &[],
     requires_owner: false,
     terminal_statuses: &[],
-    sections: &[],
+    sections: CONSTITUTION_SECTIONS,
 };
 
 /// The sole enumeration of the doc-type taxonomy. Every consumer derives

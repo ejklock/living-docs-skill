@@ -9,8 +9,10 @@ fn temp_bundle(label: &str) -> PathBuf {
 }
 
 fn adr_with_body_lines(body_lines: usize) -> String {
-    let body = (0..body_lines)
-        .map(|i| format!("line {i}"))
+    let headings = ["# Doc", "## Context", "## Decision", "## Consequences"].map(str::to_owned);
+    let body = headings
+        .into_iter()
+        .chain((4..body_lines).map(|i| format!("line {i}")))
         .collect::<Vec<_>>()
         .join("\n");
     format!("---\ntype: ADR\ntitle: Doc\ndescription: A minimal record.\n---\n{body}\n")

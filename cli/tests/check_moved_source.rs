@@ -122,7 +122,7 @@ fn a_record_linking_its_own_predecessor_is_clean() {
     write(
         &bundle,
         "new.md",
-        "---\ntype: ADR\ntitle: New\ndescription: Supersedes Old.\nstatus: Accepted\nsupersedes: old\n---\n# New\n\n[old](./old.md)\n",
+        "---\ntype: ADR\ntitle: New\ndescription: Supersedes Old.\nstatus: Accepted\nsupersedes: old\n---\n# New\n\n## Context\n\n[old](./old.md)\n\n## Decision\n\nd.\n\n## Consequences\n\nq.\n",
     );
     write(
         &bundle,

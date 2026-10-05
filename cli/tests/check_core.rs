@@ -139,7 +139,7 @@ fn constitution_md_is_exempt_from_the_directory_index_listing_requirement() {
     write(
         &bundle,
         "constitution.md",
-        "---\ntype: Constitution\ntitle: Constitution\ndescription: \"\"\n---\n\n# Constitution\n",
+        "---\ntype: Constitution\ntitle: Constitution\ndescription: \"\"\n---\n\n# Constitution\n\n## Product\n\np.\n\n## Scope Boundaries\n\ns.\n\n## Non-negotiables\n\nn.\n",
     );
 
     let output = run_check(&bundle);
@@ -215,7 +215,7 @@ fn supersede_status_is_case_insensitive_and_a_valid_chain_is_clean() {
     write(
         &bundle,
         "0002-new.md",
-        "---\ntype: ADR\ntitle: New\ndescription: \"\"\n---\n\n# New\n",
+        "---\ntype: ADR\ntitle: New\ndescription: \"\"\n---\n\n# New\n\n## Context\n\nc.\n\n## Decision\n\nd.\n\n## Consequences\n\nq.\n",
     );
 
     let output = run_check(&bundle);
@@ -241,7 +241,7 @@ fn hand_written_frontmatter_fails_check_and_passes_after_fmt() {
     write(
         &bundle,
         "adr/0001-doc.md",
-        "---\ntitle: Hand Written\ntype: ADR  # a comment\ndescription: Written by hand.\n---\n\n# Hand Written\n\nBody.\n",
+        "---\ntitle: Hand Written\ntype: ADR  # a comment\ndescription: Written by hand.\n---\n\n# Hand Written\n\n## Context\n\nc.\n\n## Decision\n\nd.\n\n## Consequences\n\nq.\n",
     );
 
     let before = run_check(&bundle);
@@ -324,7 +324,7 @@ fn hand_written_bundle_root_singleton_fails_check_with_the_fmt_remediation() {
     write(
         &bundle,
         "constitution.md",
-        "---\ntitle: Acme  # a comment\ntype: Constitution\n---\n\n# Acme\n",
+        "---\ntitle: Acme  # a comment\ntype: Constitution\n---\n\n# Acme\n\n## Product\n\np.\n\n## Scope Boundaries\n\ns.\n\n## Non-negotiables\n\nn.\n",
     );
 
     let output = run_check(&bundle);

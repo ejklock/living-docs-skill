@@ -10,7 +10,7 @@ mod common;
 use common::write;
 
 const LEGACY_DEBT: &str = "---\ntype: ADR\ntitle: Legacy debt\ndescription: A record adopted with debt.\nowner: a@b.c\nstatus: Accepted\n---\n\n# 0001. Legacy debt\n\n{{UNFILLED: inherited debt}}\n";
-const CLEAN: &str = "---\ntype: ADR\ntitle: Clean\ndescription: A record with no debt.\nowner: a@b.c\nstatus: Accepted\n---\n\n# 0002. Clean\n\nBody.\n";
+const CLEAN: &str = "---\ntype: ADR\ntitle: Clean\ndescription: A record with no debt.\nowner: a@b.c\nstatus: Accepted\n---\n\n# 0002. Clean\n\n## Context\n\nc.\n\n## Decision\n\nd.\n\n## Consequences\n\nq.\n";
 
 fn hook_source() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))

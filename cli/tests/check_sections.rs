@@ -145,21 +145,22 @@ fn the_title_heading_never_counts_as_a_section() {
 
 #[test]
 fn a_type_with_an_empty_schema_never_gets_the_finding() {
-    let bundle = common::temp_bundle("sections", "adr");
-    write(&bundle, "index.md", "# Docs\n\n- [ADRs](/adr/index.md)\n");
-    write(
-        &bundle,
-        "adr/index.md",
-        "# ADR Index\n\n- [Doc](/adr/0001-doc.md)\n",
+    let view = "---\ntype: Architecture View\ntitle: Doc\ndescription: d.\nkind: context\n---\n\n## Doc\n\nProse.\n";
+    let (output, text) = check_files(
+        "view",
+        &[
+            (
+                "index.md",
+                "# Docs\n\n- [Architecture](/architecture/index.md)\n",
+            ),
+            (
+                "architecture/index.md",
+                "# Architecture\n\n- [Doc](/architecture/doc.md)\n",
+            ),
+            ("architecture/doc.md", view),
+        ],
     );
-    write(
-        &bundle,
-        "adr/0001-doc.md",
-        "---\ntype: ADR\ntitle: Doc\ndescription: d.\nowner: me\nstatus: Accepted\n---\n\n## Doc\n\nProse.\n",
-    );
-    let output = run_check(&bundle);
-    assert_eq!(output.status.code(), Some(0), "got: {}", stdout_of(&output));
-    let _ = fs::remove_dir_all(bundle.parent().unwrap());
+    assert_eq!(output.status.code(), Some(0), "got: {text}");
 }
 
 #[test]
@@ -196,4 +197,102 @@ fn changed_files_scopes_the_finding_to_touched_records() {
         stdout_of(&touched)
     );
     let _ = fs::remove_dir_all(bundle.parent().unwrap());
+}
+
+fn adr(status: &str, body: &str) -> String {
+    format!(
+        "---\ntype: ADR\ntitle: Doc\ndescription: d.\nowner: me\nstatus: {status}\n---\n\n# 0001. Doc\n\n{body}"
+    )
+}
+
+fn check_files(label: &str, files: &[(&str, &str)]) -> (Output, String) {
+    let bundle = common::temp_bundle("sections", label);
+    for (rel, contents) in files {
+        write(&bundle, rel, contents);
+    }
+    let output = run_check(&bundle);
+    let err = String::from_utf8_lossy(&output.stderr).into_owned();
+    let text = stdout_of(&output) + &err;
+    let _ = fs::remove_dir_all(bundle.parent().unwrap());
+    (output, text)
+}
+
+fn check_numbered(dir: &str, label: &str, record: &str) -> (Output, String) {
+    let root = format!("# Docs\n\n- [Index](/{dir}/index.md)\n");
+    let index = format!("# Index\n\n- [Doc](/{dir}/0001-doc.md)\n");
+    let (index_path, path) = (format!("{dir}/index.md"), format!("{dir}/0001-doc.md"));
+    let files = [("index.md", &*root), (&index_path, &index), (&path, record)];
+    check_files(label, &files)
+}
+
+fn assert_numbered_fails(dir: &str, label: &str, record: &str, section: &str) {
+    let (output, text) = check_numbered(dir, label, record);
+    assert_ne!(output.status.code(), Some(0), "got: {text}");
+    let needle = format!("section '{section}'");
+    assert!(text.contains(&needle), "got: {text}");
+}
+
+fn assert_numbered_passes(dir: &str, label: &str, record: &str) {
+    let (output, text) = check_numbered(dir, label, record);
+    assert_eq!(output.status.code(), Some(0), "got: {text}");
+}
+
+const CONTEXT: &str = "## Context\n\nc\n\n";
+const DECISION: &str = "## Decision\n\nd\n\n";
+const CONSEQUENCES: &str = "## Consequences\n\nq\n";
+
+#[test]
+fn an_accepted_adr_without_consequences_fails() {
+    let record = adr("Accepted", &format!("{CONTEXT}{DECISION}"));
+    assert_numbered_fails("adr", "adr-nocons", &record, "Consequences");
+}
+
+#[test]
+fn a_proposed_adr_without_context_fails() {
+    let record = adr("Proposed", &format!("{DECISION}{CONSEQUENCES}"));
+    assert_numbered_fails("adr", "adr-noctx", &record, "Context");
+}
+
+#[test]
+fn a_deprecated_adr_without_consequences_passes() {
+    let callout = "> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.\n\n";
+    let record =
+        adr("Deprecated", "Prose.\n").replace("# 0001. Doc", &format!("{callout}# 0001. Doc"));
+    assert_numbered_passes("adr", "adr-dep", &record);
+}
+
+#[test]
+fn an_adr_with_only_its_required_sections_passes() {
+    let record = adr("Accepted", &format!("{CONTEXT}{DECISION}{CONSEQUENCES}"));
+    assert_numbered_passes("adr", "adr-min", &record);
+}
+
+#[test]
+fn a_draft_prd_without_non_goals_fails() {
+    let record = "---\ntype: PRD\ntitle: Doc\ndescription: d.\nstatus: Draft\n---\n\n# 0001. Doc\n\n## Problem / Motivation\n\np\n";
+    assert_numbered_fails("prd", "prd-nong", record, "Non-goals");
+}
+
+#[test]
+fn research_with_none_of_its_template_sections_passes() {
+    for status in ["Draft", "Accepted"] {
+        let record = format!(
+            "---\ntype: Research\ntitle: Doc\ndescription: d.\nstatus: {status}\n---\n\n# 0001. Doc\n\nFree-form notes.\n"
+        );
+        assert_numbered_passes("research", &format!("res-{status}"), &record);
+    }
+}
+
+#[test]
+fn a_constitution_without_non_negotiables_fails() {
+    let constitution = "---\ntype: Constitution\ntitle: C\ndescription: d.\nstatus: Draft\n---\n\n# C\n\n## Product\n\np\n\n## Scope Boundaries\n\ns\n";
+    let (output, text) = check_files(
+        "const",
+        &[
+            ("index.md", "# Docs\n\n- [Constitution](/constitution.md)\n"),
+            ("constitution.md", constitution),
+        ],
+    );
+    assert_ne!(output.status.code(), Some(0), "got: {text}");
+    assert!(text.contains("section 'Non-negotiables'"), "got: {text}");
 }

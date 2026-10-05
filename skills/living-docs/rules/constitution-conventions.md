@@ -6,7 +6,7 @@ The doc trail flows: **constitution → PRD → ADR → issues → code**.
 
 ## Format
 
-The constitution is an **OKF concept** (`type: Constitution`) — see the `okf-knowledge-format` skill. `status` (`Draft` | `Ratified` | `Amended`) lives in the frontmatter, not a body line. See `templates/constitution.md`. Core sections:
+The constitution is an **OKF concept** (`type: Constitution`) — see the `okf-knowledge-format` skill. `status` (`Draft` | `Ratified` | `Amended`) lives in the frontmatter, not a body line. See `templates/constitution.md`. Required sections: `Product`, `Scope Boundaries` and `Non-negotiables`; `check` enforces them on the live constitution. Core sections:
 
 - **Product** — the core value and the audience in one or two sentences. The north star.
 - **Scope boundaries** — what is in scope, what is explicitly out, and what defers to which phase.

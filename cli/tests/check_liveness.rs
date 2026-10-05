@@ -33,7 +33,7 @@ fn write_stale_proposed_bundle(bundle: &Path) {
     write(
         bundle,
         "adr/0001-proposed.md",
-        "---\ntype: ADR\ntitle: Proposed\ndescription: d\nowner: x\nstatus: Proposed\n---\n\n# 0001. Proposed\n\nSee [issue](/issues/0001-task.md).\n",
+        "---\ntype: ADR\ntitle: Proposed\ndescription: d\nowner: x\nstatus: Proposed\n---\n\n# 0001. Proposed\n\n## Context\n\nSee [issue](/issues/0001-task.md).\n\n## Decision\n\nd.\n\n## Consequences\n\nq.\n",
     );
     write(
         bundle,
