@@ -103,7 +103,7 @@ fn a_done_issue_linking_a_superseded_record_is_clean() {
         &bundle,
         "b.md",
         &format!(
-            "---\ntype: Issue\ntitle: B\ndescription: Moved source.\nstatus: Deprecated\n---\n{}\n\n# B\n",
+            "---\ntype: Issue\ntitle: B\ndescription: Moved source.\nstatus: Deprecated\n---\n{}\n\n# B\n\n### Scope\n\n### Acceptance\n",
             deprecated_callout()
         ),
     );
@@ -122,7 +122,7 @@ fn a_record_linking_its_own_predecessor_is_clean() {
     write(
         &bundle,
         "new.md",
-        "---\ntype: ADR\ntitle: New\ndescription: Supersedes Old.\nstatus: Accepted\nsupersedes: old\n---\n# New\n\n[old](./old.md)\n",
+        "---\ntype: ADR\ntitle: New\ndescription: Supersedes Old.\nstatus: Accepted\nsupersedes: old\n---\n# New\n\n## Context\n\n[old](./old.md)\n\n## Decision\n\nd.\n\n## Consequences\n\nq.\n",
     );
     write(
         &bundle,

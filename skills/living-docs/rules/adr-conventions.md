@@ -11,7 +11,7 @@ Each ADR is an **OKF concept** (`type: ADR`) — see the `okf-knowledge-format` 
 - **Decision** — the choice, stated in active voice ("We will…"). Specific and testable.
 - **Consequences** — what becomes easier, what becomes harder, what is now forbidden. Include the trade-offs you are knowingly accepting, not just the upside.
 
-See `templates/adr.md` for the skeleton.
+See `templates/adr.md` for the skeleton. Required sections: `Context`, `Decision` and `Consequences`; `check` enforces them on live records (a Deprecated or Superseded ADR is history and is not held to them).
 
 ## Rules
 

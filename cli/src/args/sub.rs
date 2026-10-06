@@ -17,6 +17,10 @@ pub(crate) struct ReadArgs {
     /// Print each record's full body instead of a one-line index entry.
     #[arg(long)]
     pub(crate) full: bool,
+    /// Print each record's body without its detail-tier sections (an issue's
+    /// Plan and Outcome): what was agreed, not the working material.
+    #[arg(long, conflicts_with = "full")]
+    pub(crate) contract: bool,
 }
 
 /// Arguments for the `guide` verb (ADR 0060, renamed from `skill`).

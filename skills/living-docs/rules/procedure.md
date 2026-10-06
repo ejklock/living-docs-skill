@@ -43,7 +43,7 @@ An existing codebase already embodies decisions that were never written down. Th
 
 ## Maintaining living docs (every task)
 
-1. **Before coding:** read the relevant constitution and ADRs (`living-docs read` gives the in-force view). Decisions there are not to be re-opened casually. If a link or a search lands on a raw record whose body opens with a `SUPERSEDED` or `DEPRECATED` callout, treat it as history: follow the successor link or discard the record, never plan on it.
+1. **Before coding:** read the relevant constitution and ADRs (`living-docs read` gives the in-force view; `read --contract` adds each record's contract sections). Decisions there are not to be re-opened casually. If a link or a search lands on a raw record whose body opens with a `SUPERSEDED` or `DEPRECATED` callout, treat it as history: follow the successor link or discard the record, never plan on it.
 2. **While working:** if you make a decision with a load-bearing rationale that is expensive to reverse, **grill it before recording it** — surface the decision, ≥2 materially-distinct alternatives, and a recommendation to the user (run the `grill-me` companion if installed, else inline), then write an ADR capturing the chosen option *and* the rejected ones. A cheap, easily-reversed choice goes in the issue's body, not a new ADR. Never record a decision the user was not asked about.
 3. **In the same change:** update every doc the structural change touches — index rows, architecture diagrams, the records that governed it. Run `living-docs check`.
 4. **Never** leave an index stale, an orphan file unlinked, a diagram contradicting the code, or a superseded decision silently edited.

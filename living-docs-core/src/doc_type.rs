@@ -68,7 +68,39 @@ pub struct DocTypeSpec {
     /// record's status change. `Superseded` reaches every type through
     /// `supersede` and never needs to be listed here.
     pub terminal_statuses: &'static [&'static str],
+    /// The body sections this type declares, in template order; empty for a
+    /// type that declares none. `check` requires the `Required` ones on live
+    /// records, and `read` discloses by `Tier`.
+    pub sections: &'static [SectionSpec],
 }
+
+/// Whether a declared section must be present on a live record.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Requirement {
+    Required,
+    Optional,
+}
+
+/// `Contract` sections are what a reader needs to know what was agreed;
+/// `Detail` sections are the working material behind it.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Tier {
+    Contract,
+    Detail,
+}
+
+/// One body section a doc type declares, matched by heading name.
+#[derive(PartialEq, Eq, Debug)]
+pub struct SectionSpec {
+    pub name: &'static str,
+    pub requirement: Requirement,
+    pub tier: Tier,
+}
+
+mod sections;
+use sections::{
+    ADR_SECTIONS, CONSTITUTION_SECTIONS, ISSUE_SECTIONS, PRD_SECTIONS, RESEARCH_SECTIONS,
+};
 
 impl DocTypeSpec {
     /// Whether `status` (case-insensitive) retires a record of this type:
@@ -98,6 +130,7 @@ const ADR: DocTypeSpec = DocTypeSpec {
     status_vocabulary: &["Proposed", "Accepted", "Deprecated"],
     requires_owner: true,
     terminal_statuses: &["Deprecated"],
+    sections: ADR_SECTIONS,
 };
 
 const PRD: DocTypeSpec = DocTypeSpec {
@@ -112,6 +145,7 @@ const PRD: DocTypeSpec = DocTypeSpec {
     status_vocabulary: &["Draft", "Accepted", "Implemented", "Deprecated"],
     requires_owner: false,
     terminal_statuses: &["Deprecated"],
+    sections: PRD_SECTIONS,
 };
 
 const ISSUE: DocTypeSpec = DocTypeSpec {
@@ -126,6 +160,7 @@ const ISSUE: DocTypeSpec = DocTypeSpec {
     status_vocabulary: &["open", "in-progress", "closed"],
     requires_owner: false,
     terminal_statuses: &["closed", "done"],
+    sections: ISSUE_SECTIONS,
 };
 
 const RESEARCH: DocTypeSpec = DocTypeSpec {
@@ -140,6 +175,7 @@ const RESEARCH: DocTypeSpec = DocTypeSpec {
     status_vocabulary: &["Draft", "Accepted"],
     requires_owner: false,
     terminal_statuses: &[],
+    sections: RESEARCH_SECTIONS,
 };
 
 /// The closed `kind` vocabulary for architecture views, in the C4/arc42
@@ -177,6 +213,7 @@ const VIEW: DocTypeSpec = DocTypeSpec {
     status_vocabulary: &[],
     requires_owner: false,
     terminal_statuses: &[],
+    sections: &[],
 };
 
 /// `index_heading`/`index_partition` are inert for a singleton — it has no
@@ -200,6 +237,7 @@ const CONSTITUTION: DocTypeSpec = DocTypeSpec {
     status_vocabulary: &[],
     requires_owner: false,
     terminal_statuses: &[],
+    sections: CONSTITUTION_SECTIONS,
 };
 
 /// The sole enumeration of the doc-type taxonomy. Every consumer derives

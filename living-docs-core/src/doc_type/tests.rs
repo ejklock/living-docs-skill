@@ -147,3 +147,139 @@ fn frontmatter_values_are_unique_so_spec_for_frontmatter_is_well_defined() {
         "DOC_TYPES has duplicate frontmatter values"
     );
 }
+
+fn required_sections_absent_from<'a>(spec: &'a DocTypeSpec, template: &str) -> Vec<&'a str> {
+    let headings = crate::sections::heading_names(template);
+    spec.sections
+        .iter()
+        .filter(|section| section.requirement == Requirement::Required)
+        .filter(|section| !crate::sections::has_section(&headings, section.name))
+        .map(|section| section.name)
+        .collect()
+}
+
+#[test]
+fn the_issue_row_declares_its_sections_in_order_with_requirement_and_tier() {
+    let declared: Vec<_> = spec_for("issue")
+        .unwrap()
+        .sections
+        .iter()
+        .map(|section| (section.name, section.requirement, section.tier))
+        .collect();
+    assert_eq!(
+        declared,
+        [
+            ("Scope", Requirement::Required, Tier::Contract),
+            ("Decision", Requirement::Optional, Tier::Contract),
+            ("Acceptance", Requirement::Required, Tier::Contract),
+            ("Plan", Requirement::Optional, Tier::Detail),
+            ("Outcome", Requirement::Optional, Tier::Detail),
+        ]
+    );
+}
+
+#[test]
+fn a_type_without_a_schema_declares_no_sections() {
+    assert!(spec_for("view").unwrap().sections.is_empty());
+}
+
+fn declared_by(token: &str) -> Vec<(&'static str, Requirement, Tier)> {
+    spec_for(token)
+        .unwrap()
+        .sections
+        .iter()
+        .map(|section| (section.name, section.requirement, section.tier))
+        .collect()
+}
+
+#[test]
+fn the_adr_row_declares_its_sections() {
+    assert_eq!(
+        declared_by("adr"),
+        [
+            ("Context", Requirement::Required, Tier::Contract),
+            ("Decision", Requirement::Required, Tier::Contract),
+            ("Consequences", Requirement::Required, Tier::Contract),
+            ("Verification", Requirement::Optional, Tier::Contract),
+            ("References", Requirement::Optional, Tier::Detail),
+        ]
+    );
+}
+
+#[test]
+fn the_prd_row_declares_its_sections() {
+    assert_eq!(
+        declared_by("prd"),
+        [
+            (
+                "Problem / Motivation",
+                Requirement::Required,
+                Tier::Contract
+            ),
+            ("Goals", Requirement::Optional, Tier::Contract),
+            ("Non-goals", Requirement::Required, Tier::Contract),
+            ("Requirements", Requirement::Optional, Tier::Contract),
+            ("Acceptance criteria", Requirement::Optional, Tier::Contract),
+            ("Success metrics", Requirement::Optional, Tier::Contract),
+            ("Open questions", Requirement::Optional, Tier::Detail),
+            ("Related", Requirement::Optional, Tier::Detail),
+        ]
+    );
+}
+
+#[test]
+fn the_constitution_row_declares_its_sections() {
+    assert_eq!(
+        declared_by("constitution"),
+        [
+            ("Product", Requirement::Required, Tier::Contract),
+            ("Scope Boundaries", Requirement::Required, Tier::Contract),
+            (
+                "Data Model / Schema Foundation",
+                Requirement::Optional,
+                Tier::Contract
+            ),
+            ("Non-negotiables", Requirement::Required, Tier::Contract),
+            ("Amendment Log", Requirement::Optional, Tier::Detail),
+        ]
+    );
+}
+
+#[test]
+fn the_research_row_requires_nothing() {
+    assert_eq!(
+        declared_by("research"),
+        [
+            ("Question", Requirement::Optional, Tier::Contract),
+            ("Method", Requirement::Optional, Tier::Detail),
+            ("Findings", Requirement::Optional, Tier::Contract),
+            ("Implications", Requirement::Optional, Tier::Contract),
+            ("Open Questions", Requirement::Optional, Tier::Detail),
+            ("References", Requirement::Optional, Tier::Detail),
+        ]
+    );
+}
+
+#[test]
+fn every_required_section_is_a_heading_in_its_rows_template() {
+    for spec in DOC_TYPES {
+        assert_eq!(
+            required_sections_absent_from(spec, spec.template),
+            Vec::<&str>::new(),
+            "{} template lacks a required section",
+            spec.token
+        );
+    }
+}
+
+#[test]
+fn the_template_fitness_check_reports_a_renamed_required_heading() {
+    let spec = spec_for("issue").unwrap();
+    let renamed = spec
+        .template
+        .replace("### Acceptance", "### Acceptance criteria");
+    assert_eq!(
+        required_sections_absent_from(spec, &renamed),
+        ["Acceptance"]
+    );
+}

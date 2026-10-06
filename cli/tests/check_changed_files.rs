@@ -25,7 +25,7 @@ fn dirty_bundle(label: &str) -> PathBuf {
     write(
         &bundle,
         "adr/0001-clean.md",
-        "---\ntype: ADR\ntitle: Clean\ndescription: A clean record.\nowner: a@b.c\nstatus: Accepted\n---\n\n# 0001. Clean\n\nBody.\n",
+        "---\ntype: ADR\ntitle: Clean\ndescription: A clean record.\nowner: a@b.c\nstatus: Accepted\n---\n\n# 0001. Clean\n\n## Context\n\nc.\n\n## Decision\n\nd.\n\n## Consequences\n\nq.\n",
     );
     write(
         &bundle,

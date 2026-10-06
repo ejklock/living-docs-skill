@@ -92,7 +92,7 @@ fn is_bundle_singleton_stays_exempt_regardless_of_the_path_form_the_caller_used(
         .expect("clear scratch adr index of phantom links");
 
     let singleton_path = bundle.root.join("constitution.md");
-    let hand_written = "---\ntype: Constitution\ntitle: Root of Trust\n---\n\nBody.\n";
+    let hand_written = "---\ntype: Constitution\ntitle: Root of Trust\n---\n\n# Root of Trust\n\n## Product\n\np.\n\n## Scope Boundaries\n\ns.\n\n## Non-negotiables\n\nn.\n";
     let canonical = to_canonical_markdown(&extract_record(&singleton_path, hand_written));
     fs::write(&singleton_path, &canonical).expect("write scratch constitution.md");
 
@@ -170,7 +170,7 @@ fn compile_reads_record_content_through_the_store_even_when_no_file_backs_it_on_
     let mut files = BTreeMap::new();
     files.insert(
         bundle.root.join("adr").join("0001-doc.md"),
-        "---\ntype: ADR\ntitle: Doc\ndescription: \"\"\n---\n\n# Doc\n\nBody.\n".to_string(),
+        "---\ntype: ADR\ntitle: Doc\ndescription: \"\"\n---\n\n# Doc\n\n## Context\n\nc.\n\n## Decision\n\nd.\n\n## Consequences\n\nq.\n".to_string(),
     );
     let store = MapStore { files };
 
@@ -214,7 +214,7 @@ fn compile_stays_ok_on_an_adr_missing_owner_by_default() {
     let mut files = BTreeMap::new();
     files.insert(
         bundle.root.join("adr").join("0001-doc.md"),
-        "---\ntype: ADR\ntitle: Doc\ndescription: \"\"\n---\n\n# Doc\n\nBody.\n".to_string(),
+        "---\ntype: ADR\ntitle: Doc\ndescription: \"\"\n---\n\n# Doc\n\n## Context\n\nc.\n\n## Decision\n\nd.\n\n## Consequences\n\nq.\n".to_string(),
     );
     let store = MapStore { files };
 
@@ -248,7 +248,7 @@ fn compile_require_owner_never_flags_a_type_that_does_not_require_owner() {
     let mut files = BTreeMap::new();
     files.insert(
         bundle.root.join("adr").join("0001-doc.md"),
-        "---\ntype: Issue\ntitle: Doc\ndescription: \"\"\nstatus: open\n---\n\n# Doc\n\nBody.\n"
+        "---\ntype: Issue\ntitle: Doc\ndescription: \"\"\nstatus: open\n---\n\n# Doc\n\n### Scope\n\nBody.\n\n### Acceptance\n\n- done\n"
             .to_string(),
     );
     let store = MapStore { files };

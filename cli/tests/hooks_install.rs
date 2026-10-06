@@ -547,7 +547,7 @@ fn only_record_path(adr_dir: &Path) -> PathBuf {
         .expect("the scaffolded record exists")
 }
 
-const CLEAN_FIXTURE_BODY: &str = "# 0001. Pre Commit Fixture\n\n## Context\n\nFixture body with no links, kept clean for the pre-commit script test.\n\n## Decision\n\nWe will keep this fixture minimal.\n";
+const CLEAN_FIXTURE_BODY: &str = "# 0001. Pre Commit Fixture\n\n## Context\n\nFixture body with no links, kept clean for the pre-commit script test.\n\n## Decision\n\nWe will keep this fixture minimal.\n\n## Consequences\n\nNone beyond the fixture.\n";
 
 /// Replaces `contents`' body (below the closing frontmatter fence) with
 /// [`CLEAN_FIXTURE_BODY`], keeping the frontmatter block byte-identical —

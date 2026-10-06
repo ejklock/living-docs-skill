@@ -14,6 +14,7 @@ fn options(topic: Option<&str>, full: bool) -> Options {
     Options {
         topic: topic.map(str::to_string),
         full,
+        contract: false,
     }
 }
 

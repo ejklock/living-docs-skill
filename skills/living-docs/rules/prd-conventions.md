@@ -4,7 +4,7 @@ A PRD is **optional**. Write one when a feature has a "who asked / what is out o
 
 ## Format
 
-Each PRD is an **OKF concept** (`type: PRD`) — see the `okf-knowledge-format` skill. `status` (`Draft` | `Accepted` | `Implemented` | `Superseded`) lives in the frontmatter, not a body line. See `templates/prd.md`. Core sections:
+Each PRD is an **OKF concept** (`type: PRD`) — see the `okf-knowledge-format` skill. `status` (`Draft` | `Accepted` | `Implemented` | `Superseded`) lives in the frontmatter, not a body line. See `templates/prd.md`. Required sections: `Problem / Motivation` and `Non-goals`; `check` enforces them on live records (a Deprecated or Superseded PRD is not held to them). Core sections:
 
 - **Problem / Motivation** — the user or system pain. Lead with the problem, not the solution. If you can't state the problem without naming a solution, grill it first (`grill-me`).
 - **Who asked** — the stakeholder or need driving this. A PRD with no identifiable requester is a solution looking for a problem.

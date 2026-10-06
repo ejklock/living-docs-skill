@@ -13,6 +13,8 @@ flowchart LR
   I --> K[code]
 ```
 
+Orient with `living-docs read --contract`: it prints each in-force record without its detail-tier sections. Open the record's file when you need the detail.
+
 ## The record types — one question each
 
 Four types answer four genuinely different questions, plus an optional PRD. Term overlap is what makes an agent write two records for one change, so each type is defined by the *one question it answers* and by when it is **not** that type.

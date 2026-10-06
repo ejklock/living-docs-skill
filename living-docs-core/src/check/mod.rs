@@ -21,6 +21,7 @@ mod mermaid;
 mod moved_source;
 mod placeholder;
 mod records;
+mod sections;
 mod size;
 
 use crate::doc_type::{self, Identity};
@@ -85,6 +86,7 @@ fn run_all_checks(
     canonical::check_canonical_frontmatter(store, bundle, &all_md, reporter);
     mermaid::check_bundle(&all_md, reporter);
     size::check_body_size(store, &all_md, reporter);
+    sections::check_required_sections(store, &all_md, reporter);
     if check_placeholders {
         placeholder::check_placeholders(store, &all_md, reporter);
     }
