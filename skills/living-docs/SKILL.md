@@ -1,7 +1,7 @@
 ---
 name: living-docs
 description: Run a project's engineering decisions as a living log — MADR-lite ADRs (supersede, never delete) for decisions expensive to reverse, issues for the work (and its cheap-to-reverse choices), research artifacts, an optional PRD, a project constitution, and living Mermaid architecture views, where every record has exactly one home, indexes never drift, and a record is earned by materiality, not written per layer. Use when setting up or maintaining project docs, writing an ADR/PRD/constitution/issue/research note, drawing or updating an architecture diagram, or enforcing the no-drift maintenance rule.
-version: "0.20.0"
+version: "0.21.0"
 metadata:
   type: skill
   layer: procedural
