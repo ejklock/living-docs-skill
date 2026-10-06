@@ -74,14 +74,7 @@ agent-enforceable packaging** of it. See [Provenance](#provenance--honest-attrib
 Only what a change earns appears. A routine change is an issue and code; a decision
 expensive to reverse earns an ADR; a product spec worth pinning earns a PRD:
 
-```mermaid
-flowchart LR
-  C[constitution] --> P[PRD optional]
-  P --> A[ADR]
-  A --> I[issues]
-  C --> I
-  I --> K[code]
-```
+![The doc trail: constitution, optional PRD, ADR, issues, code](assets/doc-trail.svg)
 
 | Artifact | The one question it answers |
 |---|---|
@@ -96,6 +89,13 @@ flowchart LR
 reader would pay to rediscover *why* you chose this over the alternatives. Otherwise put
 the choice in the issue. When in doubt, it is an issue.
 
+Each record type declares its sections in the registry (ADR 0064): which ones are
+**required**, and which tier each belongs to. `check` fails a live record that lacks a
+required section, and `read` discloses by tier, so an agent loads only the depth the
+task needs:
+
+![Read levels: index, --contract, --full; required sections per type](assets/read-tiers.svg)
+
 ---
 
 ## What's in the box
@@ -106,8 +106,8 @@ the choice in the issue. When in doubt, it is an issue.
 | [`skills/okf-knowledge-format/`](skills/okf-knowledge-format/) | The **format** standard the docs use — Open Knowledge Format (OKF): markdown + YAML frontmatter, required `type`, reserved `index.md`/`log.md`, bundle-relative links. The OKF spec is **vendored verbatim** from Google Cloud Platform. |
 | [`skills/research-artifacts/`](skills/research-artifacts/) | The research-note format and source discipline that feeds ADRs (the `docs/research/` half of the trail). |
 | [`cli/`](cli/) (authoring verbs) | **Deterministic authoring**: `new` scaffolds a record with CLI-owned numbering, frontmatter and title heading, and every body section as a `{{SLOT: hint}}` the agent replaces with prose. `set` sets the lifecycle fields, `supersede` wires both link directions and writes the retired-record callout, `index` rebuilds every index, `fmt` canonicalizes frontmatter. Architecture is a first-class doc type: `new view "<name>" --kind <context\|container\|component\|flow\|sequence\|state\|data-model\|deployment>` scaffolds one view per concern in `docs/architecture/`, and the generated index sorts them in C4/arc42 zoom order. |
-| [`cli/`](cli/) (`living-docs read`) | **The agent-facing read**: active records only, supersede chains collapsed to the head with a one-line lineage, retired records withheld and counted. `--topic <term>` filters, `--full` prints bodies. An agent reads this, never `index.md`. |
-| [`cli/`](cli/) (`living-docs check`) | The **deterministic checker** for the mechanical invariants — frontmatter/`type`, indexing + reachability, link resolution, supersede integrity and the retired-record callout, unfilled `{{SLOT}}` placeholders, and Mermaid fences (in-process via the pure-Rust [`merman-core`](https://crates.io/crates/merman-core) parser — no Docker, no daemon). A single self-contained binary: native `serde_yaml` frontmatter parsing and native `pulldown-cmark` link extraction — no host tools needed. *A constraint without an instrument is a vibe*; this is the instrument. It runs at commit and in CI. |
+| [`cli/`](cli/) (`living-docs read`) | **The agent-facing read**: active records only, supersede chains collapsed to the head with a one-line lineage, retired records withheld and counted. `--topic <term>` filters, `--contract` prints each record's contract sections (an issue's Scope and Acceptance, an ADR's Context, Decision and Consequences), `--full` prints whole bodies. An agent reads this, never `index.md`. |
+| [`cli/`](cli/) (`living-docs check`) | The **deterministic checker** for the mechanical invariants — frontmatter/`type`, indexing + reachability, link resolution, supersede integrity and the retired-record callout, unfilled `{{SLOT}}` placeholders, required sections on live records (each type's schema in the registry), and Mermaid fences (in-process via the pure-Rust [`merman-core`](https://crates.io/crates/merman-core) parser — no Docker, no daemon). A single self-contained binary: native `serde_yaml` frontmatter parsing and native `pulldown-cmark` link extraction — no host tools needed. *A constraint without an instrument is a vibe*; this is the instrument. It runs at commit and in CI. |
 | [`cli/`](cli/) (`living-docs guide` / `install` / `uninstall`) | The skill corpus travels **inside the binary** and is served on demand (`guide --list`, `guide adr`); `install hooks` materializes the session-teaching hook and the pre-commit doc-gate into a project, `install skills` places the corpus into a harness's skills directory. |
 | [`references/prior-art-landscape.md`](references/prior-art-landscape.md) | The sourced prior-art analysis — every part of Living Docs mapped to its established originator, so every "credit, not invention" claim has a checkable citation. |
 | [`examples/linkly/`](examples/linkly/) | A worked, **lint-clean** end-to-end corpus (constitution → PRD → ADR → issue) for a fictional URL shortener — the discipline shown, not just described, and the fixture CI runs `living-docs check` against. |

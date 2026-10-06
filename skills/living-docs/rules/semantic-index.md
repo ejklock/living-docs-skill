@@ -31,6 +31,7 @@ The corpus is append-only (supersede, never rewrite): right for history, wrong a
 
 - `living-docs read` — the whole active view (title + description per record).
 - `living-docs read --topic <term>` — only records whose title, description, or body contains the term (case-insensitive).
+- `living-docs read --contract` — each record's contract sections only (an issue's Scope, Decision and Acceptance; its Plan and Outcome stay out). Each type's tiers live in the registry (ADR 0064).
 - `living-docs read --full` — full record bodies instead of the one-line index entries.
 
 `index.md` remains the generated on-disk artifact and the human/browser entry point; `read` is the agent's read surface over the same records.
