@@ -7,8 +7,6 @@ one slice per fresh context, starting from the skeleton.
 
 ## Open
 
-* [0053 — Section heading parser counts indented-code headings and always drops the first heading as the title](0053-section-heading-parser-counts-indented-code-headings-and-always-drops-the-first-heading-as-the-title.md) - open
-
 ## Closed
 
 * [0001 — Walking skeleton — Cargo workspace + living-docs-core + fs-store + thin cli](0001-workspace-core-skeleton.md) - done
@@ -63,4 +61,5 @@ one slice per fresh context, starting from the skeleton.
 * [0050 — jscpd ignores tests and markdown so the duplication gate measures production code](0050-jscpd-ignores-tests-and-markdown-so-the-duplication-gate-measures-production-code.md) - closed
 * [0051 — check mermaid accepts diagrams that mermaid.js rejects](0051-check-mermaid-accepts-diagrams-that-mermaid-js-rejects.md) - closed
 * [0052 — Section schema in the registry: check requires Scope and Acceptance on live issues and read gains a contract level](0052-section-schema-in-the-registry-check-requires-scope-and-acceptance-on-live-issues-and-read-gains-a-contract-level.md) - closed
+* [0053 — Section heading parser counts indented-code headings and always drops the first heading as the title](0053-section-heading-parser-counts-indented-code-headings-and-always-drops-the-first-heading-as-the-title.md) - closed
 * [0054 — Section schemas for ADR, PRD, constitution and research so check and read --contract cover every record type](0054-section-schemas-for-adr-prd-constitution-and-research-so-check-and-read-contract-cover-every-record-type.md) - closed

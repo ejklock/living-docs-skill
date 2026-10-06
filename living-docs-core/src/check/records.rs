@@ -176,12 +176,7 @@ pub(crate) fn check_heading_matches_title(
 fn heading_title(contents: &str) -> Option<String> {
     let body = contents.split("\n---\n").nth(1)?;
     let heading = body.lines().find(|line| line.starts_with('#'))?;
-    let text = heading.trim_start_matches('#').trim();
-    let stripped = text
-        .split_once(". ")
-        .filter(|(number, _)| number.len() == 4 && number.chars().all(|c| c.is_ascii_digit()))
-        .map_or(text, |(_, rest)| rest);
-    Some(stripped.to_owned())
+    Some(crate::sections::heading_text(heading).to_owned())
 }
 
 /// Whether `contents`' own `type`/`status` frontmatter marks the record

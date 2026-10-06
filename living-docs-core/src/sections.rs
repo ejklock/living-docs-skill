@@ -3,20 +3,33 @@
 //! `read`'s tiered disclosure).
 
 use crate::doc_type::{SectionSpec, Tier};
-use crate::frontmatter::frontmatter_block;
+use crate::frontmatter::{frontmatter_block, read_scalar_strict};
 
 /// The heading names a record's body carries, in order, trimmed and in their
-/// written case. The record's own title — the first heading — and any line
-/// inside a fenced code block are not sections and never appear.
+/// written case. The record's own title heading — the first heading, when its
+/// text equals the `title` frontmatter — and any line inside a fenced code
+/// block are not sections and never appear.
 pub(crate) fn heading_names(contents: &str) -> Vec<String> {
     let mut names: Vec<String> = classified(body_of(contents))
         .into_iter()
         .filter_map(|(_, heading)| heading.map(|(_, text)| text))
         .collect();
-    if !names.is_empty() {
-        names.remove(0);
+    let title = frontmatter_block(contents).and_then(|block| read_scalar_strict(block, "title"));
+    if let (Some(first), Some(title)) = (names.first(), title) {
+        if heading_text(first) == title {
+            names.remove(0);
+        }
     }
     names
+}
+
+/// A heading's text with its leading heading marks and the `NNNN. ` number
+/// prefix the templates write stripped, so it compares against a bare title.
+pub(crate) fn heading_text(heading: &str) -> &str {
+    let text = heading.trim_start_matches('#').trim();
+    text.split_once(". ")
+        .filter(|(number, _)| number.len() == 4 && number.chars().all(|c| c.is_ascii_digit()))
+        .map_or(text, |(_, rest)| rest)
 }
 
 /// Whether `names` carries `wanted`, compared exactly but case-insensitively.
@@ -87,6 +100,9 @@ fn fence_marker(line: &str) -> Option<char> {
 }
 
 fn heading_of(line: &str) -> Option<(usize, String)> {
+    if line.starts_with('\t') || line.starts_with("    ") {
+        return None;
+    }
     let trimmed = line.trim();
     let text = trimmed.trim_start_matches('#');
     let marks = trimmed.len() - text.len();
