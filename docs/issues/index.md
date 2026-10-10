@@ -7,6 +7,14 @@ one slice per fresh context, starting from the skeleton.
 
 ## Open
 
+* [0055 — The procedure and hard-rules guides say fmt unwraps hard-wrapped prose, but fmt is frontmatter-only](0055-the-procedure-and-hard-rules-guides-say-fmt-unwraps-hard-wrapped-prose-but-fmt-is-frontmatter-only.md) - open
+* [0056 — size-targets guide exempts architecture docs, but the registry gives the architecture view a size target](0056-size-targets-guide-exempts-architecture-docs-but-the-registry-gives-the-architecture-view-a-size-target.md) - open
+* [0057 — read lists closed and done issues although the guides say it shows active records only](0057-read-lists-closed-and-done-issues-although-the-guides-say-it-shows-active-records-only.md) - open
+* [0058 — index keeps a hand table header and a hand bullet list above the generated listing, leaving a dangling header or a duplicated list](0058-index-keeps-a-hand-table-header-and-a-hand-bullet-list-above-the-generated-listing-leaving-a-dangling-header-or-a-duplicated-list.md) - open
+* [0059 — set cannot write the tracker, labels and blocked_by keys that the issue workflow puts in issue frontmatter](0059-set-cannot-write-the-tracker-labels-and-blocked-by-keys-that-the-issue-workflow-puts-in-issue-frontmatter.md) - open
+* [0060 — set refuses architecture views, so a view's description is edited by hand](0060-set-refuses-architecture-views-so-a-view-s-description-is-edited-by-hand.md) - open
+* [0061 — The guides prescribe /-bundle-relative links, but index and supersede write sibling-relative links and check accepts every style](0061-the-guides-prescribe-bundle-relative-links-but-index-and-supersede-write-sibling-relative-links-and-check-accepts-every-style.md) - open
+
 ## Closed
 
 * [0001 — Walking skeleton — Cargo workspace + living-docs-core + fs-store + thin cli](0001-workspace-core-skeleton.md) - done
