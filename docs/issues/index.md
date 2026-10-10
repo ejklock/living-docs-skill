@@ -13,6 +13,7 @@ one slice per fresh context, starting from the skeleton.
 * [0058 — index keeps a hand table header and a hand bullet list above the generated listing, leaving a dangling header or a duplicated list](0058-index-keeps-a-hand-table-header-and-a-hand-bullet-list-above-the-generated-listing-leaving-a-dangling-header-or-a-duplicated-list.md) - open
 * [0059 — set cannot write the tracker, labels and blocked_by keys that the issue workflow puts in issue frontmatter](0059-set-cannot-write-the-tracker-labels-and-blocked-by-keys-that-the-issue-workflow-puts-in-issue-frontmatter.md) - open
 * [0060 — set refuses architecture views, so a view's description is edited by hand](0060-set-refuses-architecture-views-so-a-view-s-description-is-edited-by-hand.md) - open
+* [0061 — The guides prescribe /-bundle-relative links, but index and supersede write sibling-relative links and check accepts every style](0061-the-guides-prescribe-bundle-relative-links-but-index-and-supersede-write-sibling-relative-links-and-check-accepts-every-style.md) - open
 
 ## Closed
 
