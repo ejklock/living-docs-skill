@@ -27,12 +27,12 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           fetch-depth: 0
 
       - name: Install Rust 1.96.0 (cli/rust-toolchain.toml)
-        uses: dtolnay/rust-toolchain@1.96.0
+        uses: dtolnay/rust-toolchain@3fc1e40d4c4ce3007de028907c886bc3996ce2ea # 1.96.0
 
       - name: Verify tag matches VERSION and every SKILL.md
         run: ./scripts/check-version.sh "${GITHUB_REF_NAME}"
@@ -50,7 +50,7 @@ jobs:
           sha256sum "${name}.zip" > "${name}.zip.sha256"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           draft: true
           generate_release_notes: true
@@ -77,7 +77,7 @@ jobs:
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
       # aarch64-unknown-linux-gnu cross-compiles from an x86_64 runner and needs a
       # matching cross linker; the other three targets build natively on their runner.
@@ -86,7 +86,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
 
       - name: Install Rust 1.96.0 (cli/rust-toolchain.toml)
-        uses: dtolnay/rust-toolchain@1.96.0
+        uses: dtolnay/rust-toolchain@3fc1e40d4c4ce3007de028907c886bc3996ce2ea # 1.96.0
         with:
           targets: ${{ matrix.target }}
 
@@ -107,7 +107,7 @@ jobs:
           fi
 
       - name: Upload asset to the GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           draft: true
           files: |
@@ -119,7 +119,7 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
       - name: Verify every expected release asset is published and checksum-valid
         env:
