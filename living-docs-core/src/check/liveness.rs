@@ -6,7 +6,7 @@
 
 use super::links::{link_destinations, resolve_destination};
 use super::records::{frontmatter_scalar, is_reserved};
-use super::{file_name_str, Reporter};
+use super::{file_name_str, kinds, Reporter};
 use crate::doc_type;
 use crate::store::DocStore;
 use std::path::{Path, PathBuf};
@@ -22,7 +22,7 @@ pub(crate) fn check_liveness(
         if is_stale_proposed(store, f, &bundle_str, all_md) {
             reporter.advise(
                 f,
-                "liveness",
+                kinds::LIVENESS,
                 "LIVENESS stale-proposed: seed status but the linked issue is terminal — settle or supersede",
             );
         }

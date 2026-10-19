@@ -250,6 +250,12 @@ success, `1` a gate or a verb's own check failed, `2` invalid usage. `living-doc
 completions bash|zsh|fish` prints a shell completion script generated straight from
 the same command tree `--help` reads, so it never drifts (ADR 0060).
 
+`--help`, `-h`, `help <verb>` and `--version` follow the same rule: on a terminal, with
+`--plain` or with `--color=always` they print clap's text; piped or with `--json` they
+print one minified JSON document derived from the command tree (every verb with its
+arguments, options, examples and exit codes at the root, that verb plus the global
+options for `<verb> --help`).
+
 ### Any other tool
 
 Copy `skills/living-docs/`, `skills/okf-knowledge-format/`, and

@@ -22,7 +22,7 @@ fn temp_dir(label: &str) -> PathBuf {
 #[test]
 fn root_help_carries_the_body_only_instruction() {
     let output = living_docs()
-        .arg("--help")
+        .args(["--plain", "--help"])
         .output()
         .expect("failed to run living-docs --help");
 

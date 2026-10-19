@@ -5,7 +5,7 @@
 //! (`DocStore::list`'s own enumeration) rather than a filesystem re-scan, so
 //! both invariants validate whichever backend `check::compile` is given.
 
-use super::{file_name_str, Reporter};
+use super::{file_name_str, kinds, Reporter};
 use crate::doc_type;
 use crate::frontmatter::{frontmatter_block, read_scalar_strict};
 use crate::store::DocStore;
@@ -163,7 +163,7 @@ pub(crate) fn check_heading_matches_title(
         if heading != title {
             reporter.advise(
                 f,
-                "heading",
+                kinds::HEADING,
                 format!("HEADING '{heading}' disagrees with title '{title}'"),
             );
         }
@@ -228,7 +228,7 @@ fn report_missing_owner(f: &Path, contents: &str, require_owner: bool, reporter:
     if require_owner {
         reporter.report(f, message);
     } else {
-        reporter.advise(f, "owner", message);
+        reporter.advise(f, kinds::OWNER, message);
     }
 }
 
