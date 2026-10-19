@@ -1,4 +1,6 @@
 use crate::doc_type::{self, Identity};
+use unicode_normalization::char::is_combining_mark;
+use unicode_normalization::UnicodeNormalization;
 
 /// Maps a doc-type token from the CLI to its docs-tree subdirectory (relative
 /// to `--docs-dir`). `issue` is deliberately plural (`issues`) — everything
@@ -23,13 +25,51 @@ pub fn frontmatter_type_for(token: &str) -> Option<&'static str> {
     Some(doc_type::spec_for(token)?.frontmatter)
 }
 
-/// Lowercase kebab-case slug: keeps ASCII alphanumerics, collapses any run of
-/// other characters into a single `-`, and drops leading/trailing separators.
+/// Folds accented Latin letters to their ASCII base: canonical decomposition
+/// drops the combining marks, and letters that do not decompose (`ß`, `ø`,
+/// `æ`…) map through a small table. Other characters pass through unchanged.
+pub fn transliterate(text: &str) -> String {
+    text.nfd().filter(|ch| !is_combining_mark(*ch)).fold(
+        String::with_capacity(text.len()),
+        |mut out, ch| {
+            match undecomposable_letter(ch) {
+                Some(ascii) => out.push_str(ascii),
+                None => out.push(ch),
+            }
+            out
+        },
+    )
+}
+
+fn undecomposable_letter(ch: char) -> Option<&'static str> {
+    Some(match ch {
+        'ß' => "ss",
+        'ø' => "o",
+        'Ø' => "O",
+        'æ' => "ae",
+        'Æ' => "AE",
+        'œ' => "oe",
+        'Œ' => "OE",
+        'ł' => "l",
+        'Ł' => "L",
+        'ð' => "d",
+        'Ð' => "D",
+        'þ' => "th",
+        'Þ' => "TH",
+        'đ' => "d",
+        'Đ' => "D",
+        _ => return None,
+    })
+}
+
+/// Lowercase kebab-case slug: transliterates accented Latin letters, keeps
+/// ASCII alphanumerics, collapses any run of other characters into a single
+/// `-`, and drops leading/trailing separators.
 pub fn slugify(title: &str) -> String {
     let mut slug = String::with_capacity(title.len());
     let mut pending_hyphen = false;
 
-    for ch in title.chars() {
+    for ch in transliterate(title).chars() {
         if ch.is_ascii_alphanumeric() {
             if pending_hyphen && !slug.is_empty() {
                 slug.push('-');
@@ -130,5 +170,17 @@ mod tests {
     #[test]
     fn slugify_of_only_punctuation_is_empty() {
         assert_eq!(slugify("!!!"), "");
+    }
+
+    #[test]
+    fn slugify_transliterates_accented_letters_to_their_base() {
+        assert_eq!(slugify("Horário de atendimento"), "horario-de-atendimento");
+        assert_eq!(slugify("Ação"), "acao");
+    }
+
+    #[test]
+    fn slugify_maps_letters_that_do_not_decompose() {
+        assert_eq!(slugify("Straße"), "strasse");
+        assert_eq!(slugify("Søren Ølsen"), "soren-olsen");
     }
 }

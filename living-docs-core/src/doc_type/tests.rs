@@ -283,3 +283,13 @@ fn the_template_fitness_check_reports_a_renamed_required_heading() {
         ["Acceptance"]
     );
 }
+
+#[test]
+fn a_directory_name_resolves_to_the_row_of_its_token() {
+    assert_eq!(spec_for("issues").map(|spec| spec.token), Some("issue"));
+    assert_eq!(
+        spec_for("architecture").map(|spec| spec.token),
+        Some("view")
+    );
+    assert!(spec_for("notes").is_none());
+}

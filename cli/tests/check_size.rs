@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 mod common;
-use common::{living_docs, run_check, stdout_of, write};
+use common::{living_docs, run_check, run_check_advisories, stdout_of, write};
 
 fn temp_bundle(label: &str) -> PathBuf {
     common::temp_bundle("size", label)
@@ -41,7 +41,7 @@ fn indexed_bundle_with(label: &str, record: &str) -> PathBuf {
 fn an_over_target_record_gets_a_size_advisory_naming_both_numbers_and_still_exits_zero() {
     let bundle = indexed_bundle_with("over", &adr_with_body_lines(121));
 
-    let output = run_check(&bundle);
+    let output = run_check_advisories(&bundle);
 
     assert_eq!(output.status.code(), Some(0));
     let stdout = stdout_of(&output);

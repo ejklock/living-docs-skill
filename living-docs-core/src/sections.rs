@@ -60,6 +60,70 @@ pub(crate) fn contract_body(body: &str, schema: &[SectionSpec]) -> String {
     kept
 }
 
+/// `contents` with the section headed `heading` given `text` as its content.
+/// The match is the one [`has_section`] uses, so a heading `check` recognizes
+/// is a heading found here. An existing section keeps its heading line and
+/// loses everything up to the next heading of its own level or higher,
+/// deeper subsections included; an absent one is appended at the end, at the
+/// level most of the record's sections use (`##` when it has none).
+pub(crate) fn replace_or_append_section(contents: &str, heading: &str, text: &str) -> String {
+    let (front, body) = contents.split_at(contents.len() - body_of(contents).len());
+    let lines = classified(body);
+    let sections = section_headings(contents, &lines);
+    let text = format!("{}\n", text.trim_end());
+    let Some(&(start, level, _)) = sections
+        .iter()
+        .find(|(_, _, name)| name.eq_ignore_ascii_case(heading))
+    else {
+        let marks = "#".repeat(dominant_level(&sections));
+        return format!("{}\n\n{marks} {heading}\n\n{text}", contents.trim_end());
+    };
+    let end = sections
+        .iter()
+        .find(|(index, other, _)| *index > start && *other <= level)
+        .map_or(lines.len(), |(index, _, _)| *index);
+    let joined = |range: &[(&str, Option<(usize, String)>)]| -> String {
+        range.iter().map(|(line, _)| *line).collect()
+    };
+    let kept = joined(&lines[..=start]);
+    let rest = joined(&lines[end..]);
+    let gap = if rest.is_empty() { "" } else { "\n" };
+    format!("{front}{}\n\n{text}{gap}{rest}", kept.trim_end())
+}
+
+/// Every non-title heading as (line index, level, text), the record's own
+/// title heading — the first heading, when its text equals the `title`
+/// frontmatter — left out as [`heading_names`] leaves it out.
+fn section_headings<'a>(
+    contents: &str,
+    lines: &'a [(&str, Option<(usize, String)>)],
+) -> Vec<(usize, usize, &'a str)> {
+    let title = frontmatter_block(contents).and_then(|block| read_scalar_strict(block, "title"));
+    let mut headings = lines
+        .iter()
+        .enumerate()
+        .filter_map(|(index, (_, heading))| {
+            heading
+                .as_ref()
+                .map(|(level, text)| (index, *level, text.as_str()))
+        })
+        .collect::<Vec<_>>();
+    if let (Some(first), Some(title)) = (headings.first(), title) {
+        if heading_text(first.2) == title {
+            headings.remove(0);
+        }
+    }
+    headings
+}
+
+fn dominant_level(sections: &[(usize, usize, &str)]) -> usize {
+    (1..=6)
+        .rev()
+        .max_by_key(|level| sections.iter().filter(|(_, l, _)| l == level).count())
+        .filter(|level| sections.iter().any(|(_, l, _)| l == level))
+        .unwrap_or(2)
+}
+
 fn is_detail(schema: &[SectionSpec], name: &str) -> bool {
     schema
         .iter()

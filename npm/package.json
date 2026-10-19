@@ -1,0 +1,26 @@
+{
+  "name": "living-docs",
+  "version": "0.21.0",
+  "description": "Deterministic CLI for living-docs authoring: ADRs, issues, research, indexes and checks.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ejklock/living-docs-skill.git"
+  },
+  "homepage": "https://github.com/ejklock/living-docs-skill#readme",
+  "bin": {
+    "living-docs": "bin/living-docs.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "scripts",
+    "README.md"
+  ]
+}

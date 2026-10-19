@@ -2,6 +2,8 @@
 //! through `living_docs_core::check::compile`, and renders it as colored
 //! text or JSON per the resolved output mode (ADR 0060).
 
+mod render;
+
 use crate::output::{self, ColorMode, OutputMode, Style};
 use crate::store::build_store;
 use living_docs_core::check::{self, MermaidReport, Report};
@@ -15,6 +17,7 @@ pub(crate) fn run_check(
     changed_files: &[PathBuf],
     mode: OutputMode,
     color: ColorMode,
+    list_advisories: bool,
 ) -> ExitCode {
     let bundle = check_bundle(docs_dir, paths);
     let Some(report) = compile_scoped(&bundle, require_owner, changed_files) else {
@@ -30,7 +33,7 @@ pub(crate) fn run_check(
     if mode.is_json() {
         println!("{}", output::to_json(&report));
     } else {
-        render_text(&report, color);
+        render::render_text(&report, color, list_advisories);
     }
     if report.ok {
         ExitCode::SUCCESS
@@ -47,38 +50,6 @@ fn compile_scoped(bundle: &Path, require_owner: bool, changed_files: &[PathBuf])
         return Some(report);
     }
     Some(report.scoped_to(changed_files))
-}
-
-fn render_text(report: &Report, color: ColorMode) {
-    println!("Living Docs lint — bundle: {}", report.bundle);
-    println!();
-    for advisory in &report.advisories {
-        let line = format!("  {:<44} {}", advisory.file, advisory.message);
-        println!("{}", output::paint(color, Style::Yellow, &line));
-    }
-    if !report.advisories.is_empty() {
-        println!();
-    }
-    for violation in &report.violations {
-        let line = format!("  {:<44} {}", violation.file, violation.message);
-        println!("{}", output::paint(color, Style::Red, &line));
-    }
-    println!();
-    render_verdict(report, color);
-}
-
-fn render_verdict(report: &Report, color: ColorMode) {
-    if report.ok {
-        let line = format!("OK — {} docs, no invariant violations.", report.docs);
-        println!("{}", output::paint(color, Style::Green, &line));
-    } else {
-        let line = format!(
-            "FAIL — {} violation(s) across {} docs.",
-            report.violations.len(),
-            report.docs
-        );
-        println!("{}", output::paint(color, Style::Red, &line));
-    }
 }
 
 /// `check --mermaid-only [paths...]`: compiles the mermaid-fence report

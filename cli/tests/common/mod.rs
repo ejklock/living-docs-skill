@@ -19,6 +19,15 @@ pub fn run_check(bundle: &Path) -> Output {
         .expect("failed to run living-docs check")
 }
 
+/// Runs `check --plain --advisories`, so callers asserting on the wording of
+/// an individual advisory see the full list rather than the per-kind summary.
+pub fn run_check_advisories(bundle: &Path) -> Output {
+    living_docs()
+        .args(["check", bundle.to_str().unwrap(), "--plain", "--advisories"])
+        .output()
+        .expect("failed to run living-docs check")
+}
+
 pub fn run_new(docs_dir: &Path, doc_type: &str, title: &str) -> Output {
     living_docs()
         .args([

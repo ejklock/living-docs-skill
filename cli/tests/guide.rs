@@ -66,7 +66,7 @@ fn no_args_prints_the_default_skills_full_body() {
     );
     assert!(
         stdout.contains(
-            "Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs set` / `supersede` / `index`."
+            "Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs set` / `supersede`."
         ),
         "got:\n{stdout}"
     );

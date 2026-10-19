@@ -172,6 +172,44 @@ fn completions_supports_zsh_and_fish() {
     }
 }
 
+fn registered_type_list() -> String {
+    living_docs_core::doc_type::DOC_TYPES
+        .iter()
+        .map(|spec| spec.token)
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+#[test]
+fn type_positional_help_lists_the_registered_tokens_in_registry_order() {
+    for verb in ["new", "index"] {
+        let output = living_docs()
+            .args([verb, "--help"])
+            .output()
+            .unwrap_or_else(|_| panic!("failed to run living-docs {verb} --help"));
+        let help = stdout_of(&output);
+        assert!(output.status.success(), "{verb} got:\n{help}");
+        let expected = format!("one of: {}", registered_type_list());
+        assert!(
+            help.contains(&expected),
+            "{verb} lacks '{expected}':\n{help}"
+        );
+    }
+}
+
+#[test]
+fn set_help_shows_a_record_path_example() {
+    let output = living_docs()
+        .args(["set", "--help"])
+        .output()
+        .expect("failed to run living-docs set --help");
+    let help = stdout_of(&output);
+    assert!(
+        help.contains("living-docs set issues/0049-flaky-upload-test.md status closed"),
+        "got:\n{help}"
+    );
+}
+
 #[test]
 fn completions_rejects_an_unknown_shell_with_exit_code_two() {
     let output = living_docs()

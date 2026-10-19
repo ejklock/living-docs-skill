@@ -25,9 +25,13 @@ A good issue body states, in order:
 
 `check` enforces Scope and Acceptance on live issues. Scope, Decision and Acceptance are the contract tier; Plan and Outcome are the detail tier. Orient with `living-docs read --contract`, which omits the detail tier, and open the issue file for the detail.
 
+## Closing an issue
+
+`living-docs set <ref> status closed`, then `living-docs set <ref> section Outcome --from PATH|-` for the Outcome text. Open an issue with its prose in one step: `living-docs new issue "<title>" --body PATH|-`, the file carrying `### Scope` and `### Acceptance`.
+
 ## Rules
 
-1. **Number consistently** with the project's scheme; index every issue.
+1. **Number consistently** with the project's scheme; every issue is indexed (`new`, `set` and `supersede` keep the index current; `living-docs index` repairs a hand-edited or merged bundle).
 2. **Link bidirectionally** — body links to its PRD/ADR; the PRD/ADR's decision log or the issue index links back.
 3. **Closing keywords** belong in the PR that resolves the issue (`Closes #NN`), not scattered in the body.
 4. **Historical issue bodies are not rewritten** when superseded — set the frontmatter `status` (e.g. `superseded`) and annotate the `index.md` row, leaving the body as closed history.

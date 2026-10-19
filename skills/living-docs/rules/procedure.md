@@ -7,13 +7,20 @@ the CLI's job; the judgment prose (the "why") is yours to write directly in the 
 
 - **Use the CLI verb for every mechanical step — never hand-do it:** `new` (number + frontmatter
   + skeleton), `set <ref> <key> <value>` (set `status`/`description`/`owner`), `supersede <old>
-  <new>` (links + status on both records), `index` (regenerate the listing), `check` (the gate,
-  must pass).
+  <new>` (links + status on both records), `check` (the gate, must pass). `new`, `set` and
+  `supersede` leave the index of every type they touch current; `index` is the repair verb for a
+  hand-edited or merged bundle, never a step after them.
 - **One authoring path: scaffold, then edit the body.** `new` writes the numbered file with
   its frontmatter and title heading filled and every body section as a `{{SLOT: hint}}`
   placeholder; the hint says what belongs in the slot and vanishes with it. Replace every slot
   with prose, or delete the slot and its heading when the record has nothing to say there —
   `check` fails on any slot left behind.
+- **Prose reaches a record through a file or stdin, never through argv.** `new <type> "<title>"
+  --body PATH|-` writes the body (everything below the heading) from a file or stdin in place of
+  the slots; `set <ref> <key> --from PATH|-` reads any field value the same way; `set <ref> section
+  "<heading>" --from PATH|-` replaces that section's text, or appends the section when the record
+  lacks it. A heading is matched case-insensitively, as `check` matches a required section.
+  The CLI places the text where told and writes none of it.
 - **Write the body prose directly.** The CLI must never author rationale, so there is no
   paragraph-editing verb — editing the body is a normal edit, not a process error. What *is* a
   process error is hand-numbering a doc, hand-writing frontmatter, hand-maintaining an index row,

@@ -1,9 +1,9 @@
-//! `living-docs read` (ADR 0050, simplified by ADR 0057, renamed from
-//! `effective` by ADR 0060; the module keeps its original name internally):
-//! the agent-facing read of the bundle — active records only
+//! `living-docs read` (the module keeps its original name `effective`
+//! internally): the agent-facing read of the bundle — active records only
 //! (superseded/deprecated withheld), supersede chains collapsed to the head
 //! with a one-line lineage, grouped by kind then number. `--topic` restricts
-//! to records mentioning a term (case-insensitive, title/description/body).
+//! to records where every term starts a word of the title, description or
+//! body (case- and accent-insensitive) and ranks them by term frequency.
 //! `--full` prints bodies instead of the one-line index, and `--contract` the
 //! same minus detail-tier sections. Derived, never committed: the records
 //! stay the SSOT.
@@ -17,6 +17,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 mod render;
+mod topic;
 
 /// Everything `effective` needs from the CLI front.
 pub struct Options {
@@ -44,7 +45,7 @@ pub fn run(store: &dyn DocStore, bundle: &Path, options: &Options) -> ExitCode {
 }
 
 /// Selects and orders the in-force view's records — the pure core shared by
-/// [`compile`] (text) and [`compile_json`] (JSON, ADR 0060) — returning the
+/// [`compile`] (text) and [`compile_json`] (JSON) — returning the
 /// withheld count and the surviving [`View`]s in reading order.
 pub(crate) fn collect(
     store: &dyn DocStore,
@@ -53,31 +54,64 @@ pub(crate) fn collect(
 ) -> (usize, Vec<View>) {
     let all_md = store.list(bundle).unwrap_or_default();
     let records = read_records(store, &all_md);
-    let topic = options.topic.as_deref().map(str::to_lowercase);
+    let terms = options
+        .topic
+        .as_deref()
+        .map(topic::terms)
+        .unwrap_or_default();
     let withheld = records
         .iter()
         .filter(|(_, record)| !is_in_force(record.status.as_deref()))
         .count();
 
-    let mut active: Vec<&Entry> = records
+    let mut active: Vec<(&Entry, topic::Folded)> = records
         .iter()
         .filter(|(_, record)| is_in_force(record.status.as_deref()))
-        .filter(|(_, record)| matches_topic(record, topic.as_deref()))
+        .map(|entry| (entry, topic::fold_record(&entry.1)))
+        .filter(|(_, folded)| topic::matches(folded, &terms))
         .collect();
-    active.sort_by_key(|(_, record)| base_rank(record));
+    active.sort_by_cached_key(|((_, record), folded)| {
+        (
+            std::cmp::Reverse(topic::score(folded, &terms)),
+            base_rank(record),
+        )
+    });
 
     let views: Vec<View> = active
         .iter()
-        .map(|(_, record)| view_of(record, &records, options.contract))
+        .map(|((_, record), _)| view_of(record, &records, options.contract))
         .collect();
     (withheld, views)
+}
+
+/// A compiled view plus the counts a front needs to explain an empty result
+/// without a second pass over the bundle.
+pub struct Reading {
+    pub output: String,
+    pub matched: usize,
+    pub withheld: usize,
 }
 
 /// Compiles the effective view as a string — the pure core, so tests assert on
 /// the compiled text without capturing stdout.
 pub fn compile(store: &dyn DocStore, bundle: &Path, options: &Options) -> String {
+    read(store, bundle, options, false).output
+}
+
+/// Reads the bundle once and renders it as text, or as JSON when `json` is set.
+pub fn read(store: &dyn DocStore, bundle: &Path, options: &Options, json: bool) -> Reading {
     let (withheld, views) = collect(store, bundle, options);
-    render::render(&views, options.full || options.contract, withheld)
+    let matched = views.len();
+    let output = if json {
+        json_of(withheld, views, options)
+    } else {
+        render::render(&views, options.full || options.contract, withheld)
+    };
+    Reading {
+        output,
+        matched,
+        withheld,
+    }
 }
 
 #[derive(Serialize)]
@@ -103,7 +137,10 @@ struct EffectiveJson {
 /// "lineage","body"?}]}` — `body` appears under `options.full` and under
 /// `options.contract`, the latter without detail-tier sections.
 pub fn compile_json(store: &dyn DocStore, bundle: &Path, options: &Options) -> String {
-    let (withheld, views) = collect(store, bundle, options);
+    read(store, bundle, options, true).output
+}
+
+fn json_of(withheld: usize, views: Vec<View>, options: &Options) -> String {
     let records = views
         .into_iter()
         .map(|view| RecordJson {
@@ -143,17 +180,6 @@ fn is_in_force(status: Option<&str>) -> bool {
         status.map(|s| s.to_ascii_lowercase()).as_deref(),
         Some("superseded") | Some("deprecated")
     )
-}
-
-/// Whether a record mentions `topic` (already lowercased) anywhere in its
-/// title, description, or body. `None` matches every record.
-fn matches_topic(record: &ExtractedRecord, topic: Option<&str>) -> bool {
-    let Some(topic) = topic else {
-        return true;
-    };
-    [&record.title, &record.description, &record.body]
-        .iter()
-        .any(|field| field.to_lowercase().contains(topic))
 }
 
 fn view_of(record: &ExtractedRecord, all: &[(PathBuf, ExtractedRecord)], contract: bool) -> View {

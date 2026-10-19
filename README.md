@@ -105,7 +105,7 @@ task needs:
 | [`skills/living-docs/`](skills/living-docs/) | The skill: the five invariants, the doc trail, per-doc-type conventions (`rules/`) and starter templates (`templates/`). |
 | [`skills/okf-knowledge-format/`](skills/okf-knowledge-format/) | The **format** standard the docs use — Open Knowledge Format (OKF): markdown + YAML frontmatter, required `type`, reserved `index.md`/`log.md`, bundle-relative links. The OKF spec is **vendored verbatim** from Google Cloud Platform. |
 | [`skills/research-artifacts/`](skills/research-artifacts/) | The research-note format and source discipline that feeds ADRs (the `docs/research/` half of the trail). |
-| [`cli/`](cli/) (authoring verbs) | **Deterministic authoring**: `new` scaffolds a record with CLI-owned numbering, frontmatter and title heading, and every body section as a `{{SLOT: hint}}` the agent replaces with prose. `set` sets the lifecycle fields, `supersede` wires both link directions and writes the retired-record callout, `index` rebuilds every index, `fmt` canonicalizes frontmatter. Architecture is a first-class doc type: `new view "<name>" --kind <context\|container\|component\|flow\|sequence\|state\|data-model\|deployment>` scaffolds one view per concern in `docs/architecture/`, and the generated index sorts them in C4/arc42 zoom order. |
+| [`cli/`](cli/) (authoring verbs) | **Deterministic authoring**: `new` scaffolds a record with CLI-owned numbering, frontmatter and title heading, and every body section as a `{{SLOT: hint}}` the agent replaces with prose. `new --body PATH|-` takes the body from a file or stdin. `set` sets the lifecycle fields (`set <ref> <key> --from PATH|-` reads any value from a file or stdin; `set <ref> section "<heading>" --from PATH|-` replaces or appends one body section), `supersede` wires both link directions and writes the retired-record callout; all three leave the index of every type they touched current, and `index` rebuilds every index as the repair for a hand-edited or merged bundle, `fmt` canonicalizes frontmatter. Architecture is a first-class doc type: `new view "<name>" --kind <context\|container\|component\|flow\|sequence\|state\|data-model\|deployment>` scaffolds one view per concern in `docs/architecture/`, and the generated index sorts them in C4/arc42 zoom order. |
 | [`cli/`](cli/) (`living-docs read`) | **The agent-facing read**: active records only, supersede chains collapsed to the head with a one-line lineage, retired records withheld and counted. `--topic <term>` filters, `--contract` prints each record's contract sections (an issue's Scope and Acceptance, an ADR's Context, Decision and Consequences), `--full` prints whole bodies. An agent reads this, never `index.md`. |
 | [`cli/`](cli/) (`living-docs check`) | The **deterministic checker** for the mechanical invariants — frontmatter/`type`, indexing + reachability, link resolution, supersede integrity and the retired-record callout, unfilled `{{SLOT}}` placeholders, required sections on live records (each type's schema in the registry), and Mermaid fences (in-process via the pure-Rust [`merman-core`](https://crates.io/crates/merman-core) parser — no Docker, no daemon). A single self-contained binary: native `serde_yaml` frontmatter parsing and native `pulldown-cmark` link extraction — no host tools needed. *A constraint without an instrument is a vibe*; this is the instrument. It runs at commit and in CI. |
 | [`cli/`](cli/) (`living-docs guide` / `install` / `uninstall`) | The skill corpus travels **inside the binary** and is served on demand (`guide --list`, `guide adr`); `install hooks` materializes the session-teaching hook and the pre-commit doc-gate into a project, `install skills` places the corpus into a harness's skills directory. |
@@ -139,6 +139,13 @@ Installing Living Docs is three independent steps:
                           #   LIVING_DOCS_VERSION pins a tag; falls back to `cargo build --release`
    # or:
    make cli-install       # thin wrapper over `./install.sh`
+   ```
+
+   Or through npm (Node 18 or later; downloads the same sha256-verified release asset):
+
+   ```bash
+   npm install -g living-docs     # installs the `living-docs` command
+   npx living-docs --version      # or run it without installing
    ```
 
    Useful flags: `--dir <path>` (custom destination, default `~/.local/bin`),

@@ -13,7 +13,9 @@ that fails it does not merge. It does **not** check docs-first mirroring or "one
 semantics — those have no sound oracle and stay with the reviewer.
 
 It also emits **advisories** — findings that never move the exit code, surfaced as work to
-schedule:
+schedule. The text report prints violations first, then one summary line per advisory kind
+(`2 SIZE advisories: 0017, 0029`, the first five records then `(+N)`); `--advisories` lists
+every advisory in full, and the JSON output always carries them all. The kinds:
 
 - `SIZE` — a decision/execution body past the ~120-line target (aim ~100; research exempt).
 - `MOVED-SOURCE` — a record whose linked source path moved.

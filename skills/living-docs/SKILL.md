@@ -29,7 +29,7 @@ stub:**
 Piped output is minified JSON (machine default); `--plain` for human text, `--json` to force
 JSON.
 
-Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs set` / `supersede` / `index`.
+Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs set` / `supersede`.
 
 - The spine invariants → `living-docs guide spine`.
 - Authoring mechanics — CLI owns every deterministic step, you write only the prose →

@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 mod common;
-use common::{run_check, stdout_of, write};
+use common::{run_check, run_check_advisories, stdout_of, write};
 
 fn temp_bundle(label: &str) -> PathBuf {
     common::temp_bundle("moved-source", label)
@@ -65,7 +65,7 @@ fn moved_source_finding_names_dependent_source_status_and_successor_and_stays_ex
     let bundle = temp_bundle("finding");
     write_moved_source_tree(&bundle, "[b](./b.md)");
 
-    let output = run_check(&bundle);
+    let output = run_check_advisories(&bundle);
     let stdout = stdout_of(&output);
 
     assert_eq!(
@@ -141,7 +141,7 @@ fn a_broken_link_alongside_a_moved_source_candidate_keeps_its_own_error_class_an
     let bundle = temp_bundle("broken");
     write_moved_source_tree(&bundle, "[b](./b.md)\n[missing](./no-such.md)");
 
-    let output = run_check(&bundle);
+    let output = run_check_advisories(&bundle);
     let stdout = stdout_of(&output);
 
     assert_eq!(output.status.code(), Some(1), "got:\n{stdout}");

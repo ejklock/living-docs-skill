@@ -5,13 +5,14 @@ use crate::skill_install::Harness;
 use clap::{Args, Subcommand};
 use std::path::PathBuf;
 
-/// Arguments for the `read` verb (ADR 0050, renamed by ADR 0060), factored
-/// into their own `Args` struct so the top-level `Command` enum stays within
-/// the file-size ratchet (issue 0028).
+/// Arguments for the `read` verb, factored into their own `Args` struct so the
+/// top-level `Command` enum stays within the file-size ratchet.
 #[derive(Args)]
 pub(crate) struct ReadArgs {
-    /// Restrict the view to records whose title, description, or body
-    /// contains this term (case-insensitive). Omitted: everything active.
+    /// Restrict the view to records where every whitespace-separated term
+    /// starts a word of the title, description, or body (case- and
+    /// accent-insensitive, never mid-word), best match first. Omitted:
+    /// everything active.
     #[arg(long)]
     pub(crate) topic: Option<String>,
     /// Print each record's full body instead of a one-line index entry.
