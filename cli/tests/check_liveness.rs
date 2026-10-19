@@ -3,20 +3,12 @@
 //! issue is terminal, and never changes the exit code.
 
 use std::path::Path;
-use std::process::Output;
 
 mod common;
-use common::{living_docs, stdout_of, write};
+use common::{run_check_advisories, stdout_of, write};
 
 fn liveness_bundle(label: &str) -> std::path::PathBuf {
     common::temp_bundle("liveness", label)
-}
-
-fn run_check(bundle: &Path) -> Output {
-    living_docs()
-        .args(["check", bundle.to_str().unwrap(), "--plain"])
-        .output()
-        .expect("failed to run living-docs check")
 }
 
 fn write_stale_proposed_bundle(bundle: &Path) {
@@ -54,7 +46,7 @@ fn check_flags_stale_proposed_without_gating() {
     let bundle = liveness_bundle("stale-proposed");
     write_stale_proposed_bundle(&bundle);
 
-    let output = run_check(&bundle);
+    let output = run_check_advisories(&bundle);
     let stdout = stdout_of(&output);
 
     assert_eq!(

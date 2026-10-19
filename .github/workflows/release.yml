@@ -13,7 +13,9 @@ name: Release
 # install.sh downloads these by that exact name (asset-naming contract). A third job,
 # `verify-release-assets`, runs `if: always()` after the first two and promotes the release
 # to published only once every expected asset is present and checksum-valid, keeping it draft
-# otherwise (ADR 0025).
+# otherwise. A last job, `publish-npm`, publishes the `living-docs` npm package
+# (npm/) with provenance after verification succeeds, and is skipped when the NPM_TOKEN
+# secret is empty.
 
 on:
   push:
@@ -125,3 +127,37 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: ./scripts/verify-release-assets.sh "${GITHUB_REF_NAME}"
+
+  publish-npm:
+    needs: [verify-release-assets]
+    if: ${{ always() && needs.verify-release-assets.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Skip when the npm token is absent
+        id: gate
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN}" ]; then
+            echo "NPM_TOKEN is not set; skipping npm publish."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Node
+        if: steps.gate.outputs.publish == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Publish living-docs to npm with provenance
+        if: steps.gate.outputs.publish == 'true'
+        working-directory: npm
+        run: npm publish --provenance --access public

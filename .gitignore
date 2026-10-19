@@ -10,6 +10,9 @@
 # Local publication / marketing drafts and exported assets — not part of the repo
 /publications/
 
+# Local read-model database of a pre-0059 build — stale scratch, never committed
+.living-docs/
+
 # cargo-mutants scratch output — regenerated per run, never committed
 mutants.out/
 mutants.out.old/

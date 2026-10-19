@@ -23,6 +23,7 @@ fn main() -> ExitCode {
             description,
             kind,
             owner,
+            body,
         } => commands::new::run_new(
             &cli.docs_dir,
             &doc_type,
@@ -31,18 +32,31 @@ fn main() -> ExitCode {
                 description: description.as_deref(),
                 kind: kind.as_deref(),
                 owner: owner.as_deref(),
+                body: body.as_deref(),
             },
             mode,
+            quiet,
         ),
         Command::Index { doc_type } => commands::index::run_index(&cli.docs_dir, doc_type, mode),
         Command::Supersede { old, new } => {
-            commands::supersede::run_supersede(&cli.docs_dir, &old, &new, mode)
+            commands::supersede::run_supersede(&cli.docs_dir, &old, &new, mode, quiet)
         }
         Command::Set {
             reference,
             key,
             value,
-        } => commands::set::run_set(&cli.docs_dir, &reference, &key, &value, mode),
+            from,
+        } => commands::set::run_set(
+            &cli.docs_dir,
+            &commands::set::SetArgs {
+                reference: &reference,
+                key: &key,
+                value: value.as_deref(),
+                from: from.as_deref(),
+            },
+            mode,
+            quiet,
+        ),
         Command::Check {
             paths,
             mermaid_only,
@@ -52,6 +66,7 @@ fn main() -> ExitCode {
             paths,
             require_owner,
             changed_files,
+            advisories,
             ..
         } => commands::check::run_check(
             &cli.docs_dir,
@@ -60,9 +75,10 @@ fn main() -> ExitCode {
             &changed_files,
             mode,
             color,
+            advisories,
         ),
         Command::Fmt { paths, check } => commands::fmt::run_fmt(&cli.docs_dir, paths, check, mode),
-        Command::Read(args) => commands::read::run_read(&cli.docs_dir, args, mode),
+        Command::Read(args) => commands::read::run_read(&cli.docs_dir, args, mode, quiet),
         Command::Guide(args) => commands::guide::run_guide(args, mode),
         Command::Install {
             action:

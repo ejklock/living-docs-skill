@@ -217,6 +217,26 @@ pub(crate) fn fill_heading(content: &str, title: &str, number: Option<u32>) -> S
     updated.join("\n") + "\n"
 }
 
+/// Replaces everything below the title heading — the template's slots — with
+/// `body`, keeping the frontmatter, the heading and the blank line after it.
+/// `None`, or a template with no heading, leaves `content` as it is.
+pub(crate) fn fill_body(content: &str, body: Option<&str>) -> String {
+    let Some(body) = body else {
+        return content.to_string();
+    };
+    let lines: Vec<&str> = content.lines().collect();
+    let close = frontmatter_close_index(&lines).unwrap_or(0);
+    let Some(heading) = lines
+        .iter()
+        .skip(close + 1)
+        .position(|l| l.starts_with('#'))
+    else {
+        return content.to_string();
+    };
+    let kept = lines[..=close + 1 + heading].join("\n");
+    format!("{kept}\n\n{}\n", body.trim_end())
+}
+
 fn is_placeholder_heading(line: &str) -> bool {
     (line.starts_with("# ") || line.starts_with("## ")) && line.contains('<') && line.contains('>')
 }

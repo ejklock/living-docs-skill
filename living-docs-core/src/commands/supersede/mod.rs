@@ -1,11 +1,15 @@
 use crate::callout;
-use crate::doc_type::{self, Identity};
+use crate::commands::index::{refresh_for_records, Indexed};
+use crate::commands::reference::resolve_reference;
 use crate::frontmatter::frontmatter_block;
-use crate::paths;
 use crate::record::{extract_record, to_canonical_markdown};
 use crate::store::DocStore;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+
+pub(crate) use crate::commands::reference::find_record;
+#[cfg(test)]
+use crate::commands::reference::{parse_record_number, parse_record_reference};
 
 pub fn run(store: &dyn DocStore, docs_dir: &Path, old: &str, new: &str) -> ExitCode {
     match supersede(store, docs_dir, old, new) {
@@ -17,18 +21,27 @@ pub fn run(store: &dyn DocStore, docs_dir: &Path, old: &str, new: &str) -> ExitC
     }
 }
 
+/// The two records `supersede` linked and what refreshing their indexes did.
+#[derive(Debug)]
+pub struct Superseded {
+    pub old: PathBuf,
+    pub new: PathBuf,
+    pub indexed: Indexed,
+}
+
 /// Wires both link directions and writes the retired-record callout on
-/// `old`. Returns the two resolved paths (`old`, `new`) — the CLI front
-/// renders this as colored text or JSON (ADR 0060); [`run`] is the
-/// plain-text-always convenience wrapper over it.
+/// `old`, then refreshes the index of each type touched. Returns the two
+/// resolved paths and the index outcome — the CLI front renders this as
+/// colored text or JSON; [`run`] is the plain-text-always
+/// convenience wrapper over it.
 pub fn supersede(
     store: &dyn DocStore,
     docs_dir: &Path,
     old: &str,
     new: &str,
-) -> Result<(PathBuf, PathBuf), String> {
-    let (_, old_number) = parse_record_reference(old)?;
-    let (_, new_number) = parse_record_reference(new)?;
+) -> Result<Superseded, String> {
+    let (_, old_number) = resolve_reference(docs_dir, old)?;
+    let (_, new_number) = resolve_reference(docs_dir, new)?;
 
     let old_path = find_record(store, docs_dir, old)?;
     let new_path = find_record(store, docs_dir, new)?;
@@ -48,113 +61,12 @@ pub fn supersede(
         &[("supersedes", format!("{old_number:04}"))],
     )?;
 
-    Ok((old_path, new_path))
-}
-
-pub(crate) fn parse_record_number(arg: &str) -> Result<u32, String> {
-    arg.parse()
-        .map_err(|_| format!("'{arg}' is not a valid record number"))
-}
-
-/// Parses a record reference in either the bare `NNNN` form or the
-/// type-qualified `TYPE/NNNN` form (issue 0029/0025), resolving `TYPE`
-/// through the registry token map ([`paths::dir_for`]) rather than a
-/// hardcoded directory name. Returns the resolved directory alongside the
-/// numeric part; `None` for the directory means the reference carries no
-/// qualifier and [`find_record`] must resolve it across every type.
-pub(crate) fn parse_record_reference(arg: &str) -> Result<(Option<&'static str>, u32), String> {
-    match arg.split_once('/') {
-        Some((token, number)) => {
-            let dir = paths::dir_for(token).ok_or_else(|| {
-                format!(
-                    "'{token}' is not a valid type; expected one of {}",
-                    numbered_type_tokens()
-                )
-            })?;
-            Ok((Some(dir), parse_record_number(number)?))
-        }
-        None => Ok((None, parse_record_number(arg)?)),
-    }
-}
-
-fn numbered_type_tokens() -> String {
-    doc_type::DOC_TYPES
-        .iter()
-        .filter(|spec| matches!(spec.identity, Identity::Numbered { .. }))
-        .map(|spec| spec.token)
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
-/// Finds the record `reference` names among every path the active store
-/// lists under `docs_dir` — backend agnostic, so a db-mode store's own
-/// project-scoped enumeration is honored exactly like a filesystem walk.
-/// A type-qualified `TYPE/NNNN` reference resolves within that type's
-/// directory only; a bare `NNNN` resolves across every type, failing loudly
-/// with every candidate path when more than one type carries that number
-/// (issue 0029/0025) rather than silently picking the first match. Shared
-/// with `status.rs` and `describe.rs` (lesson 3717: no duplicated
-/// record-resolution logic).
-pub(crate) fn find_record(
-    store: &dyn DocStore,
-    docs_dir: &Path,
-    reference: &str,
-) -> Result<PathBuf, String> {
-    let (dir, number) = parse_record_reference(reference)?;
-    let prefix = format!("{number:04}-");
-    let candidates: Vec<PathBuf> = store
-        .list(docs_dir)
-        .map_err(|e| e.to_string())?
-        .into_iter()
-        .filter(|path| matches_record_prefix(path, &prefix))
-        .collect();
-
-    match dir {
-        Some(dir) => find_in_directory(candidates, dir, number),
-        None => find_unqualified(candidates, number),
-    }
-}
-
-fn find_in_directory(candidates: Vec<PathBuf>, dir: &str, number: u32) -> Result<PathBuf, String> {
-    candidates
-        .into_iter()
-        .find(|path| parent_dir_name(path) == Some(dir))
-        .ok_or_else(|| {
-            let token = paths::doc_type_for_dir(dir).unwrap_or(dir);
-            format!("no record found for {token}/{number:04}")
-        })
-}
-
-fn find_unqualified(candidates: Vec<PathBuf>, number: u32) -> Result<PathBuf, String> {
-    match candidates.len() {
-        0 => Err(format!("no record found for {number:04}")),
-        1 => Ok(candidates.into_iter().next().expect("length checked above")),
-        _ => Err(ambiguous_reference_error(&candidates, number)),
-    }
-}
-
-/// Names every candidate the store listed for an ambiguous bare `NNNN`
-/// (issue 0029/0025) and suggests the `TYPE/NNNN` qualifier, so the caller
-/// never has to guess which record the number resolved to.
-fn ambiguous_reference_error(candidates: &[PathBuf], number: u32) -> String {
-    let paths = candidates
-        .iter()
-        .map(|path| path.display().to_string())
-        .collect::<Vec<_>>()
-        .join(", ");
-    format!(
-        "{number:04} is ambiguous across {paths}; specify the type explicitly, e.g. TYPE/{number:04}"
-    )
-}
-
-fn parent_dir_name(path: &Path) -> Option<&str> {
-    path.parent()?.file_name()?.to_str()
-}
-
-fn matches_record_prefix(path: &Path, prefix: &str) -> bool {
-    path.file_name()
-        .and_then(|name| name.to_str())
-        .is_some_and(|name| name.starts_with(prefix) && name.ends_with(".md"))
+    let indexed = refresh_for_records(store, docs_dir, &[&old_path, &new_path]);
+    Ok(Superseded {
+        old: old_path,
+        new: new_path,
+        indexed,
+    })
 }
 
 /// Reads the record at `path` once, applies every `(key, value)` pair to its

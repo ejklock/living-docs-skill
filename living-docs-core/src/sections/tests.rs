@@ -119,3 +119,39 @@ fn an_indented_detail_heading_does_not_cut_a_contract_section() {
     let body = "### Scope\n\nkept\n\n    ### Plan\n\nstill scope\n";
     assert_eq!(contract_body(body, ISSUE_SCHEMA), body);
 }
+
+const RECORD: &str = "---\ntitle: T\n---\n\n## 0001. T\n\n### Scope\n\ns\n\n### Outcome\n\nold\n\n#### Sub\n\nsub\n\n### Plan\n\np\n";
+
+#[test]
+fn replacing_a_section_keeps_its_heading_and_drops_its_subsections() {
+    let updated = replace_or_append_section(RECORD, "outcome", "new\n");
+    assert_eq!(
+        updated,
+        "---\ntitle: T\n---\n\n## 0001. T\n\n### Scope\n\ns\n\n### Outcome\n\nnew\n\n### Plan\n\np\n"
+    );
+}
+
+#[test]
+fn replacing_the_last_section_runs_to_the_end_of_the_record() {
+    let updated = replace_or_append_section(RECORD, "Plan", "q");
+    assert!(updated.ends_with("### Plan\n\nq\n"), "{updated}");
+}
+
+#[test]
+fn an_absent_section_is_appended_at_the_level_most_sections_use() {
+    let updated = replace_or_append_section(RECORD, "Notes", "n\n");
+    assert!(updated.ends_with("p\n\n### Notes\n\nn\n"), "{updated}");
+}
+
+#[test]
+fn a_record_with_no_sections_appends_at_level_two() {
+    let updated = replace_or_append_section("---\ntitle: T\n---\n\n# T\n", "Notes", "n\n");
+    assert!(updated.ends_with("# T\n\n## Notes\n\nn\n"), "{updated}");
+}
+
+#[test]
+fn the_title_heading_is_never_the_section_replaced() {
+    let updated = replace_or_append_section(RECORD, "T", "n\n");
+    assert!(updated.contains("## 0001. T\n\n### Scope"), "{updated}");
+    assert!(updated.ends_with("### T\n\nn\n"), "{updated}");
+}

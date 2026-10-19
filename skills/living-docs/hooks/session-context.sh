@@ -34,6 +34,6 @@ else
   BIN_NOTE="CLI not built — run \`make build\` (or \`cargo build --release --manifest-path cli/Cargo.toml\`) before authoring docs"
 fi
 
-printf 'living-docs: %s. Docs authoring contract: write ONLY the body below the closing --- of a record. Numbering, frontmatter, supersede links, and index rows are CLI-owned — `living-docs new <type> "<title>"`, `living-docs set <NNNN> <key> <value>`, `living-docs supersede <old> <new>`, `living-docs index`, `living-docs fmt`. A hand-written one fails `living-docs check` at commit.\n' "$BIN_NOTE"
+printf 'living-docs: %s. Docs authoring contract: write ONLY the body below the closing --- of a record. Numbering, frontmatter, supersede links, and index rows are CLI-owned — `living-docs new <type> "<title>" [--body PATH|-]`, `living-docs set <NNNN> <key> <value>` or `living-docs set <NNNN> <key> --from PATH|-` (`set <NNNN> section "<heading>" --from PATH|-` replaces one body section), `living-docs supersede <old> <new>`, `living-docs fmt`; prose arrives through `--body`/`--from` as a file or stdin, never argv; these leave the indexes current, and `living-docs index` is only the repair for a hand-edited or merged bundle. A hand-written one fails `living-docs check` at commit.\n' "$BIN_NOTE"
 
 exit 0

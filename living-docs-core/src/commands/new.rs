@@ -1,12 +1,13 @@
 use crate::commands::next::next_number_from_store;
 
 mod fill;
+use crate::commands::index::{refresh_for_records, Indexed};
 use crate::doc_type::{self, Identity};
 use crate::paths;
 use crate::store::DocStore;
 pub(crate) use fill::{
-    fill_frontmatter, fill_frontmatter_description, fill_frontmatter_kind, fill_frontmatter_owner,
-    fill_frontmatter_title, fill_heading,
+    fill_body, fill_frontmatter, fill_frontmatter_description, fill_frontmatter_kind,
+    fill_frontmatter_owner, fill_frontmatter_title, fill_heading,
 };
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -26,9 +27,12 @@ pub struct NewOptions<'a> {
     /// canonical position immediately after `description:`. `None` leaves
     /// the record with no `owner:` field at all.
     pub owner: Option<&'a str>,
+    /// Replaces everything below the title heading — the template's slots —
+    /// with this text. `None` keeps the scaffolded slots.
+    pub body: Option<&'a str>,
 }
 
-pub const BODY_ONLY_INSTRUCTION: &str = "Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs set` / `supersede` / `index`.";
+pub const BODY_ONLY_INSTRUCTION: &str = "Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs set` / `supersede`.";
 
 pub fn run(
     store: &dyn DocStore,
@@ -38,10 +42,10 @@ pub fn run(
     opts: &NewOptions,
 ) -> ExitCode {
     match write(store, docs_dir, doc_type, title, opts) {
-        Ok(path) => {
-            println!("{}", path.display());
+        Ok(created) => {
+            println!("{}", created.path.display());
             println!("{BODY_ONLY_INSTRUCTION}");
-            ExitCode::SUCCESS
+            report_index_failure(&created.indexed)
         }
         Err(message) => {
             eprintln!("living-docs new: {message}");
@@ -50,17 +54,39 @@ pub fn run(
     }
 }
 
-/// Scaffolds and writes the new record, returning its path without printing
-/// anything — the CLI front renders this as colored text or JSON (ADR 0060);
-/// [`run`] is the plain-text-always convenience wrapper over it.
+/// Names the first index that could not be refreshed and exits 1, so a
+/// script sees the half-finished state a usage error (exit 2) never has.
+fn report_index_failure(indexed: &Indexed) -> ExitCode {
+    match indexed.failures.first() {
+        None => ExitCode::SUCCESS,
+        Some(failure) => {
+            eprintln!("living-docs new: {failure}");
+            ExitCode::from(1)
+        }
+    }
+}
+
+/// The record `new` wrote and what refreshing its type's index did.
+#[derive(Debug)]
+pub struct Created {
+    pub path: PathBuf,
+    pub indexed: Indexed,
+}
+
+/// Scaffolds and writes the new record, then refreshes its type's index,
+/// returning both without printing anything — the CLI front renders this as
+/// colored text or JSON; [`run`] is the plain-text-always
+/// convenience wrapper over it.
 pub fn write(
     store: &dyn DocStore,
     docs_dir: &Path,
     doc_type: &str,
     title: &str,
     opts: &NewOptions,
-) -> Result<PathBuf, String> {
-    scaffold(store, docs_dir, doc_type, title, opts, &now_iso8601())
+) -> Result<Created, String> {
+    let path = scaffold(store, docs_dir, doc_type, title, opts, &now_iso8601()?)?;
+    let indexed = refresh_for_records(store, docs_dir, &[path.as_path()]);
+    Ok(Created { path, indexed })
 }
 
 /// Computes `new`'s target path and filled content without writing it —
@@ -89,6 +115,7 @@ fn plan_at(
     let filled = fill_frontmatter_owner(&filled, opts.owner);
     let filled = fill_frontmatter_kind(&filled, spec, opts.kind)?;
     let filled = fill_heading(&filled, title, numbered_prefix_of(&target_path));
+    let filled = fill_body(&filled, opts.body);
     Ok((target_path, filled))
 }
 
@@ -140,7 +167,7 @@ pub fn plan(
     title: &str,
     opts: &NewOptions,
 ) -> Result<(PathBuf, String), String> {
-    plan_at(store, docs_dir, doc_type, title, opts, &now_iso8601())
+    plan_at(store, docs_dir, doc_type, title, opts, &now_iso8601()?)
 }
 
 fn scaffold(
@@ -170,19 +197,19 @@ pub(crate) fn unsupported_type_message(doc_type: &str) -> String {
     format!("unsupported doc type '{doc_type}' (expected one of {supported})")
 }
 
-pub(crate) fn now_iso8601() -> String {
+pub(crate) fn now_iso8601() -> Result<String, String> {
     let secs = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .expect("system clock is before the unix epoch")
+        .map_err(|_| "system clock is before the unix epoch".to_string())?
         .as_secs();
     let (year, month, day) = civil_date_from_unix_days((secs / 86_400) as i64);
     let time_of_day = secs % 86_400;
-    format!(
+    Ok(format!(
         "{year:04}-{month:02}-{day:02}T{:02}:{:02}:{:02}Z",
         time_of_day / 3_600,
         (time_of_day % 3_600) / 60,
         time_of_day % 60
-    )
+    ))
 }
 
 /// Days-since-epoch to (year, month, day) via Howard Hinnant's

@@ -103,13 +103,44 @@ fn set_rejects_an_unknown_field() {
     let err = apply(&store, Path::new("/bundle"), "0001", "labels", "urgent")
         .expect_err("labels is not a settable field");
     assert!(err.contains("not a settable field"), "got: {err}");
+    assert!(err.contains("section with --from"), "got: {err}");
     assert_eq!(store.contents("/bundle/adr/0001-a-decision.md"), ADR);
+}
+
+#[test]
+fn set_rejects_a_misspelled_section_key() {
+    let store = store();
+    let err = apply(&store, Path::new("/bundle"), "0001", "sections", "x")
+        .expect_err("sections is not a settable field");
+    assert!(err.contains("not a settable field"), "got: {err}");
+    assert!(err.contains("section with --from"), "got: {err}");
 }
 
 #[test]
 fn set_fails_when_the_record_cannot_be_found_and_leaves_it_unchanged() {
     let store = store();
     let err = apply(&store, Path::new("/bundle"), "0099", "status", "Accepted")
+        .expect_err("no such record");
+    assert!(err.contains("no record found for 0099"), "got: {err}");
+    assert_eq!(store.contents("/bundle/adr/0001-a-decision.md"), ADR);
+}
+
+#[test]
+fn set_section_writes_the_text_under_the_heading_and_nothing_else() {
+    let store = store();
+    apply_section(&store, Path::new("/bundle"), "0001", "Notes", "n\n").expect("section");
+    let written = store.contents("/bundle/adr/0001-a-decision.md");
+    assert!(
+        written.ends_with("# A Decision\n\n## Notes\n\nn\n"),
+        "{written}"
+    );
+    assert!(written.contains("status: Proposed\n"));
+}
+
+#[test]
+fn set_section_on_an_unknown_reference_writes_nothing() {
+    let store = store();
+    let err = apply_section(&store, Path::new("/bundle"), "0099", "Notes", "n\n")
         .expect_err("no such record");
     assert!(err.contains("no record found for 0099"), "got: {err}");
     assert_eq!(store.contents("/bundle/adr/0001-a-decision.md"), ADR);

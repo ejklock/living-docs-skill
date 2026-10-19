@@ -32,6 +32,7 @@ fn index_json_matches_the_documented_shape() {
         "First Decision",
         "--plain",
     ]);
+    std::fs::remove_file(docs.join("adr/index.md")).unwrap();
 
     let output = run(&[
         "--docs-dir",
@@ -83,10 +84,16 @@ fn fmt_json_matches_the_documented_shape() {
     assert_eq!(write_stdout.trim_end().lines().count(), 1);
 }
 
+fn assert_names_the_adr_index(indexed: &[String]) {
+    assert_eq!(indexed.len(), 1);
+    assert!(indexed[0].ends_with("adr/index.md"), "got: {indexed:?}");
+}
+
 #[derive(Deserialize)]
 struct NewJson {
     path: String,
     instruction: String,
+    indexed: Vec<String>,
 }
 
 #[test]
@@ -116,6 +123,7 @@ fn new_json_matches_the_documented_shape() {
         "got: {}",
         parsed.instruction
     );
+    assert_names_the_adr_index(&parsed.indexed);
     assert_eq!(stdout.trim_end().lines().count(), 1);
 }
 
@@ -124,6 +132,7 @@ struct SetJson {
     path: String,
     key: String,
     value: String,
+    indexed: Vec<String>,
 }
 
 #[test]
@@ -158,12 +167,41 @@ fn set_json_matches_the_documented_shape() {
         "got: {}",
         parsed.path
     );
+    assert_names_the_adr_index(&parsed.indexed);
+}
+
+#[test]
+fn set_section_json_reports_the_key_and_the_heading() {
+    let docs = temp_bundle("output-contract", "set-section");
+    let dir = docs.to_str().unwrap();
+    new_adr(dir, "Section Target");
+    let from = docs.parent().unwrap().join("text.md");
+    std::fs::write(&from, "Some text.\n").unwrap();
+    let output = run(&[
+        "--docs-dir",
+        dir,
+        "set",
+        "0001",
+        "section",
+        "Notes",
+        "--from",
+        from.to_str().unwrap(),
+        "--json",
+    ]);
+    let stdout = stdout_of(&output);
+    assert!(output.status.success(), "got:\n{stdout}");
+    let parsed: SetJson = serde_json::from_str(stdout.trim_end())
+        .unwrap_or_else(|e| panic!("set section --json emits valid JSON: {e}\ngot:\n{stdout}"));
+    assert_eq!(parsed.key, "section");
+    assert_eq!(parsed.value, "Notes");
+    assert!(parsed.indexed.is_empty(), "got: {:?}", parsed.indexed);
 }
 
 #[derive(Deserialize)]
 struct SupersedeJson {
     old: String,
     new: String,
+    indexed: Vec<String>,
 }
 
 fn new_adr(docs: &str, title: &str) {
@@ -192,4 +230,5 @@ fn supersede_json_matches_the_documented_shape() {
         "got: {}",
         parsed.new
     );
+    assert_names_the_adr_index(&parsed.indexed);
 }

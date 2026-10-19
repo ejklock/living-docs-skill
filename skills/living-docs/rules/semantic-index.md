@@ -30,7 +30,7 @@ The corpus is append-only (supersede, never rewrite): right for history, wrong a
 **Agents read `living-docs read`, never `index.md` directly** (ADR 0050). It compiles the in-force view: active records only (superseded/deprecated withheld), supersede chains collapsed to the head with a one-line lineage (`supersedes 0131 via 0133`), grouped **constitution and PRDs first, then ADRs, then the rest** by number, so the reader orients before drilling in.
 
 - `living-docs read` — the whole active view (title + description per record).
-- `living-docs read --topic <term>` — only records whose title, description, or body contains the term (case-insensitive).
+- `living-docs read --topic <terms>` — only records where every term starts a word in the title, description, or body (case- and accent-insensitive: `acao` finds `Ação`), ranked by hits in the title first, then the description, then the body; when nothing live matches, a stderr line says so and suggests a broader term or `grep`.
 - `living-docs read --contract` — each record's contract sections only (an issue's Scope, Decision and Acceptance; its Plan and Outcome stay out). Each type's tiers live in the registry (ADR 0064).
 - `living-docs read --full` — full record bodies instead of the one-line index entries.
 

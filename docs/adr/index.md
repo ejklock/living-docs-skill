@@ -36,6 +36,9 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0062 — check --changed-files scopes the gate to the records a commit touches, so a brownfield bundle can arm the hook](0062-check-changed-files-scopes-the-gate-to-the-records-a-commit-touches-so-a-brownfield-bundle-can-arm-the-hook.md) - Accepted
 * [0063 — Authoring advisories skip retired records](0063-authoring-advisories-skip-retired-records.md) - Accepted
 * [0064 — Each doc type declares its sections in the registry: required or optional, contract or detail tier, so check enforces the required ones on live records and read discloses by tier](0064-each-doc-type-declares-its-sections-in-the-registry-required-or-optional-contract-or-detail-tier-so-check-enforces-the-required-ones-on-live-records-and-read-discloses-by-tier.md) - Accepted
+* [0065 — Mutation verbs leave the bundle indexed: new, set and supersede regenerate the touched type index in the same run](0065-mutation-verbs-leave-the-bundle-indexed-new-set-and-supersede-regenerate-the-touched-type-index-in-the-same-run.md) - Accepted
+* [0066 — Record prose enters through a file or stdin: new --body and set --from replace argv for body and field values](0066-record-prose-enters-through-a-file-or-stdin-new-body-and-set-from-replace-argv-for-body-and-field-values.md) - Accepted
+* [0067 — An npm package wraps the released binary as a second distribution channel so npx living-docs resolves](0067-an-npm-package-wraps-the-released-binary-as-a-second-distribution-channel-so-npx-living-docs-resolves.md) - Accepted
 
 ## Superseded
 

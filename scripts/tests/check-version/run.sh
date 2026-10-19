@@ -60,6 +60,12 @@ set_all_versions() { # set_all_versions <dir> <version>
   printf '%s' "$version" >"$dir/VERSION"
   write_frontmatter "$dir/skills/foo/SKILL.md" "version: \"$version\""
   write_cargo "$dir" "$version"
+  write_npm_package "$dir" "$version"
+}
+
+write_npm_package() { # write_npm_package <dir> <version>
+  mkdir -p "$1/npm"
+  printf '{\n  "name": "fixture",\n  "version": "%s"\n}\n' "$2" >"$1/npm/package.json"
 }
 
 write_spec_skill() { # write_spec_skill <dir> <skill-md-version> -> a skill dir vendoring reference/SPEC.md at 0.1
@@ -201,6 +207,20 @@ repo="$(new_repo case16)"
 write_spec_skill "$repo" "0.9.0"
 invoke "$repo"
 assert_exit "16-exit-1" 1
+
+echo "case 17: npm/package.json version drifted"
+repo="$(new_repo case17)"
+write_npm_package "$repo" "0.0.1"
+invoke "$repo"
+assert_exit    "17-exit-1"     1
+assert_out_has "17-names-file" "npm/package.json"
+
+echo "case 18: npm/package.json version matches the release version"
+repo="$(new_repo case18)"
+write_npm_package "$repo" "0.9.0"
+invoke "$repo"
+assert_exit    "18-exit-0"     0
+assert_out_has "18-version-ok" "Version OK"
 
 echo
 if ((fail == 0)); then

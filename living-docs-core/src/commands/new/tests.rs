@@ -9,7 +9,7 @@ fn civil_date_from_unix_days_matches_known_calendar_dates() {
 
 #[test]
 fn now_iso8601_has_the_expected_shape() {
-    let timestamp = now_iso8601();
+    let timestamp = now_iso8601().unwrap();
     assert_eq!(timestamp.len(), 20);
     assert_eq!(&timestamp[4..5], "-");
     assert_eq!(&timestamp[7..8], "-");
@@ -37,4 +37,30 @@ fn unsupported_type_message_lists_every_registry_token() {
             spec.token
         );
     }
+}
+
+#[test]
+fn a_body_replaces_the_template_slots_below_the_heading() {
+    let store = crate::test_support::WritableMapStore::new();
+    let opts = NewOptions {
+        body: Some("### Scope\n\nx\n"),
+        ..Default::default()
+    };
+    let (_, content) = plan_at(
+        &store,
+        Path::new("/b"),
+        "issue",
+        "T",
+        &opts,
+        "2026-01-01T00:00:00Z",
+    )
+    .expect("plan");
+    assert!(
+        content.ends_with("## 0001. T\n\n### Scope\n\nx\n"),
+        "{content}"
+    );
+    assert!(
+        content.starts_with("---\ntype: Issue\ntitle: T\n"),
+        "{content}"
+    );
 }

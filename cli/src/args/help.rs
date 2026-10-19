@@ -12,13 +12,23 @@ pub(crate) fn with_exit_codes(examples: &str) -> String {
     format!("{examples}\n\n{EXIT_CODES}")
 }
 
+/// Renders the registered record types for a `TYPE` positional's help, read
+/// from the registry at runtime so a new row appears without a help edit.
+pub(crate) fn doc_type_help() -> String {
+    let tokens = living_docs_core::doc_type::DOC_TYPES
+        .iter()
+        .map(|spec| spec.token)
+        .collect::<Vec<_>>();
+    format!("one of: {}", tokens.join(", "))
+}
+
 pub(crate) const NEW_ABOUT: &str =
     "Scaffolds a new record with CLI-owned numbering, frontmatter, and heading.";
-pub(crate) const NEW_EXAMPLES: &str = "Examples:\n  living-docs new adr \"Cache invalidation strategy\"\n  living-docs new issue \"Flaky upload test\" --owner alice@example.com";
+pub(crate) const NEW_EXAMPLES: &str = "Examples:\n  living-docs new adr \"Cache invalidation strategy\"\n  living-docs new issue \"Flaky upload test\" --owner alice@example.com\n  living-docs new issue \"Flaky upload test\" --body body.md\n  cat body.md | living-docs new issue \"Flaky upload test\" --body -";
 
 pub(crate) const SET_ABOUT: &str =
-    "Sets one CLI-owned frontmatter field: status, description, owner, or title.";
-pub(crate) const SET_EXAMPLES: &str = "Examples:\n  living-docs set 0012 status Accepted\n  living-docs set adr/0012 owner carol@example.com\n  living-docs set adr/0012 title \"Cache invalidation is write-through\"";
+    "Sets one CLI-owned frontmatter field (status, description, owner, title) or replaces a body section.";
+pub(crate) const SET_EXAMPLES: &str = "Examples:\n  living-docs set 0012 status Accepted\n  living-docs set adr/0012 owner carol@example.com\n  living-docs set issues/0049-flaky-upload-test.md status closed\n  living-docs set adr/0012 title \"Cache invalidation is write-through\"\n  living-docs set 0012 description --from description.txt\n  living-docs set issue/0049 section Outcome --from outcome.md\n  echo closed | living-docs set 0049 status --from -";
 
 pub(crate) const SUPERSEDE_ABOUT: &str =
     "Retires an old record in favor of a new one, wiring both link directions.";

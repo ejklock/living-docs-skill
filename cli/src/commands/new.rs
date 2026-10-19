@@ -1,13 +1,16 @@
 //! `new` verb wrapper: delegates to `living_docs_core::commands::new::write`,
 //! rendering the created path as colored text or JSON (ADR 0060).
 
+use super::prose;
+use super::report::report_indexed;
 use crate::output::{self, OutputMode};
 use crate::store::build_store;
 use living_docs_core::commands;
 use living_docs_core::commands::new::{NewOptions, BODY_ONLY_INSTRUCTION};
+use living_docs_core::doc_type::spec_for;
 use serde::Serialize;
-use std::path::Path;
-use std::process::ExitCode;
+use std::path::{Path, PathBuf};
+use std::process::{Command, ExitCode};
 
 /// The `new` verb's optional CLI arguments, bundled so the wrapper's
 /// signature stays within the argument budget as flags accrue.
@@ -15,12 +18,53 @@ pub(crate) struct NewArgs<'a> {
     pub(crate) description: Option<&'a str>,
     pub(crate) kind: Option<&'a str>,
     pub(crate) owner: Option<&'a str>,
+    pub(crate) body: Option<&'a str>,
 }
 
 #[derive(Serialize)]
 struct NewJson<'a> {
     path: &'a Path,
     instruction: &'a str,
+    indexed: &'a [PathBuf],
+}
+
+/// Reads one git config value; a missing `git`, a non-zero exit or an empty
+/// value is absence, so a machine without a git identity still creates records.
+fn git_config(key: &str) -> Option<String> {
+    let output = Command::new("git")
+        .args(["config", "--get", key])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let value = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    (!value.is_empty()).then_some(value)
+}
+
+/// The owner for a type whose registry row requires one and the caller gave
+/// none: the git `user.name`, else `user.email`.
+fn seeded_owner(doc_type: &str, given: Option<&str>) -> Option<String> {
+    if given.is_some() || !spec_for(doc_type).is_some_and(|spec| spec.requires_owner) {
+        return None;
+    }
+    git_config("user.name").or_else(|| git_config("user.email"))
+}
+
+fn print_created(created: &commands::new::Created, mode: OutputMode) {
+    if mode.is_json() {
+        println!(
+            "{}",
+            output::to_json(&NewJson {
+                path: &created.path,
+                instruction: BODY_ONLY_INSTRUCTION,
+                indexed: &created.indexed.written,
+            })
+        );
+    } else {
+        println!("{}", created.path.display());
+        println!("{BODY_ONLY_INSTRUCTION}");
+    }
 }
 
 pub(crate) fn run_new(
@@ -29,27 +73,29 @@ pub(crate) fn run_new(
     title: &str,
     args: &NewArgs,
     mode: OutputMode,
+    quiet: bool,
 ) -> ExitCode {
+    let seeded = seeded_owner(doc_type, args.owner);
+    if let (Some(owner), false) = (&seeded, quiet) {
+        eprintln!("living-docs new: owner seeded from git config: {owner}");
+    }
+    let body = match args.body.map(prose::read_body).transpose() {
+        Ok(body) => body,
+        Err(message) => {
+            eprintln!("living-docs new: {message}");
+            return ExitCode::from(2);
+        }
+    };
     let opts = NewOptions {
         description: args.description,
         kind: args.kind,
-        owner: args.owner,
+        owner: args.owner.or(seeded.as_deref()),
+        body: body.as_deref(),
     };
     match commands::new::write(build_store().as_ref(), docs_dir, doc_type, title, &opts) {
-        Ok(path) => {
-            if mode.is_json() {
-                println!(
-                    "{}",
-                    output::to_json(&NewJson {
-                        path: &path,
-                        instruction: BODY_ONLY_INSTRUCTION,
-                    })
-                );
-            } else {
-                println!("{}", path.display());
-                println!("{BODY_ONLY_INSTRUCTION}");
-            }
-            ExitCode::SUCCESS
+        Ok(created) => {
+            print_created(&created, mode);
+            report_indexed("new", &created.indexed, mode, quiet)
         }
         Err(message) => {
             eprintln!("living-docs new: {message}");

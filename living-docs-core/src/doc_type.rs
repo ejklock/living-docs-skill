@@ -244,9 +244,14 @@ const CONSTITUTION: DocTypeSpec = DocTypeSpec {
 /// from this table instead of hand-syncing its own copy.
 pub const DOC_TYPES: &[DocTypeSpec] = &[ADR, PRD, ISSUE, RESEARCH, VIEW, CONSTITUTION];
 
-/// Looks up a doc type by its CLI token.
+/// Looks up a doc type by its CLI token, or by its directory name as an
+/// alias of that token (`issues` resolves to the `issue` row). This is the
+/// one place the alias is defined, so every verb accepts it alike.
 pub fn spec_for(token: &str) -> Option<&'static DocTypeSpec> {
-    DOC_TYPES.iter().find(|spec| spec.token == token)
+    DOC_TYPES
+        .iter()
+        .find(|spec| spec.token == token)
+        .or_else(|| spec_for_dir(token))
 }
 
 /// Looks up a doc type by its `type:` frontmatter value. Returns the first

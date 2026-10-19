@@ -26,20 +26,21 @@ LIVING_DOCS_BIN := target/release/living-docs
 .PHONY: help check lint test-fixtures \
         test-release-gate test-version-gate version \
         test-filesize-gate filesize \
-        allow-inventory test-allow-inventory-gate test-install-gate \
+        allow-inventory test-allow-inventory-gate test-install-gate test-npm-gate \
         cli-dev-image cli-build cli-test cli-fmt cli-clippy build cli-install
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-check: version filesize allow-inventory build test-fixtures test-release-gate test-version-gate test-filesize-gate test-allow-inventory-gate test-install-gate ## Check version sync, file-size ratchet, allow-inventory gate, validate install.sh, run Rust tests, living-docs check + mermaid, hook fixtures, release-asset gate fixtures, version-gate fixtures, file-size gate fixtures, allow-inventory gate fixtures, install gate fixtures, dry-run install.sh
+check: version filesize allow-inventory build test-fixtures test-release-gate test-version-gate test-filesize-gate test-allow-inventory-gate test-install-gate test-npm-gate ## Check version sync, file-size ratchet, allow-inventory gate, validate install.sh, run Rust tests, living-docs check + mermaid, hook fixtures, release-asset gate fixtures, version-gate fixtures, file-size gate fixtures, allow-inventory gate fixtures, install gate fixtures, dry-run install.sh
 	bash -n install.sh
 	bash -n scripts/check-version.sh
 	bash -n scripts/verify-release-assets.sh
 	bash -n scripts/check-file-size.sh
 	bash -n scripts/check-allow-inventory.sh
 	bash -n scripts/tests/install/run.sh
+	bash -n scripts/tests/npm/run.sh
 	cargo test --manifest-path cli/Cargo.toml
 	$(LIVING_DOCS_BIN) check --require-owner --plain examples/linkly/docs
 	$(LIVING_DOCS_BIN) check --mermaid-only
@@ -62,6 +63,9 @@ test-allow-inventory-gate: ## Run the check-allow-inventory.sh fixtures, synthet
 
 test-install-gate: ## Run the install.sh fixtures (ADR 0041), stubbed curl
 	./scripts/tests/install/run.sh
+
+test-npm-gate: ## Run the npm package fixtures, local HTTP stub, no registry
+	./scripts/tests/npm/run.sh
 
 version: ## Assert the release version is consistent across VERSION and every SKILL.md
 	./scripts/check-version.sh

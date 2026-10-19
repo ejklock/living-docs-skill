@@ -35,7 +35,7 @@ pub(crate) fn parse() -> Cli {
 #[command(
     name = "living-docs",
     version,
-    about = "Deterministic layer of Living Docs authoring. Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs set` / `supersede` / `index`.",
+    about = "Deterministic layer of Living Docs authoring. Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs set` / `supersede`.",
     after_help = help::EXIT_CODES
 )]
 pub(crate) struct Cli {
@@ -69,6 +69,7 @@ pub(crate) struct Cli {
 pub(crate) enum Command {
     #[command(about = help::NEW_ABOUT, long_about = None, after_help = help::with_exit_codes(help::NEW_EXAMPLES))]
     New {
+        #[arg(value_name = "TYPE", help = help::doc_type_help())]
         doc_type: String,
         title: String,
         /// Seeds the frontmatter `description:` field with this sentence
@@ -87,10 +88,16 @@ pub(crate) enum Command {
         /// identity directory.
         #[arg(long)]
         owner: Option<String>,
+        /// Replaces the template's body slots with the text of this file, or
+        /// of standard input for `-`; the CLI places it below the heading
+        /// and never writes prose itself.
+        #[arg(long, value_name = "PATH")]
+        body: Option<String>,
     },
-    /// `reference` accepts a bare `NNNN` or a type-qualified `TYPE/NNNN`
-    /// (e.g. `issue/0028`), required on a cross-type number collision (issue
-    /// 0029/0025). `status` is validated against the record's own type
+    /// `reference` accepts a bare `NNNN`, a type-qualified `TYPE/NNNN`
+    /// (e.g. `issue/0028`, the directory name works too), required on a
+    /// cross-type number collision, or the path of a record inside the
+    /// bundle. `status` is validated against the record's own type
     /// vocabulary (`Superseded` is reserved for `supersede`). `title` also
     /// rewrites the heading, renames the file to the new slug and repoints
     /// every in-bundle reference; it is refused on a record closed for good.
@@ -98,14 +105,23 @@ pub(crate) enum Command {
     Set {
         reference: String,
         key: String,
-        value: String,
+        /// The new value; for the `section` key, the section heading.
+        value: Option<String>,
+        /// Reads the value, or for `section` the text under the heading, from
+        /// this file or from standard input for `-`. `section` replaces the
+        /// named body section or appends it when absent.
+        #[arg(long, value_name = "PATH")]
+        from: Option<String>,
     },
     /// `old`/`new` accept the same reference shape as `set`'s `reference`.
     #[command(about = help::SUPERSEDE_ABOUT, long_about = None, after_help = help::with_exit_codes(help::SUPERSEDE_EXAMPLES))]
     Supersede { old: String, new: String },
     /// With no `doc_type`, regenerates every registered type's index.
     #[command(about = help::INDEX_ABOUT, long_about = None, after_help = help::with_exit_codes(help::INDEX_EXAMPLES))]
-    Index { doc_type: Option<String> },
+    Index {
+        #[arg(value_name = "TYPE", help = help::doc_type_help())]
+        doc_type: Option<String>,
+    },
     /// `paths` accepts a bundle root or a single record path; fs-backend
     /// only. `--check` reports what's pending without writing anything.
     #[command(about = help::FMT_ABOUT, long_about = None, after_help = help::with_exit_codes(help::FMT_EXAMPLES))]
@@ -133,6 +149,10 @@ pub(crate) enum Command {
         /// mode, is what proves the corpus.
         #[arg(long, num_args = 1.., value_name = "PATH")]
         changed_files: Vec<PathBuf>,
+        /// Lists every advisory after the per-kind summary instead of the
+        /// summary alone; the JSON output is unaffected.
+        #[arg(long)]
+        advisories: bool,
     },
     /// Renamed from `effective` by ADR 0060; `effective` survives as a
     /// hidden alias for one release.

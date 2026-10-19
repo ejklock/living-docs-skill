@@ -100,6 +100,18 @@ check_cargo_package_version() { # check_cargo_package_version <file>
 
 check_cargo_package_version "$root/cli/Cargo.toml"
 
+# npm/package.json declares exactly one top-level "version" key (the package has no
+# dependencies), so the first match is the package version.
+check_npm_package_version() { # check_npm_package_version <file>
+	local f="$1" rel v
+	rel="${f#"$root"/}"
+	v=""
+	[[ -e "$f" ]] && v="$(sed -nE 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "$f" | head -1)"
+	check "$rel" "$v"
+}
+
+check_npm_package_version "$root/npm/package.json"
+
 skill_mds=("$root"/skills/*/SKILL.md)
 if [[ ! -e "${skill_mds[0]}" ]]; then
 	echo "ERROR: no skills/*/SKILL.md files found" >&2

@@ -2,6 +2,7 @@
 //! `living_docs_core::commands::supersede::supersede`, rendering the two
 //! resolved paths as colored text or JSON (ADR 0060).
 
+use super::report::report_indexed;
 use crate::output::{self, OutputMode};
 use crate::store::build_store;
 use living_docs_core::commands;
@@ -13,24 +14,32 @@ use std::process::ExitCode;
 struct SupersedeJson<'a> {
     old: &'a Path,
     new: &'a Path,
+    indexed: &'a [std::path::PathBuf],
 }
 
-pub(crate) fn run_supersede(docs_dir: &Path, old: &str, new: &str, mode: OutputMode) -> ExitCode {
+pub(crate) fn run_supersede(
+    docs_dir: &Path,
+    old: &str,
+    new: &str,
+    mode: OutputMode,
+    quiet: bool,
+) -> ExitCode {
     match commands::supersede::supersede(build_store().as_ref(), docs_dir, old, new) {
-        Ok((old_path, new_path)) => {
+        Ok(superseded) => {
             if mode.is_json() {
                 println!(
                     "{}",
                     output::to_json(&SupersedeJson {
-                        old: &old_path,
-                        new: &new_path,
+                        old: &superseded.old,
+                        new: &superseded.new,
+                        indexed: &superseded.indexed.written,
                     })
                 );
             } else {
-                println!("{}", old_path.display());
-                println!("{}", new_path.display());
+                println!("{}", superseded.old.display());
+                println!("{}", superseded.new.display());
             }
-            ExitCode::SUCCESS
+            report_indexed("supersede", &superseded.indexed, mode, quiet)
         }
         Err(message) => {
             eprintln!("living-docs supersede: {message}");
