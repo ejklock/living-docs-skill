@@ -1,4 +1,4 @@
-//! `--help`/`completions` coverage (ADR 0060): the root help lists exactly
+//! `--help`/`completions` coverage: the root help lists exactly
 //! the ten verbs plus `completions`, grouped under the four documented
 //! headings, with `effective`/`skill` absent (they are hidden aliases); and
 //! `completions <shell>` prints a non-empty script.
@@ -22,7 +22,9 @@ mod skill_install;
 const NON_VERB_SUBCOMMANDS: [&str; 1] = ["help"];
 
 fn living_docs() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_living-docs"))
+    let mut command = Command::new(env!("CARGO_BIN_EXE_living-docs"));
+    command.arg("--plain");
+    command
 }
 
 fn stdout_of(output: &Output) -> String {

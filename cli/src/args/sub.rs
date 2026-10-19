@@ -24,7 +24,7 @@ pub(crate) struct ReadArgs {
     pub(crate) contract: bool,
 }
 
-/// Arguments for the `guide` verb (ADR 0060, renamed from `skill`).
+/// Arguments for the `guide` verb (formerly `skill`).
 ///
 /// `topic_or_skill` is a single positional that resolves two ways: when it
 /// names an embedded skill (e.g. `okf-knowledge-format`) it selects that
@@ -37,6 +37,7 @@ pub(crate) struct ReadArgs {
 /// --topic <t>` alias shape working.
 #[derive(Args)]
 pub(crate) struct GuideArgs {
+    #[arg(help = help::guide_topic_help())]
     pub(crate) topic_or_skill: Option<String>,
     /// The embedded skill corpus to read from; defaults to `living-docs`.
     #[arg(long)]
@@ -54,9 +55,9 @@ pub(crate) struct GuideArgs {
 #[derive(Subcommand)]
 pub(crate) enum InstallCmd {
     /// Places the three skill directories from the embedded corpus into a
-    /// harness's skills directory (ADR 0028) — no working tree involved.
-    /// `--project` scopes the destination to the current project instead of
-    /// the harness's global, `$HOME`-rooted directory; `--dir` overrides the
+    /// harness's skills directory — no working tree involved. `--project`
+    /// scopes the destination to the current project instead of the
+    /// harness's global, `$HOME`-rooted directory; `--dir` overrides the
     /// destination outright.
     #[command(
         about = help::INSTALL_SKILLS_ABOUT,
@@ -64,6 +65,7 @@ pub(crate) enum InstallCmd {
         after_help = help::with_exit_codes(help::INSTALL_SKILLS_EXAMPLES)
     )]
     Skills {
+        /// The harness whose skills directory receives the skills.
         #[arg(long, value_enum, default_value = "claude")]
         harness: Harness,
         /// Scope the destination to the current project's harness directory

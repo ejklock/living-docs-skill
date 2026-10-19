@@ -184,7 +184,7 @@ fn retired_skill_alias_keeps_its_old_name_then_topic_flag_shape() {
 fn skill_alias_is_hidden_from_help() {
     let help = stdout_of(
         &living_docs()
-            .arg("--help")
+            .args(["--plain", "--help"])
             .output()
             .expect("failed to run living-docs --help"),
     );

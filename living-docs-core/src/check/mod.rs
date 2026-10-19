@@ -15,6 +15,7 @@
 mod callout;
 pub(crate) mod canonical;
 mod graph;
+pub mod kinds;
 pub(crate) mod links;
 mod liveness;
 mod mermaid;
@@ -168,10 +169,10 @@ pub struct Violation {
     pub message: String,
 }
 
-/// A soft finding (issue 0009): printed alongside violations but never
-/// affects the exit code. `kind` is the advisory's category — `size`,
-/// `owner`, `liveness`, or `moved-source` — so a JSON consumer can filter by
-/// it without parsing `message`.
+/// A soft finding: printed alongside violations but never
+/// affects the exit code. `kind` is the advisory's category,
+/// one of [`kinds::ALL`] — so a JSON consumer can filter by it without
+/// parsing `message`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Advisory {
     pub file: String,

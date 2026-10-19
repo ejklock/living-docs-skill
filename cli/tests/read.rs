@@ -132,7 +132,7 @@ fn effective_alias_still_runs_hidden_from_help() {
 
     let help = stdout_of(
         &living_docs()
-            .arg("--help")
+            .args(["--plain", "--help"])
             .output()
             .expect("failed to run living-docs --help"),
     );

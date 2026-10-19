@@ -78,3 +78,4 @@ one slice per fresh context, starting from the skeleton.
 * [0059 — new --body and set --from read prose from a file or stdin](0059-new-body-and-set-from-read-prose-from-a-file-or-stdin.md) - closed
 * [0060 — read --topic matches whole-word prefixes, ranks by weighted term frequency and says when nothing live matches](0060-read-topic-matches-whole-word-prefixes-ranks-by-weighted-term-frequency-and-says-when-nothing-live-matches.md) - closed
 * [0061 — npm package living-docs wraps the release binary and the release workflow publishes it](0061-npm-package-living-docs-wraps-the-release-binary-and-the-release-workflow-publishes-it.md) - closed
+* [0062 — The help documents every argument, vocabulary and reference form, and prints minified JSON off a TTY](0062-the-help-documents-every-argument-vocabulary-and-reference-form-and-prints-minified-json-off-a-tty.md) - closed

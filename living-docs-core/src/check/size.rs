@@ -4,7 +4,7 @@
 //! target applies to is decided per-row by `doc_type::DocTypeSpec::body_size`
 //! (ADR 0027), not by this module.
 
-use super::{file_name_str, records, Reporter};
+use super::{file_name_str, kinds, records, Reporter};
 use crate::doc_type::{self, BodySize};
 use crate::frontmatter;
 use crate::store::DocStore;
@@ -24,7 +24,7 @@ pub(crate) fn check_body_size(store: &dyn DocStore, all_md: &[PathBuf], reporter
         if let Some(lines) = over_target_body_lines(&content) {
             reporter.advise(
                 f,
-                "size",
+                kinds::SIZE,
                 format!("SIZE body {lines} lines exceeds the {WARN_LINES}-line advisory target (aim ~{AIM_LINES})"),
             );
         }
