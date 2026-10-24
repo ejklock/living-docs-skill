@@ -18,6 +18,7 @@ use crate::callout;
 use crate::check::is_retired_record;
 use crate::commands::set::retitle::number_prefix;
 use crate::frontmatter::read_scalar_from_str as frontmatter_scalar;
+use crate::line_ending::{refuse_mixed, LineEndingStore};
 use crate::record::{extract_record, to_canonical_markdown, ExtractedRecord};
 use crate::store::DocStore;
 pub use repair::Seeds;
@@ -77,12 +78,32 @@ pub fn outcome(
     let Some(paths) = resolve_targets(store, target) else {
         return Err(format!("bundle root not found: {}", target.display()));
     };
+    refuse_mixed_endings(store, &paths)?;
+    let lf_view = LineEndingStore::new(store, false);
+    let store: &dyn DocStore = &lf_view;
     if check_only {
         return Ok(Outcome::Pending(pending_records(store, &paths, seeds)));
     }
     Ok(Outcome::Rewritten(canonicalize_bundle(
         store, &paths, seeds,
     )))
+}
+
+/// Refuses the whole run, before anything is written, when a record `fmt`
+/// would canonicalize has mixed CRLF and LF line endings. Reserved files and
+/// prose without frontmatter are never rewritten, so they are not judged.
+fn refuse_mixed_endings(store: &dyn DocStore, paths: &[PathBuf]) -> Result<(), String> {
+    let mixed: Vec<String> = paths
+        .iter()
+        .filter(|path| !is_reserved_file(path))
+        .filter(|path| store.read(path).is_ok_and(|text| has_frontmatter(&text)))
+        .filter_map(|path| refuse_mixed(store, path).err())
+        .collect();
+    if mixed.is_empty() {
+        Ok(())
+    } else {
+        Err(mixed.join("\n"))
+    }
 }
 
 /// Resolves `target` to the record paths `fmt` should consider: a single

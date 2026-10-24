@@ -158,6 +158,30 @@ fn format_scalar_quotes_a_value_containing_a_colon_space_and_round_trips_it() {
     assert_eq!(reparsed.title, "Caching: A Deep Dive");
 }
 
+#[test]
+fn format_scalar_quotes_a_comment_opener_and_leaves_a_bare_hash_alone() {
+    for value in ["a #b", "a\t#b", "x ##"] {
+        assert_eq!(format_scalar(value), format!("\"{value}\""));
+    }
+    assert_eq!(format_scalar("a#b"), "a#b");
+}
+
+#[test]
+fn a_value_with_a_comment_opener_round_trips_whole_as_title_and_list_item() {
+    let mut record = issue_record_with_list_valued_tail();
+    record.title = "Fix a #b".to_owned();
+    record.frontmatter_tail = vec![(
+        "labels".to_owned(),
+        TailValue::Sequence(vec!["a #b".to_owned(), "c".to_owned()]),
+    )];
+
+    let markdown = to_canonical_markdown(&record);
+    let reparsed = extract_record(Path::new("issues/0006-findability-search.md"), &markdown);
+
+    assert_eq!(reparsed.title, "Fix a #b");
+    assert_eq!(reparsed.frontmatter_tail, record.frontmatter_tail);
+}
+
 /// Asserts `status` is read from [`ExtractedRecord::status`] rather than
 /// the frontmatter tail: the typed field must still round-trip to a
 /// `status:` frontmatter line even though `frontmatter_tail` never

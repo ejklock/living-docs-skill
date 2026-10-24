@@ -2,6 +2,7 @@ use crate::commands::new::unsupported_type_message;
 use crate::commands::next::numeric_prefix as numbered_prefix;
 use crate::doc_type::{self, Identity};
 use crate::frontmatter;
+use crate::line_ending::{ending_of, Ending};
 use crate::store::DocStore;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -112,10 +113,22 @@ pub fn compute(
     let type_dir = docs_dir.join(dir_name);
     let index_path = type_dir.join("index.md");
     let existing = fs::read_to_string(&index_path).unwrap_or_default();
+    let crlf = ending_of(&existing) == Ending::Crlf;
+    let existing = if crlf {
+        existing.replace("\r\n", "\n")
+    } else {
+        existing
+    };
     let preamble = preamble_for(&existing, doc_type);
     let body = body_for(store, docs_dir, doc_type, &type_dir)?;
+    let content = format!("{preamble}{body}");
+    let content = if crlf {
+        content.replace('\n', "\r\n")
+    } else {
+        content
+    };
 
-    Ok((index_path, format!("{preamble}{body}")))
+    Ok((index_path, content))
 }
 
 /// Renders `doc_type`'s listing body along its identity shape: a Named type

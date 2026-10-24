@@ -2,7 +2,8 @@ use crate::callout;
 use crate::commands::index::{refresh_for_records, Indexed};
 use crate::commands::reference::resolve_reference;
 use crate::frontmatter::frontmatter_block;
-use crate::record::{extract_record, to_canonical_markdown};
+use crate::line_ending::{refuse_mixed, LineEndingStore};
+use crate::record::{extract_record, to_canonical_markdown, ExtractedRecord, TailValue};
 use crate::store::DocStore;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -31,9 +32,8 @@ pub struct Superseded {
 
 /// Wires both link directions and writes the retired-record callout on
 /// `old`, then refreshes the index of each type touched. Returns the two
-/// resolved paths and the index outcome — the CLI front renders this as
-/// colored text or JSON; [`run`] is the plain-text-always
-/// convenience wrapper over it.
+/// paths and the index outcome for the CLI front; [`run`] is the plain-text
+/// wrapper. A record with mixed line endings is refused before any write.
 pub fn supersede(
     store: &dyn DocStore,
     docs_dir: &Path,
@@ -45,21 +45,38 @@ pub fn supersede(
 
     let old_path = find_record(store, docs_dir, old)?;
     let new_path = find_record(store, docs_dir, new)?;
+    if old_path == new_path {
+        return Err(format!(
+            "{}: a record cannot supersede itself",
+            old_path.display()
+        ));
+    }
+    refuse_mixed(store, &old_path)?;
+    refuse_mixed(store, &new_path)?;
+    let store: &dyn DocStore = &LineEndingStore::new(store, false);
 
-    set_frontmatter_fields(
+    let old_draft = draft_frontmatter_fields(
         store,
         &old_path,
         &[
             ("status", "Superseded".to_string()),
             ("superseded_by", format!("{new_number:04}")),
         ],
+        &[],
     )?;
-    callout::reconcile(store, &old_path)?;
-    set_frontmatter_fields(
+    let new_draft = draft_frontmatter_fields(
         store,
         &new_path,
         &[("supersedes", format!("{old_number:04}"))],
+        &[],
     )?;
+    store
+        .write(&old_path, &old_draft)
+        .map_err(|e| e.to_string())?;
+    callout::reconcile(store, &old_path)?;
+    store
+        .write(&new_path, &new_draft)
+        .map_err(|e| e.to_string())?;
 
     let indexed = refresh_for_records(store, docs_dir, &[&old_path, &new_path]);
     Ok(Superseded {
@@ -69,42 +86,160 @@ pub fn supersede(
     })
 }
 
-/// Reads the record at `path` once, applies every `(key, value)` pair to its
-/// leading frontmatter block in order via [`apply_frontmatter_field`] — a
-/// targeted line edit (reusing S2's approach, `new.rs`'s
-/// `replace_targeted_value`) rather than a serde round-trip, so comments and
-/// the body survive untouched — then routes the whole frontmatter block
-/// through [`crate::record::canonicalize_frontmatter`] before writing it
-/// back once (ADR 0048). Templates ship most supersede keys as an empty line
-/// to fill; when a key is absent entirely (e.g. the PRD template has no
-/// `supersedes` line), the targeted edit inserts it at the block's close,
-/// and the canonical pass then moves it into its fixed position — so an
-/// inserted or changed key always lands in canonical order and `living-docs
-/// check` reports no non-canonical-frontmatter finding afterward. Shared
-/// with `status.rs`, `describe.rs`, `owner.rs` (lesson 3717: no duplicated
-/// frontmatter-mutation logic).
+/// Writes every `(key, value)` pair into the record at `path`: see
+/// [`draft_frontmatter_fields`] for the draft and its read-back guard.
 pub(crate) fn set_frontmatter_fields(
     store: &dyn DocStore,
     path: &Path,
     fields: &[(&str, String)],
 ) -> Result<(), String> {
+    set_frontmatter_fields_expecting(store, path, fields, &[])
+}
+
+/// Like [`set_frontmatter_fields`], and the guard also requires each
+/// `expected` key to read back as exactly the value given, not merely as
+/// whatever the rendered line parses to.
+pub(crate) fn set_frontmatter_fields_expecting(
+    store: &dyn DocStore,
+    path: &Path,
+    fields: &[(&str, String)],
+    expected: &[(&str, TailValue)],
+) -> Result<(), String> {
+    let draft = draft_frontmatter_fields(store, path, fields, expected)?;
+    store.write(path, &draft).map_err(|e| e.to_string())
+}
+
+/// Reads the record at `path` once, applies every `(key, value)` pair to its
+/// leading frontmatter block in order via [`apply_frontmatter_field`] — a
+/// targeted line edit, so comments and the body survive untouched — then
+/// routes the block through [`canonicalize_frontmatter`]. Nothing is
+/// written: a verb touching several records drafts all of them before
+/// writing any. A key absent from the record is inserted at the block's close
+/// and the canonical pass moves it into position, so `check` reports no
+/// non-canonical-frontmatter finding. Shared by `set`, `set`'s retitle and
+/// `supersede` so the mutation logic exists once.
+///
+/// Before returning, the draft is parsed the way the canonical pass parses
+/// it ([`extract_record`]) and refused unless every key it did not write
+/// reads as before, the body is unchanged (bar a trailing newline the
+/// canonical pass appends), each written key reads as its rendered line does
+/// on its own, and each `expected` key reads as given.
+fn draft_frontmatter_fields(
+    store: &dyn DocStore,
+    path: &Path,
+    fields: &[(&str, String)],
+    expected: &[(&str, TailValue)],
+) -> Result<String, String> {
     let contents = store.read(path).map_err(|e| e.to_string())?;
+    let missing = || format!("{}: missing frontmatter block", path.display());
     let updated = fields
         .iter()
-        .try_fold(contents, |acc, (key, value)| {
+        .try_fold(contents.clone(), |acc, (key, value)| {
             apply_frontmatter_field(&acc, key, value)
         })
-        .ok_or_else(|| format!("{}: missing frontmatter block", path.display()))?;
-    let canonical = canonicalize_frontmatter(path, &updated)
-        .ok_or_else(|| format!("{}: missing frontmatter block", path.display()))?;
-    store.write(path, &canonical).map_err(|e| e.to_string())
+        .ok_or_else(missing)?;
+    if let Some(key) = unread_key(path, &contents, &updated, fields, expected) {
+        let written: Vec<&str> = fields.iter().map(|(k, _)| *k).collect();
+        return Err(format!(
+            "{}: '{}' cannot be written without changing how '{key}' reads in the record's frontmatter; edit the file by hand",
+            path.display(),
+            written.join("', '")
+        ));
+    }
+    canonicalize_frontmatter(path, &updated).ok_or_else(missing)
+}
+
+/// The first key whose drafted value does not read back as intended.
+fn unread_key(
+    path: &Path,
+    before: &str,
+    draft: &str,
+    fields: &[(&str, String)],
+    expected: &[(&str, TailValue)],
+) -> Option<String> {
+    let (old, new) = (extract_record(path, before), extract_record(path, draft));
+    let written = |key: &str| fields.iter().any(|(k, _)| *k == key);
+    let unwritten_changed = frontmatter_keys(&old)
+        .into_iter()
+        .chain(frontmatter_keys(&new))
+        .filter(|key| !written(key))
+        .find(|key| key_value(&old, key) != key_value(&new, key));
+    unwritten_changed
+        .or_else(|| written_misread(path, &new, fields))
+        .or_else(|| expected_misread(&new, expected))
+        .or_else(|| body_changed(&old.body, &new.body).then(|| "body".to_string()))
+}
+
+/// Whether the draft's body differs from the original's by more than the
+/// trailing newline the canonical pass appends to a record without one.
+fn body_changed(old: &str, new: &str) -> bool {
+    old != new && (old.ends_with('\n') || new.strip_suffix('\n') != Some(old))
+}
+
+/// A written key whose drafted value differs from its rendered line read alone.
+fn written_misread(
+    path: &Path,
+    draft: &ExtractedRecord,
+    fields: &[(&str, String)],
+) -> Option<String> {
+    fields.iter().find_map(|(key, rendered)| {
+        let alone = extract_record(path, &format!("---\n{key}: {rendered}\n---\n"));
+        (key_value(draft, key) != key_value(&alone, key)).then(|| key.to_string())
+    })
+}
+
+fn expected_misread(draft: &ExtractedRecord, expected: &[(&str, TailValue)]) -> Option<String> {
+    expected
+        .iter()
+        .find(|(key, value)| key_value(draft, key).as_ref() != Some(value))
+        .map(|(key, _)| key.to_string())
+}
+
+const TYPED_KEYS: [&str; 8] = [
+    "type",
+    "title",
+    "description",
+    "owner",
+    "status",
+    "supersedes",
+    "superseded_by",
+    "tags",
+];
+
+fn frontmatter_keys(record: &ExtractedRecord) -> Vec<String> {
+    let tail = record.frontmatter_tail.iter().map(|(key, _)| key.clone());
+    TYPED_KEYS
+        .iter()
+        .map(|key| key.to_string())
+        .chain(tail)
+        .collect()
+}
+
+/// The parsed value `record` holds for `key`, typed column or tail entry.
+fn key_value(record: &ExtractedRecord, key: &str) -> Option<TailValue> {
+    let scalar = |value: &str| Some(TailValue::Scalar(value.to_string()));
+    let optional = |value: &Option<String>| value.as_deref().and_then(scalar);
+    match key {
+        "type" => scalar(&record.doc_type),
+        "title" => scalar(&record.title),
+        "description" => scalar(&record.description),
+        "owner" => optional(&record.owner),
+        "status" => optional(&record.status),
+        "supersedes" => optional(&record.supersedes),
+        "superseded_by" => optional(&record.superseded_by),
+        "tags" => Some(TailValue::Sequence(record.tags.clone())),
+        _ => record
+            .frontmatter_tail
+            .iter()
+            .find(|(k, _)| k == key)
+            .map(|(_, value)| value.clone()),
+    }
 }
 
 /// Re-serializes only `contents`' frontmatter block to canonical order via
 /// [`extract_record`]/[`to_canonical_markdown`], leaving everything from
-/// the closing `---` fence onward byte-identical (ADR 0048). `path` only
-/// drives typed-identity classification, never emitted, so it has no
-/// bearing on the output. `None` without a leading frontmatter block.
+/// the closing `---` fence onward byte-identical. `path` only drives
+/// typed-identity classification. `None` without a leading frontmatter block.
 fn canonicalize_frontmatter(path: &Path, contents: &str) -> Option<String> {
     let block = frontmatter_block(contents)?;
     let tail = &contents["---\n".len() + block.len()..];
@@ -114,11 +249,9 @@ fn canonicalize_frontmatter(path: &Path, contents: &str) -> Option<String> {
 }
 
 /// The shared single-key insert-or-replace frontmatter primitive: replaces
-/// `key`'s value via [`set_targeted_value`] when the line is already present
-/// in the leading frontmatter block, inserts `key: value` at the block's
-/// close when it is absent, and returns `None` when `contents` has no
-/// leading `---` fence at all. Used by [`set_frontmatter_fields`] and, for
-/// the same insert-or-replace symmetry, by
+/// `key`'s value via [`set_targeted_value`] when present in the leading
+/// block, inserts `key: value` at its close when absent, and returns `None`
+/// without a leading `---` fence. Used by [`set_frontmatter_fields`] and by
 /// [`crate::commands::new::fill_frontmatter_description`].
 pub(crate) fn apply_frontmatter_field(contents: &str, key: &str, value: &str) -> Option<String> {
     let lines: Vec<&str> = contents.lines().collect();

@@ -42,6 +42,7 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0069 — Duplicate record numbers fail check, and set number renumbers a record with its links and index](0069-duplicate-record-numbers-fail-check-and-set-number-renumbers-a-record-with-its-links-and-index.md) - Accepted
 * [0070 — Type indexes merge with the git union driver, and check fails on an index that differs from its regeneration](0070-type-indexes-merge-with-the-git-union-driver-and-check-fails-on-an-index-that-differs-from-its-regeneration.md) - Accepted
 * [0071 — fmt repairs a record's CLI-owned fields: it seeds a missing timestamp and owner and aligns the title heading, leaving all other prose byte-identical](0071-fmt-repairs-a-record-s-cli-owned-fields-it-seeds-a-missing-timestamp-and-owner-and-aligns-the-title-heading-leaving-all-other-prose-byte-identical.md) - Accepted
+* [0072 — Records keep their own line endings: CRLF is read and written as CRLF, and a mixed-ending record fails check](0072-records-keep-their-own-line-endings-crlf-is-read-and-written-as-crlf-and-a-mixed-ending-record-fails-check.md) - Accepted
 
 ## Superseded
 

@@ -93,13 +93,10 @@ pub struct ExtractedRecord {
     pub frontmatter_tail: Vec<(String, TailValue)>,
 }
 
-/// A single [`ExtractedRecord::frontmatter_tail`] entry's value: either the
-/// scalar `key: value` shape the tail always carried, or the ordered
-/// sequence a `key: [a, b]` YAML flow list parses into (ADR 0007's
-/// lossless-export contract extended to list-valued tail keys, ADR 0019
-/// slice S3b). [`to_canonical_markdown`] re-emits a `Sequence` in the same
-/// flow style tags already use, quoting each element with the same
-/// [`format_scalar`] rules a `Scalar` gets.
+/// A [`ExtractedRecord::frontmatter_tail`] entry's value: a scalar `key: value`,
+/// or the ordered sequence a `key: [a, b]` flow list parses into.
+/// [`to_canonical_markdown`] re-emits a `Sequence` in the flow style tags use,
+/// quoting each element with the [`format_scalar`] rules a `Scalar` gets.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TailValue {
     Scalar(String),
@@ -328,8 +325,7 @@ fn push_tags(lines: &mut Vec<String>, tags: &[String]) {
     }
     let mut sorted = tags.to_vec();
     sorted.sort();
-    let rendered: Vec<String> = sorted.iter().map(|tag| format_scalar(tag)).collect();
-    lines.push(format!("tags: [{}]", rendered.join(", ")));
+    lines.push(format!("tags: {}", format_flow_list(&sorted)));
 }
 
 fn push_tail_key(lines: &mut Vec<String>, record: &ExtractedRecord, key: &str) {
@@ -350,17 +346,11 @@ fn push_remaining_tail(lines: &mut Vec<String>, record: &ExtractedRecord) {
     }
 }
 
-/// Renders one tail entry: a [`TailValue::Scalar`] as `key: value`, a
-/// [`TailValue::Sequence`] as `key: [a, b]` — the same canonical flow style
-/// [`push_tags`] already uses for `tags:`, quoting each element with
-/// [`format_scalar`] (ADR 0019 slice S3b).
+/// Renders one tail entry as `key: value`, or `key: [a, b]` for a sequence.
 fn push_tail_value(lines: &mut Vec<String>, key: &str, value: &TailValue) {
     match value {
         TailValue::Scalar(scalar) => lines.push(format!("{key}: {}", format_scalar(scalar))),
-        TailValue::Sequence(items) => {
-            let rendered: Vec<String> = items.iter().map(|item| format_scalar(item)).collect();
-            lines.push(format!("{key}: [{}]", rendered.join(", ")));
-        }
+        TailValue::Sequence(items) => lines.push(format!("{key}: {}", format_flow_list(items))),
     }
 }
 
@@ -376,12 +366,18 @@ fn is_special_tail_key(key: &str) -> bool {
     key == TRACKER_KEY || key == TIMESTAMP_KEY
 }
 
+/// Renders `items` as a flow sequence (`[a, b]`), each quoted by [`format_scalar`].
+pub(crate) fn format_flow_list<S: AsRef<str>>(items: &[S]) -> String {
+    let items: Vec<String> = items.iter().map(|i| format_scalar(i.as_ref())).collect();
+    format!("[{}]", items.join(", "))
+}
+
 const YAML_INDICATOR_PREFIXES: &str = "!&*-?|>%@`\"'#,[]{}";
 
 /// Renders `value` as a plain YAML scalar when safe, or a double-quoted
 /// scalar (with `\`/`"` escaped) when a plain scalar would be ambiguous —
-/// empty, starting with a YAML indicator character, containing `": "`,
-/// ending in `:`, or carrying leading/trailing whitespace.
+/// empty, starting with a YAML indicator character, containing `": "` or a
+/// ` #` comment opener, ending in `:`, or carrying surrounding whitespace.
 pub(crate) fn format_scalar(value: &str) -> String {
     if needs_quoting(value) {
         format!("\"{}\"", value.replace('\\', "\\\\").replace('"', "\\\""))
@@ -395,6 +391,8 @@ fn needs_quoting(value: &str) -> bool {
         || value.starts_with(|c: char| YAML_INDICATOR_PREFIXES.contains(c))
         || value.contains(": ")
         || value.ends_with(':')
+        || value.contains(" #")
+        || value.contains("\t#")
         || value.trim() != value
 }
 

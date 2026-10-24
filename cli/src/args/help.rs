@@ -14,7 +14,7 @@ pub(crate) const EXIT_CODES: [(u8, &str); 3] = [
 ];
 
 /// The frontmatter keys `set` accepts.
-const SET_KEYS: [&str; 5] = ["status", "description", "owner", "title", "section"];
+const SET_KEYS: &str = "status, description, owner, tracker, labels, blocked_by, title, section";
 
 /// The `Exit codes:` block of the text help.
 pub(crate) fn exit_codes_text() -> String {
@@ -63,11 +63,11 @@ fn status_vocabularies() -> String {
         .join("; ")
 }
 
-/// Help for `set`'s `KEY`: the five keys and the status values per type.
+/// Help for `set`'s `KEY`: the keys and the status values per type.
 pub(crate) fn set_key_help() -> String {
     format!(
         "one of: {}. `status` takes the record's own type vocabulary ({}); Superseded is set only by `supersede`. `section` takes the section heading as VALUE and its text from --from",
-        SET_KEYS.join(", "),
+        SET_KEYS,
         status_vocabularies()
     )
 }
@@ -136,7 +136,7 @@ pub(crate) const NEW_EXAMPLES: &[&str] = &[
 ];
 
 pub(crate) const SET_ABOUT: &str =
-    "Sets one CLI-owned frontmatter field (status, description, owner, title) or replaces a body section.";
+    "Sets one CLI-owned frontmatter field (status, description, owner, title; tracker, labels, blocked_by on an issue) or replaces a body section.";
 pub(crate) const SET_EXAMPLES: &[&str] = &[
     "living-docs set 0012 status Accepted",
     "living-docs set adr/0012 owner carol@example.com",

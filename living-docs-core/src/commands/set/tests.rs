@@ -100,8 +100,8 @@ fn set_owner_accepts_any_string() {
 #[test]
 fn set_rejects_an_unknown_field() {
     let store = store();
-    let err = apply(&store, Path::new("/bundle"), "0001", "labels", "urgent")
-        .expect_err("labels is not a settable field");
+    let err = apply(&store, Path::new("/bundle"), "0001", "priority", "urgent")
+        .expect_err("priority is not a settable field");
     assert!(err.contains("not a settable field"), "got: {err}");
     assert!(err.contains("section with --from"), "got: {err}");
     assert_eq!(store.contents("/bundle/adr/0001-a-decision.md"), ADR);
@@ -144,4 +144,80 @@ fn set_section_on_an_unknown_reference_writes_nothing() {
         .expect_err("no such record");
     assert!(err.contains("no record found for 0099"), "got: {err}");
     assert_eq!(store.contents("/bundle/adr/0001-a-decision.md"), ADR);
+}
+
+const ISSUE: &str = "---\ntype: Issue\ntitle: A Task\ndescription: d\nstatus: open\nlabels: [old]\n---\n\n# A Task\n";
+const ISSUE_PATH: &str = "/bundle/issues/0001-a-task.md";
+
+fn issue_store() -> MapStore {
+    MapStore::seeded(&[(ISSUE_PATH, ISSUE)])
+}
+
+#[test]
+fn set_labels_replaces_an_existing_list_with_trimmed_ordered_items() {
+    let store = issue_store();
+    apply(&store, Path::new("/bundle"), "0001", "labels", " b, ,a ,").expect("labels");
+    let written = store.contents(ISSUE_PATH);
+    assert!(written.contains("labels: [b, a]\n"), "{written}");
+    assert_eq!(written.matches("labels:").count(), 1);
+}
+
+#[test]
+fn set_blocked_by_with_an_empty_value_writes_an_empty_list() {
+    let store = issue_store();
+    apply(&store, Path::new("/bundle"), "0001", "blocked_by", "").expect("empty list");
+    assert!(store.contents(ISSUE_PATH).contains("blocked_by: []\n"));
+}
+
+#[test]
+fn set_tracker_quotes_a_value_a_plain_scalar_would_misread() {
+    let store = issue_store();
+    apply(&store, Path::new("/bundle"), "0001", "tracker", "#12").expect("tracker");
+    assert!(store.contents(ISSUE_PATH).contains("tracker: \"#12\"\n"));
+}
+
+#[test]
+fn set_tracker_rejects_a_blank_value_and_writes_nothing() {
+    let store = issue_store();
+    let err =
+        apply(&store, Path::new("/bundle"), "0001", "tracker", "  ").expect_err("blank tracker");
+    assert!(err.contains("tracker"), "got: {err}");
+    assert_eq!(store.contents(ISSUE_PATH), ISSUE);
+}
+
+#[test]
+fn set_labels_rejects_a_bracketed_item_naming_the_key() {
+    let store = issue_store();
+    let err = apply(&store, Path::new("/bundle"), "0001", "labels", "a,[b]")
+        .expect_err("brackets unsupported");
+    assert!(err.contains("labels"), "got: {err}");
+    assert_eq!(store.contents(ISSUE_PATH), ISSUE);
+}
+
+#[test]
+fn set_labels_refuses_a_block_style_list_it_cannot_replace_cleanly() {
+    let block = ISSUE.replace("labels: [old]", "labels:\n  - old\n  - older");
+    let store = MapStore::seeded(&[(ISSUE_PATH, block.as_str())]);
+    let err = apply(&store, Path::new("/bundle"), "0001", "labels", "c")
+        .expect_err("block list left behind would break the frontmatter");
+    assert!(err.contains("labels"), "got: {err}");
+    assert_eq!(store.contents(ISSUE_PATH), block);
+}
+
+#[test]
+fn set_tracker_quotes_a_value_a_plain_scalar_would_truncate() {
+    let store = issue_store();
+    apply(&store, Path::new("/bundle"), "0001", "tracker", "12 #x").expect("comment opener");
+    assert!(store.contents(ISSUE_PATH).contains("tracker: \"12 #x\"\n"));
+}
+
+#[test]
+fn set_issue_only_keys_are_refused_on_an_adr_naming_the_issue_type() {
+    for key in ["tracker", "labels", "blocked_by"] {
+        let store = store();
+        let err = apply(&store, Path::new("/bundle"), "0001", key, "x")
+            .expect_err("issue-only key on an ADR");
+        assert!(err.contains(key) && err.contains("Issue"), "got: {err}");
+        assert_eq!(store.contents("/bundle/adr/0001-a-decision.md"), ADR);
+    }
 }

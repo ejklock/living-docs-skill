@@ -1,5 +1,7 @@
 #[path = "fmt/heading.rs"]
 mod heading;
+#[path = "fmt/mixed.rs"]
+mod mixed;
 #[path = "fmt/repair.rs"]
 mod repair;
 
@@ -240,6 +242,45 @@ fn fmt_leaves_a_closed_issue_heading_alone_and_still_aligns_a_live_one() {
     write(&bundle, "issues/0001-real.md", &issue_with_status("open"));
     run_fmt(&bundle);
     assert!(read(&bundle, "issues/0001-real.md").contains("\n## 0001. Real\n"));
+
+    let _ = fs::remove_dir_all(bundle.parent().unwrap());
+}
+
+fn crlf(text: &str) -> String {
+    text.replace('\n', "\r\n")
+}
+
+#[test]
+fn fmt_keeps_a_crlf_record_to_one_frontmatter_block_in_canonical_order() {
+    let bundle = temp_bundle("crlf-non-canonical");
+    write(&bundle, "index.md", "# Index\n");
+    write(&bundle, "adr/0001-doc.md", &crlf(NON_CANONICAL_RECORD));
+
+    assert!(run_fmt(&bundle).status.success());
+
+    let rewritten = read(&bundle, "adr/0001-doc.md");
+    assert_eq!(rewritten, crlf(CANONICAL_RECORD));
+    assert!(stdout_of(&run_fmt(&bundle)).contains("0 record(s) rewritten."));
+    assert_eq!(read(&bundle, "adr/0001-doc.md"), rewritten);
+    assert_eq!(run_fmt_check(&bundle).status.code(), Some(0));
+
+    let _ = fs::remove_dir_all(bundle.parent().unwrap());
+}
+
+#[test]
+fn fmt_refuses_a_record_with_mixed_line_endings_and_writes_nothing() {
+    let bundle = temp_bundle("crlf-mixed");
+    let mixed = NON_CANONICAL_RECORD.replacen('\n', "\r\n", 1);
+    write(&bundle, "index.md", "# Index\n");
+    write(&bundle, "adr/0001-doc.md", &mixed);
+    write(&bundle, "adr/0002-other.md", NON_CANONICAL_RECORD);
+
+    let output = run_fmt(&bundle);
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("mixed line endings"));
+    assert_eq!(read(&bundle, "adr/0001-doc.md"), mixed);
+    assert_eq!(read(&bundle, "adr/0002-other.md"), NON_CANONICAL_RECORD);
 
     let _ = fs::remove_dir_all(bundle.parent().unwrap());
 }

@@ -15,6 +15,7 @@ pub(crate) mod canonical;
 mod graph;
 pub(crate) use graph::{normpath, reachable_index_set};
 pub mod kinds;
+mod line_endings;
 pub(crate) mod links;
 mod liveness;
 mod mermaid;
@@ -25,6 +26,7 @@ mod sections;
 mod size;
 
 use crate::doc_type::{self, Identity};
+use crate::line_ending::LineEndingStore;
 use crate::store::DocStore;
 use serde::Serialize;
 use std::fs;
@@ -37,16 +39,14 @@ pub(crate) use records::is_retired_record;
 
 /// `check --mermaid-only [paths...]` — validates ONLY the mermaid fences
 /// under `paths`, skipping every other invariant, without printing or
-/// choosing an exit code, so the CLI front can render it as colored text or
-/// JSON. See `mermaid::compile`.
+/// choosing an exit code. See `mermaid::compile`.
 pub fn compile_mermaid_only(paths: &[PathBuf]) -> MermaidReport {
     mermaid::compile(paths)
 }
 
 /// Compiles `check`'s full report — every invariant plus the placeholder
-/// pass — without printing or choosing an exit code, so the CLI front can
-/// render it as colored text or JSON. `None` when `bundle` is not
-/// a directory (the CLI front turns that into its own usage error).
+/// pass — without printing or choosing an exit code. `None` when `bundle` is
+/// not a directory (the CLI front turns that into its own usage error).
 pub fn compile(store: &dyn DocStore, bundle: &Path, require_owner: bool) -> Option<Report> {
     if !bundle.is_dir() {
         return None;
@@ -56,21 +56,21 @@ pub fn compile(store: &dyn DocStore, bundle: &Path, require_owner: bool) -> Opti
     Some(reporter.into_report(bundle, doc_count))
 }
 
-/// Every invariant `check` validates, without the surrounding
-/// `bundle.is_dir()` guard, header, or verdict rendering — shared by
-/// [`compile`] (which builds the full [`Report`]) and [`check_violations`]
-/// (which returns the raw list, for a caller like
+/// Every invariant `check` validates, without the `bundle.is_dir()` guard,
+/// header, or verdict rendering — shared by [`compile`] (the full
+/// [`Report`]) and [`check_violations`] (the raw list, for a caller like
 /// `db_store::DbDocStore::write_checked` that gates a write on the same
-/// invariants without printing anything). Returns the number of docs
-/// `store` enumerated under `bundle`.
+/// invariants). Records are judged in LF form, mixed endings flagged from `raw`.
 fn run_all_checks(
-    store: &dyn DocStore,
+    raw: &dyn DocStore,
     bundle: &Path,
     reporter: &mut Reporter,
     require_owner: bool,
     check_placeholders: bool,
 ) -> usize {
+    let store: &dyn DocStore = &LineEndingStore::new(raw, true);
     let all_md = store.list(bundle).unwrap_or_default();
+    line_endings::check_line_endings(raw, &all_md, reporter);
     let root_index = bundle.join("index.md");
     if !root_index.is_file() {
         reporter.report(&root_index, "missing bundle-root index.md (invariant 3)");

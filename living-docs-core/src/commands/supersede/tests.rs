@@ -68,3 +68,106 @@ fn parse_record_reference_rejects_an_unknown_type_qualifier() {
     assert!(err.contains("glossary"), "got: {err}");
     assert!(err.contains("issue"), "got: {err}");
 }
+mod read_back {
+    use super::*;
+    use crate::test_support::WritableMapStore as MapStore;
+
+    const PATH: &str = "/bundle/adr/0001-a.md";
+    const RECORD: &str = "---\ntype: ADR\ntitle: A\ndescription: d\nstatus: Proposed\n---\n\n# A\n";
+
+    fn write(
+        store: &MapStore,
+        fields: &[(&str, String)],
+        expected: &[(&str, TailValue)],
+    ) -> Result<(), String> {
+        set_frontmatter_fields_expecting(store, Path::new(PATH), fields, expected)
+    }
+
+    #[test]
+    fn a_folded_description_is_refused_and_the_record_stays_as_it_was() {
+        let folded = RECORD.replace("description: d", "description: >\n  one\n  two");
+        let store = MapStore::seeded(&[(PATH, folded.as_str())]);
+        let err = write(&store, &[("description", "x".to_string())], &[]).expect_err("folded");
+        assert!(
+            err.contains("description") && err.contains(PATH),
+            "got: {err}"
+        );
+        assert_eq!(store.contents(PATH), folded);
+    }
+
+    #[test]
+    fn a_value_the_parser_stores_differently_than_given_is_refused() {
+        let store = MapStore::seeded(&[(PATH, RECORD)]);
+        let given = TailValue::Scalar("0x10".to_string());
+        let err = write(
+            &store,
+            &[("tracker", "0x10".to_string())],
+            &[("tracker", given)],
+        )
+        .expect_err("0x10 reads back as 16");
+        assert!(err.contains("tracker"), "got: {err}");
+        assert_eq!(store.contents(PATH), RECORD);
+    }
+
+    #[test]
+    fn a_draft_that_changes_a_key_it_did_not_write_is_refused() {
+        let store = MapStore::seeded(&[(PATH, RECORD)]);
+        let err = write(&store, &[("owner", "[unclosed".to_string())], &[])
+            .expect_err("an open flow list swallows the keys after it");
+        assert!(err.contains("owner"), "got: {err}");
+        assert_eq!(store.contents(PATH), RECORD);
+    }
+
+    #[test]
+    fn a_draft_that_ends_the_frontmatter_early_changes_the_body_and_is_refused() {
+        let store = MapStore::seeded(&[(PATH, RECORD)]);
+        let err = write(&store, &[("tracker", "x\n---\ninjected".to_string())], &[])
+            .expect_err("the closing fence moved into the value");
+        assert!(err.contains("body"), "got: {err}");
+        assert_eq!(store.contents(PATH), RECORD);
+    }
+
+    #[test]
+    fn a_record_without_a_final_newline_gains_only_that_newline() {
+        let bare = RECORD.trim_end_matches('\n');
+        let store = MapStore::seeded(&[(PATH, bare)]);
+        write(&store, &[("owner", "bob".to_string())], &[]).expect("newline appended");
+        let written = store.contents(PATH);
+        let body = bare.split_once("\n---\n").unwrap().1;
+        assert!(written.contains("owner: bob\n"), "got: {written}");
+        assert!(
+            written.ends_with(&format!("\n---\n{body}\n")),
+            "got: {written}"
+        );
+    }
+
+    #[test]
+    fn only_a_first_trailing_newline_is_tolerated_as_a_body_change() {
+        assert!(!super::super::body_changed("text", "text\n"));
+        assert!(super::super::body_changed("text\n", "text\n\n"));
+        assert!(super::super::body_changed("text", "text\n\n"));
+        assert!(!super::super::body_changed("text\n", "text\n"));
+    }
+
+    #[test]
+    fn a_draft_that_adds_a_key_nobody_wrote_is_refused() {
+        let store = MapStore::seeded(&[(PATH, RECORD)]);
+        let err = write(&store, &[("owner", "x\nsneaky: y".to_string())], &[])
+            .expect_err("a second key rides in on the value");
+        assert!(err.contains("sneaky"), "got: {err}");
+        assert_eq!(store.contents(PATH), RECORD);
+    }
+
+    #[test]
+    fn a_value_that_reads_back_as_given_is_written() {
+        let store = MapStore::seeded(&[(PATH, RECORD)]);
+        let given = TailValue::Scalar("12".to_string());
+        write(
+            &store,
+            &[("tracker", "12".to_string())],
+            &[("tracker", given)],
+        )
+        .expect("12");
+        assert!(store.contents(PATH).contains("tracker: 12\n"));
+    }
+}
