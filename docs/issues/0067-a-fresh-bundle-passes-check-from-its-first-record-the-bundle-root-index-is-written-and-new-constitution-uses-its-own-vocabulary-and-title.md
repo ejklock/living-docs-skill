@@ -18,6 +18,9 @@ Found by the usage audit and memory lesson 1537 (living-docs 0.23.0, verified ag
 ### Decision
 
 - The bundle-root index is created once and then left to the author; option not taken: regenerating it on every run, which would drop hand framing.
+- When a present root index does not reach a type index that `new` or `index` just wrote, one link line for it is appended at the end of the file and every existing byte stays; option not taken: never touching a present root, which makes the bundle fail again the first time a second record type arrives.
+- A type with an empty status vocabulary keeps its template's own `status:` literal, so the constitution seeds `Draft`; option not taken: registering the constitution's vocabulary in the doc-type table, which would change what `check` and `set` accept on downstream constitutions.
+- The constitution template's heading becomes a placeholder that `new` fills with the given title, unnumbered.
 
 ### Acceptance
 

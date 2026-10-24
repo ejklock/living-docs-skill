@@ -21,6 +21,9 @@ one slice per fresh context, starting from the skeleton.
 * [0067 — A fresh bundle passes check from its first record: the bundle-root index is written and new constitution uses its own vocabulary and title](0067-a-fresh-bundle-passes-check-from-its-first-record-the-bundle-root-index-is-written-and-new-constitution-uses-its-own-vocabulary-and-title.md) - open
 * [0069 — Remove the effective and skill aliases and the guide --topic alias that ADR 0060 kept for one release](0069-remove-the-effective-and-skill-aliases-and-the-guide-topic-alias-that-adr-0060-kept-for-one-release.md) - open
 * [0070 — Teach the TYPE/NNNN reference where agents split it: the set usage error and the session hook line](0070-teach-the-type-nnnn-reference-where-agents-split-it-the-set-usage-error-and-the-session-hook-line.md) - open
+* [0072 — fmt keeps a CRLF record's single frontmatter block and line endings](0072-fmt-keeps-a-crlf-record-s-single-frontmatter-block-and-line-endings.md) - open
+* [0073 — A record with no title gets one without its number and never from fenced text](0073-a-record-with-no-title-gets-one-without-its-number-and-never-from-fenced-text.md) - open
+* [0074 — set title rewrites only the title heading fmt and check judge](0074-set-title-rewrites-only-the-title-heading-fmt-and-check-judge.md) - open
 
 ## Closed
 
