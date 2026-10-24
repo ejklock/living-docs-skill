@@ -14,6 +14,15 @@ one slice per fresh context, starting from the skeleton.
 * [0059 — set cannot write the tracker, labels and blocked_by keys that the issue workflow puts in issue frontmatter](0059-set-cannot-write-the-tracker-labels-and-blocked-by-keys-that-the-issue-workflow-puts-in-issue-frontmatter.md) - open
 * [0060 — set refuses architecture views, so a view's description is edited by hand](0060-set-refuses-architecture-views-so-a-view-s-description-is-edited-by-hand.md) - open
 * [0061 — The guides prescribe /-bundle-relative links, but index and supersede write sibling-relative links and check accepts every style](0061-the-guides-prescribe-bundle-relative-links-but-index-and-supersede-write-sibling-relative-links-and-check-accepts-every-style.md) - open
+* [0063 — Implement duplicate-number detection and set number, and renumber this repository's open duplicates](0063-implement-duplicate-number-detection-and-set-number-and-renumber-this-repository-s-open-duplicates.md) - open
+* [0064 — Implement union merge of type indexes and the index-drift violation](0064-implement-union-merge-of-type-indexes-and-the-index-drift-violation.md) - open
+* [0065 — Implement fmt's repair of timestamp, owner and title heading](0065-implement-fmt-s-repair-of-timestamp-owner-and-title-heading.md) - open
+* [0066 — check accepts a record path and fails on a one-way supersede link, and supersede keeps an earlier supersedes value](0066-check-accepts-a-record-path-and-fails-on-a-one-way-supersede-link-and-supersede-keeps-an-earlier-supersedes-value.md) - open
+* [0067 — A fresh bundle passes check from its first record: the bundle-root index is written and new constitution uses its own vocabulary and title](0067-a-fresh-bundle-passes-check-from-its-first-record-the-bundle-root-index-is-written-and-new-constitution-uses-its-own-vocabulary-and-title.md) - open
+* [0068 — Remove the glossary and architecture-index templates and the code-comment-hygiene rule from the embedded corpus](0068-remove-the-glossary-and-architecture-index-templates-and-the-code-comment-hygiene-rule-from-the-embedded-corpus.md) - open
+* [0069 — Remove the effective and skill aliases and the guide --topic alias that ADR 0060 kept for one release](0069-remove-the-effective-and-skill-aliases-and-the-guide-topic-alias-that-adr-0060-kept-for-one-release.md) - open
+* [0070 — Teach the TYPE/NNNN reference where agents split it: the set usage error and the session hook line](0070-teach-the-type-nnnn-reference-where-agents-split-it-the-set-usage-error-and-the-session-hook-line.md) - open
+* [0071 — check suggests install hooks when the repository has no armed doc-gate](0071-check-suggests-install-hooks-when-the-repository-has-no-armed-doc-gate.md) - open
 
 ## Closed
 

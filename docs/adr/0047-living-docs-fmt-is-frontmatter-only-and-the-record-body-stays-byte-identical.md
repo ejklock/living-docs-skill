@@ -3,10 +3,13 @@ type: ADR
 title: living-docs fmt is frontmatter-only and the record body stays byte-identical
 description: fmt canonicalizes frontmatter only and leaves the record body byte-identical; the ADR 0046 reflow pass is removed, fmt accepts a record file path, and a --check dry-run reports pending changes.
 owner: Evaldo Klock
-status: Accepted
+status: Superseded
 supersedes: 0046
+superseded_by: 0071
 timestamp: 2026-09-07T16:50:25Z
 ---
+
+> **SUPERSEDED — do not act on this record.** Replaced by [0071](0071-fmt-repairs-a-record-s-cli-owned-fields-it-seeds-a-missing-timestamp-and-owner-and-aligns-the-title-heading-leaving-all-other-prose-byte-identical.md). Run `living-docs read` for what is in force.
 
 # 0047. living-docs fmt is frontmatter-only and the record body stays byte-identical
 
