@@ -83,7 +83,7 @@ pub(crate) fn check_reachability(
     }
 }
 
-fn reachable_index_set(bundle: &Path, root_index: &Path) -> HashSet<String> {
+pub(crate) fn reachable_index_set(bundle: &Path, root_index: &Path) -> HashSet<String> {
     let bundle_str = bundle.to_string_lossy().to_string();
     let root = normpath(&root_index.to_string_lossy());
 

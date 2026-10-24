@@ -6,14 +6,14 @@
 //! placeholders, and ```mermaid``` fence validation. Record liveness
 //! (`stale-proposed` only) is advisory.
 //!
-//! Every record's content (`records`, `links`) is read through
-//! `DocStore::read`, so `check` validates whichever backend `compile` is
-//! given. `index.md`/`log.md` are excluded from the record domain by design;
-//! `check::graph` reads them straight from disk.
+//! Every record's content (`records`, `links`) is read through `DocStore::read`,
+//! so `check` validates whichever backend `compile` is given. `index.md`/`log.md`
+//! sit outside the record domain by design; `check::graph` reads them from disk.
 
 mod callout;
 pub(crate) mod canonical;
 mod graph;
+pub(crate) use graph::{normpath, reachable_index_set};
 pub mod kinds;
 pub(crate) mod links;
 mod liveness;

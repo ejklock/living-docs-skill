@@ -1,4 +1,5 @@
 use crate::commands::new::unsupported_type_message;
+use crate::commands::next::numeric_prefix as numbered_prefix;
 use crate::doc_type::{self, Identity};
 use crate::frontmatter;
 use crate::store::DocStore;
@@ -9,15 +10,17 @@ use std::process::ExitCode;
 mod named;
 mod preamble;
 mod refresh;
+mod root;
 mod rows;
 
 use preamble::preamble_for;
 #[cfg(test)]
 use preamble::{fallback_preamble, find_boundary_offset, is_boundary_line};
 pub use refresh::{refresh_for_records, regenerate_for_record, IndexFailure, Indexed};
+pub(crate) use root::{ensure_root_index, NoTypeIndex};
 
 /// Every registry token with a directory to index (Numbered and Named
-/// identities, ADR 0026/0036), in [`doc_type::DOC_TYPES`] order — what a
+/// identities), in [`doc_type::DOC_TYPES`] order — what a
 /// bare `index` regenerates. A [`Identity::Singleton`] has no directory, so
 /// the sweep excludes it.
 fn all_type_tokens() -> Vec<String> {
@@ -46,10 +49,10 @@ pub fn run(store: &dyn DocStore, docs_dir: &Path, doc_type: Option<String>) -> E
     }
 }
 
-/// Regenerates `doc_type`'s index(es), returning the rewritten paths (a
-/// type with no directory yet, or an index already current, is a silent
-/// no-op that lists nothing); [`run`] renders these as
-/// plain text, the CLI front also as JSON (ADR 0060).
+/// Regenerates `doc_type`'s index(es) and makes the bundle-root index reach
+/// them, returning the written paths (a type with no directory yet, or an
+/// index already current, is a silent no-op that lists nothing); [`run`]
+/// renders these as plain text, the CLI front also as JSON.
 pub fn write(
     store: &dyn DocStore,
     docs_dir: &Path,
@@ -59,17 +62,24 @@ pub fn write(
         Some(t) => vec![t],
         None => all_type_tokens(),
     };
-    types
+    let mut written = types
         .iter()
         .filter_map(|doc_type| regenerate(store, docs_dir, doc_type).transpose())
-        .collect()
+        .collect::<Result<Vec<PathBuf>, String>>()?;
+    let tokens: Vec<&str> = types.iter().map(String::as_str).collect();
+    written.extend(ensure_root_index(
+        docs_dir,
+        &tokens,
+        NoTypeIndex::WriteNothing,
+    )?);
+    Ok(written)
 }
 
-/// `index.md` is a reserved fs artifact outside every `DocStore` domain
-/// (ADR 0007): always read/written through `std::fs`, even in db-mode,
+/// `index.md` is a reserved fs artifact outside every `DocStore` domain:
+/// always read/written through `std::fs`, even in db-mode,
 /// where only the records feeding its body come from `store`.
 ///
-/// A type with no directory yet is a silent no-op (ADR 0026) — `new` owns
+/// A type with no directory yet is a silent no-op — `new` owns
 /// directory creation, never `index`; regenerating one would materialize an
 /// empty `index.md` for every unused registry token, breaking invariant 3.
 fn regenerate(
@@ -109,7 +119,7 @@ pub fn compute(
 }
 
 /// Renders `doc_type`'s listing body along its identity shape: a Named type
-/// delegates to [`named::render_body`] (kind-ranked view rows, ADR 0036),
+/// delegates to [`named::render_body`] (kind-ranked view rows),
 /// a Numbered one collects `NNNN-*.md` records and renders along its
 /// registry partition axis.
 fn body_for(
@@ -195,7 +205,7 @@ fn record_from_path(store: &dyn DocStore, path: &Path) -> Option<Record> {
 
 /// The record's rendered title: its frontmatter `title:` when present and
 /// parseable, otherwise its first `# ` H1 heading with a leading numbering
-/// prefix stripped (issue 0021 cause 2). A stderr warning names `path`
+/// prefix stripped. A stderr warning names `path`
 /// whenever the fallback fires; the title stays empty (still warned) only
 /// when the H1 is also absent.
 fn title_for_record(contents: &str, path: &Path, number: u32) -> String {
@@ -244,17 +254,8 @@ fn warn_missing_title(path: &Path, fallback: &str) {
     }
 }
 
-fn numbered_prefix(filename: &str) -> Option<u32> {
-    if !filename.ends_with(".md") || filename.as_bytes().get(4) != Some(&b'-') {
-        return None;
-    }
-    let prefix = filename.get(0..4)?;
-    if !prefix.chars().all(|c| c.is_ascii_digit()) {
-        return None;
-    }
-    prefix.parse().ok()
-}
-
+#[cfg(test)]
+mod root_tests;
 #[cfg(test)]
 mod store_tests;
 #[cfg(test)]

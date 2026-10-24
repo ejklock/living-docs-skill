@@ -6,7 +6,7 @@ status: Draft
 timestamp: <ISO 8601 datetime>
 ---
 
-# Product Constitution
+# <Product> Constitution
 
 ## Product
 

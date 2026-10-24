@@ -67,7 +67,8 @@ fn is_in_type_dir(path: &Path, doc_type: &str) -> bool {
         .is_some_and(|name| name == doc_type)
 }
 
-fn numeric_prefix(filename: &str) -> Option<u32> {
+/// The `NNNN` of a `NNNN-*.md` filename, `None` for any other name.
+pub(crate) fn numeric_prefix(filename: &str) -> Option<u32> {
     if !filename.ends_with(".md") || filename.as_bytes().get(4) != Some(&b'-') {
         return None;
     }

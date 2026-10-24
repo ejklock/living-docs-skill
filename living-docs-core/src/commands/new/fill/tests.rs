@@ -39,7 +39,7 @@ fn fill_frontmatter_without_a_closing_fence_returns_the_template_unchanged() {
     );
 }
 
-/// ADR 0029 AC4: the seeded `status:` comes from each type's own
+/// The seeded `status:` comes from each type's own
 /// `status_vocabulary[0]`, not a hardcoded literal — issue seeds `open`,
 /// bdr/prd/research seed `Draft`, adr still seeds `Proposed`.
 #[test]
@@ -268,4 +268,33 @@ mod kind {
             .expect_err("--kind on a numbered type must be refused");
         assert!(err.contains("adr"));
     }
+}
+
+#[test]
+fn a_type_with_an_empty_status_vocabulary_keeps_the_template_status_literal() {
+    let template =
+        "---\ntype: Constitution\nstatus: Draft\ntimestamp: <ISO 8601 datetime>\n---\n\n# Body\n";
+    let filled = fill_frontmatter(template, "Constitution", "2026-07-14T00:00:00Z");
+
+    assert!(filled.contains("\nstatus: Draft\n"), "got:\n{filled}");
+    assert!(!filled.contains("Proposed"), "got:\n{filled}");
+}
+
+#[test]
+fn the_template_status_literal_drops_its_guidance_comment_and_padding() {
+    let template = "---\ntype: Constitution\nstatus:   Draft   # Draft | Ratified\n---\n\n# Body\n";
+    let filled = fill_frontmatter(template, "Constitution", "2026-07-14T00:00:00Z");
+
+    assert!(
+        filled.contains("\nstatus: Draft # Draft | Ratified\n"),
+        "got:\n{filled}"
+    );
+}
+
+#[test]
+fn a_type_with_an_empty_vocabulary_and_no_template_status_falls_back_to_proposed() {
+    let template = "---\ntype: Constitution\nstatus:\n---\n\n# Body\n";
+    let filled = fill_frontmatter(template, "Constitution", "2026-07-14T00:00:00Z");
+
+    assert!(filled.contains("\nstatus: Proposed"), "got:\n{filled}");
 }
