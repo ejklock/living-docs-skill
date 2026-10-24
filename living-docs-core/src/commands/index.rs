@@ -88,6 +88,22 @@ fn regenerate(
     docs_dir: &Path,
     doc_type: &str,
 ) -> Result<Option<PathBuf>, String> {
+    let Some((index_path, content)) = pending(store, docs_dir, doc_type)? else {
+        return Ok(None);
+    };
+    fs::write(&index_path, content).map_err(|e| e.to_string())?;
+    Ok(Some(index_path))
+}
+
+/// The regeneration [`regenerate`] would write for `doc_type` — its path and
+/// content — or `None` when the type has no directory yet or the index on
+/// disk already equals it. Nothing is written, so a read-only caller (the
+/// index-drift check) judges an index by the very computation `index` runs.
+pub(crate) fn pending(
+    store: &dyn DocStore,
+    docs_dir: &Path,
+    doc_type: &str,
+) -> Result<Option<(PathBuf, String)>, String> {
     let (index_path, content) = compute(store, docs_dir, doc_type)?;
     let type_dir = index_path.parent().unwrap_or(docs_dir);
     if !type_dir.is_dir() {
@@ -96,8 +112,7 @@ fn regenerate(
     if fs::read_to_string(&index_path).is_ok_and(|on_disk| on_disk == content) {
         return Ok(None);
     }
-    fs::write(&index_path, content).map_err(|e| e.to_string())?;
-    Ok(Some(index_path))
+    Ok(Some((index_path, content)))
 }
 
 /// Computes `doc_type`'s regenerated `index.md` path and content — reading

@@ -1,14 +1,14 @@
 use crate::skill;
 use serde_json::{json, Value};
 use std::borrow::Cow;
-use std::fs;
-use std::io;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::{fs, io};
+
+pub(crate) mod gitattributes;
 
 const HOOK_ASSET_PATHS: [&str; 1] = ["living-docs/hooks/session-context.sh"];
-
 const PRE_COMMIT_ASSET_PATH: &str = "living-docs/hooks/pre-commit";
 const GIT_HOOKS_DEST_SUBDIR: &str = ".githooks";
 const GIT_HOOKS_PATH_VALUE: &str = ".githooks";

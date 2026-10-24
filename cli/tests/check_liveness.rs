@@ -46,6 +46,7 @@ fn check_flags_stale_proposed_without_gating() {
     let bundle = liveness_bundle("stale-proposed");
     write_stale_proposed_bundle(&bundle);
 
+    common::index_bundle(&bundle);
     let output = run_check_advisories(&bundle);
     let stdout = stdout_of(&output);
 

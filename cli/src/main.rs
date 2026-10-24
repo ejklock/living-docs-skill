@@ -99,7 +99,7 @@ fn main() -> ExitCode {
         } => commands::install::run_install_hooks(dir, dry_run, &cli.docs_dir, quiet),
         Command::Uninstall {
             action: UninstallCmd::Hooks { dir, dry_run },
-        } => commands::uninstall::run_uninstall_hooks(dir, dry_run),
+        } => commands::uninstall::run_uninstall_hooks(dir, dry_run, &cli.docs_dir),
         Command::Completions { shell } => commands::completions::run_completions(shell),
     }
 }

@@ -29,6 +29,7 @@ fn bundle_with(label: &str, record: &str) -> PathBuf {
         "# Issue Index\n\n- [Work](/issues/0001-work.md)\n",
     );
     write(&bundle, "issues/0001-work.md", record);
+    common::index_bundle(&bundle);
     bundle
 }
 
@@ -120,6 +121,7 @@ fn a_draft_prd_without_problem_motivation_fails_naming_it() {
         "# Index\n\n- [Doc](/prd/0001-doc.md)\n",
     );
     write(&bundle, "prd/0001-doc.md", prd);
+    common::index_bundle(&bundle);
     let (output, text) = check_bundle(&bundle);
     assert_ne!(output.status.code(), Some(0), "got: {text}");
     assert!(

@@ -1,10 +1,8 @@
 //! Native core of `living-docs check` — ports `skills/living-docs/scripts/lint-docs.sh`.
 //!
-//! Covers the mechanical invariants: OKF frontmatter/type, index-format,
-//! directory-index membership, bundle-root reachability, supersede-chain
-//! integrity, local link/image validity via `pulldown-cmark`, unfilled
-//! placeholders, and ```mermaid``` fence validation. Record liveness
-//! (`stale-proposed` only) is advisory.
+//! Covers the mechanical invariants: OKF frontmatter/type, index-format, directory-index membership and drift,
+//! bundle-root reachability, supersede-chain integrity, local link/image validity via `pulldown-cmark`,
+//! unfilled placeholders, and ```mermaid``` fence validation. Record liveness (`stale-proposed` only) is advisory.
 //!
 //! Every record's content (`records`, `links`) is read through `DocStore::read`,
 //! so `check` validates whichever backend `compile` is given. `index.md`/`log.md`
@@ -14,6 +12,7 @@ mod callout;
 pub(crate) mod canonical;
 mod graph;
 pub(crate) use graph::{normpath, reachable_index_set};
+mod index_drift;
 pub mod kinds;
 mod line_endings;
 pub(crate) mod links;
@@ -78,6 +77,7 @@ fn run_all_checks(
     records::check_frontmatter_and_format(store, &all_md, &root_index, reporter);
     graph::check_directory_membership(bundle, &all_md, reporter);
     graph::check_reachability(bundle, &root_index, &all_md, reporter);
+    index_drift::check_index_drift(raw, bundle, reporter);
     links::check_links(store, bundle, &all_md, reporter);
     records::check_supersede_chain(store, &all_md, reporter);
     callout::check_callouts(store, &all_md, reporter);

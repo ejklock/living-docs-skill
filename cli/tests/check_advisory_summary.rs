@@ -24,11 +24,12 @@ fn bundle_with(label: &str, records: &[(String, String)], orphan: bool) -> PathB
         index.push_str(&format!("- [Doc](/adr/{name})\n"));
         write(&bundle, &format!("adr/{name}"), contents);
     }
+    write(&bundle, "index.md", "# Docs\n\n- [ADRs](/adr/index.md)\n");
+    write(&bundle, "adr/index.md", &index);
+    common::index_bundle(&bundle);
     if orphan {
         write(&bundle, "adr/0099-orphan.md", &record(true, 0));
     }
-    write(&bundle, "index.md", "# Docs\n\n- [ADRs](/adr/index.md)\n");
-    write(&bundle, "adr/index.md", &index);
     bundle
 }
 

@@ -174,7 +174,12 @@ Installing Living Docs is three independent steps:
    `.claude/settings.json` with the resolved bundle pinned as
    `LIVING_DOCS_BUNDLE=`, and installs the pre-commit doc-gate at
    `.githooks/pre-commit` (pointing `core.hooksPath` at it). Remove everything
-   it wrote with the sibling `living-docs uninstall hooks`. There is
+   it wrote with the sibling `living-docs uninstall hooks`. It also adds
+   `<docs-dir>/**/index.md merge=union` to `.gitattributes`, so two branches
+   that each add a record merge without a conflict in the type index (git's
+   built-in `union` driver keeps both sides' lines). The merged index may then
+   hold rows twice or out of order, and `check` fails on it naming the index;
+   one `living-docs index <type>` regenerates it and the gate passes. There is
    deliberately **no write-time hook** — a pre-write block teaches the agent to
    negotiate with the block, not to use the CLI; a failing `check` in the same
    session does.

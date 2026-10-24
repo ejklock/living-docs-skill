@@ -88,6 +88,16 @@ pub fn temp_bundle(suite: &str, label: &str) -> PathBuf {
     dir
 }
 
+/// Regenerates every type index of `bundle` with the CLI, so a fixture's
+/// indexes are the ones `index` writes and `check` finds no drift in them.
+pub fn index_bundle(bundle: &Path) {
+    let output = living_docs()
+        .args(["--docs-dir", bundle.to_str().unwrap(), "index", "--plain"])
+        .output()
+        .expect("failed to run living-docs index");
+    assert!(output.status.success(), "index failed");
+}
+
 pub fn write(bundle: &Path, rel: &str, contents: &str) {
     let path = bundle.join(rel);
     fs::create_dir_all(path.parent().unwrap()).unwrap();
