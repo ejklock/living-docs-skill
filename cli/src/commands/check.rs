@@ -7,6 +7,7 @@ mod render;
 use crate::output::{self, ColorMode, OutputMode, Style};
 use crate::store::build_store;
 use living_docs_core::check::{self, MermaidReport, Report};
+use living_docs_core::doc_type::{self, Identity};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -25,8 +26,8 @@ pub(crate) fn run_check(
     color: ColorMode,
     verbosity: &Verbosity,
 ) -> ExitCode {
-    let bundle = check_bundle(docs_dir, paths);
-    let Some(report) = compile_scoped(&bundle, require_owner, changed_files) else {
+    let (bundle, scope) = resolve_target(check_bundle(docs_dir, paths), docs_dir, changed_files);
+    let Some(report) = compile_scoped(&bundle, require_owner, &scope) else {
         return exit_bundle_root_not_found(&bundle);
     };
     if mode.is_json() {
@@ -64,6 +65,75 @@ fn note_missing_doc_gate(bundle: &Path, quiet: bool) {
             "living-docs check: no pre-commit doc-gate is armed in this repository; run `living-docs install hooks` to enforce it at commit",
         );
     }
+}
+
+/// The bundle to check and the files its report is narrowed to. A `target`
+/// that is a record file resolves, symlinks followed, to its enclosing bundle
+/// and scopes the report to that record on top of any `changed_files`; any
+/// other target is the bundle itself, scoped to `changed_files` alone.
+fn resolve_target(
+    target: PathBuf,
+    docs_dir: &Path,
+    changed_files: &[PathBuf],
+) -> (PathBuf, Vec<PathBuf>) {
+    let mut scope = changed_files.to_vec();
+    let Some((bundle, record)) = enclosing_bundle(&target, docs_dir) else {
+        return (target, scope);
+    };
+    scope.push(record);
+    (bundle, scope)
+}
+
+/// The bundle holding the record file `target` and the record's path inside
+/// it, both relative to the working directory when they lie under it.
+/// `None` when `target` is not an existing file or [`bundle_root_of`] finds
+/// no bundle for it.
+fn enclosing_bundle(target: &Path, docs_dir: &Path) -> Option<(PathBuf, PathBuf)> {
+    let record = target.canonicalize().ok().filter(|path| path.is_file())?;
+    let root = bundle_root_of(&record, docs_dir)?;
+    let cwd = Path::new(".").canonicalize().ok()?;
+    let shown = root.strip_prefix(&cwd).unwrap_or(&root);
+    let bundle = if shown.as_os_str().is_empty() {
+        PathBuf::from(".")
+    } else {
+        shown.to_path_buf()
+    };
+    let inside = record.strip_prefix(&root).ok()?;
+    Some((bundle.clone(), bundle.join(inside)))
+}
+
+/// The bundle root of the canonical record path `record`: the `--docs-dir`
+/// directory when the record lies inside it; otherwise the parent of the
+/// nearest enclosing registered type directory, so a nested session directory
+/// still resolves to its bundle, but only when that parent or the type
+/// directory itself holds an `index.md`; otherwise the record's own directory when
+/// the record is a bundle-root singleton file. `None` for anything else.
+fn bundle_root_of(record: &Path, docs_dir: &Path) -> Option<PathBuf> {
+    if let Ok(docs) = docs_dir.canonicalize() {
+        if record.starts_with(&docs) {
+            return Some(docs);
+        }
+    }
+    let typed = record.ancestors().skip(1).find(|dir| {
+        dir.file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| doc_type::spec_for_dir(name).is_some())
+    });
+    let holds_index = |dir: &Path| dir.join("index.md").is_file();
+    let indexed_parent = typed
+        .and_then(Path::parent)
+        .filter(|parent| holds_index(parent) || typed.is_some_and(holds_index));
+    if let Some(parent) = indexed_parent {
+        return Some(parent.to_path_buf());
+    }
+    let name = record.file_name()?.to_str()?;
+    let is_singleton = doc_type::DOC_TYPES
+        .iter()
+        .any(|spec| matches!(spec.identity, Identity::Singleton { file } if file == name));
+    if is_singleton {
+        return record.parent().map(Path::to_path_buf);
+    }
+    None
 }
 
 /// The bundle's report, narrowed to `changed_files` when the caller named
