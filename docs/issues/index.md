@@ -20,6 +20,8 @@ one slice per fresh context, starting from the skeleton.
 * [0070 — Teach the TYPE/NNNN reference where agents split it: the set usage error and the session hook line](0070-teach-the-type-nnnn-reference-where-agents-split-it-the-set-usage-error-and-the-session-hook-line.md) - open
 * [0073 — A record with no title gets one without its number and never from fenced text](0073-a-record-with-no-title-gets-one-without-its-number-and-never-from-fenced-text.md) - open
 * [0074 — set title rewrites only the title heading fmt and check judge](0074-set-title-rewrites-only-the-title-heading-fmt-and-check-judge.md) - open
+* [0075 — index reads a CRLF record's title and status](0075-index-reads-a-crlf-record-s-title-and-status.md) - open
+* [0076 — fmt keeps a quoted flow-list item quoted](0076-fmt-keeps-a-quoted-flow-list-item-quoted.md) - open
 
 ## Closed
 
