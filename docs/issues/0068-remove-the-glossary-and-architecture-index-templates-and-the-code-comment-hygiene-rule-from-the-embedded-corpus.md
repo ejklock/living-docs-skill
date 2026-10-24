@@ -2,7 +2,7 @@
 type: Issue
 title: Remove the glossary and architecture-index templates and the code-comment-hygiene rule from the embedded corpus
 description: Three corpus entries no session loads leave the guide; semantic-index and context-index stay because agents read them and semantic-index points at context-index
-status: open
+status: closed
 timestamp: 2026-10-24T10:17:31Z
 ---
 
@@ -30,3 +30,11 @@ Found by the usage audit over four harness accounts' transcripts (October 2026):
 
 1. Confirm no code path renders the files.
 2. Delete them and the references; update the guide tests.
+
+### Outcome
+
+Delivered 2026-10-24 on branch task/ek-usage-audit-backlog.
+
+- Deleted `skills/living-docs/templates/glossary.md`, `skills/living-docs/templates/architecture-index.md` and `skills/living-docs/rules/code-comment-hygiene.md`. No code path rendered them: the corpus is embedded with `rust_embed` and the topic list derives from the embedded files, so no router line or list needed editing.
+- `cli/tests/guide.rs`: a test asserts the three topics are absent from `guide --list`, that `guide <topic>` exits 2 for each, and that `semantic-index` and `context-index` still print; it failed with a deleted file put back.
+- Verification: `cargo test --workspace` 792 passed, 0 failed; `make check`, clippy with `-D warnings` and `se-gates check` pass. Review approved with two nits: the test builds the removed names from parts so the acceptance grep over `cli` stays empty, and the kept-topic assertion checks non-empty output rather than the returned file's header.
