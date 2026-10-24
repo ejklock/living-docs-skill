@@ -1,4 +1,4 @@
-523 cli/src/hooks.rs
+521 cli/src/hooks.rs
 321 cli/src/skill_install.rs
 340 cli/src/skill.rs
 337 cli/tests/check_core.rs

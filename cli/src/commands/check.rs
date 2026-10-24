@@ -1,6 +1,6 @@
 //! `check` verb wrapper: resolves the bundle path, compiles the report
 //! through `living_docs_core::check::compile`, and renders it as colored
-//! text or JSON per the resolved output mode (ADR 0060).
+//! text or JSON per the resolved output mode.
 
 mod render;
 
@@ -10,6 +10,12 @@ use living_docs_core::check::{self, MermaidReport, Report};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+/// What the caller asked `check` to say beyond the report itself.
+pub(crate) struct Verbosity {
+    pub(crate) list_advisories: bool,
+    pub(crate) quiet: bool,
+}
+
 pub(crate) fn run_check(
     docs_dir: &Path,
     paths: Vec<PathBuf>,
@@ -17,24 +23,18 @@ pub(crate) fn run_check(
     changed_files: &[PathBuf],
     mode: OutputMode,
     color: ColorMode,
-    list_advisories: bool,
+    verbosity: &Verbosity,
 ) -> ExitCode {
     let bundle = check_bundle(docs_dir, paths);
     let Some(report) = compile_scoped(&bundle, require_owner, changed_files) else {
-        eprintln!(
-            "living-docs check: bundle root not found: {}",
-            bundle.display()
-        );
-        eprintln!(
-            "       run from the repo root, or pass the docs directory: living-docs check path/to/docs"
-        );
-        return ExitCode::from(2);
+        return exit_bundle_root_not_found(&bundle);
     };
     if mode.is_json() {
         println!("{}", output::to_json(&report));
     } else {
-        render::render_text(&report, color, list_advisories);
+        render::render_text(&report, color, verbosity.list_advisories);
     }
+    note_missing_doc_gate(&bundle, verbosity.quiet);
     if report.ok {
         ExitCode::SUCCESS
     } else {
@@ -42,8 +42,32 @@ pub(crate) fn run_check(
     }
 }
 
+/// Tells the user where to run `check` from, and exits with the usage code.
+fn exit_bundle_root_not_found(bundle: &Path) -> ExitCode {
+    eprintln!(
+        "living-docs check: bundle root not found: {}",
+        bundle.display()
+    );
+    eprintln!(
+        "       run from the repo root, or pass the docs directory: living-docs check path/to/docs"
+    );
+    ExitCode::from(2)
+}
+
+/// Suggests `install hooks` on stderr when the repository holding `bundle`
+/// has no pre-commit doc-gate; silent outside a git repository and under
+/// `--quiet`.
+fn note_missing_doc_gate(bundle: &Path, quiet: bool) {
+    if crate::doc_gate::doc_gate_armed(bundle) == Some(false) {
+        output::note(
+            quiet,
+            "living-docs check: no pre-commit doc-gate is armed in this repository; run `living-docs install hooks` to enforce it at commit",
+        );
+    }
+}
+
 /// The bundle's report, narrowed to `changed_files` when the caller named
-/// any (ADR 0062). An empty list is the unscoped gate, not an empty scope.
+/// any. An empty list is the unscoped gate, not an empty scope.
 fn compile_scoped(bundle: &Path, require_owner: bool, changed_files: &[PathBuf]) -> Option<Report> {
     let report = check::compile(build_store().as_ref(), bundle, require_owner)?;
     if changed_files.is_empty() {
@@ -54,7 +78,7 @@ fn compile_scoped(bundle: &Path, require_owner: bool, changed_files: &[PathBuf])
 
 /// `check --mermaid-only [paths...]`: compiles the mermaid-fence report
 /// through `living_docs_core::check::compile_mermaid_only` and renders it as
-/// colored text or JSON per the resolved output mode (ADR 0060), the same
+/// colored text or JSON per the resolved output mode, the same
 /// split `run_check` uses for the full report.
 pub(crate) fn run_mermaid_only(paths: &[PathBuf], mode: OutputMode, color: ColorMode) -> ExitCode {
     let report = check::compile_mermaid_only(paths);
