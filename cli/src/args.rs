@@ -187,13 +187,9 @@ pub(crate) enum Command {
         #[arg(long)]
         advisories: bool,
     },
-    /// `effective` survives as a hidden alias for one release.
-    #[command(alias = "effective", about = help::READ_ABOUT, long_about = None, after_help = help::with_exit_codes(help::READ_EXAMPLES))]
+    #[command(about = help::READ_ABOUT, long_about = None, after_help = help::with_exit_codes(help::READ_EXAMPLES))]
     Read(ReadArgs),
-    /// `skill` survives as a hidden alias for one release, keeping its old
-    /// `skill <name> --topic <t>` shape (see
-    /// `crate::commands::guide::resolve_target`).
-    #[command(alias = "skill", about = help::GUIDE_ABOUT, long_about = None, after_help = help::with_exit_codes(help::GUIDE_EXAMPLES))]
+    #[command(about = help::GUIDE_ABOUT, long_about = None, after_help = help::with_exit_codes(help::GUIDE_EXAMPLES))]
     Guide(GuideArgs),
     #[command(about = help::INSTALL_ABOUT, long_about = None, after_help = help::with_exit_codes(help::INSTALL_EXAMPLES))]
     Install {

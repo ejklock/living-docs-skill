@@ -24,7 +24,7 @@ pub(crate) struct ReadArgs {
     pub(crate) contract: bool,
 }
 
-/// Arguments for the `guide` verb (formerly `skill`).
+/// Arguments for the `guide` verb.
 ///
 /// `topic_or_skill` is a single positional that resolves two ways: when it
 /// names an embedded skill (e.g. `okf-knowledge-format`) it selects that
@@ -32,9 +32,7 @@ pub(crate) struct ReadArgs {
 /// it is treated as a topic under `--skill` (default `living-docs`). This
 /// keeps `guide adr` reading as "the adr topic" while `guide
 /// okf-knowledge-format` still reads as "that skill's overview" — see
-/// `crate::commands::guide::resolve_target` for the exact precedence,
-/// including the hidden `--topic` flag that keeps the retired `skill <name>
-/// --topic <t>` alias shape working.
+/// `crate::commands::guide::resolve_target` for the exact precedence.
 #[derive(Args)]
 pub(crate) struct GuideArgs {
     #[arg(help = help::guide_topic_help())]
@@ -42,10 +40,6 @@ pub(crate) struct GuideArgs {
     /// The embedded skill corpus to read from; defaults to `living-docs`.
     #[arg(long)]
     pub(crate) skill: Option<String>,
-    /// Retired `skill` alias shape: `skill <name> --topic <t>`. Hidden — use
-    /// the `topic_or_skill` positional instead.
-    #[arg(long, hide = true)]
-    pub(crate) topic: Option<String>,
     /// List every embedded skill and its available topics instead of
     /// printing a single skill's content.
     #[arg(long)]

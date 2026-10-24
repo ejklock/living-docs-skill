@@ -109,38 +109,16 @@ fn quiet_silences_the_empty_result_hint() {
 }
 
 #[test]
-fn effective_alias_still_runs_hidden_from_help() {
-    let bundle = common::temp_bundle("read", "alias");
-    write_chain_bundle(&bundle);
-
-    let mut args = vec![
-        "--docs-dir",
-        bundle.to_str().unwrap(),
-        "effective",
-        "--plain",
-    ];
-    args.push("--topic");
-    args.push("widget");
+fn retired_effective_command_is_refused_as_unknown_usage() {
     let output = living_docs()
-        .args(&args)
+        .args(["effective", "--plain"])
         .output()
         .expect("failed to run living-docs effective");
-    let stdout = stdout_of(&output);
 
-    assert!(output.status.success());
-    assert!(stdout.contains("[ADR 0002]"), "head present:\n{stdout}");
-
-    let help = stdout_of(
-        &living_docs()
-            .args(["--plain", "--help"])
-            .output()
-            .expect("failed to run living-docs --help"),
-    );
-    let lists_effective_as_a_command = help
-        .lines()
-        .any(|line| line.trim() == "effective" || line.trim_start().starts_with("effective  "));
+    assert_eq!(output.status.code(), Some(2));
+    let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        !lists_effective_as_a_command,
-        "hidden alias must not be listed as a command in help:\n{help}"
+        stderr.contains("unrecognized subcommand 'effective'"),
+        "got:\n{stderr}"
     );
 }

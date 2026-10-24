@@ -1,6 +1,6 @@
 //! `--help`/`completions` coverage: the root help lists exactly
 //! the ten verbs plus `completions`, grouped under the four documented
-//! headings, with `effective`/`skill` absent (they are hidden aliases); and
+//! headings, with `effective`/`skill` absent (retired); and
 //! `completions <shell>` prints a non-empty script.
 
 use std::collections::BTreeSet;
@@ -74,11 +74,11 @@ fn root_help_lists_exactly_the_ten_verbs_plus_completions() {
     }
     assert!(
         !lists_as_a_command(&help, "effective"),
-        "hidden alias must not be listed:\n{help}"
+        "retired command must not be listed:\n{help}"
     );
     assert!(
         !lists_as_a_command(&help, "skill"),
-        "hidden alias must not be listed:\n{help}"
+        "retired command must not be listed:\n{help}"
     );
 }
 
