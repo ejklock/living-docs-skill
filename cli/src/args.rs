@@ -19,6 +19,8 @@ use clap_complete::Shell;
 mod help;
 #[path = "args/help_json.rs"]
 mod help_json;
+#[path = "split_reference.rs"]
+pub(crate) mod split_reference;
 #[path = "args/sub.rs"]
 mod sub;
 use std::path::PathBuf;
@@ -45,6 +47,14 @@ fn exit_with(err: &clap::Error, command: &clap::Command, argv: &[std::ffi::OsStr
             println!("{document}");
             std::process::exit(err.exit_code());
         }
+    }
+    let hint = (err.kind() == ErrorKind::UnknownArgument)
+        .then(|| split_reference::hint(argv))
+        .flatten();
+    if let Some(hint) = hint {
+        let _ = err.print();
+        eprintln!("{hint}");
+        std::process::exit(err.exit_code());
     }
     err.exit()
 }
