@@ -1,3 +1,8 @@
+#[path = "fmt/heading.rs"]
+mod heading;
+#[path = "fmt/repair.rs"]
+mod repair;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -47,9 +52,9 @@ fn read(bundle: &Path, rel: &str) -> String {
     fs::read_to_string(bundle.join(rel)).unwrap()
 }
 
-const NON_CANONICAL_RECORD: &str = "---\ntitle: Quokka Caching\ntype: ADR\ndescription: Adopt quokka caching.\ntags: [performance, caching]\nstatus: Accepted\n---\n# Quokka Caching\n\nAdopt an aggressive quokka caching strategy.\n";
+const NON_CANONICAL_RECORD: &str = "---\ntitle: Quokka Caching\ntype: ADR\ndescription: Adopt quokka caching.\ntags: [performance, caching]\nstatus: Accepted\nowner: Quokka Team\ntimestamp: 2024-01-02T03:04:05Z\n---\n# Quokka Caching\n\nAdopt an aggressive quokka caching strategy.\n";
 
-const CANONICAL_RECORD: &str = "---\ntype: ADR\ntitle: Quokka Caching\ndescription: Adopt quokka caching.\nstatus: Accepted\ntags: [caching, performance]\n---\n\n# Quokka Caching\n\nAdopt an aggressive quokka caching strategy.\n";
+const CANONICAL_RECORD: &str = "---\ntype: ADR\ntitle: Quokka Caching\ndescription: Adopt quokka caching.\nowner: Quokka Team\nstatus: Accepted\ntags: [caching, performance]\ntimestamp: 2024-01-02T03:04:05Z\n---\n\n# Quokka Caching\n\nAdopt an aggressive quokka caching strategy.\n";
 
 #[test]
 fn fmt_rewrites_a_non_canonical_record_preserving_body_and_author_owned_values() {
@@ -80,7 +85,7 @@ fn fmt_rewrites_a_non_canonical_record_preserving_body_and_author_owned_values()
     let _ = fs::remove_dir_all(&bundle);
 }
 
-const WRAPPED_RECORD: &str = "---\ntype: ADR\ntitle: Quokka Caching\ndescription: Adopt quokka caching.\nstatus: Accepted\ntags: [caching, performance]\n---\n\n# Quokka Caching\n\nAdopt an aggressive quokka\ncaching strategy for the\nread-heavy endpoints.\n\n# References\n\n- First reference\n- Second reference\n- Third reference\n";
+const WRAPPED_RECORD: &str = "---\ntype: ADR\ntitle: Quokka Caching\ndescription: Adopt quokka caching.\nowner: Quokka Team\nstatus: Accepted\ntags: [caching, performance]\ntimestamp: 2024-01-02T03:04:05Z\n---\n\n# Quokka Caching\n\nAdopt an aggressive quokka\ncaching strategy for the\nread-heavy endpoints.\n\n# References\n\n- First reference\n- Second reference\n- Third reference\n";
 
 #[test]
 fn fmt_leaves_a_hard_wrapped_paragraph_and_a_reference_list_body_byte_identical() {
@@ -215,6 +220,28 @@ fn fmt_leaves_a_record_with_no_frontmatter_untouched() {
     assert_eq!(read(&bundle, "plain.md"), plain);
 
     let _ = fs::remove_dir_all(&bundle);
+}
+
+fn issue_with_status(status: &str) -> String {
+    format!("---\ntype: Issue\ntitle: Real\ndescription: d\nstatus: {status}\ntimestamp: 2024-01-02T03:04:05Z\n---\n\n## 0001. Old name\n\nBody.\n")
+}
+
+#[test]
+fn fmt_leaves_a_closed_issue_heading_alone_and_still_aligns_a_live_one() {
+    let bundle = temp_bundle("retired-heading");
+    let closed = issue_with_status("closed");
+    write(&bundle, "issues/0001-real.md", &closed);
+
+    let check = run_fmt_check(&bundle);
+    run_fmt(&bundle);
+
+    assert_eq!(check.status.code(), Some(0), "{check:?}");
+    assert_eq!(read(&bundle, "issues/0001-real.md"), closed);
+    write(&bundle, "issues/0001-real.md", &issue_with_status("open"));
+    run_fmt(&bundle);
+    assert!(read(&bundle, "issues/0001-real.md").contains("\n## 0001. Real\n"));
+
+    let _ = fs::remove_dir_all(bundle.parent().unwrap());
 }
 
 #[test]

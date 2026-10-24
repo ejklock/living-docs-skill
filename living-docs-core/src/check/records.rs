@@ -6,6 +6,7 @@
 //! both invariants validate whichever backend `check::compile` is given.
 
 use super::{file_name_str, kinds, Reporter};
+use crate::commands::set::retitle;
 use crate::doc_type;
 use crate::frontmatter::{frontmatter_block, read_scalar_strict};
 use crate::store::DocStore;
@@ -141,7 +142,7 @@ fn check_supersede_target(f: &Path, contents: &str, all_md: &[PathBuf], reporter
 }
 
 /// A record whose heading disagrees with its frontmatter `title` is an
-/// advisory (ADR 0061): `set title` writes both from one value, so a
+/// advisory: `set title` writes both from one value, so a
 /// divergence means one of them was hand-edited. It stays advisory because a
 /// heading shortened by hand is a legitimate historical shape — the finding
 /// names the drift without failing a corpus that predates the rule.
@@ -156,11 +157,11 @@ pub(crate) fn check_heading_matches_title(
         }
         let (Some(title), Some(heading)) = (
             frontmatter_scalar(&contents, "title"),
-            heading_title(&contents),
+            heading_title(f, &contents),
         ) else {
             return;
         };
-        if heading != title {
+        if heading != title.trim() {
             reporter.advise(
                 f,
                 kinds::HEADING,
@@ -172,18 +173,18 @@ pub(crate) fn check_heading_matches_title(
 
 /// The record's heading text, with the heading marks and the `NNNN.` number
 /// prefix the templates write stripped, so it compares against the bare
-/// frontmatter `title`.
-fn heading_title(contents: &str) -> Option<String> {
-    let body = contents.split("\n---\n").nth(1)?;
-    let heading = body.lines().find(|line| line.starts_with('#'))?;
-    Some(crate::sections::heading_text(heading).to_owned())
+/// frontmatter `title`. It is the record's own title heading — the one `fmt`
+/// repairs, found by the same lookup — with fenced code skipped.
+fn heading_title(path: &Path, contents: &str) -> Option<String> {
+    let number = retitle::number_prefix(path).ok();
+    retitle::title_heading_text(contents, number.as_deref())
 }
 
 /// Whether `contents`' own `type`/`status` frontmatter marks the record
 /// retired, through the shared [`doc_type::DocTypeSpec::is_retired`]
-/// predicate (ADR 0063). Absent either key, or an unregistered `type`, the
+/// predicate. Absent either key, or an unregistered `type`, the
 /// record is judged live — there is nothing to retire it against.
-pub(super) fn is_retired_record(contents: &str) -> bool {
+pub(crate) fn is_retired_record(contents: &str) -> bool {
     let Some(doc_type) = frontmatter_scalar(contents, "type") else {
         return false;
     };

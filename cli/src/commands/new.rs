@@ -1,5 +1,5 @@
 //! `new` verb wrapper: delegates to `living_docs_core::commands::new::write`,
-//! rendering the created path as colored text or JSON (ADR 0060).
+//! rendering the created path as colored text or JSON.
 
 use super::prose;
 use super::report::report_indexed;
@@ -10,7 +10,7 @@ use living_docs_core::commands::new::{NewOptions, BODY_ONLY_INSTRUCTION};
 use living_docs_core::doc_type::spec_for;
 use serde::Serialize;
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitCode};
+use std::process::ExitCode;
 
 /// The `new` verb's optional CLI arguments, bundled so the wrapper's
 /// signature stays within the argument budget as flags accrue.
@@ -28,27 +28,13 @@ struct NewJson<'a> {
     indexed: &'a [PathBuf],
 }
 
-/// Reads one git config value; a missing `git`, a non-zero exit or an empty
-/// value is absence, so a machine without a git identity still creates records.
-fn git_config(key: &str) -> Option<String> {
-    let output = Command::new("git")
-        .args(["config", "--get", key])
-        .output()
-        .ok()?;
-    if !output.status.success() {
-        return None;
-    }
-    let value = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    (!value.is_empty()).then_some(value)
-}
-
 /// The owner for a type whose registry row requires one and the caller gave
 /// none: the git `user.name`, else `user.email`.
 fn seeded_owner(doc_type: &str, given: Option<&str>) -> Option<String> {
     if given.is_some() || !spec_for(doc_type).is_some_and(|spec| spec.requires_owner) {
         return None;
     }
-    git_config("user.name").or_else(|| git_config("user.email"))
+    crate::git::identity()
 }
 
 fn print_created(created: &commands::new::Created, mode: OutputMode) {

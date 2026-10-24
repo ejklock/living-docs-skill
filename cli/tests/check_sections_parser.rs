@@ -98,7 +98,7 @@ fn a_title_heading_matching_the_frontmatter_title_is_not_a_section() {
 
 #[test]
 fn a_disagreeing_title_heading_still_passes_and_keeps_the_advisory() {
-    let body = format!("## Something else\n\n{SCOPE}{ACCEPTANCE}");
+    let body = format!("## 0001. Something else\n\n{SCOPE}{ACCEPTANCE}");
     let text = assert_passes("title-differs", &record("My title", &body));
     assert!(text.contains("HEADING"), "got: {text}");
 }

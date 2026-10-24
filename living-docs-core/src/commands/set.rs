@@ -8,7 +8,7 @@ use crate::store::DocStore;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-mod retitle;
+pub(crate) mod retitle;
 
 /// What `set` wrote: the record's path — the new one when a retitle renamed
 /// the file — and the other bundle records whose reference to the old

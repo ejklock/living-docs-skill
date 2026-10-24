@@ -28,6 +28,14 @@ the CLI's job; the judgment prose (the "why") is yours to write directly in the 
   each paragraph as ONE line — never hard-wrap prose at a fixed column; the reading surface
   soft-wraps. `living-docs fmt` unwraps hard-wrapped paragraphs (ADR 0046), so a wrapped body is
   a `fmt` diff, not a style choice.
+- **Repair a hand-written or migrated record with `living-docs fmt`** (`fmt --check` lists what
+  it would change and writes nothing). `fmt` repairs three CLI-owned fields: it seeds a missing
+  `timestamp` from the author date of the commit that added the file (the clock when the file was
+  never committed), seeds a missing `owner` on a type that requires one from git `user.name`,
+  then `user.email`, and rewrites the title heading to the frontmatter title (a record with no
+  `title` takes it from its heading). The title heading is the first `NNNN.` heading of the record's own number, else its first unnumbered `# ` heading; a section heading is never renamed. A retired record's heading is left as history. A present timestamp, owner or title is never changed, and no
+  other prose changes: missing sections, unfilled slots and the description stay the author's to
+  write.
 - **When a deterministic frontmatter mutation has no verb yet** and you keep doing it by hand,
   add it as a `living-docs set` key rather than normalizing the hand-edit.
 

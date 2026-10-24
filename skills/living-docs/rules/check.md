@@ -52,6 +52,7 @@ eyeballing them; the rest are judgement:
 - [ ] Every live record carries its type's required sections as headings (issue: Scope, Acceptance; ADR: Context, Decision, Consequences; PRD: Problem / Motivation, Non-goals; constitution: Product, Scope Boundaries, Non-negotiables).
 - [ ] Superseded ADRs/PRDs carry frontmatter `status: Superseded` + `superseded_by: NNNN`; the superseding record sets `supersedes` and links back.
 - [ ] A Superseded or Deprecated record's body opens with its exact CLI-written callout above the heading, and no active record opens with one; `living-docs fmt` is the remediation.
+- [ ] Every record carries a `timestamp`, and a type that requires an owner has one; a title heading matches the frontmatter title. `living-docs fmt` repairs these three (a missing timestamp from the adding commit, a missing owner from git config, the heading from the frontmatter title) and changes no other prose; with no git identity the owner advisory stays until the owner is written by hand.
 - [ ] Any structural code change in the same task updated its doc, including its Mermaid diagram(s).
 - [ ] Architecture diagrams use Mermaid (in-repo text) and match the code.
 - [ ] The constitution is singular (`docs/constitution.md`) — no NNNN prefix, no index entry.

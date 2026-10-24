@@ -155,7 +155,7 @@ pub(crate) const INDEX_ABOUT: &str = "Rebuilds a doc type's index.md from the re
 pub(crate) const INDEX_EXAMPLES: &[&str] = &["living-docs index adr", "living-docs index"];
 
 pub(crate) const FMT_ABOUT: &str =
-    "Canonicalizes a record's frontmatter in place, or reports what's pending.";
+    "Canonicalizes a record's frontmatter, seeds a missing timestamp and required owner, aligns the title heading, or reports what's pending.";
 pub(crate) const FMT_EXAMPLES: &[&str] = &["living-docs fmt docs", "living-docs fmt --check docs"];
 
 pub(crate) const CHECK_ABOUT: &str = "Validates the bundle's mechanical invariants — the doc-gate.";

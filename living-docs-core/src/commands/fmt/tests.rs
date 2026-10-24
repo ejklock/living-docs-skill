@@ -21,11 +21,19 @@ fn real_temp_tree(label: &str, paths: &[&str]) -> PathBuf {
 
 use crate::test_support::WritableMapStore as MapStore;
 
+fn canonicalize_record(store: &dyn DocStore, path: &Path) -> bool {
+    super::canonicalize_record(store, path, &Seeds::default())
+}
+
+fn canonicalize_bundle(store: &dyn DocStore, paths: &[PathBuf]) -> Vec<PathBuf> {
+    super::canonicalize_bundle(store, paths, &Seeds::default())
+}
+
 #[test]
 fn is_reserved_file_matches_index_and_log_only() {
     assert!(is_reserved_file(Path::new("docs/index.md")));
-    assert!(is_reserved_file(Path::new("docs/adr/log.md")));
-    assert!(!is_reserved_file(Path::new("docs/adr/0001-doc.md")));
+    assert!(is_reserved_file(Path::new("docs/decisions/log.md")));
+    assert!(!is_reserved_file(Path::new("docs/decisions/0001-doc.md")));
 }
 
 #[test]
@@ -244,4 +252,40 @@ fn run_check_on_a_canonical_bundle_exits_zero() {
     assert_eq!(format!("{code:?}"), format!("{:?}", ExitCode::SUCCESS));
     assert_eq!(store.contents(target.to_str().unwrap()), canonical);
     let _ = std::fs::remove_dir_all(root);
+}
+
+const HAND_ADR: &str =
+    "---\ntype: ADR\ntitle: Hand\ndescription: d\n---\n\n# 0003. Other heading\n\nBody.\n";
+
+fn seeded(owner: Option<&str>) -> Seeds {
+    Seeds {
+        owner: owner.map(str::to_owned),
+        added_at: Some(|_| Some("2021-03-04T03:06:07Z".to_owned())),
+    }
+}
+
+#[test]
+fn canonicalize_record_seeds_timestamp_owner_and_heading_from_the_inputs() {
+    let path = Path::new("/bundle/adr/0003-hand.md");
+    let store = MapStore::seeded(&[("/bundle/adr/0003-hand.md", HAND_ADR)]);
+
+    let rewritten = super::canonicalize_record(&store, path, &seeded(Some("Ada")));
+
+    assert!(rewritten);
+    assert_eq!(
+        store.contents("/bundle/adr/0003-hand.md"),
+        "---\ntype: ADR\ntitle: Hand\ndescription: d\nowner: Ada\ntimestamp: 2021-03-04T03:06:07Z\n---\n\n# 0003. Hand\n\nBody.\n"
+    );
+}
+
+#[test]
+fn canonicalize_record_without_an_owner_input_leaves_the_owner_absent() {
+    let path = Path::new("/bundle/adr/0003-hand.md");
+    let store = MapStore::seeded(&[("/bundle/adr/0003-hand.md", HAND_ADR)]);
+
+    super::canonicalize_record(&store, path, &seeded(None));
+
+    assert!(!store
+        .contents("/bundle/adr/0003-hand.md")
+        .contains("owner:"));
 }

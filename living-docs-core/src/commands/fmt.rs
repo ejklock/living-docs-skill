@@ -1,7 +1,9 @@
 //! `living-docs fmt` canonicalizes a concept record's frontmatter in
-//! place, and reconciles the retired-record callout at the top of its
-//! body to match the status that frontmatter carries — the rest of the
-//! body below the closing `---` stays byte-for-byte unchanged. `target`
+//! place, seeds a missing timestamp and a missing required owner,
+//! aligns the title heading with the frontmatter title, and reconciles
+//! the retired-record callout at the top of its body to match the status
+//! that frontmatter carries — every other byte below the closing `---`
+//! stays byte-for-byte unchanged. `target`
 //! accepts either a bundle root (canonicalizes every record under it,
 //! enumerated through the same `DocStore::list` call `check::compile` reads
 //! from — no second directory walker) or a single record path
@@ -10,9 +12,15 @@
 //! File-mode only: db-mode is canonical by construction on export, so
 //! this verb never runs against `--backend db`.
 
+mod repair;
+
 use crate::callout;
+use crate::check::is_retired_record;
+use crate::commands::set::retitle::number_prefix;
+use crate::frontmatter::read_scalar_from_str as frontmatter_scalar;
 use crate::record::{extract_record, to_canonical_markdown, ExtractedRecord};
 use crate::store::DocStore;
+pub use repair::Seeds;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -21,7 +29,7 @@ use std::process::ExitCode;
 /// `check_only`, prints the same pending records but writes nothing, and
 /// returns a non-zero exit code when any record is pending.
 pub fn run(store: &dyn DocStore, target: &Path, check_only: bool) -> ExitCode {
-    match outcome(store, target, check_only) {
+    match outcome(store, target, check_only, &Seeds::default()) {
         Ok(Outcome::Rewritten(paths)) => {
             for path in &paths {
                 println!("{}", path.display());
@@ -57,16 +65,24 @@ pub enum Outcome {
 
 /// Canonicalizes `target`'s frontmatter (or, under `check_only`, reports
 /// which records would change) without printing anything — the CLI front
-/// renders this as colored text or JSON (ADR 0060); [`run`] is the
-/// plain-text-always convenience wrapper over it.
-pub fn outcome(store: &dyn DocStore, target: &Path, check_only: bool) -> Result<Outcome, String> {
+/// renders this as colored text or JSON; [`run`] is the plain-text-always
+/// convenience wrapper over it. `seeds` carries the git-derived values a
+/// missing timestamp or owner is filled with.
+pub fn outcome(
+    store: &dyn DocStore,
+    target: &Path,
+    check_only: bool,
+    seeds: &Seeds,
+) -> Result<Outcome, String> {
     let Some(paths) = resolve_targets(store, target) else {
         return Err(format!("bundle root not found: {}", target.display()));
     };
     if check_only {
-        return Ok(Outcome::Pending(pending_records(store, &paths)));
+        return Ok(Outcome::Pending(pending_records(store, &paths, seeds)));
     }
-    Ok(Outcome::Rewritten(canonicalize_bundle(store, &paths)))
+    Ok(Outcome::Rewritten(canonicalize_bundle(
+        store, &paths, seeds,
+    )))
 }
 
 /// Resolves `target` to the record paths `fmt` should consider: a single
@@ -83,22 +99,22 @@ fn resolve_targets(store: &dyn DocStore, target: &Path) -> Option<Vec<PathBuf>> 
 }
 
 /// Returns which of `paths` are non-canonical, without writing any of them.
-fn pending_records(store: &dyn DocStore, paths: &[PathBuf]) -> Vec<PathBuf> {
+fn pending_records(store: &dyn DocStore, paths: &[PathBuf], seeds: &Seeds) -> Vec<PathBuf> {
     paths
         .iter()
         .filter(|path| !is_reserved_file(path))
-        .filter(|path| record_is_pending(store, path))
+        .filter(|path| canonical_form_if_pending(store, path, seeds).is_some())
         .cloned()
         .collect()
 }
 
 /// Canonicalizes every non-reserved record in `all_md`, returning the paths
 /// actually rewritten.
-fn canonicalize_bundle(store: &dyn DocStore, all_md: &[PathBuf]) -> Vec<PathBuf> {
+fn canonicalize_bundle(store: &dyn DocStore, all_md: &[PathBuf], seeds: &Seeds) -> Vec<PathBuf> {
     all_md
         .iter()
         .filter(|path| !is_reserved_file(path))
-        .filter(|path| canonicalize_record(store, path))
+        .filter(|path| canonicalize_record(store, path, seeds))
         .cloned()
         .collect()
 }
@@ -115,31 +131,31 @@ fn is_reserved_file(path: &Path) -> bool {
 /// Rewrites `path` to its canonical form when it already carries a
 /// frontmatter block whose canonical re-serialization differs byte for
 /// byte from its current contents. Returns whether a write happened.
-fn canonicalize_record(store: &dyn DocStore, path: &Path) -> bool {
-    let Some(canonical) = canonical_form_if_pending(store, path) else {
+fn canonicalize_record(store: &dyn DocStore, path: &Path, seeds: &Seeds) -> bool {
+    let Some(canonical) = canonical_form_if_pending(store, path, seeds) else {
         return false;
     };
     store.write(path, &canonical).is_ok()
 }
 
-/// Returns whether `path` carries a frontmatter block whose canonical
-/// re-serialization differs from its current contents, without writing it.
-fn record_is_pending(store: &dyn DocStore, path: &Path) -> bool {
-    canonical_form_if_pending(store, path).is_some()
-}
-
-/// Reads `path` and returns its canonical re-serialization when that
-/// differs from the current contents. Returns `None` when `path` cannot be
-/// read, carries no frontmatter, or is already canonical.
-fn canonical_form_if_pending(store: &dyn DocStore, path: &Path) -> Option<String> {
+/// Reads `path` and returns its repaired canonical re-serialization when
+/// that differs from the current contents. Returns `None` when `path`
+/// cannot be read, carries no frontmatter, or is already canonical.
+fn canonical_form_if_pending(store: &dyn DocStore, path: &Path, seeds: &Seeds) -> Option<String> {
     let contents = store.read(path).ok()?;
     if !has_frontmatter(&contents) {
         return None;
     }
     let normalized = callout::normalize_frontmatter_gap(&contents);
+    let number = number_prefix(path).ok();
+    let heading =
+        (!is_retired_record(&normalized)).then_some(repair::HeadingKey(number.as_deref()));
+    let keep_title = frontmatter_scalar(&normalized, "title").is_some_and(|t| !t.trim().is_empty());
     let mut record = extract_record(path, &normalized);
     record.body = reconciled_body(store, path, &record);
+    let titled = repair::seed_fields(&mut record, path, heading, keep_title, seeds);
     let canonical = to_canonical_markdown(&record);
+    let canonical = repair::align_heading(canonical, heading.filter(|_| titled), &record.title);
     if canonical == contents {
         None
     } else {
@@ -163,5 +179,7 @@ fn has_frontmatter(contents: &str) -> bool {
     contents.lines().next() == Some("---")
 }
 
+#[cfg(test)]
+mod heading_tests;
 #[cfg(test)]
 mod tests;

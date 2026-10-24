@@ -3,14 +3,13 @@
 //! Covers the mechanical invariants: OKF frontmatter/type, index-format,
 //! directory-index membership, bundle-root reachability, supersede-chain
 //! integrity, local link/image validity via `pulldown-cmark`, unfilled
-//! placeholders, and ```mermaid``` fence validation (ADR 0013). Record
-//! liveness (ADR 0049, `stale-proposed` only) is advisory.
+//! placeholders, and ```mermaid``` fence validation. Record liveness
+//! (`stale-proposed` only) is advisory.
 //!
 //! Every record's content (`records`, `links`) is read through
 //! `DocStore::read`, so `check` validates whichever backend `compile` is
-//! given. `index.md`/`log.md` are excluded from the record domain by design
-//! (never synced to `db-store`); `check::graph` reads them straight from
-//! disk.
+//! given. `index.md`/`log.md` are excluded from the record domain by design;
+//! `check::graph` reads them straight from disk.
 
 mod callout;
 pub(crate) mod canonical;
@@ -34,18 +33,19 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 pub use mermaid::{MermaidError, MermaidReport};
+pub(crate) use records::is_retired_record;
 
 /// `check --mermaid-only [paths...]` — validates ONLY the mermaid fences
 /// under `paths`, skipping every other invariant, without printing or
 /// choosing an exit code, so the CLI front can render it as colored text or
-/// JSON (ADR 0060). See `mermaid::compile`.
+/// JSON. See `mermaid::compile`.
 pub fn compile_mermaid_only(paths: &[PathBuf]) -> MermaidReport {
     mermaid::compile(paths)
 }
 
 /// Compiles `check`'s full report — every invariant plus the placeholder
 /// pass — without printing or choosing an exit code, so the CLI front can
-/// render it as colored text or JSON (ADR 0060). `None` when `bundle` is not
+/// render it as colored text or JSON. `None` when `bundle` is not
 /// a directory (the CLI front turns that into its own usage error).
 pub fn compile(store: &dyn DocStore, bundle: &Path, require_owner: bool) -> Option<Report> {
     if !bundle.is_dir() {
@@ -180,7 +180,7 @@ pub struct Advisory {
     pub message: String,
 }
 
-/// `check`'s full report (ADR 0060): every invariant's violations and
+/// `check`'s full report: every invariant's violations and
 /// advisories, the bundle enumerated and its doc count, and `ok` (no
 /// violations) precomputed so a renderer never has to re-derive it.
 #[derive(Debug, Serialize)]
@@ -194,11 +194,11 @@ pub struct Report {
 
 impl Report {
     /// The same report with every finding not anchored to one of `paths`
-    /// dropped, and `ok` recomputed from what remains (ADR 0062). Every
-    /// invariant still ran over the whole bundle — this narrows what is
-    /// reported, never what was computed — so a brownfield bundle can gate a
-    /// commit on the records it touched while legacy debt elsewhere is paid
-    /// down. An empty `paths` narrows to nothing and reports nothing.
+    /// dropped, and `ok` recomputed from what remains. Every invariant still
+    /// ran over the whole bundle — this narrows what is reported, never what
+    /// was computed — so a brownfield bundle can gate a commit on the records
+    /// it touched while legacy debt elsewhere is paid down. An empty `paths`
+    /// narrows to nothing and reports nothing.
     #[must_use]
     pub fn scoped_to(self, paths: &[PathBuf]) -> Self {
         let scope: Vec<String> = paths
@@ -226,8 +226,8 @@ impl Report {
 /// Whether `file` names the same record as one of `scope`. The two come from
 /// different hands — the report's paths are the store's enumeration, the
 /// scope's are whatever git or the caller printed — so one is allowed to be
-/// the other's suffix: `docs/adr/0001-x.md` matches an absolute
-/// `/repo/docs/adr/0001-x.md` and vice versa.
+/// the other's suffix: `a/b/0001-x.md` matches an absolute
+/// `/repo/a/b/0001-x.md` and vice versa.
 fn anchors_in(file: &str, scope: &[String]) -> bool {
     scope.iter().any(|candidate| {
         file == candidate

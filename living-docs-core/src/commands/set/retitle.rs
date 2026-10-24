@@ -1,4 +1,4 @@
-//! The `title` key of `set` (ADR 0061): one transaction over the frontmatter
+//! The `title` key of `set`: one transaction over the frontmatter
 //! `title`, the record's heading line, its filename, and every in-bundle
 //! reference to the old filename. A record whose status is terminal for its
 //! type, or `Superseded`, is refused — its title is history.
@@ -85,7 +85,7 @@ fn target_path(spec: &DocTypeSpec, path: &Path, title: &str) -> Result<Option<Pa
     Ok((target.as_path() != path).then_some(target))
 }
 
-fn number_prefix(path: &Path) -> Result<String, String> {
+pub(crate) fn number_prefix(path: &Path) -> Result<String, String> {
     let name = path
         .file_name()
         .and_then(|name| name.to_str())
@@ -123,32 +123,93 @@ fn rewrite_heading(store: &dyn DocStore, path: &Path, title: &str) -> Result<(),
 }
 
 /// The record's heading line rewritten to `title`, or `None` when the body
-/// carries no heading. Pure: every caller reads and writes around it.
+/// carries no heading. Every other byte, line endings included, is kept.
+/// Pure: every caller reads and writes around it.
 pub(crate) fn replace_heading(contents: &str, title: &str) -> Option<String> {
-    let mut lines: Vec<String> = contents.lines().map(str::to_owned).collect();
-    let index = heading_index(&lines)?;
-    let heading = &lines[index];
+    let lines = split_lines(contents);
+    let index = heading_index(&lines, |_| true)?;
+    Some(retitle_line(lines, index, title))
+}
+
+/// [`replace_heading`] restricted to the record's own title heading, as
+/// [`title_heading_index`] finds it. `None` when the body has none, so a
+/// section heading is never renamed. A heading without a number prefix gets
+/// only its text replaced; no number is added.
+pub(crate) fn replace_title_heading(
+    contents: &str,
+    number: Option<&str>,
+    title: &str,
+) -> Option<String> {
+    let lines = split_lines(contents);
+    let index = title_heading_index(&lines, number)?;
+    Some(retitle_line(lines, index, title))
+}
+
+/// The record's own title heading: the first heading outside a fenced block
+/// opening with `number`, else the first exact level-1 heading without a
+/// number, else none.
+fn title_heading_index(lines: &[String], number: Option<&str>) -> Option<usize> {
+    number
+        .and_then(|number| heading_index(lines, |line| heading_number(line) == Some(number)))
+        .or_else(|| {
+            heading_index(lines, |line| {
+                line.starts_with("# ") && heading_number(line).is_none()
+            })
+        })
+}
+
+fn retitle_line(mut lines: Vec<String>, index: usize, title: &str) -> String {
+    let heading = lines[index].trim_end_matches(['\r', '\n']);
+    let ending = &lines[index][heading.len()..];
     let hashes = heading
         .chars()
         .take_while(|c| *c == '#')
         .collect::<String>();
     lines[index] = match heading_number(heading) {
-        Some(number) => format!("{hashes} {number}. {title}"),
-        None => format!("{hashes} {title}"),
+        Some(number) => format!("{hashes} {number}. {title}{ending}"),
+        None => format!("{hashes} {title}{ending}"),
     };
-    Some(format!("{}\n", lines.join("\n")))
+    lines.concat()
 }
 
-fn heading_index(lines: &[String]) -> Option<usize> {
-    let body_start = match lines.first().map(String::as_str) {
-        Some("---") => lines.iter().skip(1).position(|line| line == "---")? + 2,
+/// The text of the record's own title heading, as [`replace_title_heading`]
+/// finds it, without its `#` marks and `NNNN.` prefix.
+pub(crate) fn title_heading_text(contents: &str, number: Option<&str>) -> Option<String> {
+    let lines = split_lines(contents);
+    let index = title_heading_index(&lines, number)?;
+    Some(text_of(lines[index].trim_end()))
+}
+
+fn text_of(heading: &str) -> String {
+    let rest = heading.trim_start_matches('#').trim_start();
+    let text = match heading_number(heading) {
+        Some(_) => rest.split_once('.').map_or(rest, |(_, text)| text),
+        None => rest,
+    };
+    text.trim().to_owned()
+}
+
+fn split_lines(contents: &str) -> Vec<String> {
+    contents.split_inclusive('\n').map(str::to_owned).collect()
+}
+
+/// The index of the first heading line below the frontmatter that `accepts`,
+/// skipping fenced code blocks.
+fn heading_index(lines: &[String], accepts: impl Fn(&str) -> bool) -> Option<usize> {
+    let body_start = match lines.first().map(|line| line.trim_end()) {
+        Some("---") => lines.iter().skip(1).position(|l| l.trim_end() == "---")? + 2,
         _ => 0,
     };
-    lines
-        .iter()
-        .skip(body_start)
-        .position(|line| line.starts_with('#'))
-        .map(|offset| offset + body_start)
+    let mut fenced = false;
+    for (index, line) in lines.iter().enumerate().skip(body_start) {
+        let trimmed = line.trim_start();
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            fenced = !fenced;
+        } else if !fenced && line.starts_with('#') && accepts(line) {
+            return Some(index);
+        }
+    }
+    None
 }
 
 /// The `NNNN` a numbered record's heading opens with, as written — `# 0061.
