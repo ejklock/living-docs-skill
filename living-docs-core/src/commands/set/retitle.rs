@@ -9,6 +9,7 @@ use crate::doc_type::{DocTypeSpec, Identity};
 use crate::paths::slugify;
 use crate::record::{extract_record, format_scalar};
 use crate::store::DocStore;
+use references::rewrite_references;
 use std::path::{Path, PathBuf};
 
 /// What a retitle did: where the record now lives, and which other bundle
@@ -220,40 +221,7 @@ fn heading_number(heading: &str) -> Option<&str> {
     (number.len() == 4 && number.chars().all(|c| c.is_ascii_digit())).then_some(number)
 }
 
-/// Rewrites every other bundle record that names the old filename, so no
-/// link is broken by the rename. The old basename is unique within the
-/// bundle, which makes the substitution deterministic and reaches prose that
-/// names the file as well as markdown link destinations.
-fn rewrite_references(
-    store: &dyn DocStore,
-    docs_dir: &Path,
-    old_path: &Path,
-    new_path: &Path,
-) -> Result<Vec<PathBuf>, String> {
-    let (Some(old_name), Some(new_name)) = (file_name(old_path), file_name(new_path)) else {
-        return Ok(Vec::new());
-    };
-    let mut rewritten = Vec::new();
-    for path in store.list(docs_dir).map_err(|e| e.to_string())? {
-        if path == new_path {
-            continue;
-        }
-        let contents = store.read(&path).map_err(|e| e.to_string())?;
-        if !contents.contains(&old_name) {
-            continue;
-        }
-        let updated = contents.replace(&old_name, &new_name);
-        store.write(&path, &updated).map_err(|e| e.to_string())?;
-        rewritten.push(path);
-    }
-    Ok(rewritten)
-}
-
-fn file_name(path: &Path) -> Option<String> {
-    path.file_name()
-        .and_then(|name| name.to_str())
-        .map(str::to_owned)
-}
+mod references;
 
 #[cfg(test)]
 mod tests;

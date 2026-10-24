@@ -1,7 +1,8 @@
 use crate::callout;
 use crate::commands::index::{refresh_for_records, Indexed};
-use crate::commands::supersede::{find_record, set_frontmatter_fields_expecting};
-use crate::doc_type::{self, DocTypeSpec};
+use crate::commands::reference::find_settable_record;
+use crate::commands::supersede::set_frontmatter_fields_expecting;
+use crate::doc_type::{self, DocTypeSpec, Identity};
 use crate::line_ending::{refuse_mixed, LineEndingStore};
 use crate::record::{extract_record, format_scalar, TailValue};
 use crate::sections;
@@ -44,12 +45,17 @@ pub fn run(
     }
 }
 
+/// A reference is a bare `NNNN`, a `TYPE/NNNN`, or — for the types with no
+/// number — `view/<slug>`, `architecture/<slug>` or `constitution`
+/// ([`find_settable_record`]); those take `description` and `title` only, and
+/// `status` and `owner` are refused ([`refuse_uncarried`]).
+///
 /// Sets one CLI-owned frontmatter field on a record: `status`, `description`,
 /// `owner`, `title`, or — on an issue only — `tracker`, `labels`,
 /// `blocked_by` ([`issue_keys`]: `tracker` is one scalar, the other two take
 /// a comma-separated value written as a flow list). Record resolution
-/// ([`find_record`], accepting a bare `NNNN` or a type-qualified `TYPE/NNNN`
-/// reference) and the frontmatter
+/// ([`find_settable_record`], which extends `find_record`'s bare `NNNN` and
+/// type-qualified `TYPE/NNNN` references) and the frontmatter
 /// write ([`set_frontmatter_fields_expecting`]) are shared with `supersede`. Only
 /// `status` carries a vocabulary constraint (validated against the record's
 /// own type, `Superseded` reserved for `supersede`); `description`/`owner`
@@ -67,7 +73,10 @@ pub fn apply(
     key: &str,
     value: &str,
 ) -> Result<Applied, String> {
-    let path = find_record(store, docs_dir, reference)?;
+    let (path, named) = find_settable_record(store, docs_dir, reference)?;
+    if let Some(spec) = named {
+        refuse_uncarried(spec, key)?;
+    }
     refuse_mixed(store, &path)?;
     let store: &dyn DocStore = &LineEndingStore::new(store, false);
     if key == "title" {
@@ -86,6 +95,20 @@ pub fn apply(
     let expected: Vec<(&str, TailValue)> = value.map(|v| (field.0, v)).into_iter().collect();
     set_frontmatter_fields_expecting(store, &path, &[field], &expected)?;
     settle_in_place(store, docs_dir, path)
+}
+
+/// Refuses `status` and `owner` on a type whose registry entry does not carry
+/// them: an architecture view and the constitution have no owner, and no
+/// status the CLI may set.
+fn refuse_uncarried(spec: &DocTypeSpec, key: &str) -> Result<(), String> {
+    let carries_owner = matches!(spec.identity, Identity::Numbered { .. });
+    match key {
+        "status" if spec.status_vocabulary.is_empty() => {
+            Err(format!("{} records carry no status", spec.frontmatter))
+        }
+        "owner" if !carries_owner => Err(format!("{} records carry no owner", spec.frontmatter)),
+        _ => Ok(()),
+    }
 }
 
 /// Finishes a write that kept the record where it was: reconciles the
@@ -121,7 +144,7 @@ pub fn apply_section(
     if heading.trim().is_empty() || heading.contains('\n') {
         return Err("a section heading is one non-empty line of text".to_string());
     }
-    let path = find_record(store, docs_dir, reference)?;
+    let (path, _) = find_settable_record(store, docs_dir, reference)?;
     refuse_mixed(store, &path)?;
     let store: &dyn DocStore = &LineEndingStore::new(store, false);
     let contents = store.read(&path).map_err(|e| e.to_string())?;
