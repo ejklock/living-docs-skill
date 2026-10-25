@@ -136,29 +136,22 @@ fn refuse_collision(store: &dyn DocStore, docs_dir: &Path, target: &Path) -> Res
     Ok(())
 }
 
-/// Rewrites the record's own heading line to the new title, keeping the
-/// heading level and the `NNNN.` number prefix the template writes.
+/// Rewrites the record's own title heading to the new title, keeping the
+/// heading level and the `NNNN.` number prefix the template writes. A record
+/// with no title heading keeps its body as written.
 fn rewrite_heading(store: &dyn DocStore, path: &Path, title: &str) -> Result<(), String> {
     let contents = store.read(path).map_err(|e| e.to_string())?;
-    let Some(updated) = replace_heading(&contents, title) else {
+    let number = number_prefix(path).ok();
+    let Some(updated) = replace_title_heading(&contents, number.as_deref(), title) else {
         return Ok(());
     };
     store.write(path, &updated).map_err(|e| e.to_string())
 }
 
-/// The record's heading line rewritten to `title`, or `None` when the body
-/// carries no heading. Every other byte, line endings included, is kept.
-/// Pure: every caller reads and writes around it.
-pub(crate) fn replace_heading(contents: &str, title: &str) -> Option<String> {
-    let lines = split_lines(contents);
-    let index = heading_index(&lines, |_| true)?;
-    Some(retitle_line(lines, index, title))
-}
-
-/// [`replace_heading`] restricted to the record's own title heading, as
-/// [`title_heading_index`] finds it. `None` when the body has none, so a
-/// section heading is never renamed. A heading without a number prefix gets
-/// only its text replaced; no number is added.
+/// The record's own title heading, as [`title_heading_index`] finds it,
+/// rewritten to `title`, every other byte kept, line endings included. `None`
+/// when the body has none, so a section heading is never renamed. A heading
+/// without a number prefix gets only its text replaced; no number is added.
 pub(crate) fn replace_title_heading(
     contents: &str,
     number: Option<&str>,

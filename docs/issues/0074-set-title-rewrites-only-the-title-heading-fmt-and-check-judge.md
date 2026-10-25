@@ -2,7 +2,7 @@
 type: Issue
 title: set title rewrites only the title heading fmt and check judge
 description: set title renames a section heading when the record has no numbered title heading
-status: open
+status: closed
 timestamp: 2026-10-24T13:01:43Z
 ---
 
@@ -24,3 +24,7 @@ Found by the review of the fmt repair work (2026-10-24): `living-docs set <ref> 
 ### Plan
 
 1. Core: `set title` uses the shared title-heading lookup, tests red first.
+
+### Outcome
+
+`set title` now rewrites only the record's own title heading, found by `replace_title_heading` (living-docs-core/src/commands/set/retitle.rs): the heading numbered like the file, else an unnumbered level-1 heading. A section heading is never renamed, and a heading without a number prefix keeps having none. Tests: living-docs-core/src/commands/set/retitle/tests.rs and fmt/heading_tests.rs; suite 1119/0 at integration, review approved. A possible edge case of the unnumbered fallback is tracked in issue 0093.

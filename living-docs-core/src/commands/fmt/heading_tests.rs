@@ -1,21 +1,21 @@
-use crate::commands::set::retitle::{replace_heading, replace_title_heading, title_heading_text};
+use crate::commands::set::retitle::{replace_title_heading, title_heading_text};
 
 const FRONT: &str = "---\ntype: ADR\ntitle: Hand\n---\n\n";
 
 #[test]
-fn replace_heading_keeps_a_crlf_line_ending() {
+fn replace_title_heading_keeps_a_crlf_line_ending() {
     let record = format!("{FRONT}# 0003. Other\r\nBody.\r\n");
 
-    let updated = replace_heading(&record, "Hand").unwrap();
+    let updated = replace_title_heading(&record, Some("0003"), "Hand").unwrap();
 
     assert_eq!(updated, format!("{FRONT}# 0003. Hand\r\nBody.\r\n"));
 }
 
 #[test]
-fn replace_heading_keeps_a_missing_final_newline() {
+fn replace_title_heading_keeps_a_missing_final_newline() {
     let record = format!("{FRONT}# 0003. Other");
 
-    let updated = replace_heading(&record, "Hand").unwrap();
+    let updated = replace_title_heading(&record, Some("0003"), "Hand").unwrap();
 
     assert_eq!(updated, format!("{FRONT}# 0003. Hand"));
 }

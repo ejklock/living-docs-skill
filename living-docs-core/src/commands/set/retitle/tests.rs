@@ -165,3 +165,70 @@ fn retitle_of_a_singleton_rewrites_the_record_without_renaming_it() {
     );
     assert!(contents.contains("# Product Constitution\n"), "{contents}");
 }
+
+const FRONT: &str =
+    "---\ntype: ADR\ntitle: Old\ndescription: A decision.\nstatus: Proposed\n---\n\n";
+const OLD_PATH: &str = "/bundle/adr/0003-old.md";
+const NEW_PATH: &str = "/bundle/adr/0003-t.md";
+
+fn retitle_to_t(body: &str) -> String {
+    let store = MapStore::seeded(&[(OLD_PATH, &format!("{FRONT}{body}"))]);
+    apply(&store, bundle(), Path::new(OLD_PATH), "T").expect("proposed");
+    let contents = store.contents(NEW_PATH);
+    assert!(contents.contains("title: T\n"), "{contents}");
+    contents
+        .split_once("---\n\n")
+        .map(|(_, rest)| rest.to_owned())
+        .expect("frontmatter")
+}
+
+#[test]
+fn retitle_leaves_the_body_untouched_when_there_is_no_title_heading() {
+    let body = "## Context\n\nWhy.\n";
+    assert_eq!(retitle_to_t(body), body);
+}
+
+#[test]
+fn retitle_skips_a_fenced_heading_that_carries_the_number() {
+    assert_eq!(
+        retitle_to_t("```\n# 0003. Fake\n```\n\n# 0003. Old\n"),
+        "```\n# 0003. Fake\n```\n\n# 0003. T\n"
+    );
+}
+
+#[test]
+fn retitle_renames_only_the_title_heading_above_a_section() {
+    assert_eq!(
+        retitle_to_t("# 0003. Old\n\n## Context\n"),
+        "# 0003. T\n\n## Context\n"
+    );
+}
+
+#[test]
+fn retitle_renames_an_unnumbered_level_one_heading_of_a_numbered_record() {
+    assert_eq!(retitle_to_t("## Context\n\n# Old\n"), "## Context\n\n# T\n");
+}
+
+#[test]
+fn retitle_of_a_singleton_renames_its_level_one_heading_only() {
+    let constitution = "---\ntype: Constitution\ntitle: Old\n---\n\n## Principles\n\n# Old\n";
+    let store = MapStore::seeded(&[("/bundle/constitution.md", constitution)]);
+
+    apply(&store, bundle(), Path::new("/bundle/constitution.md"), "T").expect("singleton");
+
+    let contents = store.contents("/bundle/constitution.md");
+    assert!(contents.ends_with("## Principles\n\n# T\n"), "{contents}");
+}
+
+#[test]
+fn retitle_keeps_crlf_on_the_rewritten_heading() {
+    let record = format!("{FRONT}# 0003. Old\r\nBody.\r\n");
+    let store = MapStore::seeded(&[(OLD_PATH, &record)]);
+
+    rewrite_heading(&store, Path::new(OLD_PATH), "T").expect("heading");
+
+    assert_eq!(
+        store.contents(OLD_PATH),
+        format!("{FRONT}# 0003. T\r\nBody.\r\n")
+    );
+}
