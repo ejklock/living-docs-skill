@@ -25,6 +25,7 @@ mod records;
 mod report;
 mod sections;
 mod size;
+mod supersede_links;
 
 use crate::doc_type::{self, Identity};
 use crate::line_ending::LineEndingStore;
@@ -82,6 +83,7 @@ fn run_all_checks(
     index_drift::check_index_drift(raw, bundle, reporter);
     links::check_links(store, bundle, &all_md, reporter);
     records::check_supersede_chain(store, &all_md, reporter);
+    supersede_links::check_supersede_links(store, bundle, &all_md, reporter);
     duplicate_numbers::check_duplicate_numbers(bundle, &all_md, reporter);
     callout::check_callouts(store, &all_md, reporter);
     moved_source::check_moved_source(store, bundle, &all_md, reporter);

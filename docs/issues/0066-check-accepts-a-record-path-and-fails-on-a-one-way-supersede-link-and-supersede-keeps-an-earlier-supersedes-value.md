@@ -2,7 +2,7 @@
 type: Issue
 title: check accepts a record path and fails on a one-way supersede link, and supersede keeps an earlier supersedes value
 description: check given a record path checks the enclosing bundle scoped to that record; a supersedes or superseded_by link not answered by the other record is a violation; supersede appends to an existing supersedes value instead of replacing it
-status: open
+status: closed
 timestamp: 2026-10-24T10:17:29Z
 ---
 
@@ -33,3 +33,7 @@ Found by the usage audit: agents pass a record file to `check` and get "bundle r
 1. Core: the one-way link check; tests red first.
 2. Core: `supersede` keeping an earlier value.
 3. CLI: a record path on `check`; tests through the binary.
+
+### Outcome
+
+All three parts are in. `check <record.md>` scopes the gate to that record. `supersede` keeps an earlier `supersedes` value (commit 89cad36). `check` now fails on a one-way link: living-docs-core/src/check/supersede_links.rs pairs records by type and number and reports a `supersedes` or `superseded_by` entry the other record does not answer, naming both records. Tests: cli/tests/check_supersede_links.rs (10 cases). cli/tests/check_core.rs had a fixture with an unanswered `superseded_by`; it is now two-way. Review approved. Test gaps it found are tracked in issue 0094, and a mixed `supersedes` list is tracked in issue 0095.

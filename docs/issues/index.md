@@ -9,7 +9,6 @@ one slice per fresh context, starting from the skeleton.
 
 * [0063 — Implement duplicate-number detection and set number, and renumber this repository's open duplicates](0063-implement-duplicate-number-detection-and-set-number-and-renumber-this-repository-s-open-duplicates.md) - open
 * [0064 — Implement union merge of type indexes and the index-drift violation](0064-implement-union-merge-of-type-indexes-and-the-index-drift-violation.md) - open
-* [0066 — check accepts a record path and fails on a one-way supersede link, and supersede keeps an earlier supersedes value](0066-check-accepts-a-record-path-and-fails-on-a-one-way-supersede-link-and-supersede-keeps-an-earlier-supersedes-value.md) - open
 * [0070 — Teach the TYPE/NNNN reference where agents split it: the set usage error and the session hook line](0070-teach-the-type-nnnn-reference-where-agents-split-it-the-set-usage-error-and-the-session-hook-line.md) - open
 * [0073 — A record with no title gets one without its number and never from fenced text](0073-a-record-with-no-title-gets-one-without-its-number-and-never-from-fenced-text.md) - open
 * [0075 — index reads a CRLF record's title and status](0075-index-reads-a-crlf-record-s-title-and-status.md) - open
@@ -96,6 +95,7 @@ one slice per fresh context, starting from the skeleton.
 * [0061 — npm package living-docs wraps the release binary and the release workflow publishes it](0061-npm-package-living-docs-wraps-the-release-binary-and-the-release-workflow-publishes-it.md) - closed
 * [0062 — The help documents every argument, vocabulary and reference form, and prints minified JSON off a TTY](0062-the-help-documents-every-argument-vocabulary-and-reference-form-and-prints-minified-json-off-a-tty.md) - closed
 * [0065 — Implement fmt's repair of timestamp, owner and title heading](0065-implement-fmt-s-repair-of-timestamp-owner-and-title-heading.md) - closed
+* [0066 — check accepts a record path and fails on a one-way supersede link, and supersede keeps an earlier supersedes value](0066-check-accepts-a-record-path-and-fails-on-a-one-way-supersede-link-and-supersede-keeps-an-earlier-supersedes-value.md) - closed
 * [0067 — A fresh bundle passes check from its first record: the bundle-root index is written and new constitution uses its own vocabulary and title](0067-a-fresh-bundle-passes-check-from-its-first-record-the-bundle-root-index-is-written-and-new-constitution-uses-its-own-vocabulary-and-title.md) - closed
 * [0068 — Remove the glossary and architecture-index templates and the code-comment-hygiene rule from the embedded corpus](0068-remove-the-glossary-and-architecture-index-templates-and-the-code-comment-hygiene-rule-from-the-embedded-corpus.md) - closed
 * [0069 — Remove the effective and skill aliases and the guide --topic alias that ADR 0060 kept for one release](0069-remove-the-effective-and-skill-aliases-and-the-guide-topic-alias-that-adr-0060-kept-for-one-release.md) - closed
