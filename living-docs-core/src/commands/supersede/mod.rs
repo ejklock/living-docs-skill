@@ -3,7 +3,9 @@ use crate::commands::index::{refresh_for_records, Indexed};
 use crate::commands::reference::resolve_reference;
 use crate::frontmatter::frontmatter_block;
 use crate::line_ending::{refuse_mixed, LineEndingStore};
-use crate::record::{extract_record, to_canonical_markdown, ExtractedRecord, TailValue};
+use crate::record::{
+    extract_record, format_flow_list, format_scalar, to_canonical_markdown, TailValue,
+};
 use crate::store::DocStore;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -67,7 +69,7 @@ pub fn supersede(
     let new_draft = draft_frontmatter_fields(
         store,
         &new_path,
-        &[("supersedes", format!("{old_number:04}"))],
+        &[("supersedes", supersedes_with(store, &new_path, old_number)?)],
         &[],
     )?;
     store
@@ -83,6 +85,32 @@ pub fn supersede(
         old: old_path,
         new: new_path,
         indexed,
+    })
+}
+
+/// The `supersedes` value to write on the replacing record at `path`: the
+/// records it already replaces plus `old_number`, rendered as a scalar for
+/// one entry and a flow list for several. An `old_number` already listed adds
+/// nothing, so repeating a supersede rewrites the same value.
+fn supersedes_with(store: &dyn DocStore, path: &Path, old_number: u32) -> Result<String, String> {
+    let contents = store.read(path).map_err(|e| e.to_string())?;
+    let record = extract_record(path, &contents);
+    if guard::has_untyped_supersedes(&record) {
+        return Err(format!(
+            "{}: 'supersedes' holds an entry that is not a record number; edit the file by hand",
+            path.display()
+        ));
+    }
+    let mut listed = record.supersedes.unwrap_or_default();
+    let already = listed
+        .iter()
+        .any(|entry| entry.trim().parse::<u32>().ok() == Some(old_number));
+    if !already {
+        listed.push(format!("{old_number:04}"));
+    }
+    Ok(match listed.as_slice() {
+        [only] => format_scalar(only),
+        many => format_flow_list(many),
     })
 }
 
@@ -146,93 +174,10 @@ fn draft_frontmatter_fields(
             written.join("', '")
         ));
     }
-    canonicalize_frontmatter(path, &updated).ok_or_else(missing)
-}
-
-/// The first key whose drafted value does not read back as intended.
-fn unread_key(
-    path: &Path,
-    before: &str,
-    draft: &str,
-    fields: &[(&str, String)],
-    expected: &[(&str, TailValue)],
-) -> Option<String> {
-    let (old, new) = (extract_record(path, before), extract_record(path, draft));
-    let written = |key: &str| fields.iter().any(|(k, _)| *k == key);
-    let unwritten_changed = frontmatter_keys(&old)
-        .into_iter()
-        .chain(frontmatter_keys(&new))
-        .filter(|key| !written(key))
-        .find(|key| key_value(&old, key) != key_value(&new, key));
-    unwritten_changed
-        .or_else(|| written_misread(path, &new, fields))
-        .or_else(|| expected_misread(&new, expected))
-        .or_else(|| body_changed(&old.body, &new.body).then(|| "body".to_string()))
-}
-
-/// Whether the draft's body differs from the original's by more than the
-/// trailing newline the canonical pass appends to a record without one.
-fn body_changed(old: &str, new: &str) -> bool {
-    old != new && (old.ends_with('\n') || new.strip_suffix('\n') != Some(old))
-}
-
-/// A written key whose drafted value differs from its rendered line read alone.
-fn written_misread(
-    path: &Path,
-    draft: &ExtractedRecord,
-    fields: &[(&str, String)],
-) -> Option<String> {
-    fields.iter().find_map(|(key, rendered)| {
-        let alone = extract_record(path, &format!("---\n{key}: {rendered}\n---\n"));
-        (key_value(draft, key) != key_value(&alone, key)).then(|| key.to_string())
-    })
-}
-
-fn expected_misread(draft: &ExtractedRecord, expected: &[(&str, TailValue)]) -> Option<String> {
-    expected
-        .iter()
-        .find(|(key, value)| key_value(draft, key).as_ref() != Some(value))
-        .map(|(key, _)| key.to_string())
-}
-
-const TYPED_KEYS: [&str; 8] = [
-    "type",
-    "title",
-    "description",
-    "owner",
-    "status",
-    "supersedes",
-    "superseded_by",
-    "tags",
-];
-
-fn frontmatter_keys(record: &ExtractedRecord) -> Vec<String> {
-    let tail = record.frontmatter_tail.iter().map(|(key, _)| key.clone());
-    TYPED_KEYS
-        .iter()
-        .map(|key| key.to_string())
-        .chain(tail)
-        .collect()
-}
-
-/// The parsed value `record` holds for `key`, typed column or tail entry.
-fn key_value(record: &ExtractedRecord, key: &str) -> Option<TailValue> {
-    let scalar = |value: &str| Some(TailValue::Scalar(value.to_string()));
-    let optional = |value: &Option<String>| value.as_deref().and_then(scalar);
-    match key {
-        "type" => scalar(&record.doc_type),
-        "title" => scalar(&record.title),
-        "description" => scalar(&record.description),
-        "owner" => optional(&record.owner),
-        "status" => optional(&record.status),
-        "supersedes" => optional(&record.supersedes),
-        "superseded_by" => optional(&record.superseded_by),
-        "tags" => Some(TailValue::Sequence(record.tags.clone())),
-        _ => record
-            .frontmatter_tail
-            .iter()
-            .find(|(k, _)| k == key)
-            .map(|(_, value)| value.clone()),
+    let canonical = canonicalize_frontmatter(path, &updated).ok_or_else(missing)?;
+    match unwritable_key(&updated, &canonical) {
+        Some(key) => Err(refusal_message(path, &key)),
+        None => Ok(canonical),
     }
 }
 
@@ -294,6 +239,10 @@ fn set_targeted_value(line: &str, prefix: &str, new_value: &str) -> String {
     }
 }
 
+pub(crate) mod guard;
+#[cfg(test)]
+use guard::body_changed;
+use guard::{refusal_message, unread_key, unwritable_key};
 #[cfg(test)]
 mod store_tests;
 #[cfg(test)]

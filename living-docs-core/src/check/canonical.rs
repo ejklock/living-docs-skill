@@ -12,6 +12,7 @@
 
 use super::records::is_reserved;
 use super::{file_name_str, is_bundle_singleton, Reporter};
+use crate::commands::supersede::guard::unwritable_key;
 use crate::frontmatter::frontmatter_block;
 use crate::paths::doc_type_for_dir;
 use crate::record::{extract_record, to_canonical_markdown};
@@ -20,6 +21,8 @@ use std::path::{Path, PathBuf};
 
 const NON_CANONICAL_MESSAGE: &str =
     "non-canonical (hand-written?) frontmatter — run `living-docs fmt` or author via the CLI verbs";
+
+const UNWRITABLE_MESSAGE: &str = "'{key}' cannot be written canonically; edit the file by hand";
 
 /// True when the record sits directly inside one of the CLI-owned type
 /// directories (`paths::doc_type_for_dir` — ADR 0020's scope, applied to the
@@ -60,6 +63,10 @@ pub(crate) fn check_canonical_frontmatter(
             continue;
         };
         let canonical = to_canonical_markdown(&extract_record(path, &contents));
+        if let Some(key) = unwritable_key(&contents, &canonical) {
+            reporter.report(path, UNWRITABLE_MESSAGE.replace("{key}", &key));
+            continue;
+        }
         let canonical_block = frontmatter_block(&canonical).unwrap_or_default();
         if on_disk_block != canonical_block {
             reporter.report(path, NON_CANONICAL_MESSAGE);

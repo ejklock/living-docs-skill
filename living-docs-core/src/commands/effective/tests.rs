@@ -2,6 +2,8 @@ use super::*;
 use crate::test_support::MapStore;
 use std::collections::BTreeMap;
 
+mod lineage;
+
 fn store_of(files: &[(&str, &str)]) -> MapStore {
     let mut map = BTreeMap::new();
     for (path, contents) in files {

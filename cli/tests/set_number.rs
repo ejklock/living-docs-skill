@@ -163,40 +163,61 @@ fn a_closed_record_renumbers() {
     assert!(read(&docs, "issues/0010-b.md").contains("status: closed"));
 }
 
+fn assert_link_refused(label: &str, own: &str, other: &str, field: &str) {
+    let docs = bundle("link");
+    write(&docs, OLD_PATH, &issue("0007", "b", "open", own));
+    write(
+        &docs,
+        "issues/0003-c.md",
+        &issue("0003", "c", "open", other),
+    );
+    index_bundle(&docs);
+    let before = snapshot(&docs);
+    let output = number(&docs, OLD_PATH, "next");
+    assert_eq!(output.status.code(), Some(2), "{label}");
+    assert!(
+        stderr(&output).contains(field),
+        "{label}: {}",
+        stderr(&output)
+    );
+    assert_eq!(snapshot(&docs), before, "{label}");
+}
+
 #[test]
 fn a_record_in_a_supersede_link_is_refused_naming_the_link() {
     let own = [
-        ("supersedes: 0003\n", "own supersedes"),
-        ("superseded_by: 0003\n", "own superseded_by"),
+        "supersedes: 0003\n",
+        "supersedes: [0003, 0005]\n",
+        "superseded_by: 0003\n",
     ];
-    for (line, label) in own {
-        let docs = bundle(label);
-        write(&docs, OLD_PATH, &issue("0007", "b", "open", line));
-        index_bundle(&docs);
-        let before = snapshot(&docs);
-        let output = number(&docs, OLD_PATH, "next");
-        assert_eq!(output.status.code(), Some(2), "{label}");
-        assert!(
-            stderr(&output).contains("supersede"),
-            "{label}: {}",
-            stderr(&output)
-        );
-        assert_eq!(snapshot(&docs), before, "{label}");
+    for line in own {
+        let field = line.split(':').next().unwrap();
+        assert_link_refused(&format!("own {line}"), line, "", field);
     }
-    for field in ["supersedes", "superseded_by"] {
-        let docs = bundle(field);
-        let named = issue("0003", "c", "open", &format!("{field}: 0007\n"));
-        write(&docs, "issues/0003-c.md", &named);
-        index_bundle(&docs);
-        let before = snapshot(&docs);
-        let output = number(&docs, OLD_PATH, "next");
-        assert_eq!(output.status.code(), Some(2), "{field}");
-        assert!(
-            stderr(&output).contains(field),
-            "{field}: {}",
-            stderr(&output)
+    let named = [
+        "supersedes: 0007\n",
+        "supersedes: [0003, 0007]\n",
+        "superseded_by: 0007\n",
+    ];
+    for line in named {
+        let field = line.split(':').next().unwrap();
+        assert_link_refused(&format!("other {line}"), "", line, field);
+    }
+}
+
+#[test]
+fn an_empty_or_unrelated_supersede_list_does_not_block_a_renumbering() {
+    for (own, other) in [("supersedes: []\n", ""), ("", "supersedes: [0003, 0005]\n")] {
+        let docs = bundle(&format!("free {own}{other}"));
+        write(&docs, OLD_PATH, &issue("0007", "b", "open", own));
+        write(
+            &docs,
+            "issues/0003-c.md",
+            &issue("0003", "c", "open", other),
         );
-        assert_eq!(snapshot(&docs), before, "{field}");
+        index_bundle(&docs);
+        let output = number(&docs, OLD_PATH, "next");
+        assert!(output.status.success(), "{own}{other}: {}", stderr(&output));
     }
 }
 

@@ -238,13 +238,20 @@ fn refuse_values_the_parser_would_store_as_something_else() {
     let (docs, path) = issue_bundle("refuse-reinterpreted");
     for (key, value) in [
         ("labels", "1e3"),
-        ("tracker", "0x10"),
         ("labels", "null, a"),
         ("blocked_by", "~"),
     ] {
         let stderr = assert_refused_unchanged(&docs, &path, &["0001", key, value]);
         assert!(stderr.contains(key), "{value}: {stderr}");
     }
+}
+
+#[test]
+fn a_tracker_that_reads_as_a_number_when_plain_is_written_quoted() {
+    let (docs, path) = issue_bundle("tracker-quoted-number");
+    assert!(set(&docs, &["0001", "tracker", "0x10"]).status.success());
+    assert_eq!(lines_of(&path, "tracker"), ["tracker: \"0x10\""]);
+    assert_clean(&docs);
 }
 
 #[test]

@@ -5,6 +5,7 @@
 //! single home every CLI-writing call site (`supersede`, `set`, `fmt`)
 //! shares, so the exact wording never drifts between them.
 
+use crate::commands::supersede::guard::{refusal_message, unwritable_key};
 use crate::record::{extract_record, to_canonical_markdown};
 use crate::store::DocStore;
 use std::path::Path;
@@ -156,6 +157,9 @@ pub fn reconcile(store: &dyn DocStore, path: &Path) -> Result<bool, String> {
 
     record.body = reconciled;
     let canonical = to_canonical_markdown(&record);
+    if let Some(key) = unwritable_key(&contents, &canonical) {
+        return Err(refusal_message(path, &key));
+    }
     store
         .write(path, &canonical)
         .map_err(|error| error.to_string())?;

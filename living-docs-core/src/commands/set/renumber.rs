@@ -112,10 +112,21 @@ fn refuse_supersede_link(
 ) -> Result<(), String> {
     let own = extract_record(path, contents);
     for (field, value) in link_fields(&own) {
-        if value.is_some() {
+        if !value.is_empty() {
             return Err(own_link_error(path, field));
         }
     }
+    refuse_naming_record(store, docs_dir, path, old)
+}
+
+/// Refuses when another record of the same type names `old` in a supersede
+/// link.
+fn refuse_naming_record(
+    store: &dyn DocStore,
+    docs_dir: &Path,
+    path: &Path,
+    old: &str,
+) -> Result<(), String> {
     let dir = path
         .parent()
         .and_then(Path::file_name)
@@ -127,7 +138,10 @@ fn refuse_supersede_link(
         let text = store.read(&other).map_err(|e| e.to_string())?;
         let record = extract_record(&other, &text);
         for (field, value) in link_fields(&record) {
-            if value.is_some_and(|v| v.trim_matches(['"', '\'', ' ']) == old) {
+            if value
+                .iter()
+                .any(|v| v.trim_matches(['"', '\'', ' ']) == old)
+            {
                 return Err(format!(
                     "{} names this record in {field}; the supersede link must be renumbered by hand for now",
                     other.display()
@@ -138,10 +152,14 @@ fn refuse_supersede_link(
     Ok(())
 }
 
-fn link_fields(record: &crate::record::ExtractedRecord) -> [(&'static str, Option<&str>); 2] {
+/// Each supersede link field with every value it carries; an absent key or an
+/// empty list carries none.
+fn link_fields(record: &crate::record::ExtractedRecord) -> [(&'static str, Vec<&str>); 2] {
+    let supersedes = record.supersedes.iter().flatten().map(String::as_str);
+    let superseded_by = record.superseded_by.iter().map(String::as_str);
     [
-        ("supersedes", record.supersedes.as_deref()),
-        ("superseded_by", record.superseded_by.as_deref()),
+        ("supersedes", supersedes.collect()),
+        ("superseded_by", superseded_by.collect()),
     ]
 }
 

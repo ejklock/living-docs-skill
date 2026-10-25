@@ -200,41 +200,86 @@ fn view_of(record: &ExtractedRecord, all: &[(PathBuf, ExtractedRecord)], contrac
     }
 }
 
-/// The lineage line for a head record: `supersedes 0131 via 0133` when the
-/// chain is `0131 → 0133 → head`, or `supersedes 0133` for a single ancestor.
-/// `None` when the record supersedes nothing.
+/// The lineage line for a head record. A single chain `0131 → 0133 → head`
+/// reads `supersedes 0131 via 0133`; a lone ancestor reads `supersedes 0133`;
+/// a record replacing several lists every earliest ancestor comma-separated
+/// (`supersedes 0001, 0002`), followed by ` via` the intermediate records
+/// when there are any. `None` when the record supersedes nothing.
 fn lineage_of(record: &ExtractedRecord, all: &[(PathBuf, ExtractedRecord)]) -> Option<String> {
-    let chain = supersede_chain(record, all);
-    match chain.split_last() {
-        None => None,
-        Some((oldest, [])) => Some(format!("supersedes {oldest}")),
-        Some((oldest, middle)) => Some(format!("supersedes {oldest} via {}", middle.join(", "))),
+    let mut lineage = supersede_lineage(record, all);
+    if lineage.earliest.is_empty() {
+        lineage.earliest.extend(lineage.intermediate.pop());
     }
+    if lineage.earliest.is_empty() {
+        return None;
+    }
+    let mut line = format!("supersedes {}", lineage.earliest.join(", "));
+    if !lineage.intermediate.is_empty() {
+        line.push_str(&format!(" via {}", lineage.intermediate.join(", ")));
+    }
+    Some(line)
 }
 
+/// The ancestors of a head record, as zero-padded numbers in discovery order.
+struct Lineage {
+    /// Ancestors that replaced others in turn, direct-first.
+    intermediate: Vec<String>,
+    /// Ancestors with nothing further to follow.
+    earliest: Vec<String>,
+}
+
+type RecordsByKey<'a> = BTreeMap<(String, i32), &'a ExtractedRecord>;
+
 /// Walks `supersedes` from `record` through the full record set (superseded
-/// ancestors included), returning their zero-padded numbers direct-first. A
-/// cycle or missing link stops the walk.
-fn supersede_chain(record: &ExtractedRecord, all: &[(PathBuf, ExtractedRecord)]) -> Vec<String> {
-    let by_key: BTreeMap<(String, i32), &ExtractedRecord> = all
+/// ancestors included). A cycle or missing link stops that branch.
+fn supersede_lineage(record: &ExtractedRecord, all: &[(PathBuf, ExtractedRecord)]) -> Lineage {
+    let by_key: RecordsByKey = all
         .iter()
         .filter_map(|(_, r)| r.number.map(|n| ((r.doc_type.clone(), n), r)))
         .collect();
-    let mut chain = Vec::new();
-    let mut current = record.supersedes.clone();
-    while let Some(number) = current
-        .as_deref()
-        .and_then(|s| s.trim().parse::<i32>().ok())
-    {
-        if chain.contains(&format!("{number:04}")) {
-            break;
+    let mut lineage = Lineage {
+        intermediate: Vec::new(),
+        earliest: Vec::new(),
+    };
+    let mut seen = Vec::new();
+    walk_ancestors(record, &by_key, &mut seen, &mut lineage);
+    lineage
+}
+
+/// Visits each not-yet-seen ancestor named by `record.supersedes`, sorting it
+/// into `lineage` by whether it has unseen ancestors of its own to follow.
+fn walk_ancestors(
+    record: &ExtractedRecord,
+    by_key: &RecordsByKey,
+    seen: &mut Vec<i32>,
+    lineage: &mut Lineage,
+) {
+    let numbers = record.supersedes.iter().flatten();
+    for number in numbers.filter_map(|s| s.trim().parse::<i32>().ok()) {
+        if seen.contains(&number) {
+            continue;
         }
-        chain.push(format!("{number:04}"));
-        current = by_key
+        seen.push(number);
+        let ancestor = by_key
             .get(&(record.doc_type.clone(), number))
-            .and_then(|ancestor| ancestor.supersedes.clone());
+            .filter(|a| has_ancestor(a));
+        if let Some(ancestor) = ancestor {
+            lineage.intermediate.push(format!("{number:04}"));
+            walk_ancestors(ancestor, by_key, seen, lineage);
+        } else {
+            lineage.earliest.push(format!("{number:04}"));
+        }
     }
-    chain
+}
+
+/// Whether `record` names at least one ancestor by a readable number, so it
+/// is an intermediate step rather than an earliest record.
+fn has_ancestor(record: &ExtractedRecord) -> bool {
+    record
+        .supersedes
+        .iter()
+        .flatten()
+        .any(|s| s.trim().parse::<i32>().is_ok())
 }
 
 /// Reading order: constitution and PRDs first, then ADRs, then everything

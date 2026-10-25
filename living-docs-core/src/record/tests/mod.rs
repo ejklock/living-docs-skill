@@ -18,7 +18,7 @@ fn numbered_record() -> ExtractedRecord {
         title: "Tailed Decision".to_owned(),
         description: "d.".to_owned(),
         body: "# 0001. Tailed Decision\n\nBody.\n".to_owned(),
-        supersedes: Some("0001".to_owned()),
+        supersedes: Some(vec!["0001".to_owned()]),
         superseded_by: None,
         tags: vec!["caching".to_owned(), "performance".to_owned()],
         status: Some("Accepted".to_owned()),

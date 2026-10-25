@@ -17,6 +17,7 @@ mod repair;
 use crate::callout;
 use crate::check::is_retired_record;
 use crate::commands::set::retitle::number_prefix;
+use crate::commands::supersede::guard::{refusal_message, unwritable_key};
 use crate::frontmatter::read_scalar_from_str as frontmatter_scalar;
 use crate::line_ending::{refuse_mixed, LineEndingStore};
 use crate::record::{extract_record, to_canonical_markdown, ExtractedRecord};
@@ -81,12 +82,32 @@ pub fn outcome(
     refuse_mixed_endings(store, &paths)?;
     let lf_view = LineEndingStore::new(store, false);
     let store: &dyn DocStore = &lf_view;
-    if check_only {
-        return Ok(Outcome::Pending(pending_records(store, &paths, seeds)));
+    let outcome = if check_only {
+        Outcome::Pending(pending_records(store, &paths, seeds))
+    } else {
+        Outcome::Rewritten(canonicalize_bundle(store, &paths, seeds))
+    };
+    let refused = refusals(store, &paths, seeds);
+    if refused.is_empty() {
+        Ok(outcome)
+    } else {
+        Err(refused.join("\n"))
     }
-    Ok(Outcome::Rewritten(canonicalize_bundle(
-        store, &paths, seeds,
-    )))
+}
+
+/// One message per record whose canonical form would not read back as the
+/// record does; such a record is never rewritten and is not listed as
+/// pending, and the run as a whole fails after the other records are handled.
+fn refusals(store: &dyn DocStore, paths: &[PathBuf], seeds: &Seeds) -> Vec<String> {
+    paths
+        .iter()
+        .filter(|path| !is_reserved_file(path))
+        .filter_map(|path| {
+            let (contents, canonical) = drafted(store, path, seeds)?;
+            let key = unwritable_key(&contents, &canonical)?;
+            Some(refusal_message(path, &key))
+        })
+        .collect()
 }
 
 /// Refuses the whole run, before anything is written, when a record `fmt`
@@ -159,10 +180,23 @@ fn canonicalize_record(store: &dyn DocStore, path: &Path, seeds: &Seeds) -> bool
     store.write(path, &canonical).is_ok()
 }
 
-/// Reads `path` and returns its repaired canonical re-serialization when
-/// that differs from the current contents. Returns `None` when `path`
-/// cannot be read, carries no frontmatter, or is already canonical.
+/// Returns the repaired canonical re-serialization of `path` when it differs
+/// from the current contents and reads back as the record does. Returns `None`
+/// when `path` cannot be read, carries no frontmatter, is already canonical,
+/// or is refused by the read-back guard.
 fn canonical_form_if_pending(store: &dyn DocStore, path: &Path, seeds: &Seeds) -> Option<String> {
+    let (contents, canonical) = drafted(store, path, seeds)?;
+    if canonical == contents || unwritable_key(&contents, &canonical).is_some() {
+        None
+    } else {
+        Some(canonical)
+    }
+}
+
+/// Reads `path` and returns its contents with the repaired canonical
+/// re-serialization. `None` when `path` cannot be read or carries no
+/// frontmatter.
+fn drafted(store: &dyn DocStore, path: &Path, seeds: &Seeds) -> Option<(String, String)> {
     let contents = store.read(path).ok()?;
     if !has_frontmatter(&contents) {
         return None;
@@ -177,11 +211,7 @@ fn canonical_form_if_pending(store: &dyn DocStore, path: &Path, seeds: &Seeds) -
     let titled = repair::seed_fields(&mut record, path, heading, keep_title, seeds);
     let canonical = to_canonical_markdown(&record);
     let canonical = repair::align_heading(canonical, heading.filter(|_| titled), &record.title);
-    if canonical == contents {
-        None
-    } else {
-        Some(canonical)
-    }
+    Some((contents, canonical))
 }
 
 /// The body `record` should carry once its retired-record callout matches

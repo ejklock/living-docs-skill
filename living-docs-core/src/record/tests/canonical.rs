@@ -167,6 +167,30 @@ fn format_scalar_quotes_a_comment_opener_and_leaves_a_bare_hash_alone() {
 }
 
 #[test]
+fn format_scalar_quotes_a_value_whose_plain_form_reads_back_as_another_string() {
+    for value in ["1.50", "~", "null", "0x10", "1e3", "Null"] {
+        assert_eq!(format_scalar(value), format!("\"{value}\""), "{value}");
+    }
+}
+
+#[test]
+fn format_scalar_keeps_a_value_plain_when_its_plain_form_reads_back_the_same() {
+    for value in ["3", "true", "1.5", "a, b", "a#b", "Accepted"] {
+        assert_eq!(format_scalar(value), value, "{value}");
+    }
+}
+
+#[test]
+fn format_scalar_quotes_an_inner_line_break_and_escapes_it() {
+    assert_eq!(format_scalar("first\nsecond"), "\"first\\nsecond\"");
+}
+
+#[test]
+fn format_flow_list_keeps_its_items_plain_when_no_character_rule_applies() {
+    assert_eq!(format_flow_list(&["1.50", "a b"]), "[1.50, a b]");
+}
+
+#[test]
 fn a_value_with_a_comment_opener_round_trips_whole_as_title_and_list_item() {
     let mut record = issue_record_with_list_valued_tail();
     record.title = "Fix a #b".to_owned();
