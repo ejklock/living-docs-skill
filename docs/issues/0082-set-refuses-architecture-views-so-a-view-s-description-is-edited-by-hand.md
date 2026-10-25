@@ -2,7 +2,7 @@
 type: Issue
 title: set refuses architecture views, so a view's description is edited by hand
 description: set resolves only adr, prd, issue and research, leaving the named-identity types without the verb the hard rules require.
-status: open
+status: closed
 timestamp: 2026-10-10T19:16:42Z
 ---
 
@@ -25,3 +25,13 @@ Let `set` address records with named identity (view by slug, constitution by nam
 - `set view/<slug> status Accepted` exits 2 and says views carry no status.
 - The constitution accepts `description`; the type-list error message names the new types.
 - `living-docs check docs` stays OK.
+
+### Outcome
+
+Delivered 2026-10-24 on branch task/ek-usage-audit-backlog in commit d950ea2.
+
+- `set` addresses the named-identity records: an architecture view as `view/<slug>` or `architecture/<slug>`, and the constitution as `constitution`. Both accept `description` and `title`; `status` and `owner` stay refused on them, since the registry gives them neither.
+- `set view/<slug> title "..."` renames the view file and rewrites every in-bundle reference to it through the retitle path numbered records use. The link rewrite is offset-based, so a view and a root file that share a basename (`constitution.md`) only have the links that resolve to the renamed file repointed.
+- Owner decision: the link-rewrite tests were tightened before landing, after review.
+- Tests: `cli/tests/set_named.rs` and `cli/tests/set_named/links.rs`.
+- Verification in the main checkout: the full workspace suite, `make check`, clippy with `-D warnings`, `cargo fmt --check`, `living-docs check docs` and `se-gates check` pass.

@@ -19,9 +19,13 @@ one slice per fresh context, starting from the skeleton.
 * [0078 — size-targets guide exempts architecture docs, but the registry gives the architecture view a size target](0078-size-targets-guide-exempts-architecture-docs-but-the-registry-gives-the-architecture-view-a-size-target.md) - open
 * [0079 — read lists closed and done issues although the guides say it shows active records only](0079-read-lists-closed-and-done-issues-although-the-guides-say-it-shows-active-records-only.md) - open
 * [0080 — index keeps a hand table header and a hand bullet list above the generated listing, leaving a dangling header or a duplicated list](0080-index-keeps-a-hand-table-header-and-a-hand-bullet-list-above-the-generated-listing-leaving-a-dangling-header-or-a-duplicated-list.md) - open
-* [0081 — set cannot write the tracker, labels and blocked_by keys that the issue workflow puts in issue frontmatter](0081-set-cannot-write-the-tracker-labels-and-blocked-by-keys-that-the-issue-workflow-puts-in-issue-frontmatter.md) - open
-* [0082 — set refuses architecture views, so a view's description is edited by hand](0082-set-refuses-architecture-views-so-a-view-s-description-is-edited-by-hand.md) - open
 * [0083 — The guides prescribe /-bundle-relative links, but index and supersede write sibling-relative links and check accepts every style](0083-the-guides-prescribe-bundle-relative-links-but-index-and-supersede-write-sibling-relative-links-and-check-accepts-every-style.md) - open
+* [0084 — fmt drops a tail key whose value is the empty string](0084-fmt-drops-a-tail-key-whose-value-is-the-empty-string.md) - open
+* [0085 — fmt rewrites the title heading of a record titled with digits only on every run](0085-fmt-rewrites-the-title-heading-of-a-record-titled-with-digits-only-on-every-run.md) - open
+* [0086 — the canonical writer does not escape a carriage return so such a value is refused](0086-the-canonical-writer-does-not-escape-a-carriage-return-so-such-a-value-is-refused.md) - open
+* [0087 — fmt rewrites a record whose frontmatter does not parse and drops its keys](0087-fmt-rewrites-a-record-whose-frontmatter-does-not-parse-and-drops-its-keys.md) - open
+* [0088 — a set read-back test writes a fixed-name temp file and fails when runs overlap](0088-a-set-read-back-test-writes-a-fixed-name-temp-file-and-fails-when-runs-overlap.md) - open
+* [0089 — six functions exceed the 30-line limit because the workspace clippy gate omits too_many_lines](0089-six-functions-exceed-the-30-line-limit-because-the-workspace-clippy-gate-omits-too-many-lines.md) - open
 
 ## Closed
 
@@ -93,3 +97,5 @@ one slice per fresh context, starting from the skeleton.
 * [0069 — Remove the effective and skill aliases and the guide --topic alias that ADR 0060 kept for one release](0069-remove-the-effective-and-skill-aliases-and-the-guide-topic-alias-that-adr-0060-kept-for-one-release.md) - closed
 * [0071 — check suggests install hooks when the repository has no armed doc-gate](0071-check-suggests-install-hooks-when-the-repository-has-no-armed-doc-gate.md) - closed
 * [0072 — fmt keeps a CRLF record's single frontmatter block and line endings](0072-fmt-keeps-a-crlf-record-s-single-frontmatter-block-and-line-endings.md) - closed
+* [0081 — set cannot write the tracker, labels and blocked_by keys that the issue workflow puts in issue frontmatter](0081-set-cannot-write-the-tracker-labels-and-blocked-by-keys-that-the-issue-workflow-puts-in-issue-frontmatter.md) - closed
+* [0082 — set refuses architecture views, so a view's description is edited by hand](0082-set-refuses-architecture-views-so-a-view-s-description-is-edited-by-hand.md) - closed
