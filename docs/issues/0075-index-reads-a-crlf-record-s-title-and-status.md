@@ -18,7 +18,7 @@ timestamp: 2026-10-24T20:33:26Z
 - A bundle whose records are CRLF gets index rows with the same title and status as the LF form of the same records, and `index` prints no "no parseable 'title' frontmatter" warning for them.
 - `index` output for an all-LF bundle stays byte-identical.
 - After `index` on a CRLF bundle, `check` reports no index drift.
-- A record with mixed line endings is refused the same way the other verbs refuse it.
+- A record with mixed line endings keeps its row, read as its LF form, and `index` warns on stderr naming the record; `check` reports it, and `set` and `supersede` refuse it.
 
 ### Plan
 
