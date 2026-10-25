@@ -21,6 +21,8 @@ Implements [ADR 0069](/adr/0069-duplicate-record-numbers-fail-check-and-set-numb
 
 - The rename and link rewrite reuse the retitle machinery; option not taken: a second rename path.
 - The open record of each duplicate pair moves and the closed one keeps its number, since commits and releases cite the closed ones.
+- A record path names exactly that file, on every `set` key and in `supersede`: a path to a file that does not exist exits 2, naming the path and the record that carries its number, and never writes to that record; option not taken: resolving a missing path to the type's only record with that number, which let `set <stale path> number next` rename a record the author did not name.
+- The guard against a record file that is a symlink leaving the bundle moves behind the store port (ADR 0073).
 
 ### Acceptance
 

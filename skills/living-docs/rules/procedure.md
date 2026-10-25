@@ -21,6 +21,7 @@ the CLI's job; the judgment prose (the "why") is yours to write directly in the 
   "<heading>" --from PATH|-` replaces that section's text, or appends the section when the record
   lacks it. A heading is matched case-insensitively, as `check` matches a required section.
   The CLI places the text where told and writes none of it.
+- **Repair a duplicate record number with `living-docs set <path> number next`.** Two records of one type that share a number (parallel branches each ran `new`) make a reference by number ambiguous, so name the record to move by its path: `set <path> number next` (or `number NNNN`) renames the file, rewrites its heading number and every in-bundle link, and regenerates the index, on any status. A record in a `supersedes`/`superseded_by` link is refused until that link is renumbered by hand.
 - **Write the body prose directly.** The CLI must never author rationale, so there is no
   paragraph-editing verb — editing the body is a normal edit, not a process error. What *is* a
   process error is hand-numbering a doc, hand-writing frontmatter, hand-maintaining an index row,

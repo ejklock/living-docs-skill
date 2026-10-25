@@ -137,7 +137,8 @@ pub(crate) enum Command {
     },
     /// `title` also rewrites the heading, renames the file to the new slug
     /// and repoints every in-bundle reference; it is refused on a record
-    /// closed for good.
+    /// closed for good. `number` renames the record to a free number
+    /// (`NNNN` or `next`), the repair for two records sharing a number.
     #[command(about = help::SET_ABOUT, long_about = None, after_help = help::with_exit_codes(help::SET_EXAMPLES))]
     Set {
         #[arg(help = help::reference_help())]

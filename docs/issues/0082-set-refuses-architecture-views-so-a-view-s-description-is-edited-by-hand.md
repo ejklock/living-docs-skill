@@ -6,7 +6,7 @@ status: open
 timestamp: 2026-10-10T19:16:42Z
 ---
 
-## 0060. set refuses architecture views, so a view's description is edited by hand
+## 0082. set refuses architecture views, so a view's description is edited by hand
 
 Found adopting 0.21.0 in a downstream bundle (relent). `new view` creates an architecture view with the placeholder description `<One sentence — what this view shows.>`, and the hard-rules template says the author owns `description`. But `set` rejects the type.
 

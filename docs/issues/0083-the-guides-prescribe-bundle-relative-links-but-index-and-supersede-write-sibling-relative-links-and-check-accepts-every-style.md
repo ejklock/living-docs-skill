@@ -6,7 +6,7 @@ status: open
 timestamp: 2026-10-10T19:17:22Z
 ---
 
-## 0061. The guides prescribe /-bundle-relative links, but index and supersede write sibling-relative links and check accepts every style
+## 0083. The guides prescribe /-bundle-relative links, but index and supersede write sibling-relative links and check accepts every style
 
 Found adopting 0.21.0 in a downstream bundle (relent), which then needed an ADR to settle the question. The guides tell authors to write `/`-prefixed bundle-relative links, the CLI writes another style, and the gate enforces neither.
 

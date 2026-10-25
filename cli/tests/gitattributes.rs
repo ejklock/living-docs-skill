@@ -223,7 +223,7 @@ fn parallel_branches_adding_issues_merge_without_conflict_and_check_names_the_re
 }
 
 #[test]
-fn indexing_after_a_union_merge_makes_check_pass() {
+fn indexing_after_a_union_merge_leaves_only_the_colliding_number() {
     let repo = merged_repo("merge-index");
     let indexed = living_docs()
         .current_dir(&repo)
@@ -231,6 +231,52 @@ fn indexing_after_a_union_merge_makes_check_pass() {
         .output()
         .unwrap();
     assert!(indexed.status.success());
-    let clean = check(&repo);
-    assert_eq!(clean.status.code(), Some(0), "{}", stdout_of(&clean));
+    let report = check(&repo);
+    let text = stdout_of(&report);
+    assert_eq!(report.status.code(), Some(1), "{text}");
+    assert!(text.contains("1 violation(s)"), "{text}");
+    assert!(text.contains("records share the number 0002"), "{text}");
+    assert!(
+        text.contains("0002-alpha.md") && text.contains("0002-beta.md"),
+        "{text}"
+    );
+    assert!(!text.contains("living-docs index issue"), "{text}");
+}
+
+fn issue_file(repo: &Path, name: &str) -> PathBuf {
+    repo.join("docs").join("issues").join(name)
+}
+
+fn set_beta_number_next(repo: &Path) -> Output {
+    let stale = Path::new("docs").join("issues").join("0002-beta.md");
+    living_docs()
+        .current_dir(repo)
+        .arg("set")
+        .arg(stale)
+        .args(["number", "next", "--plain"])
+        .output()
+        .unwrap()
+}
+
+#[test]
+fn set_number_next_repairs_a_union_merge_collision_until_check_passes() {
+    let repo = merged_repo("merge-repair");
+    let indexed = living_docs()
+        .current_dir(&repo)
+        .args(["index", "--plain"])
+        .output()
+        .unwrap();
+    assert!(indexed.status.success());
+    let alpha = fs::read(issue_file(&repo, "0002-alpha.md")).unwrap();
+    let moved = set_beta_number_next(&repo);
+    assert_eq!(moved.status.code(), Some(0), "{}", stderr_of(&moved));
+    assert!(issue_file(&repo, "0003-beta.md").exists());
+    assert!(!issue_file(&repo, "0002-beta.md").exists());
+    let report = check(&repo);
+    assert_eq!(report.status.code(), Some(0), "{}", stdout_of(&report));
+    let index = fs::read_to_string(issue_file(&repo, "index.md")).unwrap();
+    assert!(index.contains("0002-alpha.md") && index.contains("0003-beta.md"));
+    assert_eq!(fs::read(issue_file(&repo, "0002-alpha.md")).unwrap(), alpha);
+    let stale = set_beta_number_next(&repo);
+    assert_eq!(stale.status.code(), Some(2), "{}", stderr_of(&stale));
 }

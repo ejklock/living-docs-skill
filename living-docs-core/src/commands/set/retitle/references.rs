@@ -7,13 +7,14 @@ use pulldown_cmark::{Event, Parser, Tag, TagEnd};
 use std::ops::Range;
 use std::path::{Path, PathBuf};
 
-/// Rewrites every other bundle record that names the old filename, so no
-/// link is broken by the rename. When no other bundle file shares the old
-/// basename, every whole-name mention is rewritten — prose naming the file as
-/// well as link destinations. When another file does (a view and a root file
-/// both called `constitution.md`), only a markdown link whose destination
-/// resolves, by the rule `check` applies to links, to the renamed file is
-/// repointed, and a bare prose mention is left alone as ambiguous.
+/// Rewrites every bundle record that names the old filename, the renamed
+/// record's own body included, so no link is broken by the rename. When no
+/// other bundle file shares the old basename, every whole-name mention is
+/// rewritten — prose naming the file as well as link destinations. When
+/// another file does (a view and a root file both called `constitution.md`),
+/// only a markdown link whose destination resolves, by the rule `check`
+/// applies to links, to the renamed file is repointed, and a bare prose
+/// mention is left alone as ambiguous.
 pub(super) fn rewrite_references(
     store: &dyn DocStore,
     docs_dir: &Path,
@@ -32,7 +33,7 @@ pub(super) fn rewrite_references(
         resolve_destination("", &format!("/{}", relative.to_string_lossy()), &bundle)
     });
     let mut rewritten = Vec::new();
-    for path in listed.into_iter().filter(|p| p != new_path) {
+    for path in listed {
         let contents = store.read(&path).map_err(|e| e.to_string())?;
         let updated = match (&old_resolved, shared) {
             (Some(old_resolved), true) => {

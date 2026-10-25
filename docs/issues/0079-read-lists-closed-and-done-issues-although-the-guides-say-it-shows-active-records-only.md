@@ -6,7 +6,7 @@ status: open
 timestamp: 2026-10-10T19:16:42Z
 ---
 
-## 0057. read lists closed and done issues although the guides say it shows active records only
+## 0079. read lists closed and done issues although the guides say it shows active records only
 
 Found adopting 0.21.0 in a downstream bundle (relent): of 366 records, `living-docs read` printed 220 closed issues, 56% of the index output (about 13,600 of 24,500 tokens), and they also swell `read --topic` and `--contract` results.
 

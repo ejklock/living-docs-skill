@@ -6,7 +6,7 @@ status: open
 timestamp: 2026-10-10T19:16:42Z
 ---
 
-## 0055. The procedure and hard-rules guides say fmt unwraps hard-wrapped prose, but fmt is frontmatter-only
+## 0077. The procedure and hard-rules guides say fmt unwraps hard-wrapped prose, but fmt is frontmatter-only
 
 Found adopting 0.21.0 in a downstream bundle (relent). [ADR 0047](/adr/0047-living-docs-fmt-is-frontmatter-only-and-the-record-body-stays-byte-identical.md) made `fmt` frontmatter-only and superseded [ADR 0046](/adr/0046-fmt-unwraps-hard-wrapped-prose-one-paragraph-is-one-line-and-the-authoring-rule-says-so.md), but three embedded guides still say `fmt` unwraps paragraphs.
 

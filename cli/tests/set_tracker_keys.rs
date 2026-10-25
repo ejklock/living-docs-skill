@@ -263,7 +263,7 @@ fn help_names_the_issue_keys_as_settable() {
         .unwrap();
     assert!(
         key_help.starts_with(
-            "one of: status, description, owner, tracker, labels, blocked_by, title, section."
+            "one of: status, description, owner, tracker, labels, blocked_by, title, number, section."
         ),
         "got: {key_help}"
     );

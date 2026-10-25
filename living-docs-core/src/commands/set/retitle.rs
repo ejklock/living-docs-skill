@@ -43,12 +43,35 @@ pub(crate) fn apply(
             rewritten: Vec::new(),
         });
     };
-    store.rename(path, &target).map_err(|e| e.to_string())?;
-    let rewritten = rewrite_references(store, docs_dir, path, &target)?;
+    let rewritten = relocate(store, docs_dir, path, &target)?;
     Ok(Retitled {
         path: target,
         rewritten,
     })
+}
+
+/// Moves a record's file to `target` and repoints every bundle record that
+/// names the old filename, the moved record's own body included; the one
+/// rename path a retitle and a renumbering share. Returns the records it
+/// rewrote.
+pub(super) fn relocate(
+    store: &dyn DocStore,
+    docs_dir: &Path,
+    path: &Path,
+    target: &Path,
+) -> Result<Vec<PathBuf>, String> {
+    store.rename(path, target).map_err(|e| e.to_string())?;
+    rewrite_references(store, docs_dir, path, target)
+}
+
+/// The record's own title heading with its `NNNN.` prefix changed from `old`
+/// to `new`, every other byte kept. `None` when the body has no heading
+/// opening with `old`, so a heading that carries another number is untouched.
+pub(super) fn replace_heading_number(contents: &str, old: &str, new: &str) -> Option<String> {
+    let lines = split_lines(contents);
+    let index = heading_index(&lines, |line| heading_number(line) == Some(old))?;
+    let text = text_of(lines[index].trim_end());
+    Some(rewrite_heading_line(lines, index, Some(new), &text))
 }
 
 /// A record closed for good keeps the title it was closed under: `supersede`
@@ -159,14 +182,26 @@ fn title_heading_index(lines: &[String], number: Option<&str>) -> Option<usize> 
         })
 }
 
-fn retitle_line(mut lines: Vec<String>, index: usize, title: &str) -> String {
+fn retitle_line(lines: Vec<String>, index: usize, title: &str) -> String {
+    rewrite_heading_line(lines, index, None, title)
+}
+
+/// Rewrites the heading at `index` to `title`, keeping its level and line
+/// ending. A numbered heading keeps its `NNNN.` prefix unless `number`
+/// replaces it.
+fn rewrite_heading_line(
+    mut lines: Vec<String>,
+    index: usize,
+    number: Option<&str>,
+    title: &str,
+) -> String {
     let heading = lines[index].trim_end_matches(['\r', '\n']);
     let ending = &lines[index][heading.len()..];
     let hashes = heading
         .chars()
         .take_while(|c| *c == '#')
         .collect::<String>();
-    lines[index] = match heading_number(heading) {
+    lines[index] = match number.or_else(|| heading_number(heading)) {
         Some(number) => format!("{hashes} {number}. {title}{ending}"),
         None => format!("{hashes} {title}{ending}"),
     };

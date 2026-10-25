@@ -29,6 +29,8 @@ A good issue body states, in order:
 
 `living-docs set <ref> status closed`, then `living-docs set <ref> section Outcome --from PATH|-` for the Outcome text. Open an issue with its prose in one step: `living-docs new issue "<title>" --body PATH|-`, the file carrying `### Scope` and `### Acceptance`.
 
+Two issues that share a number (two branches each ran `new`) are repaired with `living-docs set <path> number next` on the one to move, named by its path: it renames the file, rewrites the heading number and every in-bundle link, and regenerates the index.
+
 ## Rules
 
 1. **Number consistently** with the project's scheme; every issue is indexed (`new`, `set` and `supersede` keep the index current; `living-docs index` repairs a hand-edited or merged bundle).

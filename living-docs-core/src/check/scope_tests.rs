@@ -9,10 +9,12 @@ fn report() -> Report {
             Violation {
                 file: "docs/adr/0001-clean.md".to_string(),
                 message: "broken link -> docs/nowhere.md".to_string(),
+                anchors: Vec::new(),
             },
             Violation {
                 file: "docs/adr/0002-dirty.md".to_string(),
                 message: "unfilled {{PLACEHOLDER}}".to_string(),
+                anchors: Vec::new(),
             },
         ],
         advisories: vec![Advisory {

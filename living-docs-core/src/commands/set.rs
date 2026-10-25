@@ -11,12 +11,13 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 mod issue_keys;
+mod renumber;
 pub(crate) mod retitle;
 
 /// What `set` wrote: the record's path — the new one when a retitle renamed
 /// the file — and the other bundle records whose reference to the old
 /// filename was rewritten with it. `rewritten` is empty for every
-/// key but `title`.
+/// key but `title` and `number`.
 #[derive(Debug)]
 pub struct Applied {
     pub path: PathBuf,
@@ -62,7 +63,10 @@ pub fn run(
 /// accept any string, quoted via [`format_scalar`]. `title` is the one key
 /// that reaches beyond the record's frontmatter — it rewrites the heading,
 /// renames the file and repoints every in-bundle reference, and is refused on
-/// a record closed for good ([`retitle`]). Nothing is written when
+/// a record closed for good ([`retitle`]). `number` takes `NNNN` or `next`
+/// and does the same for the record's number on any status, refusing a number
+/// a record of the type holds and a record in a supersede link
+/// ([`renumber`]). Nothing is written when
 /// the reference is unresolvable or the value fails validation. Returns what
 /// was written — the CLI front renders it as colored text or JSON;
 /// [`run`] is the plain-text-always convenience wrapper.
@@ -79,17 +83,13 @@ pub fn apply(
     }
     refuse_mixed(store, &path)?;
     let store: &dyn DocStore = &LineEndingStore::new(store, false);
-    if key == "title" {
-        let retitled = retitle::apply(store, docs_dir, &path, value)?;
-        callout::reconcile(store, &retitled.path)?;
-        let previous = (retitled.path != path).then_some(path);
-        let indexed = refresh_for_records(store, docs_dir, &[retitled.path.as_path()]);
-        return Ok(Applied {
-            path: retitled.path,
-            previous,
-            rewritten: retitled.rewritten,
-            indexed,
-        });
+    let renamed = match key {
+        "title" => Some(retitle::apply(store, docs_dir, &path, value)?),
+        "number" => Some(renumber::apply(store, docs_dir, &path, value)?),
+        _ => None,
+    };
+    if let Some(renamed) = renamed {
+        return settle_renamed(store, docs_dir, path, renamed);
     }
     let (field, value) = resolve_field(store, &path, key, value)?;
     let expected: Vec<(&str, TailValue)> = value.map(|v| (field.0, v)).into_iter().collect();
@@ -109,6 +109,25 @@ fn refuse_uncarried(spec: &DocTypeSpec, key: &str) -> Result<(), String> {
         "owner" if !carries_owner => Err(format!("{} records carry no owner", spec.frontmatter)),
         _ => Ok(()),
     }
+}
+
+/// Finishes a retitle or a renumbering: reconciles the callout at the
+/// record's new path and refreshes the type's index.
+fn settle_renamed(
+    store: &dyn DocStore,
+    docs_dir: &Path,
+    old: PathBuf,
+    renamed: retitle::Retitled,
+) -> Result<Applied, String> {
+    callout::reconcile(store, &renamed.path)?;
+    let previous = (renamed.path != old).then_some(old);
+    let indexed = refresh_for_records(store, docs_dir, &[renamed.path.as_path()]);
+    Ok(Applied {
+        path: renamed.path,
+        previous,
+        rewritten: renamed.rewritten,
+        indexed,
+    })
 }
 
 /// Finishes a write that kept the record where it was: reconciles the
@@ -173,7 +192,7 @@ fn resolve_field(
         "labels" => issue_field(store, path, "labels", value),
         "blocked_by" => issue_field(store, path, "blocked_by", value),
         other => Err(format!(
-            "'{other}' is not a settable field; expected one of status, description, owner, tracker, labels, blocked_by, title, or section with --from"
+            "'{other}' is not a settable field; expected one of status, description, owner, tracker, labels, blocked_by, title, number, or section with --from"
         )),
     }
 }

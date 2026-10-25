@@ -6,7 +6,7 @@ status: open
 timestamp: 2026-10-10T19:16:42Z
 ---
 
-## 0056. size-targets guide exempts architecture docs, but the registry gives the architecture view a size target
+## 0078. size-targets guide exempts architecture docs, but the registry gives the architecture view a size target
 
 Found adopting 0.21.0 in a downstream bundle (relent). `skills/living-docs/rules/size-targets.md` lists the exempt doc kinds as "research (long-form dated evidence), the constitution, context and architecture docs, and the reserved `index.md`/`log.md` listings". The registry row for the architecture view in `living-docs-core/src/doc_type.rs` sets `body_size: BodySize::Targeted`, while the constitution and research rows are `BodySize::Exempt`.
 

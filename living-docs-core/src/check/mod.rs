@@ -1,7 +1,7 @@
 //! Native core of `living-docs check` — ports `skills/living-docs/scripts/lint-docs.sh`.
 //!
 //! Covers the mechanical invariants: OKF frontmatter/type, index-format, directory-index membership and drift,
-//! bundle-root reachability, supersede-chain integrity, local link/image validity via `pulldown-cmark`,
+//! bundle-root reachability, supersede-chain integrity, duplicate record numbers, local link/image validity via `pulldown-cmark`,
 //! unfilled placeholders, and ```mermaid``` fence validation. Record liveness (`stale-proposed` only) is advisory.
 //!
 //! Every record's content (`records`, `links`) is read through `DocStore::read`,
@@ -10,6 +10,7 @@
 
 mod callout;
 pub(crate) mod canonical;
+mod duplicate_numbers;
 mod graph;
 pub(crate) use graph::{normpath, reachable_index_set};
 mod index_drift;
@@ -21,13 +22,13 @@ mod mermaid;
 mod moved_source;
 mod placeholder;
 mod records;
+mod report;
 mod sections;
 mod size;
 
 use crate::doc_type::{self, Identity};
 use crate::line_ending::LineEndingStore;
 use crate::store::DocStore;
-use serde::Serialize;
 use std::fs;
 use std::path::{Path, PathBuf};
 #[cfg(test)]
@@ -35,6 +36,7 @@ use std::process::ExitCode;
 
 pub use mermaid::{MermaidError, MermaidReport};
 pub(crate) use records::is_retired_record;
+pub use report::{Advisory, Report, Violation};
 
 /// `check --mermaid-only [paths...]` — validates ONLY the mermaid fences
 /// under `paths`, skipping every other invariant, without printing or
@@ -80,6 +82,7 @@ fn run_all_checks(
     index_drift::check_index_drift(raw, bundle, reporter);
     links::check_links(store, bundle, &all_md, reporter);
     records::check_supersede_chain(store, &all_md, reporter);
+    duplicate_numbers::check_duplicate_numbers(bundle, &all_md, reporter);
     callout::check_callouts(store, &all_md, reporter);
     moved_source::check_moved_source(store, bundle, &all_md, reporter);
     records::check_owner_requirement(store, &all_md, require_owner, reporter);
@@ -96,15 +99,12 @@ fn run_all_checks(
     all_md.len()
 }
 
-/// The invariants [`run`] validates, minus the unfilled-placeholder pass,
-/// returned as a plain violation list rather than printed — the mechanism a
-/// per-write gate (e.g. `db_store::DbDocStore::write_checked`) uses to reject a
-/// structurally invalid record. The placeholder pass is deliberately excluded
-/// here: db-mode authoring is create-then-edit, so a freshly created record
-/// legitimately still carries its `{{PLACEHOLDER}}` slots until the author
-/// fills them in the edit view. Unfilled placeholders are caught at the commit
-/// boundary by the `check` command (which runs the pass), not by the per-write
-/// gate.
+/// The invariants [`run`] validates, minus the unfilled-placeholder pass, returned as a plain violation list rather
+/// than printed — the mechanism a per-write gate (e.g. `db_store::DbDocStore::write_checked`) uses to reject a
+/// structurally invalid record. The placeholder pass is deliberately excluded here: db-mode authoring is
+/// create-then-edit, so a freshly created record legitimately still carries its `{{PLACEHOLDER}}` slots until the
+/// author fills them in the edit view. Unfilled placeholders are caught at the commit boundary by the `check`
+/// command (which runs the pass), not by the per-write gate.
 pub fn check_violations(store: &dyn DocStore, bundle: &Path) -> Vec<(String, String)> {
     let mut reporter = Reporter::new();
     run_all_checks(store, bundle, &mut reporter, false, false);
@@ -161,81 +161,6 @@ pub(crate) fn is_bundle_singleton(bundle: &Path, path: &Path) -> bool {
     })
 }
 
-/// A hard invariant failure: `check`'s exit code goes non-zero when any
-/// exist.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct Violation {
-    pub file: String,
-    pub message: String,
-}
-
-/// A soft finding: printed alongside violations but never
-/// affects the exit code. `kind` is the advisory's category,
-/// one of [`kinds::ALL`] — so a JSON consumer can filter by it without
-/// parsing `message`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct Advisory {
-    pub file: String,
-    pub kind: String,
-    pub message: String,
-}
-
-/// `check`'s full report: every invariant's violations and
-/// advisories, the bundle enumerated and its doc count, and `ok` (no
-/// violations) precomputed so a renderer never has to re-derive it.
-#[derive(Debug, Serialize)]
-pub struct Report {
-    pub bundle: String,
-    pub docs: usize,
-    pub violations: Vec<Violation>,
-    pub advisories: Vec<Advisory>,
-    pub ok: bool,
-}
-
-impl Report {
-    /// The same report with every finding not anchored to one of `paths`
-    /// dropped, and `ok` recomputed from what remains. Every invariant still
-    /// ran over the whole bundle — this narrows what is reported, never what
-    /// was computed — so a brownfield bundle can gate a commit on the records
-    /// it touched while legacy debt elsewhere is paid down. An empty `paths`
-    /// narrows to nothing and reports nothing.
-    #[must_use]
-    pub fn scoped_to(self, paths: &[PathBuf]) -> Self {
-        let scope: Vec<String> = paths
-            .iter()
-            .map(|path| path.display().to_string())
-            .collect();
-        let violations: Vec<Violation> = self
-            .violations
-            .into_iter()
-            .filter(|violation| anchors_in(&violation.file, &scope))
-            .collect();
-        Self {
-            ok: violations.is_empty(),
-            violations,
-            advisories: self
-                .advisories
-                .into_iter()
-                .filter(|advisory| anchors_in(&advisory.file, &scope))
-                .collect(),
-            ..self
-        }
-    }
-}
-
-/// Whether `file` names the same record as one of `scope`. The two come from
-/// different hands — the report's paths are the store's enumeration, the
-/// scope's are whatever git or the caller printed — so one is allowed to be
-/// the other's suffix: `a/b/0001-x.md` matches an absolute
-/// `/repo/a/b/0001-x.md` and vice versa.
-fn anchors_in(file: &str, scope: &[String]) -> bool {
-    scope.iter().any(|candidate| {
-        file == candidate
-            || file.ends_with(&format!("/{candidate}"))
-            || candidate.ends_with(&format!("/{file}"))
-    })
-}
-
 /// Collects violations and advisories as `run_all_checks` walks the bundle,
 /// mirroring `report()`/`advise()` of `lint-docs.sh`.
 pub(crate) struct Reporter {
@@ -255,6 +180,21 @@ impl Reporter {
         self.violations.push(Violation {
             file: file.display().to_string(),
             message: message.into(),
+            anchors: Vec::new(),
+        });
+    }
+
+    /// Reports one violation for a group of records, anchored on every member
+    /// so a scope holding any one of them keeps it. The members are not
+    /// serialized.
+    pub(crate) fn report_group(&mut self, members: &[PathBuf], message: impl Into<String>) {
+        let Some(first) = members.first() else {
+            return;
+        };
+        self.violations.push(Violation {
+            file: first.display().to_string(),
+            message: message.into(),
+            anchors: members.iter().map(|m| m.display().to_string()).collect(),
         });
     }
 

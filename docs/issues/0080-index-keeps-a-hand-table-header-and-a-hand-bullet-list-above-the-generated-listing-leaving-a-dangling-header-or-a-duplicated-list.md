@@ -6,7 +6,7 @@ status: open
 timestamp: 2026-10-10T19:16:42Z
 ---
 
-## 0058. index keeps a hand table header and a hand bullet list above the generated listing, leaving a dangling header or a duplicated list
+## 0080. index keeps a hand table header and a hand bullet list above the generated listing, leaving a dangling header or a duplicated list
 
 Found adopting 0.21.0 in a downstream bundle (relent). `index` keeps everything above the first boundary line byte-for-byte and regenerates the rest. `is_boundary_line` in `living-docs-core/src/commands/index.rs` accepts a `## ` heading, a `* [` bullet, and a table row whose first cell is `#` or a record link. It does not accept a `- [` bullet or a table header whose first cell is any other word.
 

@@ -6,7 +6,7 @@ status: open
 timestamp: 2026-10-10T19:16:42Z
 ---
 
-## 0059. set cannot write the tracker, labels and blocked_by keys that the issue workflow puts in issue frontmatter
+## 0081. set cannot write the tracker, labels and blocked_by keys that the issue workflow puts in issue frontmatter
 
 Found adopting 0.21.0 in a downstream bundle (relent). `skills/living-docs/rules/issue-workflow.md` (lines 7 and 10) says `labels`, `blocked_by` and `tracker` live in the issue's frontmatter, and the project's own rules say to backfill the tracker number there after publishing. The `new issue` template carries none of the three, and `living-docs set` accepts only `status`, `description`, `owner` and `title`.
 

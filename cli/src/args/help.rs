@@ -14,7 +14,8 @@ pub(crate) const EXIT_CODES: [(u8, &str); 3] = [
 ];
 
 /// The frontmatter keys `set` accepts.
-const SET_KEYS: &str = "status, description, owner, tracker, labels, blocked_by, title, section";
+const SET_KEYS: &str =
+    "status, description, owner, tracker, labels, blocked_by, title, number, section";
 
 /// The `Exit codes:` block of the text help.
 pub(crate) fn exit_codes_text() -> String {
@@ -66,7 +67,7 @@ fn status_vocabularies() -> String {
 /// Help for `set`'s `KEY`: the keys and the status values per type.
 pub(crate) fn set_key_help() -> String {
     format!(
-        "one of: {}. `status` takes the record's own type vocabulary ({}); Superseded is set only by `supersede`. `section` takes the section heading as VALUE and its text from --from",
+        "one of: {}. `status` takes the record's own type vocabulary ({}); Superseded is set only by `supersede`. `number` takes NNNN or `next` and renumbers the record with its heading, links and index; `section` takes the section heading as VALUE and its text from --from",
         SET_KEYS,
         status_vocabularies()
     )
@@ -87,7 +88,7 @@ fn directory_names() -> String {
 pub(crate) fn reference_help() -> String {
     let tokens = DOC_TYPES.iter().map(|spec| spec.token).collect::<Vec<_>>();
     format!(
-        "a record, as NNNN (a bare number searched across every type; an ambiguous one is an error naming the candidates), TYPE/NNNN (TYPE is a type token, {}, or its directory name, {}; for example adr/0012 or issues/0049), or the path of a record inside the bundle, ending in .md",
+        "a record, as NNNN (a bare number searched across every type; an ambiguous one is an error naming the candidates), TYPE/NNNN (TYPE is a type token, {}, or its directory name, {}; for example adr/0012 or issues/0049), or the path of a record inside the bundle, ending in .md. A NNNN or TYPE/NNNN that matches two records is an error naming the candidates; name the one you mean by its path",
         tokens.join(", "),
         directory_names()
     )
@@ -136,12 +137,13 @@ pub(crate) const NEW_EXAMPLES: &[&str] = &[
 ];
 
 pub(crate) const SET_ABOUT: &str =
-    "Sets one CLI-owned frontmatter field (status, description, owner, title; tracker, labels, blocked_by on an issue) or replaces a body section.";
+    "Sets one CLI-owned frontmatter field (status, description, owner, title, number; tracker, labels, blocked_by on an issue) or replaces a body section.";
 pub(crate) const SET_EXAMPLES: &[&str] = &[
     "living-docs set 0012 status Accepted",
     "living-docs set adr/0012 owner carol@example.com",
     "living-docs set issues/0049-flaky-upload-test.md status closed",
     "living-docs set adr/0012 title \"Cache invalidation is write-through\"",
+    "living-docs set issues/0055-a-title.md number next",
     "living-docs set 0012 description --from description.txt",
     "living-docs set issue/0049 section Outcome --from outcome.md",
     "echo closed | living-docs set 0049 status --from -",

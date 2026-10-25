@@ -7,13 +7,6 @@ one slice per fresh context, starting from the skeleton.
 
 ## Open
 
-* [0055 — The procedure and hard-rules guides say fmt unwraps hard-wrapped prose, but fmt is frontmatter-only](0055-the-procedure-and-hard-rules-guides-say-fmt-unwraps-hard-wrapped-prose-but-fmt-is-frontmatter-only.md) - open
-* [0056 — size-targets guide exempts architecture docs, but the registry gives the architecture view a size target](0056-size-targets-guide-exempts-architecture-docs-but-the-registry-gives-the-architecture-view-a-size-target.md) - open
-* [0057 — read lists closed and done issues although the guides say it shows active records only](0057-read-lists-closed-and-done-issues-although-the-guides-say-it-shows-active-records-only.md) - open
-* [0058 — index keeps a hand table header and a hand bullet list above the generated listing, leaving a dangling header or a duplicated list](0058-index-keeps-a-hand-table-header-and-a-hand-bullet-list-above-the-generated-listing-leaving-a-dangling-header-or-a-duplicated-list.md) - open
-* [0059 — set cannot write the tracker, labels and blocked_by keys that the issue workflow puts in issue frontmatter](0059-set-cannot-write-the-tracker-labels-and-blocked-by-keys-that-the-issue-workflow-puts-in-issue-frontmatter.md) - open
-* [0060 — set refuses architecture views, so a view's description is edited by hand](0060-set-refuses-architecture-views-so-a-view-s-description-is-edited-by-hand.md) - open
-* [0061 — The guides prescribe /-bundle-relative links, but index and supersede write sibling-relative links and check accepts every style](0061-the-guides-prescribe-bundle-relative-links-but-index-and-supersede-write-sibling-relative-links-and-check-accepts-every-style.md) - open
 * [0063 — Implement duplicate-number detection and set number, and renumber this repository's open duplicates](0063-implement-duplicate-number-detection-and-set-number-and-renumber-this-repository-s-open-duplicates.md) - open
 * [0064 — Implement union merge of type indexes and the index-drift violation](0064-implement-union-merge-of-type-indexes-and-the-index-drift-violation.md) - open
 * [0066 — check accepts a record path and fails on a one-way supersede link, and supersede keeps an earlier supersedes value](0066-check-accepts-a-record-path-and-fails-on-a-one-way-supersede-link-and-supersede-keeps-an-earlier-supersedes-value.md) - open
@@ -22,6 +15,13 @@ one slice per fresh context, starting from the skeleton.
 * [0074 — set title rewrites only the title heading fmt and check judge](0074-set-title-rewrites-only-the-title-heading-fmt-and-check-judge.md) - open
 * [0075 — index reads a CRLF record's title and status](0075-index-reads-a-crlf-record-s-title-and-status.md) - open
 * [0076 — fmt keeps a quoted flow-list item quoted](0076-fmt-keeps-a-quoted-flow-list-item-quoted.md) - open
+* [0077 — The procedure and hard-rules guides say fmt unwraps hard-wrapped prose, but fmt is frontmatter-only](0077-the-procedure-and-hard-rules-guides-say-fmt-unwraps-hard-wrapped-prose-but-fmt-is-frontmatter-only.md) - open
+* [0078 — size-targets guide exempts architecture docs, but the registry gives the architecture view a size target](0078-size-targets-guide-exempts-architecture-docs-but-the-registry-gives-the-architecture-view-a-size-target.md) - open
+* [0079 — read lists closed and done issues although the guides say it shows active records only](0079-read-lists-closed-and-done-issues-although-the-guides-say-it-shows-active-records-only.md) - open
+* [0080 — index keeps a hand table header and a hand bullet list above the generated listing, leaving a dangling header or a duplicated list](0080-index-keeps-a-hand-table-header-and-a-hand-bullet-list-above-the-generated-listing-leaving-a-dangling-header-or-a-duplicated-list.md) - open
+* [0081 — set cannot write the tracker, labels and blocked_by keys that the issue workflow puts in issue frontmatter](0081-set-cannot-write-the-tracker-labels-and-blocked-by-keys-that-the-issue-workflow-puts-in-issue-frontmatter.md) - open
+* [0082 — set refuses architecture views, so a view's description is edited by hand](0082-set-refuses-architecture-views-so-a-view-s-description-is-edited-by-hand.md) - open
+* [0083 — The guides prescribe /-bundle-relative links, but index and supersede write sibling-relative links and check accepts every style](0083-the-guides-prescribe-bundle-relative-links-but-index-and-supersede-write-sibling-relative-links-and-check-accepts-every-style.md) - open
 
 ## Closed
 
