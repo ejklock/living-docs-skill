@@ -10,7 +10,6 @@ one slice per fresh context, starting from the skeleton.
 * [0063 — Implement duplicate-number detection and set number, and renumber this repository's open duplicates](0063-implement-duplicate-number-detection-and-set-number-and-renumber-this-repository-s-open-duplicates.md) - open
 * [0064 — Implement union merge of type indexes and the index-drift violation](0064-implement-union-merge-of-type-indexes-and-the-index-drift-violation.md) - open
 * [0070 — Teach the TYPE/NNNN reference where agents split it: the set usage error and the session hook line](0070-teach-the-type-nnnn-reference-where-agents-split-it-the-set-usage-error-and-the-session-hook-line.md) - open
-* [0073 — A record with no title gets one without its number and never from fenced text](0073-a-record-with-no-title-gets-one-without-its-number-and-never-from-fenced-text.md) - open
 * [0075 — index reads a CRLF record's title and status](0075-index-reads-a-crlf-record-s-title-and-status.md) - open
 * [0077 — The procedure and hard-rules guides say fmt unwraps hard-wrapped prose, but fmt is frontmatter-only](0077-the-procedure-and-hard-rules-guides-say-fmt-unwraps-hard-wrapped-prose-but-fmt-is-frontmatter-only.md) - open
 * [0078 — size-targets guide exempts architecture docs, but the registry gives the architecture view a size target](0078-size-targets-guide-exempts-architecture-docs-but-the-registry-gives-the-architecture-view-a-size-target.md) - open
@@ -101,6 +100,7 @@ one slice per fresh context, starting from the skeleton.
 * [0069 — Remove the effective and skill aliases and the guide --topic alias that ADR 0060 kept for one release](0069-remove-the-effective-and-skill-aliases-and-the-guide-topic-alias-that-adr-0060-kept-for-one-release.md) - closed
 * [0071 — check suggests install hooks when the repository has no armed doc-gate](0071-check-suggests-install-hooks-when-the-repository-has-no-armed-doc-gate.md) - closed
 * [0072 — fmt keeps a CRLF record's single frontmatter block and line endings](0072-fmt-keeps-a-crlf-record-s-single-frontmatter-block-and-line-endings.md) - closed
+* [0073 — A record with no title gets one without its number and never from fenced text](0073-a-record-with-no-title-gets-one-without-its-number-and-never-from-fenced-text.md) - closed
 * [0074 — set title rewrites only the title heading fmt and check judge](0074-set-title-rewrites-only-the-title-heading-fmt-and-check-judge.md) - closed
 * [0076 — fmt keeps a quoted flow-list item quoted](0076-fmt-keeps-a-quoted-flow-list-item-quoted.md) - closed
 * [0081 — set cannot write the tracker, labels and blocked_by keys that the issue workflow puts in issue frontmatter](0081-set-cannot-write-the-tracker-labels-and-blocked-by-keys-that-the-issue-workflow-puts-in-issue-frontmatter.md) - closed

@@ -251,16 +251,40 @@ fn strip_frontmatter(contents: &str) -> &str {
     after_fence.strip_prefix('\n').unwrap_or(after_fence)
 }
 
+/// The text of the first level-1 heading outside a fenced code block, with a
+/// leading `NNNN. ` number removed.
 fn first_heading(body: &str) -> Option<String> {
-    body.lines()
-        .find_map(|line| line.strip_prefix("# ").map(|title| title.trim().to_owned()))
+    let mut fenced = false;
+    for line in body.lines() {
+        let trimmed = line.trim_start();
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            fenced = !fenced;
+        } else if !fenced {
+            if let Some(title) = line.strip_prefix("# ") {
+                return Some(strip_number(title.trim(), ". ").to_owned());
+            }
+        }
+    }
+    None
 }
 
+/// The filename stem with a leading `NNNN-` removed.
 fn filename_stem(path: &Path) -> String {
-    path.file_stem()
+    let stem = path
+        .file_stem()
         .and_then(|stem| stem.to_str())
-        .unwrap_or_default()
-        .to_owned()
+        .unwrap_or_default();
+    strip_number(stem, "-").to_owned()
+}
+
+/// `text` without a leading four-digit number followed by `separator`;
+/// unchanged when that prefix is absent.
+fn strip_number<'a>(text: &'a str, separator: &str) -> &'a str {
+    let digits = text.bytes().take_while(u8::is_ascii_digit).count();
+    if digits != 4 {
+        return text;
+    }
+    text[4..].strip_prefix(separator).unwrap_or(text)
 }
 
 mod canonical;

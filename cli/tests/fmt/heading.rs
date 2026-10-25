@@ -162,10 +162,10 @@ fn title_is_not_seeded_from_an_empty_numbered_heading() {
 }
 
 #[test]
-fn title_is_not_seeded_from_the_heading_of_a_retired_record() {
+fn retired_record_keeps_its_heading_and_gets_a_title_without_its_number() {
     let record = adr("", "Deprecated", "# 0002. Old\n\nText.\n");
     let after = fmt_record(NO_IDENTITY, &record, "adr/0002-old.md");
-    assert!(!after.contains("title: Old\n"), "{after}");
+    assert!(after.contains("\ntitle: Old\n"), "{after}");
     assert!(after.contains("\n# 0002. Old\n"), "{after}");
 }
 

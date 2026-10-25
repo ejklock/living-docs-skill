@@ -88,14 +88,6 @@ fn extract_record_falls_back_to_first_heading_when_title_is_absent() {
 }
 
 #[test]
-fn extract_record_falls_back_to_filename_stem_when_no_title_or_heading() {
-    let contents = "---\ntype: ADR\n---\nBody with no heading.\n";
-    let extracted = extract_record(Path::new("/bundle/adr/0003-stemmed.md"), contents);
-
-    assert_eq!(extracted.title, "0003-stemmed");
-}
-
-#[test]
 fn extract_record_defaults_missing_description_to_empty() {
     let contents = "---\ntype: ADR\ntitle: No Extras\n---\nBody.\n";
     let extracted = extract_record(Path::new("adr/0004-no-extras.md"), contents);
