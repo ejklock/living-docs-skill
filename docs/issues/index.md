@@ -27,6 +27,10 @@ one slice per fresh context, starting from the skeleton.
 * [0089 — six functions exceed the 30-line limit because the workspace clippy gate omits too_many_lines](0089-six-functions-exceed-the-30-line-limit-because-the-workspace-clippy-gate-omits-too-many-lines.md) - open
 * [0090 — an index row splits across two lines when a record title holds a line break](0090-an-index-row-splits-across-two-lines-when-a-record-title-holds-a-line-break.md) - open
 * [0091 — the file-size and allow-inventory gates fail inside a git worktree under .claude/worktrees](0091-the-file-size-and-allow-inventory-gates-fail-inside-a-git-worktree-under-claude-worktrees.md) - open
+* [0092 — index derives a row title from a fenced heading and leaves it empty without one](0092-index-derives-a-row-title-from-a-fenced-heading-and-leaves-it-empty-without-one.md) - open
+* [0093 — the unnumbered title-heading fallback may rename a section heading such as References](0093-the-unnumbered-title-heading-fallback-may-rename-a-section-heading-such-as-references.md) - open
+* [0094 — the one-way supersede link check lacks tests for its spelling, shared-number and path rules](0094-the-one-way-supersede-link-check-lacks-tests-for-its-spelling-shared-number-and-path-rules.md) - open
+* [0095 — check skips every entry of a supersedes list that mixes record numbers and other values](0095-check-skips-every-entry-of-a-supersedes-list-that-mixes-record-numbers-and-other-values.md) - open
 
 ## Closed
 
