@@ -97,7 +97,7 @@ fn apply_change(
     args: &SetArgs,
     change: &Change,
 ) -> Result<commands::set::Applied, String> {
-    let store = build_store();
+    let store = build_store(docs_dir);
     match &change.text {
         Some(text) => commands::set::apply_section(
             store.as_ref(),

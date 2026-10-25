@@ -9,7 +9,7 @@ use super::{file_name_str, kinds, Reporter};
 use crate::commands::set::retitle;
 use crate::doc_type;
 use crate::frontmatter::{frontmatter_block, read_scalar_strict};
-use crate::store::DocStore;
+use crate::store::{is_refusal, DocStore};
 use std::path::{Path, PathBuf};
 
 pub(crate) fn is_reserved(basename: &str) -> bool {
@@ -29,6 +29,10 @@ pub(crate) fn frontmatter_scalar(contents: &str, key: &str) -> Option<String> {
     read_scalar_strict(frontmatter_block(contents)?, key)
 }
 
+/// A record the store refuses to read is reported as that one violation and
+/// judged no further; the refused paths are returned so later checks leave
+/// them out too.
+///
 /// Every non-reserved `.md` needs frontmatter with a non-empty top-level `type`.
 /// `index.md`/`log.md` carry no frontmatter, except the bundle-root `index.md`,
 /// which may declare `okf_version`.
@@ -37,16 +41,25 @@ pub(crate) fn check_frontmatter_and_format(
     all_md: &[PathBuf],
     root_index: &Path,
     reporter: &mut Reporter,
-) {
+) -> Vec<PathBuf> {
+    let mut refused = Vec::new();
     for f in all_md {
         let base = file_name_str(f);
-        let contents = store.read(f).unwrap_or_default();
+        let contents = match store.read(f) {
+            Err(error) if is_refusal(&error) => {
+                reporter.report(f, error.to_string());
+                refused.push(f.clone());
+                continue;
+            }
+            read => read.unwrap_or_default(),
+        };
         if is_reserved(&base) {
             check_reserved_file(f, &base, root_index, &contents, reporter);
         } else {
             check_concept_file(f, &contents, reporter);
         }
     }
+    refused
 }
 
 fn check_reserved_file(

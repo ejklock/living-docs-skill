@@ -15,7 +15,7 @@ pub(crate) fn run_read(docs_dir: &Path, args: ReadArgs, mode: OutputMode, quiet:
         full: args.full,
         contract: args.contract,
     };
-    let store = build_store();
+    let store = build_store(docs_dir);
     let reading = effective::read(store.as_ref(), docs_dir, &options, mode.is_json());
     print!("{}", reading.output);
     if let Some(topic) = options.topic.as_deref().filter(|_| !quiet) {

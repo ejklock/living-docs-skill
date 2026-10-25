@@ -3,7 +3,6 @@
 use super::{bundle_relative, normal_parts, resolve_reference};
 use crate::paths;
 use crate::store::DocStore;
-use std::fs;
 use std::path::{Path, PathBuf};
 
 /// Finds the record `reference` names among every path the active store
@@ -14,8 +13,8 @@ use std::path::{Path, PathBuf};
 /// more than one record carries the number rather than silently picking the
 /// first match. A record path names exactly that file: when no such file
 /// exists it is refused, naming the record or records that carry its number,
-/// and never resolves to another record. A link that leaves the bundle is
-/// never a record.
+/// and never resolves to another record. Whether a listed record lies inside
+/// the bundle is the store's to judge when the caller reads or writes it.
 pub(crate) fn find_record(
     store: &dyn DocStore,
     docs_dir: &Path,
@@ -30,15 +29,13 @@ pub(crate) fn find_record(
         .filter(|path| matches_record_prefix(path, &prefix))
         .collect();
 
-    let found = match dir {
+    match dir {
         Some(dir) => {
             let file = exact_file_name(docs_dir, reference);
             find_in_directory(candidates, dir, number, file.as_deref(), reference)
         }
         None => find_unqualified(candidates, number),
-    }?;
-    refuse_escaping_link(docs_dir, &found)?;
-    Ok(found)
+    }
 }
 
 /// The file name a record path ends in, `None` for a number reference.
@@ -112,26 +109,6 @@ fn ambiguous_in_type_error(candidates: &[PathBuf], token: &str, number: u32) -> 
         display_all(candidates),
         candidates[0].display()
     )
-}
-
-/// Refuses a record file that is a symlink resolving outside the bundle, so a
-/// write through the reference can never reach a file the bundle does not own.
-fn refuse_escaping_link(docs_dir: &Path, path: &Path) -> Result<(), String> {
-    let is_link = fs::symlink_metadata(path).is_ok_and(|meta| meta.file_type().is_symlink());
-    if !is_link {
-        return Ok(());
-    }
-    let inside = match (path.canonicalize(), docs_dir.canonicalize()) {
-        (Ok(target), Ok(root)) => target.starts_with(root),
-        _ => false,
-    };
-    if inside {
-        return Ok(());
-    }
-    Err(format!(
-        "{} is a symlink that leaves the bundle; a record must lie inside it",
-        path.display()
-    ))
 }
 
 fn file_name(path: &Path) -> Option<&str> {

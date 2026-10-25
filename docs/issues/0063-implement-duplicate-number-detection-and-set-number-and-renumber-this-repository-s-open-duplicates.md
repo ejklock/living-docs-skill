@@ -2,7 +2,7 @@
 type: Issue
 title: Implement duplicate-number detection and set number, and renumber this repository's open duplicates
 description: "Implements ADR 0069: check fails on two records of one type sharing a number, set <ref> number <NNNN|next> renames file, heading, links and index, and the seven open duplicate issues here move to free numbers"
-status: open
+status: closed
 timestamp: 2026-10-24T10:17:26Z
 ---
 
@@ -37,3 +37,7 @@ Implements [ADR 0069](/adr/0069-duplicate-record-numbers-fail-check-and-set-numb
 1. Core: the duplicate-number check and its kind; tests red first.
 2. Core and CLI: the `number` key over the retitle machinery; tests through the binary.
 3. Help and topics; renumber the seven open duplicates.
+
+### Outcome
+
+All parts are in. Duplicate-number detection and `set <TYPE/NNNN> number next` landed in commit 6c62305. The symlink guard now sits behind the store port (ADR 0073): `FsStore::rooted(bundle)` (fs-store/src/lib.rs) refuses any read, write or rename whose resolved path leaves the bundle. The refusal has kind `PermissionDenied` and no OS code (`living_docs_core::store::is_refusal`), and a dangling link gets its own message. Every verb roots its store at its bundle. `check` reports a refused record as one violation and judges it no further. `fmt` refuses the run before writing. The record lookup in the core no longer touches the filesystem. Tests: fs-store/src/tests.rs, cli/tests/rooted_store.rs and living-docs-core/src/store.rs. The review passed after three rounds. Reserved files written outside the guard are tracked in issue 0096.

@@ -1,4 +1,4 @@
-//! `DocStore` adapter over `.md` files on disk (ADR 0002, slice S0b1). Mirrors
+//! `DocStore` adapter over `.md` files on disk, rooted at one bundle. Mirrors
 //! `living_docs_core::check`'s doc-enumeration semantics: recursive walk,
 //! `.md` files only, sorted, lenient on unreadable subdirectories.
 
@@ -8,15 +8,21 @@ use std::path::{Path, PathBuf};
 
 use living_docs_core::store::DocStore;
 
-/// `DocStore` implementation backed by the local filesystem.
-#[derive(Debug, Default, Clone, Copy)]
-pub struct FsStore;
+/// `DocStore` implementation backed by the local filesystem, built for one
+/// bundle directory.
+#[derive(Debug, Clone)]
+pub struct FsStore {
+    root: PathBuf,
+}
 
 impl FsStore {
-    /// Builds an `FsStore`. Holds no state — every call is rooted at the
-    /// `root`/`path` argument it receives.
-    pub fn new() -> Self {
-        Self
+    /// Builds a store for the bundle at `bundle`. The root is resolved on
+    /// every call rather than here, so a bundle that does not exist yet
+    /// still works.
+    pub fn rooted(bundle: impl Into<PathBuf>) -> Self {
+        Self {
+            root: bundle.into(),
+        }
     }
 }
 
@@ -29,10 +35,12 @@ impl DocStore for FsStore {
     }
 
     fn read(&self, path: &Path) -> io::Result<String> {
+        self.confine(path)?;
         fs::read_to_string(path)
     }
 
     fn write(&self, path: &Path, contents: &str) -> io::Result<()> {
+        self.confine(path)?;
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
         }
@@ -40,10 +48,80 @@ impl DocStore for FsStore {
     }
 
     fn rename(&self, from: &Path, to: &Path) -> io::Result<()> {
+        self.confine(from)?;
+        self.confine(to)?;
         if let Some(parent) = to.parent() {
             fs::create_dir_all(parent)?;
         }
         fs::rename(from, to)
+    }
+}
+
+impl FsStore {
+    /// Refuses `path` unless its resolved location lies inside the resolved
+    /// bundle root, with a `PermissionDenied` error naming it. A path through
+    /// a dangling link is refused as such, since it has no location to judge.
+    fn confine(&self, path: &Path) -> io::Result<()> {
+        let resolved = resolve(path);
+        let inside = match (&resolved, resolve(&self.root)) {
+            (Ok(target), Ok(root)) => target.starts_with(root),
+            _ => false,
+        };
+        if inside {
+            return Ok(());
+        }
+        let message = if is_dangling(path) {
+            format!(
+                "{} is a dangling link; a dangling link cannot be judged",
+                path.display()
+            )
+        } else {
+            format!(
+                "{} resolves outside the bundle {}; a record must lie inside the bundle",
+                path.display(),
+                self.root.display()
+            )
+        };
+        Err(io::Error::new(io::ErrorKind::PermissionDenied, message))
+    }
+}
+
+/// True when `path`, or a directory above it, is a symlink whose target does
+/// not exist.
+fn is_dangling(path: &Path) -> bool {
+    path.ancestors().any(|part| {
+        fs::symlink_metadata(part).is_ok_and(|meta| meta.is_symlink())
+            && fs::canonicalize(part).is_err()
+    })
+}
+
+/// Resolves `path` through every symlink on its existing components. A path
+/// that does not exist yet is its nearest existing ancestor, resolved, plus
+/// the components below it; a `..` below that ancestor and a dangling link
+/// cannot be judged, so they are errors.
+fn resolve(path: &Path) -> io::Result<PathBuf> {
+    let mut tail = Vec::new();
+    let mut head = path;
+    loop {
+        let probe = if head.as_os_str().is_empty() {
+            Path::new(".")
+        } else {
+            head
+        };
+        match fs::canonicalize(probe) {
+            Ok(base) => return Ok(tail.iter().rev().fold(base, |acc, name| acc.join(name))),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                if fs::symlink_metadata(probe).is_ok() {
+                    return Err(error);
+                }
+                let (Some(name), Some(parent)) = (head.file_name(), head.parent()) else {
+                    return Err(error);
+                };
+                tail.push(name);
+                head = parent;
+            }
+            Err(error) => return Err(error),
+        }
     }
 }
 
@@ -62,96 +140,4 @@ fn collect_md_files(dir: &Path, out: &mut Vec<PathBuf>) {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    struct TempTestDir {
-        path: PathBuf,
-    }
-
-    impl TempTestDir {
-        fn new(label: &str) -> Self {
-            let nanos = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("system clock before unix epoch")
-                .as_nanos();
-            let path = std::env::temp_dir().join(format!("fs-store-test-{label}-{nanos}"));
-            fs::create_dir_all(&path).expect("create temp test dir");
-            Self { path }
-        }
-    }
-
-    impl Drop for TempTestDir {
-        fn drop(&mut self) {
-            let _ = fs::remove_dir_all(&self.path);
-        }
-    }
-
-    #[test]
-    fn list_enumerates_only_md_files_in_sorted_order() {
-        let temp = TempTestDir::new("list-sorted");
-        let root = temp.path.clone();
-        fs::create_dir_all(root.join("nested")).expect("create nested dir");
-        fs::write(root.join("b.md"), "b").expect("write b.md");
-        fs::write(root.join("a.md"), "a").expect("write a.md");
-        fs::write(root.join("notes.txt"), "not markdown").expect("write notes.txt");
-        fs::write(root.join("nested").join("c.md"), "c").expect("write nested c.md");
-
-        let store = FsStore::new();
-        let found = store.list(&root).expect("list should succeed");
-
-        assert_eq!(
-            found,
-            vec![
-                root.join("a.md"),
-                root.join("b.md"),
-                root.join("nested").join("c.md"),
-            ]
-        );
-    }
-
-    #[test]
-    fn list_on_missing_root_returns_empty_result() {
-        let temp = TempTestDir::new("list-missing-root");
-        let missing_root = temp.path.join("does-not-exist");
-
-        let store = FsStore::new();
-        let found = store
-            .list(&missing_root)
-            .expect("missing root should be a lenient empty list, not an error");
-
-        assert!(found.is_empty());
-    }
-
-    #[test]
-    fn write_then_read_round_trips_contents() {
-        let temp = TempTestDir::new("round-trip");
-        let target = temp.path.join("doc.md");
-        let store = FsStore::new();
-
-        store
-            .write(&target, "# Title\n\nBody text.\n")
-            .expect("write should succeed");
-        let read_back = store.read(&target).expect("read should succeed");
-
-        assert_eq!(read_back, "# Title\n\nBody text.\n");
-    }
-
-    #[test]
-    fn write_creates_missing_parent_directories() {
-        let temp = TempTestDir::new("write-parents");
-        let target = temp.path.join("adr").join("nested").join("0001-title.md");
-        let store = FsStore::new();
-
-        store
-            .write(&target, "content")
-            .expect("write should create missing parents and succeed");
-
-        assert!(target.is_file());
-        assert_eq!(
-            fs::read_to_string(&target).expect("read written file"),
-            "content"
-        );
-    }
-}
+mod tests;

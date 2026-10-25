@@ -108,7 +108,7 @@ fn enclosing_bundle(target: &Path, docs_dir: &Path) -> Option<(PathBuf, PathBuf)
 /// still resolves to its bundle, but only when that parent or the type
 /// directory itself holds an `index.md`; otherwise the record's own directory when
 /// the record is a bundle-root singleton file. `None` for anything else.
-fn bundle_root_of(record: &Path, docs_dir: &Path) -> Option<PathBuf> {
+pub(crate) fn bundle_root_of(record: &Path, docs_dir: &Path) -> Option<PathBuf> {
     if let Ok(docs) = docs_dir.canonicalize() {
         if record.starts_with(&docs) {
             return Some(docs);
@@ -139,7 +139,7 @@ fn bundle_root_of(record: &Path, docs_dir: &Path) -> Option<PathBuf> {
 /// The bundle's report, narrowed to `changed_files` when the caller named
 /// any. An empty list is the unscoped gate, not an empty scope.
 fn compile_scoped(bundle: &Path, require_owner: bool, changed_files: &[PathBuf]) -> Option<Report> {
-    let report = check::compile(build_store().as_ref(), bundle, require_owner)?;
+    let report = check::compile(build_store(bundle).as_ref(), bundle, require_owner)?;
     if changed_files.is_empty() {
         return Some(report);
     }

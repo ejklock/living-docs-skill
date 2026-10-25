@@ -77,7 +77,8 @@ fn run_all_checks(
     if !root_index.is_file() {
         reporter.report(&root_index, "missing bundle-root index.md (invariant 3)");
     }
-    records::check_frontmatter_and_format(store, &all_md, &root_index, reporter);
+    let doc_count = all_md.len();
+    let all_md = judge_records(store, all_md, &root_index, reporter);
     graph::check_directory_membership(bundle, &all_md, reporter);
     graph::check_reachability(bundle, &root_index, &all_md, reporter);
     index_drift::check_index_drift(raw, bundle, reporter);
@@ -97,8 +98,22 @@ fn run_all_checks(
         placeholder::check_placeholders(store, &all_md, reporter);
     }
     liveness::check_liveness(store, bundle, &all_md, reporter);
+    doc_count
+}
 
-    all_md.len()
+/// Runs the per-record frontmatter pass and returns `all_md` without the
+/// records the store refused, which every later check leaves out.
+fn judge_records(
+    store: &dyn DocStore,
+    all_md: Vec<PathBuf>,
+    root_index: &Path,
+    reporter: &mut Reporter,
+) -> Vec<PathBuf> {
+    let refused = records::check_frontmatter_and_format(store, &all_md, root_index, reporter);
+    all_md
+        .into_iter()
+        .filter(|f| !refused.contains(f))
+        .collect()
 }
 
 /// The invariants [`run`] validates, minus the unfilled-placeholder pass, returned as a plain violation list rather

@@ -1,10 +1,12 @@
 //! Store construction over the `.md` tree and the shared failure reporter.
 
 use living_docs_core::store::DocStore;
+use std::path::Path;
 use std::process::ExitCode;
 
-pub(crate) fn build_store() -> Box<dyn DocStore> {
-    Box::new(fs_store::FsStore::new())
+/// The store for one verb run, rooted at the bundle the verb works on.
+pub(crate) fn build_store(bundle: &Path) -> Box<dyn DocStore> {
+    Box::new(fs_store::FsStore::rooted(bundle))
 }
 
 /// Prints a usage-level failure (an invalid or unresolvable argument, e.g.

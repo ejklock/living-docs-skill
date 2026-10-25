@@ -14,7 +14,7 @@ struct FilesJson<'a> {
 }
 
 pub(crate) fn run_index(docs_dir: &Path, doc_type: Option<String>, mode: OutputMode) -> ExitCode {
-    match commands::index::write(build_store().as_ref(), docs_dir, doc_type) {
+    match commands::index::write(build_store(docs_dir).as_ref(), docs_dir, doc_type) {
         Ok(written) => render(&written, mode),
         Err(message) => {
             eprintln!("living-docs index: {message}");

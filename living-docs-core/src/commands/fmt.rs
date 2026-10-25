@@ -21,7 +21,7 @@ use crate::commands::supersede::guard::{refusal_message, unwritable_key};
 use crate::frontmatter::read_scalar_from_str as frontmatter_scalar;
 use crate::line_ending::{refuse_mixed, LineEndingStore};
 use crate::record::{extract_record, to_canonical_markdown, ExtractedRecord};
-use crate::store::DocStore;
+use crate::store::{is_refusal, DocStore};
 pub use repair::Seeds;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -79,6 +79,7 @@ pub fn outcome(
     let Some(paths) = resolve_targets(store, target) else {
         return Err(format!("bundle root not found: {}", target.display()));
     };
+    refuse_unreadable(store, &paths)?;
     refuse_mixed_endings(store, &paths)?;
     let lf_view = LineEndingStore::new(store, false);
     let store: &dyn DocStore = &lf_view;
@@ -108,6 +109,23 @@ fn refusals(store: &dyn DocStore, paths: &[PathBuf], seeds: &Seeds) -> Vec<Strin
             Some(refusal_message(path, &key))
         })
         .collect()
+}
+
+/// Refuses the whole run, before anything is written, when the store refuses
+/// to read a record `fmt` would consider, naming each refused path.
+fn refuse_unreadable(store: &dyn DocStore, paths: &[PathBuf]) -> Result<(), String> {
+    let refused: Vec<String> = paths
+        .iter()
+        .filter(|path| !is_reserved_file(path))
+        .filter_map(|path| store.read(path).err())
+        .filter(is_refusal)
+        .map(|error| error.to_string())
+        .collect();
+    if refused.is_empty() {
+        Ok(())
+    } else {
+        Err(refused.join("\n"))
+    }
 }
 
 /// Refuses the whole run, before anything is written, when a record `fmt`

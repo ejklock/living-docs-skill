@@ -78,7 +78,8 @@ pub(crate) fn run_new(
         owner: args.owner.or(seeded.as_deref()),
         body: body.as_deref(),
     };
-    match commands::new::write(build_store().as_ref(), docs_dir, doc_type, title, &opts) {
+    let store = build_store(docs_dir);
+    match commands::new::write(store.as_ref(), docs_dir, doc_type, title, &opts) {
         Ok(created) => {
             print_created(&created, mode);
             report_indexed("new", &created.indexed, mode, quiet)

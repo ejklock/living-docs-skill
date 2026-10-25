@@ -7,7 +7,6 @@ one slice per fresh context, starting from the skeleton.
 
 ## Open
 
-* [0063 — Implement duplicate-number detection and set number, and renumber this repository's open duplicates](0063-implement-duplicate-number-detection-and-set-number-and-renumber-this-repository-s-open-duplicates.md) - open
 * [0064 — Implement union merge of type indexes and the index-drift violation](0064-implement-union-merge-of-type-indexes-and-the-index-drift-violation.md) - open
 * [0070 — Teach the TYPE/NNNN reference where agents split it: the set usage error and the session hook line](0070-teach-the-type-nnnn-reference-where-agents-split-it-the-set-usage-error-and-the-session-hook-line.md) - open
 * [0075 — index reads a CRLF record's title and status](0075-index-reads-a-crlf-record-s-title-and-status.md) - open
@@ -28,6 +27,7 @@ one slice per fresh context, starting from the skeleton.
 * [0093 — the unnumbered title-heading fallback may rename a section heading such as References](0093-the-unnumbered-title-heading-fallback-may-rename-a-section-heading-such-as-references.md) - open
 * [0094 — the one-way supersede link check lacks tests for its spelling, shared-number and path rules](0094-the-one-way-supersede-link-check-lacks-tests-for-its-spelling-shared-number-and-path-rules.md) - open
 * [0095 — check skips every entry of a supersedes list that mixes record numbers and other values](0095-check-skips-every-entry-of-a-supersedes-list-that-mixes-record-numbers-and-other-values.md) - open
+* [0096 — reserved files such as index.md are written outside the rooted store guard](0096-reserved-files-such-as-index-md-are-written-outside-the-rooted-store-guard.md) - open
 
 ## Closed
 
@@ -93,6 +93,7 @@ one slice per fresh context, starting from the skeleton.
 * [0060 — read --topic matches whole-word prefixes, ranks by weighted term frequency and says when nothing live matches](0060-read-topic-matches-whole-word-prefixes-ranks-by-weighted-term-frequency-and-says-when-nothing-live-matches.md) - closed
 * [0061 — npm package living-docs wraps the release binary and the release workflow publishes it](0061-npm-package-living-docs-wraps-the-release-binary-and-the-release-workflow-publishes-it.md) - closed
 * [0062 — The help documents every argument, vocabulary and reference form, and prints minified JSON off a TTY](0062-the-help-documents-every-argument-vocabulary-and-reference-form-and-prints-minified-json-off-a-tty.md) - closed
+* [0063 — Implement duplicate-number detection and set number, and renumber this repository's open duplicates](0063-implement-duplicate-number-detection-and-set-number-and-renumber-this-repository-s-open-duplicates.md) - closed
 * [0065 — Implement fmt's repair of timestamp, owner and title heading](0065-implement-fmt-s-repair-of-timestamp-owner-and-title-heading.md) - closed
 * [0066 — check accepts a record path and fails on a one-way supersede link, and supersede keeps an earlier supersedes value](0066-check-accepts-a-record-path-and-fails-on-a-one-way-supersede-link-and-supersede-keeps-an-earlier-supersedes-value.md) - closed
 * [0067 — A fresh bundle passes check from its first record: the bundle-root index is written and new constitution uses its own vocabulary and title](0067-a-fresh-bundle-passes-check-from-its-first-record-the-bundle-root-index-is-written-and-new-constitution-uses-its-own-vocabulary-and-title.md) - closed
