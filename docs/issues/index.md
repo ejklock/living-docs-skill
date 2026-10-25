@@ -26,6 +26,7 @@ one slice per fresh context, starting from the skeleton.
 * [0087 — fmt rewrites a record whose frontmatter does not parse and drops its keys](0087-fmt-rewrites-a-record-whose-frontmatter-does-not-parse-and-drops-its-keys.md) - open
 * [0088 — a set read-back test writes a fixed-name temp file and fails when runs overlap](0088-a-set-read-back-test-writes-a-fixed-name-temp-file-and-fails-when-runs-overlap.md) - open
 * [0089 — six functions exceed the 30-line limit because the workspace clippy gate omits too_many_lines](0089-six-functions-exceed-the-30-line-limit-because-the-workspace-clippy-gate-omits-too-many-lines.md) - open
+* [0090 — an index row splits across two lines when a record title holds a line break](0090-an-index-row-splits-across-two-lines-when-a-record-title-holds-a-line-break.md) - open
 
 ## Closed
 

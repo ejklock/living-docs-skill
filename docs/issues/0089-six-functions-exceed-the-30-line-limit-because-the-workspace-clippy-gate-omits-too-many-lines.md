@@ -20,7 +20,7 @@ The gate the done-when commands ran (`cargo clippy --workspace --all-targets -- 
 
 ### Scope
 
-- Each listed function is split to 30 lines or fewer with no behavior change.
+- Each listed function is split to 30 lines or fewer with no behavior change, plus `rewrite_references` in living-docs-core/src/commands/set/retitle/references.rs, which the same flag reports, and any other function the flag reports once these are fixed (clippy stops at the first failing crate, so the cli crate's full list shows only after the core is clean).
 - The workspace clippy gate the project runs enforces `too_many_lines` for every crate.
 
 ### Acceptance
