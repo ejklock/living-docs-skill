@@ -98,11 +98,6 @@ fn set_from_a_file_holding_a_carriage_return_writes_the_escape() {
         .output()
         .unwrap();
     assert!(out.status.success(), "{}", stdout_of(&out));
-    let record = fs::read_dir(docs.join("adr"))
-        .unwrap()
-        .map(|e| e.unwrap().path())
-        .find(|p| p.extension().is_some_and(|x| x == "md"))
-        .unwrap();
-    let text = fs::read_to_string(record).unwrap();
+    let text = fs::read_to_string(docs.join("adr/0001-t.md")).unwrap();
     assert!(has_line(&text, "description: \"a\\rb\""), "{text}");
 }
