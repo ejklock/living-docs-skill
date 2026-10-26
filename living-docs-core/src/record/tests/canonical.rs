@@ -246,3 +246,25 @@ fn to_canonical_markdown_emits_status_from_the_typed_field() {
     let reparsed = extract_record(Path::new("adr/0003-typed-status.md"), &markdown);
     assert_eq!(reparsed.status, Some("Accepted".to_owned()));
 }
+
+#[test]
+fn a_carriage_return_in_a_tail_value_is_escaped_and_reads_back_unchanged() {
+    let mut record = numbered_record();
+    record.frontmatter_tail = vec![
+        (
+            "alias".to_owned(),
+            TailValue::Scalar("a\rb\r\nc".to_owned()),
+        ),
+        (
+            "labels".to_owned(),
+            TailValue::Sequence(vec!["x\ry".to_owned()]),
+        ),
+    ];
+
+    let markdown = to_canonical_markdown(&record);
+    let reparsed = extract_record(Path::new("adr/0001-t.md"), &markdown);
+
+    assert!(markdown.contains("alias: \"a\\rb\\r\\nc\"\n"), "{markdown}");
+    assert!(!markdown.contains('\r'), "{markdown}");
+    assert_eq!(reparsed.frontmatter_tail, record.frontmatter_tail);
+}

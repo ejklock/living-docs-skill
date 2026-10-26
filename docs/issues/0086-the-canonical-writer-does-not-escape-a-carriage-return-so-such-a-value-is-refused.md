@@ -2,7 +2,7 @@
 type: Issue
 title: the canonical writer does not escape a carriage return so such a value is refused
 description: <One sentence — the change and its motivation.>
-status: open
+status: closed
 timestamp: 2026-10-25T02:00:33Z
 ---
 
@@ -24,3 +24,7 @@ Found by the review of the canonical supersedes work (2026-10-24): the canonical
 ### Plan
 
 1. Core: the quoting in the canonical writer, tests red first.
+
+### Outcome
+
+The canonical writer now escapes a carriage return inside a double-quoted value as the two characters `\r` (`quoted` in living-docs-core/src/record/canonical.rs, after the backslash escape), so a value holding one is written, reads back unchanged and is no longer refused by the read-back guard. This covers a description, a tail scalar and flow-list items; a CRLF record keeps its line endings and the escape stays two characters; `set <ref> description --from` a file holding a carriage return writes `description: "a\rb"`. A tab is not refused today, so tabs are left as they are. Tests: cli/tests/fmt_carriage_return.rs (6) and a round-trip unit test in living-docs-core/src/record/tests/canonical.rs; each fails when the escape is reverted. Suite 1192/0, review approved with two nits: a long docblock line in `format_scalar`, and no dedicated test for a carriage return at the start, the end or alone (probed fine).

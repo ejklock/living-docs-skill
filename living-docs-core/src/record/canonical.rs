@@ -201,9 +201,9 @@ fn reads_back_plain(value: &str) -> bool {
 const YAML_INDICATOR_PREFIXES: &str = "!&*-?|>%@`\"'#,[]{}";
 
 /// Renders `value` as a plain YAML scalar when safe, or a double-quoted
-/// scalar (with `\`/`"` escaped) when a plain scalar would be ambiguous —
-/// empty, starting with a YAML indicator character, containing `": "` or a
-/// ` #` comment opener, ending in `:`, or carrying surrounding whitespace.
+/// scalar (with `\`, `"`, line feed and carriage return escaped) when a
+/// plain scalar would be ambiguous — empty, starting with a YAML indicator
+/// character, containing `": "` or a ` #` comment opener, ending in `:`, or carrying surrounding whitespace.
 /// A value whose plain form the reader would return as a different string (a
 /// null, or a number such as `1.50` that reads as `1.5`) is quoted too.
 pub(crate) fn format_scalar(value: &str) -> String {
@@ -227,7 +227,8 @@ fn reads_back_as_block_scalar(value: &str) -> bool {
 
 fn quoted(value: &str) -> String {
     let escaped = value.replace('\\', "\\\\").replace('"', "\\\"");
-    format!("\"{}\"", escaped.replace('\n', "\\n"))
+    let escaped = escaped.replace('\n', "\\n").replace('\r', "\\r");
+    format!("\"{escaped}\"")
 }
 
 fn needs_quoting(value: &str) -> bool {
