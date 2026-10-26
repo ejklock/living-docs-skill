@@ -241,11 +241,16 @@ fn heading_index(lines: &[String], accepts: impl Fn(&str) -> bool) -> Option<usi
     None
 }
 
-/// The `NNNN` a numbered record's heading opens with, as written — `# 0061.
-/// Title` yields `0061`. `None` for a heading with no number prefix.
+/// The `NNNN` a numbered record's heading opens with, as written: `# 0061.
+/// Title` yields `0061`. A heading counts as numbered only when four digits
+/// are followed by a `.`, so a bare `# 0061` is unnumbered text. `None` for a
+/// heading with no number prefix. The line ending is ignored.
 fn heading_number(heading: &str) -> Option<&str> {
-    let rest = heading.trim_start_matches('#').trim_start();
-    let number = rest.split('.').next()?;
+    let rest = heading
+        .trim_end_matches(['\r', '\n'])
+        .trim_start_matches('#')
+        .trim_start();
+    let (number, _) = rest.split_once('.')?;
     (number.len() == 4 && number.chars().all(|c| c.is_ascii_digit())).then_some(number)
 }
 
