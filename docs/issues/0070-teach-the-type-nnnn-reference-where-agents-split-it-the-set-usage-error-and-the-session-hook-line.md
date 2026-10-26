@@ -2,7 +2,7 @@
 type: Issue
 title: "Teach the TYPE/NNNN reference where agents split it: the set usage error and the session hook line"
 description: set adr 0001 status Accepted fails with a bare clap error; the error names the TYPE/NNNN form, and the session hook line shows it with the number key and the merge repair
-status: open
+status: closed
 timestamp: 2026-10-24T10:17:33Z
 ---
 
@@ -29,3 +29,7 @@ Found by the usage audit: `set --help` was read 148 times and `new --help` 195 t
 
 1. CLI: the split-reference hint; tests through the binary.
 2. The hook line and its test, after the number key and the union merge land.
+
+### Outcome
+
+Delivered in 799d1c7 and 201143a. `set` given a type token and a number as two arguments still exits 2, and stderr adds `hint: write the reference as one token: living-docs set adr/0001 status Accepted` (cli/src/split_reference.rs; cli/tests/set_split_reference.rs); the CLI does not accept the split form. The session hook line (skills/living-docs/hooks/session-context.sh) names `TYPE/NNNN`, `set <TYPE/NNNN> number next` and that `living-docs index` repairs an index after a merge, each asserted in cli/tests/session_context_line.rs. Verified 2026-10-26: `set adr 0001 status Accepted` exits 2 with the hint; session_context_line 10/0.

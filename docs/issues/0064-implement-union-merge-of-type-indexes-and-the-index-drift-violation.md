@@ -2,7 +2,7 @@
 type: Issue
 title: Implement union merge of type indexes and the index-drift violation
 description: "Implements ADR 0070: install hooks writes a merge=union .gitattributes line for the bundle's index.md files, uninstall removes it, and check fails on an index that differs from its in-memory regeneration"
-status: open
+status: closed
 timestamp: 2026-10-24T10:17:27Z
 ---
 
@@ -33,3 +33,7 @@ Implements [ADR 0070](/adr/0070-type-indexes-merge-with-the-git-union-driver-and
 1. Core: in-memory index generation shared with `index`; the drift check and its kind; tests red first.
 2. CLI: the attribute line in install and uninstall; the git merge integration test.
 3. Topics and README.
+
+### Outcome
+
+Delivered in cc7361b. `install hooks` adds `<docs-dir>/**/index.md merge=union` to `.gitattributes` once and keeps foreign lines; `uninstall hooks` removes only that line (cli/src/hooks/gitattributes.rs; cli/tests/gitattributes.rs, which also refuses a symlinked attributes file and skips a docs dir outside the project). `check` regenerates each type index in memory with the computation `index` writes and reports a drifted index naming `living-docs index` (living-docs-core/src/check/index_drift.rs; cli/tests/check_index_drift.rs covers a hand-edited status, a duplicated row, rows out of order, a kept preamble, CRLF, `--changed-files` scoping and this repository's own docs). The real-git test merges two branches that each ran `new issue` without a conflict, `check` then names the repair, and `index` plus `set number next` make it pass. The procedure topic and the README describe the merge flow. Verified 2026-10-26: check_index_drift 22/0, gitattributes 19/0.
