@@ -53,19 +53,25 @@ fn seed_timestamp(record: &mut ExtractedRecord, path: &Path, seeds: &Seeds) {
     let Some(added_at) = seeds.added_at else {
         return;
     };
-    if record
+    let existing = record
         .frontmatter_tail
         .iter()
-        .any(|(key, _)| key == TIMESTAMP_KEY)
-    {
+        .position(|(key, _)| key == TIMESTAMP_KEY);
+    if existing.is_some_and(|at| !is_blank_scalar(&record.frontmatter_tail[at].1)) {
         return;
     }
     let Some(stamp) = added_at(path).or_else(|| now_iso8601().ok()) else {
         return;
     };
-    record
-        .frontmatter_tail
-        .push((TIMESTAMP_KEY.to_owned(), TailValue::Scalar(stamp)));
+    let seeded = (TIMESTAMP_KEY.to_owned(), TailValue::Scalar(stamp));
+    match existing {
+        Some(at) => record.frontmatter_tail[at] = seeded,
+        None => record.frontmatter_tail.push(seeded),
+    }
+}
+
+fn is_blank_scalar(value: &TailValue) -> bool {
+    matches!(value, TailValue::Scalar(text) if text.trim().is_empty())
 }
 
 fn seed_owner(record: &mut ExtractedRecord, seeds: &Seeds) {

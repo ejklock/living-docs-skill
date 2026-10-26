@@ -288,9 +288,10 @@ fn strip_number<'a>(text: &'a str, separator: &str) -> &'a str {
 }
 
 mod canonical;
-use canonical::extract_frontmatter_tail;
+mod tail;
 pub use canonical::to_canonical_markdown;
 pub(crate) use canonical::{format_flow_list, format_scalar, kept_tag, record_numbers};
+use tail::extract_frontmatter_tail;
 
 #[cfg(test)]
 mod tests;

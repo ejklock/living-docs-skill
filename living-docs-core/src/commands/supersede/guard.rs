@@ -131,7 +131,11 @@ const SCALAR_KEYS: [&str; 6] = [
 /// The first frontmatter key of `before` that its canonical form `canonical`
 /// does not read back as: scalar keys compare as strings, list items with their
 /// YAML type, tags in canonical order. The typed identity and a value the
-/// canonical pass drops by design (null, empty, a mapping) are not compared.
+/// canonical pass drops by design (null, a mapping) are not compared. A tail
+/// key whose value is the empty string is compared, as the canonical pass
+/// keeps it; a scalar `supersedes` that is empty is not, as the canonical pass
+/// drops it. A blank `timestamp` (empty or whitespace only) is not compared
+/// because the canonical pass reseeds it.
 /// A blank scalar is not compared either: the canonical pass reseeds a blank
 /// title. `None` when `before` has no readable frontmatter.
 pub(crate) fn unwritable_key(before: &str, canonical: &str) -> Option<String> {
@@ -165,8 +169,10 @@ fn compared(key: &str, was: &Value) -> bool {
         _ if SCALAR_KEYS.contains(&key) => {
             scalar_to_string(was).is_some_and(|text| !text.trim().is_empty())
         }
+        "timestamp" if matches!(was, Value::String(text) if text.trim().is_empty()) => false,
+        SUPERSEDES_KEY if matches!(was, Value::String(text) if text.is_empty()) => false,
         _ => match was {
-            Value::String(text) => !text.is_empty(),
+            Value::String(_) => true,
             Value::Sequence(items) => !items.is_empty(),
             Value::Null | Value::Mapping(_) | Value::Tagged(_) => false,
             _ => true,
@@ -250,11 +256,45 @@ mod tests {
     }
 
     #[test]
+    fn a_blank_timestamp_is_not_compared_because_fmt_reseeds_it() {
+        for blank in ["\"\"", "\"  \""] {
+            let before = block(&format!("timestamp: {blank}"));
+            let draft = block("timestamp: 2026-01-01T00:00:00Z");
+
+            assert_eq!(unwritable_key(&before, &draft), None, "{blank}");
+        }
+    }
+
+    #[test]
+    fn a_whitespace_only_tail_value_other_than_timestamp_is_still_compared() {
+        let before = block("alias: \"  \"");
+        let draft = block("alias: x");
+
+        assert_eq!(unwritable_key(&before, &draft).as_deref(), Some("alias"));
+    }
+
+    #[test]
     fn a_draft_that_keeps_a_carried_supersedes_value_is_accepted() {
         let path = Path::new("/bundle/adr/0004-x.md");
         let before = record_with("supersedes: [0001, \"\"]");
         let written = [("description", "d".to_owned())];
 
         assert_eq!(unread_key(path, &before, &before, &written, &[]), None);
+    }
+
+    #[test]
+    fn a_draft_that_drops_or_rewrites_an_empty_tail_value_is_refused() {
+        let before = block("alias: \"\"");
+        let read = |draft: &str| unwritable_key(&before, &block(draft));
+        assert_eq!(read("alias: \"\""), None);
+        assert_eq!(read("").as_deref(), Some("alias"));
+        assert_eq!(read("alias: x").as_deref(), Some("alias"));
+    }
+
+    #[test]
+    fn a_blank_typed_or_scalar_supersedes_value_is_not_compared() {
+        for blank in ["description: \"\"", "supersedes: \"\""] {
+            assert_eq!(unwritable_key(&block(blank), &block("")), None);
+        }
     }
 }

@@ -2,6 +2,18 @@ use super::super::*;
 use super::{assert_round_trips, issue_record_with_list_valued_tail, numbered_record};
 
 #[test]
+fn an_empty_string_tail_value_round_trips_and_a_null_one_is_dropped() {
+    let source = "---\ntype: ADR\ntitle: T\ndescription: d.\nalias: ''\nnote:\n---\n\nBody.\n";
+    let record = extract_record(Path::new("adr/0001-t.md"), source);
+
+    assert_eq!(
+        record.frontmatter_tail,
+        vec![("alias".to_owned(), TailValue::Scalar(String::new()))]
+    );
+    assert!(to_canonical_markdown(&record).contains("alias: \"\"\n"));
+}
+
+#[test]
 fn to_canonical_markdown_emits_the_fixed_field_order() {
     let record = numbered_record();
 
