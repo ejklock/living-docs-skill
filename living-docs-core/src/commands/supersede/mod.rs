@@ -57,9 +57,28 @@ pub fn supersede(
     refuse_mixed(store, &new_path)?;
     let store: &dyn DocStore = &LineEndingStore::new(store, false);
 
+    let drafts = draft_link_pair(store, (&old_path, old_number), (&new_path, new_number))?;
+    write_link_pair(store, &old_path, &new_path, drafts)?;
+
+    let indexed = refresh_for_records(store, docs_dir, &[&old_path, &new_path]);
+    Ok(Superseded {
+        old: old_path,
+        new: new_path,
+        indexed,
+    })
+}
+
+/// Drafts both sides of a supersede link without writing: the retired record
+/// marked superseded by the replacement, and the replacement listing the
+/// retired record. Returns `(retired_draft, replacement_draft)`.
+fn draft_link_pair(
+    store: &dyn DocStore,
+    (old_path, old_number): (&Path, u32),
+    (new_path, new_number): (&Path, u32),
+) -> Result<(String, String), String> {
     let old_draft = draft_frontmatter_fields(
         store,
-        &old_path,
+        old_path,
         &[
             ("status", "Superseded".to_string()),
             ("superseded_by", format!("{new_number:04}")),
@@ -68,24 +87,26 @@ pub fn supersede(
     )?;
     let new_draft = draft_frontmatter_fields(
         store,
-        &new_path,
-        &[("supersedes", supersedes_with(store, &new_path, old_number)?)],
+        new_path,
+        &[("supersedes", supersedes_with(store, new_path, old_number)?)],
         &[],
     )?;
-    store
-        .write(&old_path, &old_draft)
-        .map_err(|e| e.to_string())?;
-    callout::reconcile(store, &old_path)?;
-    store
-        .write(&new_path, &new_draft)
-        .map_err(|e| e.to_string())?;
+    Ok((old_draft, new_draft))
+}
 
-    let indexed = refresh_for_records(store, docs_dir, &[&old_path, &new_path]);
-    Ok(Superseded {
-        old: old_path,
-        new: new_path,
-        indexed,
-    })
+/// Writes the retired record's draft and its callout, then the replacement's
+/// draft.
+fn write_link_pair(
+    store: &dyn DocStore,
+    old_path: &Path,
+    new_path: &Path,
+    (old_draft, new_draft): (String, String),
+) -> Result<(), String> {
+    store
+        .write(old_path, &old_draft)
+        .map_err(|e| e.to_string())?;
+    callout::reconcile(store, old_path)?;
+    store.write(new_path, &new_draft).map_err(|e| e.to_string())
 }
 
 /// The `supersedes` value to write on the replacing record at `path`: the

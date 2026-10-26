@@ -74,6 +74,23 @@ fn assert_twins(lf: &Tree, crlf: &Tree) {
 
 const ADR_FILES: [&str; 3] = ["adr/0001-one.md", "adr/0002-two.md", "adr/index.md"];
 
+/// The tree holds at least one file under `adr/`, and each keeps CRLF endings
+/// with no bare LF.
+fn assert_typed_files_stay_crlf(crlf: &Tree) {
+    let typed: Vec<_> = crlf
+        .iter()
+        .filter(|(rel, _)| rel.starts_with("adr/"))
+        .collect();
+    assert!(!typed.is_empty());
+    for (rel, text) in typed {
+        assert!(text.contains("\r\n"), "{rel} stays CRLF");
+        assert!(
+            !text.replace("\r\n", "").contains('\n'),
+            "{rel} has a bare LF"
+        );
+    }
+}
+
 #[test]
 fn crlf_adr_writes_equal_the_lf_twin_with_crlf() {
     let section = std::env::temp_dir().join("living-docs-set-read-back-section.txt");
@@ -89,18 +106,7 @@ fn crlf_adr_writes_equal_the_lf_twin_with_crlf() {
     for (n, args) in commands.iter().enumerate() {
         let (lf, crlf) = twin_run(&format!("adr{n}"), "adr", &ADR_FILES, args);
         assert_twins(&lf, &crlf);
-        let typed: Vec<_> = crlf
-            .iter()
-            .filter(|(rel, _)| rel.starts_with("adr/"))
-            .collect();
-        assert!(!typed.is_empty());
-        for (rel, text) in typed {
-            assert!(text.contains("\r\n"), "{rel} stays CRLF");
-            assert!(
-                !text.replace("\r\n", "").contains('\n'),
-                "{rel} has a bare LF"
-            );
-        }
+        assert_typed_files_stay_crlf(&crlf);
         let root = |tree: &Tree| tree.iter().find(|(rel, _)| rel == "index.md").cloned();
         assert_eq!(
             root(&crlf),

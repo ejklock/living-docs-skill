@@ -117,27 +117,11 @@ fn apply_change(
 }
 
 pub(crate) fn run_set(docs_dir: &Path, args: &SetArgs, mode: OutputMode, quiet: bool) -> ExitCode {
-    let key = args.key;
     let result = resolve_change(args)
         .and_then(|change| apply_change(docs_dir, args, &change).map(|applied| (change, applied)));
     match result {
         Ok((change, applied)) => {
-            let value = change.value.as_str();
-            if mode.is_json() {
-                println!(
-                    "{}",
-                    output::to_json(&SetJson {
-                        path: &applied.path,
-                        key,
-                        value,
-                        rewritten: &applied.rewritten,
-                        indexed: &applied.indexed.written,
-                    })
-                );
-            } else {
-                println!("{}", applied.path.display());
-                report_rewritten(&applied);
-            }
+            print_applied(&applied, args.key, &change.value, mode);
             report_indexed("set", &applied.indexed, mode, quiet)
         }
         Err(message) => {
@@ -148,5 +132,23 @@ pub(crate) fn run_set(docs_dir: &Path, args: &SetArgs, mode: OutputMode, quiet: 
             }
             ExitCode::from(2)
         }
+    }
+}
+
+fn print_applied(applied: &commands::set::Applied, key: &str, value: &str, mode: OutputMode) {
+    if mode.is_json() {
+        println!(
+            "{}",
+            output::to_json(&SetJson {
+                path: &applied.path,
+                key,
+                value,
+                rewritten: &applied.rewritten,
+                indexed: &applied.indexed.written,
+            })
+        );
+    } else {
+        println!("{}", applied.path.display());
+        report_rewritten(applied);
     }
 }

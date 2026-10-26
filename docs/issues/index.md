@@ -14,7 +14,6 @@ one slice per fresh context, starting from the skeleton.
 * [0083 — The guides prescribe /-bundle-relative links, but index and supersede write sibling-relative links and check accepts every style](0083-the-guides-prescribe-bundle-relative-links-but-index-and-supersede-write-sibling-relative-links-and-check-accepts-every-style.md) - open
 * [0087 — fmt rewrites a record whose frontmatter does not parse and drops its keys](0087-fmt-rewrites-a-record-whose-frontmatter-does-not-parse-and-drops-its-keys.md) - open
 * [0088 — a set read-back test writes a fixed-name temp file and fails when runs overlap](0088-a-set-read-back-test-writes-a-fixed-name-temp-file-and-fails-when-runs-overlap.md) - open
-* [0089 — six functions exceed the 30-line limit because the workspace clippy gate omits too_many_lines](0089-six-functions-exceed-the-30-line-limit-because-the-workspace-clippy-gate-omits-too-many-lines.md) - open
 * [0090 — an index row splits across two lines when a record title holds a line break](0090-an-index-row-splits-across-two-lines-when-a-record-title-holds-a-line-break.md) - open
 * [0091 — the file-size and allow-inventory gates fail inside a git worktree under .claude/worktrees](0091-the-file-size-and-allow-inventory-gates-fail-inside-a-git-worktree-under-claude-worktrees.md) - open
 * [0092 — index derives a row title from a fenced heading and leaves it empty without one](0092-index-derives-a-row-title-from-a-fenced-heading-and-leaves-it-empty-without-one.md) - open
@@ -106,3 +105,4 @@ one slice per fresh context, starting from the skeleton.
 * [0084 — fmt drops a tail key whose value is the empty string](0084-fmt-drops-a-tail-key-whose-value-is-the-empty-string.md) - closed
 * [0085 — fmt rewrites the title heading of a record titled with digits only on every run](0085-fmt-rewrites-the-title-heading-of-a-record-titled-with-digits-only-on-every-run.md) - closed
 * [0086 — the canonical writer does not escape a carriage return so such a value is refused](0086-the-canonical-writer-does-not-escape-a-carriage-return-so-such-a-value-is-refused.md) - closed
+* [0089 — six functions exceed the 30-line limit because the workspace clippy gate omits too_many_lines](0089-six-functions-exceed-the-30-line-limit-because-the-workspace-clippy-gate-omits-too-many-lines.md) - closed

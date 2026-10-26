@@ -7,6 +7,29 @@ use pulldown_cmark::{Event, Parser, Tag, TagEnd};
 use std::ops::Range;
 use std::path::{Path, PathBuf};
 
+/// `contents` of `path` with references to the renamed file repointed: only
+/// links resolving to it when another file shares the old name, every bounded
+/// mention otherwise.
+fn rewritten_contents(
+    path: &Path,
+    contents: &str,
+    bundle: &str,
+    (old_name, new_name): &(String, String),
+    (old_resolved, shared): (&Option<String>, bool),
+) -> String {
+    match (old_resolved, shared) {
+        (Some(old_resolved), true) => {
+            let file = path.to_string_lossy();
+            let at = (&*file, bundle, old_resolved.as_str());
+            repoint_links(contents, at, (old_name, new_name))
+        }
+        (_, true) => contents.to_string(),
+        (_, false) => replace_bounded(contents, old_name, new_name, |before, _| {
+            !before.is_some_and(|c| c.is_ascii_alphanumeric() || c == '-')
+        }),
+    }
+}
+
 /// Rewrites every bundle record that names the old filename, the renamed
 /// record's own body included, so no link is broken by the rename. When no
 /// other bundle file shares the old basename, every whole-name mention is
@@ -32,20 +55,12 @@ pub(super) fn rewrite_references(
     let old_resolved = old_path.strip_prefix(docs_dir).ok().and_then(|relative| {
         resolve_destination("", &format!("/{}", relative.to_string_lossy()), &bundle)
     });
+    let names = (old_name, new_name);
     let mut rewritten = Vec::new();
     for path in listed {
         let contents = store.read(&path).map_err(|e| e.to_string())?;
-        let updated = match (&old_resolved, shared) {
-            (Some(old_resolved), true) => {
-                let file = path.to_string_lossy();
-                let at = (&*file, &*bundle, old_resolved.as_str());
-                repoint_links(&contents, at, (&old_name, &new_name))
-            }
-            (_, true) => contents.clone(),
-            (_, false) => replace_bounded(&contents, &old_name, &new_name, |before, _| {
-                !before.is_some_and(|c| c.is_ascii_alphanumeric() || c == '-')
-            }),
-        };
+        let updated =
+            rewritten_contents(&path, &contents, &bundle, &names, (&old_resolved, shared));
         if updated != contents {
             store.write(&path, &updated).map_err(|e| e.to_string())?;
             rewritten.push(path);

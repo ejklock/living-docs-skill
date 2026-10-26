@@ -17,6 +17,32 @@ fn stderr_of(output: &Output) -> String {
     String::from_utf8_lossy(&output.stderr).to_string()
 }
 
+fn hint_command(out: &Output) -> String {
+    hint_line(out)
+        .trim_start_matches("hint: write the reference as one token: living-docs ")
+        .to_string()
+}
+
+fn any_record_contains(dir: &std::path::Path, needle: &str) -> bool {
+    std::fs::read_dir(dir)
+        .unwrap()
+        .map(|entry| std::fs::read_to_string(entry.unwrap().path()).unwrap())
+        .any(|text| text.contains(needle))
+}
+
+/// A temp root and its `my docs` bundle (a path with a space) holding one ADR.
+fn bundle_with_first_decision(label: &str) -> (std::path::PathBuf, std::path::PathBuf) {
+    let root = common::temp_bundle("split", label)
+        .parent()
+        .unwrap()
+        .to_path_buf();
+    let docs = root.join("my docs");
+    assert!(common::run_new(&docs, "adr", "First Decision")
+        .status
+        .success());
+    (root, docs)
+}
+
 #[test]
 fn a_split_adr_reference_exits_2_and_shows_the_one_token_command() {
     let out = run(&["set", "adr", "0001", "status", "Accepted"]);
@@ -135,21 +161,14 @@ fn the_printed_hint_runs_in_a_shell_with_the_same_effect_as_the_one_token_form()
         "title",
         "It's Two Words",
     ]);
-    let script = format!(
-        "\"$LD_BIN\" {}",
-        hint_line(&split)
-            .trim_start_matches("hint: write the reference as one token: living-docs ")
-    );
+    let script = format!("\"$LD_BIN\" {}", hint_command(&split));
     let ran = Command::new("sh")
         .args(["-c", &script])
         .env("LD_BIN", env!("CARGO_BIN_EXE_living-docs"))
         .output()
         .expect("failed to run sh");
     assert_eq!(ran.status.code(), Some(0), "{}", stderr_of(&ran));
-    let retitled = std::fs::read_dir(docs.join("adr"))
-        .unwrap()
-        .map(|entry| std::fs::read_to_string(entry.unwrap().path()).unwrap())
-        .any(|text| text.contains("It's Two Words"));
+    let retitled = any_record_contains(&docs.join("adr"), "It's Two Words");
     assert!(retitled, "the shell-run hint did not retitle the record");
 }
 
@@ -234,14 +253,7 @@ fn a_successful_set_prints_no_hint() {
 
 #[test]
 fn the_runtime_hint_run_by_a_shell_matches_the_one_token_form() {
-    let root = common::temp_bundle("split", "runtime-shell")
-        .parent()
-        .unwrap()
-        .to_path_buf();
-    let docs = root.join("my docs");
-    assert!(common::run_new(&docs, "adr", "First Decision")
-        .status
-        .success());
+    let (root, docs) = bundle_with_first_decision("runtime-shell");
     let source = root.join("text.md");
     std::fs::write(&source, "Replaced description.").unwrap();
     let split = run(&[
@@ -255,9 +267,7 @@ fn the_runtime_hint_run_by_a_shell_matches_the_one_token_form() {
         source.to_str().unwrap(),
     ]);
     assert_eq!(split.status.code(), Some(2));
-    let command = hint_line(&split)
-        .trim_start_matches("hint: write the reference as one token: living-docs ")
-        .to_string();
+    let command = hint_command(&split);
     let script = root.join("hint.sh");
     std::fs::write(&script, format!("\"$LD_BIN\" {command}\n")).unwrap();
     let ran = Command::new("sh")
@@ -266,9 +276,6 @@ fn the_runtime_hint_run_by_a_shell_matches_the_one_token_form() {
         .output()
         .expect("failed to run sh");
     assert_eq!(ran.status.code(), Some(0), "{}", stderr_of(&ran));
-    let written = std::fs::read_dir(docs.join("adr"))
-        .unwrap()
-        .map(|entry| std::fs::read_to_string(entry.unwrap().path()).unwrap())
-        .any(|text| text.contains("Replaced description."));
+    let written = any_record_contains(&docs.join("adr"), "Replaced description.");
     assert!(written, "the shell-run hint did not write the description");
 }

@@ -87,6 +87,22 @@ fn create_root(
     Ok(Some(root.to_path_buf()))
 }
 
+/// The text to append to `existing`: `missing` preceded by a newline when the
+/// file lacks a final one, in the file's own line ending.
+fn appended_text(existing: &str, missing: &str) -> String {
+    let separator = if existing.is_empty() || existing.ends_with('\n') {
+        ""
+    } else {
+        "\n"
+    };
+    let addition = format!("{separator}{missing}");
+    if existing.contains("\r\n") {
+        addition.replace('\n', "\r\n")
+    } else {
+        addition
+    }
+}
+
 fn append_unreached(
     docs_dir: &Path,
     root: &Path,
@@ -106,17 +122,7 @@ fn append_unreached(
     if missing.is_empty() {
         return Ok(None);
     }
-    let separator = if existing.is_empty() || existing.ends_with('\n') {
-        ""
-    } else {
-        "\n"
-    };
-    let addition = format!("{separator}{missing}");
-    let addition = if existing.contains("\r\n") {
-        addition.replace('\n', "\r\n")
-    } else {
-        addition
-    };
+    let addition = appended_text(&existing, &missing);
     let mut file = OpenOptions::new()
         .append(true)
         .open(root)

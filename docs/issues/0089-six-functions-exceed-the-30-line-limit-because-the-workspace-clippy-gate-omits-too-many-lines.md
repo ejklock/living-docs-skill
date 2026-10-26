@@ -2,7 +2,7 @@
 type: Issue
 title: six functions exceed the 30-line limit because the workspace clippy gate omits too_many_lines
 description: <One sentence — the change and its motivation.>
-status: open
+status: closed
 timestamp: 2026-10-25T02:00:40Z
 ---
 
@@ -32,3 +32,7 @@ The gate the done-when commands ran (`cargo clippy --workspace --all-targets -- 
 
 1. Split each function, one commit.
 2. Add the flag to the workspace clippy target.
+
+### Outcome
+
+Every function in the workspace is now 30 lines or fewer, and the workspace enforces it: the root Cargo.toml declares `[workspace.lints.clippy] too_many_lines = "warn"` and each member opts in with `[lints] workspace = true`, so `cargo clippy --workspace --all-targets -- -D warnings` fails on a longer function in any crate, tests included, the same as CI's `make cli-clippy`. Split with no behavior change: `supersede` (living-docs-core/src/commands/supersede/mod.rs, both drafts still built before any write), `append_unreached` (index/root.rs), `rewrite_references` (set/retitle/references.rs), `run_set` (cli/src/commands/set.rs) and three tests in cli/tests/set_read_back/crlf.rs and cli/tests/set_split_reference.rs; no `#[allow]` was added. Found blocking the ship of the usage-audit branch, where CI's clippy failed on the first three. Suite 1192/0 with the same test names before and after; review approved, its docblock finding fixed.
