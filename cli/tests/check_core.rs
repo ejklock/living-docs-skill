@@ -215,7 +215,7 @@ fn supersede_status_is_case_insensitive_and_a_valid_chain_is_clean() {
     write(
         &bundle,
         "0002-new.md",
-        "---\ntype: ADR\ntitle: New\ndescription: \"\"\n---\n\n# New\n\n## Context\n\nc.\n\n## Decision\n\nd.\n\n## Consequences\n\nq.\n",
+        "---\ntype: ADR\ntitle: New\ndescription: \"\"\nsupersedes: 0001\n---\n\n# New\n\n## Context\n\nc.\n\n## Decision\n\nd.\n\n## Consequences\n\nq.\n",
     );
 
     let output = run_check(&bundle);

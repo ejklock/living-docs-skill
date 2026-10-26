@@ -106,7 +106,6 @@ fn path_forms_each_close_the_same_record() {
         "issues/0049-flaky-upload.md",
         repo_relative.as_str(),
         absolute.as_str(),
-        "issues/0049-renamed-slug.md",
         "0049",
     ] {
         let reopened = fs::read_to_string(&issue)
@@ -127,7 +126,7 @@ fn path_forms_each_close_the_same_record() {
 fn path_relative_to_the_repo_root_resolves() {
     let (docs, issue) = bundle_with_issue_0049("path-repo");
     let bundle_name = docs.file_name().unwrap().to_str().unwrap();
-    let reference = format!("{bundle_name}/issues/0049-x.md");
+    let reference = format!("{bundle_name}/issues/0049-flaky-upload.md");
     let output = living_docs()
         .current_dir(docs.parent().unwrap())
         .args([

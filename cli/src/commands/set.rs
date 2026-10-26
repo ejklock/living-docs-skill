@@ -1,6 +1,7 @@
 //! `set` verb wrapper: delegates to `living_docs_core::commands::set::apply`,
-//! rendering the written record as colored text or JSON (ADR 0060).
+//! rendering the written record as colored text or JSON.
 
+use crate::args::split_reference;
 use crate::commands::prose;
 use crate::commands::report::report_indexed;
 use crate::output::{self, OutputMode};
@@ -16,14 +17,14 @@ struct SetJson<'a> {
     key: &'a str,
     value: &'a str,
     /// The other bundle records whose reference to the renamed file was
-    /// rewritten by a retitle (ADR 0061); empty for every other key.
+    /// rewritten by a retitle; empty for every other key.
     rewritten: &'a [PathBuf],
     indexed: &'a [PathBuf],
 }
 
 /// Names what a retitle rewrote and the search for what it could not reach:
 /// a reference outside the bundle — another repo's README, a code comment, a
-/// published URL — is beyond any scan the tool owns (ADR 0061).
+/// published URL — is beyond any scan the tool owns.
 fn report_rewritten(applied: &commands::set::Applied) {
     let Some(previous) = applied.previous.as_ref().and_then(|path| path.file_name()) else {
         return;
@@ -96,7 +97,7 @@ fn apply_change(
     args: &SetArgs,
     change: &Change,
 ) -> Result<commands::set::Applied, String> {
-    let store = build_store();
+    let store = build_store(docs_dir);
     match &change.text {
         Some(text) => commands::set::apply_section(
             store.as_ref(),
@@ -116,32 +117,38 @@ fn apply_change(
 }
 
 pub(crate) fn run_set(docs_dir: &Path, args: &SetArgs, mode: OutputMode, quiet: bool) -> ExitCode {
-    let key = args.key;
     let result = resolve_change(args)
         .and_then(|change| apply_change(docs_dir, args, &change).map(|applied| (change, applied)));
     match result {
         Ok((change, applied)) => {
-            let value = change.value.as_str();
-            if mode.is_json() {
-                println!(
-                    "{}",
-                    output::to_json(&SetJson {
-                        path: &applied.path,
-                        key,
-                        value,
-                        rewritten: &applied.rewritten,
-                        indexed: &applied.indexed.written,
-                    })
-                );
-            } else {
-                println!("{}", applied.path.display());
-                report_rewritten(&applied);
-            }
+            print_applied(&applied, args.key, &change.value, mode);
             report_indexed("set", &applied.indexed, mode, quiet)
         }
         Err(message) => {
             eprintln!("living-docs set: {message}");
+            let argv: Vec<_> = std::env::args_os().collect();
+            if let Some(hint) = split_reference::hint(&argv) {
+                eprintln!("{hint}");
+            }
             ExitCode::from(2)
         }
+    }
+}
+
+fn print_applied(applied: &commands::set::Applied, key: &str, value: &str, mode: OutputMode) {
+    if mode.is_json() {
+        println!(
+            "{}",
+            output::to_json(&SetJson {
+                path: &applied.path,
+                key,
+                value,
+                rewritten: &applied.rewritten,
+                indexed: &applied.indexed.written,
+            })
+        );
+    } else {
+        println!("{}", applied.path.display());
+        report_rewritten(applied);
     }
 }

@@ -161,6 +161,45 @@ fn check_heading_matches_title_advises_on_a_live_heading_drift() {
     assert!(messages[0].contains("HEADING"), "{messages:?}");
 }
 
+fn heading_advisories_for(path: &str, record: &str) -> Vec<String> {
+    let (store, all_md) = MapStore::seeded(&[(path, record)]);
+    let mut reporter = Reporter::new();
+    check_heading_matches_title(&store, &all_md, &mut reporter);
+    heading_advisories(&reporter)
+        .into_iter()
+        .map(str::to_owned)
+        .collect()
+}
+
+const HAND_FRONT: &str = "---\ntype: ADR\ntitle: Hand\nstatus: Accepted\n---\n\n";
+
+#[test]
+fn check_heading_ignores_a_fenced_numbered_line_before_the_real_heading() {
+    let record = format!("{HAND_FRONT}```\n# 0003. Fake\n```\n\n# 0003. Hand\n");
+    assert!(heading_advisories_for("/b/adr/0003-hand.md", &record).is_empty());
+}
+
+#[test]
+fn check_heading_names_the_real_heading_when_the_fenced_one_also_differs() {
+    let record = format!("{HAND_FRONT}```\n# 0003. Fake\n```\n\n# 0003. Real\n");
+    let messages = heading_advisories_for("/b/adr/0003-hand.md", &record);
+    assert_eq!(messages.len(), 1, "{messages:?}");
+    assert!(messages[0].contains("'Real'"), "{messages:?}");
+}
+
+#[test]
+fn check_heading_ignores_a_record_whose_only_heading_is_a_section() {
+    let record = format!("{HAND_FRONT}## Context\n\nText.\n");
+    assert!(heading_advisories_for("/b/adr/0003-hand.md", &record).is_empty());
+}
+
+#[test]
+fn check_heading_keeps_judging_an_unnumbered_record_by_its_first_heading() {
+    let record = "---\ntype: Architecture View\ntitle: Overview\n---\n\n# Something else\n";
+    let messages = heading_advisories_for("/b/architecture/overview.md", record);
+    assert_eq!(messages.len(), 1, "{messages:?}");
+}
+
 #[test]
 fn check_heading_matches_title_skips_a_deprecated_records_drift() {
     assert_heading_drift("Deprecated", &[]);

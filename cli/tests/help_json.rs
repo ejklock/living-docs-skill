@@ -67,7 +67,7 @@ fn command_named<'a>(doc: &'a Value, name: &str) -> &'a Value {
 }
 
 #[test]
-fn piped_root_help_is_one_json_line_naming_every_verb_and_hiding_aliases() {
+fn piped_root_help_is_one_json_line_naming_every_verb_and_hiding_retired_names() {
     let doc = json_of(&["--help"]);
 
     assert_eq!(doc["name"], "living-docs");

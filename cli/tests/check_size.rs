@@ -19,6 +19,7 @@ fn adr_with_body_lines(body_lines: usize) -> String {
 }
 
 fn assert_no_size_note(bundle: &Path) {
+    common::index_bundle(bundle);
     let output = run_check(bundle);
     assert_eq!(output.status.code(), Some(0));
     assert!(!stdout_of(&output).contains("SIZE"));
@@ -34,6 +35,7 @@ fn indexed_bundle_with(label: &str, record: &str) -> PathBuf {
         "# ADR Index\n\n- [Doc](/adr/0001-doc.md)\n",
     );
     write(&bundle, "adr/0001-doc.md", record);
+    common::index_bundle(&bundle);
     bundle
 }
 

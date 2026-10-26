@@ -1,3 +1,6 @@
 [workspace]
 resolver = "2"
 members = ["cli", "fs-store", "living-docs-core"]
+
+[workspace.lints.clippy]
+too_many_lines = "warn"

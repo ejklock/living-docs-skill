@@ -1,14 +1,14 @@
 use crate::skill;
 use serde_json::{json, Value};
 use std::borrow::Cow;
-use std::fs;
-use std::io;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::{fs, io};
+
+pub(crate) mod gitattributes;
 
 const HOOK_ASSET_PATHS: [&str; 1] = ["living-docs/hooks/session-context.sh"];
-
 const PRE_COMMIT_ASSET_PATH: &str = "living-docs/hooks/pre-commit";
 const GIT_HOOKS_DEST_SUBDIR: &str = ".githooks";
 const GIT_HOOKS_PATH_VALUE: &str = ".githooks";
@@ -192,9 +192,7 @@ fn write_script_to(dest_dir: &Path, script: &HookScript) -> io::Result<()> {
 /// Best-effort `git config core.hooksPath`; any failure is a warning only,
 /// never fatal (the installer must succeed outside a git repo).
 fn arm_git_hooks_path(project_root: &Path, quiet: bool) {
-    let outcome = std::process::Command::new("git")
-        .arg("-C")
-        .arg(project_root)
+    let outcome = crate::doc_gate::git_in(project_root)
         .args(["config", "core.hooksPath", GIT_HOOKS_PATH_VALUE])
         .output();
     match outcome {

@@ -21,6 +21,7 @@ the CLI's job; the judgment prose (the "why") is yours to write directly in the 
   "<heading>" --from PATH|-` replaces that section's text, or appends the section when the record
   lacks it. A heading is matched case-insensitively, as `check` matches a required section.
   The CLI places the text where told and writes none of it.
+- **Repair a duplicate record number with `living-docs set <path> number next`.** Two records of one type that share a number (parallel branches each ran `new`) make a reference by number ambiguous, so name the record to move by its path: `set <path> number next` (or `number NNNN`) renames the file, rewrites its heading number and every in-bundle link, and regenerates the index, on any status. A record in a `supersedes`/`superseded_by` link is refused until that link is renumbered by hand.
 - **Write the body prose directly.** The CLI must never author rationale, so there is no
   paragraph-editing verb — editing the body is a normal edit, not a process error. What *is* a
   process error is hand-numbering a doc, hand-writing frontmatter, hand-maintaining an index row,
@@ -28,6 +29,14 @@ the CLI's job; the judgment prose (the "why") is yours to write directly in the 
   each paragraph as ONE line — never hard-wrap prose at a fixed column; the reading surface
   soft-wraps. `living-docs fmt` unwraps hard-wrapped paragraphs (ADR 0046), so a wrapped body is
   a `fmt` diff, not a style choice.
+- **Repair a hand-written or migrated record with `living-docs fmt`** (`fmt --check` lists what
+  it would change and writes nothing). `fmt` repairs three CLI-owned fields: it seeds a missing
+  `timestamp` from the author date of the commit that added the file (the clock when the file was
+  never committed), seeds a missing `owner` on a type that requires one from git `user.name`,
+  then `user.email`, and rewrites the title heading to the frontmatter title (a record with no
+  `title` takes it from its heading). The title heading is the first `NNNN.` heading of the record's own number, else its first unnumbered `# ` heading; a section heading is never renamed. A retired record's heading is left as history. A present timestamp, owner or title is never changed, and no
+  other prose changes: missing sections, unfilled slots and the description stay the author's to
+  write.
 - **When a deterministic frontmatter mutation has no verb yet** and you keep doing it by hand,
   add it as a `living-docs set` key rather than normalizing the hand-edit.
 
@@ -53,4 +62,5 @@ An existing codebase already embodies decisions that were never written down. Th
 1. **Before coding:** read the relevant constitution and ADRs (`living-docs read` gives the in-force view; `read --contract` adds each record's contract sections). Decisions there are not to be re-opened casually. If a link or a search lands on a raw record whose body opens with a `SUPERSEDED` or `DEPRECATED` callout, treat it as history: follow the successor link or discard the record, never plan on it.
 2. **While working:** if you make a decision with a load-bearing rationale that is expensive to reverse, **grill it before recording it** — surface the decision, ≥2 materially-distinct alternatives, and a recommendation to the user (run the `grill-me` companion if installed, else inline), then write an ADR capturing the chosen option *and* the rejected ones. A cheap, easily-reversed choice goes in the issue's body, not a new ADR. Never record a decision the user was not asked about.
 3. **In the same change:** update every doc the structural change touches — index rows, architecture diagrams, the records that governed it. Run `living-docs check`.
-4. **Never** leave an index stale, an orphan file unlinked, a diagram contradicting the code, or a superseded decision silently edited.
+4. **After a merge,** run `living-docs check`. `install hooks` sets `<docs-dir>/**/index.md merge=union` in `.gitattributes`, so parallel branches that each added a record merge without a conflict in the type index, but the union may leave a row twice or out of order. `check` then fails naming the index and `living-docs index <type>`: run that command (never hand-edit the index or resolve it by hand) and commit the result. `check` itself never writes an index.
+5. **Never** leave an index stale, an orphan file unlinked, a diagram contradicting the code, or a superseded decision silently edited.

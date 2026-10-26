@@ -78,6 +78,14 @@ impl DocStore for RealFsStore {
     }
 }
 
+/// Replaces the scratch ADR index with the regeneration `index` would write
+/// for what `store` holds, so the fixture carries no drift and no phantom link.
+fn write_regenerated_adr_index(bundle: &ScratchBundle, store: &dyn DocStore) {
+    let (path, content) = crate::commands::index::compute(store, &bundle.root, "adr")
+        .expect("regenerate scratch adr index");
+    fs::write(path, content).expect("write scratch adr index");
+}
+
 /// Pins the invariant `is_bundle_singleton`'s docblock names: an unlisted
 /// bundle-root singleton stays exempt from every `check` invariant
 /// whether the caller passes the bundle directly or reaches the same
@@ -90,6 +98,7 @@ fn is_bundle_singleton_stays_exempt_regardless_of_the_path_form_the_caller_used(
     let bundle = ScratchBundle::new("singleton-symlink-invariant");
     fs::write(bundle.root.join("adr").join("index.md"), "# ADR Index\n")
         .expect("clear scratch adr index of phantom links");
+    write_regenerated_adr_index(&bundle, &RealFsStore);
 
     let singleton_path = bundle.root.join("constitution.md");
     let hand_written = "---\ntype: Constitution\ntitle: Root of Trust\n---\n\n# Root of Trust\n\n## Product\n\np.\n\n## Scope Boundaries\n\ns.\n\n## Non-negotiables\n\nn.\n";
@@ -173,6 +182,7 @@ fn compile_reads_record_content_through_the_store_even_when_no_file_backs_it_on_
         "---\ntype: ADR\ntitle: Doc\ndescription: \"\"\n---\n\n# Doc\n\n## Context\n\nc.\n\n## Decision\n\nd.\n\n## Consequences\n\nq.\n".to_string(),
     );
     let store = MapStore { files };
+    write_regenerated_adr_index(&bundle, &store);
 
     let report = compile(&store, &bundle.root, false).expect("bundle root exists");
 
@@ -217,6 +227,7 @@ fn compile_stays_ok_on_an_adr_missing_owner_by_default() {
         "---\ntype: ADR\ntitle: Doc\ndescription: \"\"\n---\n\n# Doc\n\n## Context\n\nc.\n\n## Decision\n\nd.\n\n## Consequences\n\nq.\n".to_string(),
     );
     let store = MapStore { files };
+    write_regenerated_adr_index(&bundle, &store);
 
     let report = compile(&store, &bundle.root, false).expect("bundle root exists");
 
@@ -252,6 +263,7 @@ fn compile_require_owner_never_flags_a_type_that_does_not_require_owner() {
             .to_string(),
     );
     let store = MapStore { files };
+    write_regenerated_adr_index(&bundle, &store);
 
     let report = compile(&store, &bundle.root, true).expect("bundle root exists");
 

@@ -19,6 +19,8 @@ use clap_complete::Shell;
 mod help;
 #[path = "args/help_json.rs"]
 mod help_json;
+#[path = "split_reference.rs"]
+pub(crate) mod split_reference;
 #[path = "args/sub.rs"]
 mod sub;
 use std::path::PathBuf;
@@ -45,6 +47,14 @@ fn exit_with(err: &clap::Error, command: &clap::Command, argv: &[std::ffi::OsStr
             println!("{document}");
             std::process::exit(err.exit_code());
         }
+    }
+    let hint = (err.kind() == ErrorKind::UnknownArgument)
+        .then(|| split_reference::hint(argv))
+        .flatten();
+    if let Some(hint) = hint {
+        let _ = err.print();
+        eprintln!("{hint}");
+        std::process::exit(err.exit_code());
     }
     err.exit()
 }
@@ -127,7 +137,8 @@ pub(crate) enum Command {
     },
     /// `title` also rewrites the heading, renames the file to the new slug
     /// and repoints every in-bundle reference; it is refused on a record
-    /// closed for good.
+    /// closed for good. `number` renames the record to a free number
+    /// (`NNNN` or `next`), the repair for two records sharing a number.
     #[command(about = help::SET_ABOUT, long_about = None, after_help = help::with_exit_codes(help::SET_EXAMPLES))]
     Set {
         #[arg(help = help::reference_help())]
@@ -187,13 +198,9 @@ pub(crate) enum Command {
         #[arg(long)]
         advisories: bool,
     },
-    /// `effective` survives as a hidden alias for one release.
-    #[command(alias = "effective", about = help::READ_ABOUT, long_about = None, after_help = help::with_exit_codes(help::READ_EXAMPLES))]
+    #[command(about = help::READ_ABOUT, long_about = None, after_help = help::with_exit_codes(help::READ_EXAMPLES))]
     Read(ReadArgs),
-    /// `skill` survives as a hidden alias for one release, keeping its old
-    /// `skill <name> --topic <t>` shape (see
-    /// `crate::commands::guide::resolve_target`).
-    #[command(alias = "skill", about = help::GUIDE_ABOUT, long_about = None, after_help = help::with_exit_codes(help::GUIDE_EXAMPLES))]
+    #[command(about = help::GUIDE_ABOUT, long_about = None, after_help = help::with_exit_codes(help::GUIDE_EXAMPLES))]
     Guide(GuideArgs),
     #[command(about = help::INSTALL_ABOUT, long_about = None, after_help = help::with_exit_codes(help::INSTALL_EXAMPLES))]
     Install {

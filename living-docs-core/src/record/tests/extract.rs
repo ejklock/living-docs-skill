@@ -88,14 +88,6 @@ fn extract_record_falls_back_to_first_heading_when_title_is_absent() {
 }
 
 #[test]
-fn extract_record_falls_back_to_filename_stem_when_no_title_or_heading() {
-    let contents = "---\ntype: ADR\n---\nBody with no heading.\n";
-    let extracted = extract_record(Path::new("/bundle/adr/0003-stemmed.md"), contents);
-
-    assert_eq!(extracted.title, "0003-stemmed");
-}
-
-#[test]
 fn extract_record_defaults_missing_description_to_empty() {
     let contents = "---\ntype: ADR\ntitle: No Extras\n---\nBody.\n";
     let extracted = extract_record(Path::new("adr/0004-no-extras.md"), contents);
@@ -183,7 +175,7 @@ fn extract_record_reads_supersedes_superseded_by_and_tags() {
     let contents = "---\ntype: ADR\nsupersedes: 0001\nsuperseded_by: 0003\ntags: [caching, performance]\n---\nBody.\n";
     let extracted = extract_record(Path::new("/bundle/adr/0002-improved.md"), contents);
 
-    assert_eq!(extracted.supersedes, Some("0001".to_owned()));
+    assert_eq!(extracted.supersedes, Some(vec!["0001".to_owned()]));
     assert_eq!(extracted.superseded_by, Some("0003".to_owned()));
     assert_eq!(
         extracted.tags,
@@ -207,4 +199,43 @@ fn extract_record_defaults_tags_to_empty_when_the_key_is_absent() {
     let extracted = extract_record(Path::new("/bundle/adr/0004-no-tags.md"), contents);
 
     assert!(extracted.tags.is_empty());
+}
+
+#[test]
+fn extract_record_keeps_the_typed_items_of_a_supersedes_list_that_is_not_all_record_numbers() {
+    let null_item = vec![Value::String("0001".to_owned()), Value::Null];
+    let empty_item = vec![
+        Value::String("0001".to_owned()),
+        Value::String(String::new()),
+    ];
+    for (source, items) in [
+        ("supersedes: [0001, ~]", null_item.clone()),
+        ("supersedes:\n  - 0001\n  - null", null_item),
+        ("supersedes: [0001, \"\"] # note", empty_item),
+    ] {
+        let contents = format!("---\ntype: ADR\n{source}\ntitle: T\n---\nBody.\n");
+        let extracted = extract_record(Path::new("/bundle/adr/0004-x.md"), &contents);
+
+        assert_eq!(extracted.supersedes, None, "{source}");
+        assert_eq!(
+            extracted.frontmatter_tail,
+            vec![("supersedes".to_owned(), TailValue::Typed(items))],
+            "{source}"
+        );
+    }
+}
+
+#[test]
+fn extract_record_keeps_a_supersedes_list_of_strings_that_is_not_all_record_numbers_as_a_sequence()
+{
+    let contents = "---\ntype: ADR\nsupersedes: [0001, \"x]\"]\n---\nBody.\n";
+    let extracted = extract_record(Path::new("/bundle/adr/0004-x.md"), contents);
+
+    assert_eq!(
+        extracted.frontmatter_tail,
+        vec![(
+            "supersedes".to_owned(),
+            TailValue::Sequence(vec!["0001".to_owned(), "x]".to_owned()])
+        )]
+    );
 }

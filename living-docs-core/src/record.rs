@@ -66,7 +66,9 @@ const TYPED_FRONTMATTER_KEYS: [&str; 10] = [
 /// sequence, empty when absent. `status` is the frontmatter `status:`
 /// value, `None` when the key is absent (issue 0045, ADR 0015, S1).
 /// `frontmatter_tail` is every remaining frontmatter key with no typed
-/// column, in source encounter order, ready to insert into
+/// column (plus a `supersedes` list that is not all record numbers and a
+/// `tags` list holding a number or boolean item, which keep their item
+/// types), in source encounter order, ready to insert into
 /// `frontmatter_fields` with the index as `ordinal`. Each entry's
 /// [`TailValue`] carries either a single scalar or an ordered sequence of
 /// scalars (ADR 0007's EAV tail extended for list-valued keys like
@@ -82,7 +84,11 @@ pub struct ExtractedRecord {
     pub title: String,
     pub description: String,
     pub body: String,
-    pub supersedes: Option<String>,
+    /// Every record this one replaces, in written order: one entry for a
+    /// scalar `supersedes: NNNN`, several for a `supersedes: [NNNN, NNNN]`
+    /// list, empty for `supersedes: []`, `None` when the key is absent or
+    /// holds no readable value. Entries are kept exactly as written.
+    pub supersedes: Option<Vec<String>>,
     pub superseded_by: Option<String>,
     pub tags: Vec<String>,
     pub status: Option<String>,
@@ -93,17 +99,19 @@ pub struct ExtractedRecord {
     pub frontmatter_tail: Vec<(String, TailValue)>,
 }
 
-/// A single [`ExtractedRecord::frontmatter_tail`] entry's value: either the
-/// scalar `key: value` shape the tail always carried, or the ordered
-/// sequence a `key: [a, b]` YAML flow list parses into (ADR 0007's
-/// lossless-export contract extended to list-valued tail keys, ADR 0019
-/// slice S3b). [`to_canonical_markdown`] re-emits a `Sequence` in the same
-/// flow style tags already use, quoting each element with the same
-/// [`format_scalar`] rules a `Scalar` gets.
+/// A [`ExtractedRecord::frontmatter_tail`] entry's value: a scalar `key: value`,
+/// or the ordered sequence a `key: [a, b]` flow list parses into.
+/// [`to_canonical_markdown`] re-emits a `Sequence` in the flow style tags use,
+/// quoting each element by the `needs_quoting` rules and also any element
+/// whose plain form, read back inside a flow sequence, would give another
+/// value.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TailValue {
     Scalar(String),
     Sequence(Vec<String>),
+    /// A sequence with a number, boolean, null or empty-string item, kept as
+    /// parsed so each item is written back with its YAML type.
+    Typed(Vec<Value>),
 }
 
 /// Extracts an [`ExtractedRecord`] from `contents`. `path` is the record's
@@ -120,7 +128,7 @@ pub fn extract_record(path: &Path, contents: &str) -> ExtractedRecord {
     let title = frontmatter_scalar(block, "title")
         .or_else(|| first_heading(&body))
         .unwrap_or_else(|| filename_stem(path));
-    let supersedes = frontmatter_scalar(block, "supersedes");
+    let supersedes = frontmatter_scalar_or_list(frontmatter.as_ref(), "supersedes");
     let superseded_by = frontmatter_scalar(block, "superseded_by");
     let tags = frontmatter_sequence(frontmatter.as_ref(), "tags");
     let status = frontmatter_scalar(block, "status");
@@ -195,49 +203,26 @@ fn concept_id_from_path(path: &Path) -> Option<String> {
     path.to_str()?.strip_suffix(".md").map(str::to_owned)
 }
 
-/// Every frontmatter key with no typed column, in source encounter order
-/// (ADR 0007 decision 1). Relies on `serde_yaml::Mapping` preserving the
-/// document's key order. A key whose value is a YAML sequence carries a
-/// [`TailValue::Sequence`] of its scalar elements (ADR 0019 slice S3b) — a
-/// non-scalar sequence element is dropped, mirroring how a non-scalar,
-/// non-sequence value is dropped entirely today. A key whose value is
-/// neither a scalar nor a sequence (e.g. a nested mapping) is excluded,
-/// exactly as before this extension.
-fn extract_frontmatter_tail(frontmatter: Option<&Value>) -> Vec<(String, TailValue)> {
-    let Some(mapping) = frontmatter.and_then(Value::as_mapping) else {
-        return Vec::new();
-    };
-
-    mapping
-        .iter()
-        .filter_map(|(key, value)| {
-            let key = key.as_str()?;
-            if TYPED_FRONTMATTER_KEYS.contains(&key) {
-                return None;
-            }
-            tail_value_from_yaml(value).map(|value| (key.to_owned(), value))
-        })
-        .collect()
-}
-
-/// Converts one frontmatter value into a [`TailValue`]: a scalar becomes
-/// [`TailValue::Scalar`], a sequence becomes [`TailValue::Sequence`] of its
-/// scalar elements (dropping any non-scalar element), and anything else
-/// (e.g. a nested mapping) yields `None`.
-fn tail_value_from_yaml(value: &Value) -> Option<TailValue> {
-    if let Some(sequence) = value.as_sequence() {
-        let items = sequence.iter().filter_map(scalar_to_string).collect();
-        return Some(TailValue::Sequence(items));
-    }
-    scalar_to_string(value).map(TailValue::Scalar)
-}
-
 /// [`extract_record`]'s typed-scalar reads (`type`, `title`, `description`,
-/// `supersedes`, `superseded_by`, `status`), delegating to the crate's
+/// `superseded_by`, `status`, `owner`), delegating to the crate's
 /// shared strict reader ([`read_scalar_strict`]) once `block` has already
 /// been sliced.
 fn frontmatter_scalar(block: Option<&str>, key: &str) -> Option<String> {
     read_scalar_strict(block?, key)
+}
+
+/// Reads `key` as a single scalar (one entry) or a sequence of scalars (its
+/// entries in order). `None` when the key is absent, null, a mapping, or a
+/// sequence holding an entry that is not a record number, which the
+/// frontmatter tail carries as a typed sequence instead.
+fn frontmatter_scalar_or_list(frontmatter: Option<&Value>, key: &str) -> Option<Vec<String>> {
+    let value = frontmatter?
+        .as_mapping()?
+        .get(Value::String(key.to_owned()))?;
+    match value.as_sequence() {
+        Some(sequence) => record_numbers(sequence),
+        None => scalar_to_string(value).map(|scalar| vec![scalar]),
+    }
 }
 
 /// Reads `key` as a YAML sequence of scalars (the `tags: [a, b]` shape),
@@ -266,137 +251,47 @@ fn strip_frontmatter(contents: &str) -> &str {
     after_fence.strip_prefix('\n').unwrap_or(after_fence)
 }
 
+/// The text of the first level-1 heading outside a fenced code block, with a
+/// leading `NNNN. ` number removed.
 fn first_heading(body: &str) -> Option<String> {
-    body.lines()
-        .find_map(|line| line.strip_prefix("# ").map(|title| title.trim().to_owned()))
+    let mut fenced = false;
+    for line in body.lines() {
+        let trimmed = line.trim_start();
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            fenced = !fenced;
+        } else if !fenced {
+            if let Some(title) = line.strip_prefix("# ") {
+                return Some(strip_number(title.trim(), ". ").to_owned());
+            }
+        }
+    }
+    None
 }
 
+/// The filename stem with a leading `NNNN-` removed.
 fn filename_stem(path: &Path) -> String {
-    path.file_stem()
+    let stem = path
+        .file_stem()
         .and_then(|stem| stem.to_str())
-        .unwrap_or_default()
-        .to_owned()
+        .unwrap_or_default();
+    strip_number(stem, "-").to_owned()
 }
 
-const STATUS_KEY: &str = "status";
-const TRACKER_KEY: &str = "tracker";
-const TIMESTAMP_KEY: &str = "timestamp";
-
-/// Reconstructs `record` as canonical markdown: a `---`-fenced frontmatter
-/// block in the fixed field order — `type`, `title`, `description`, `owner`
-/// (if present), `status` (if present), `supersedes`, `superseded_by`,
-/// `tags`, the remaining frontmatter tail by ascending ordinal, `tracker`
-/// (if present), then `timestamp` (if present) — followed by a blank line
-/// and the body. The typed identity (`number`/`concept_id`) is never
-/// emitted: it is carried by the record's path, not its frontmatter.
-/// Re-parsing the output through [`extract_record`] reproduces every field
-/// `extract_record` reads: the serializer's canonical order is a fixed
-/// point for a record already shaped this way, not a byte-for-byte match of
-/// arbitrary hand-authored source.
-pub fn to_canonical_markdown(record: &ExtractedRecord) -> String {
-    let mut lines = Vec::new();
-    lines.push(format!("type: {}", format_scalar(&record.doc_type)));
-    lines.push(format!("title: {}", format_scalar(&record.title)));
-    lines.push(format!(
-        "description: {}",
-        format_scalar(&record.description)
-    ));
-    push_optional(&mut lines, "owner", record.owner.as_deref());
-    push_optional(&mut lines, STATUS_KEY, record.status.as_deref());
-    push_optional(&mut lines, "supersedes", record.supersedes.as_deref());
-    push_optional(&mut lines, "superseded_by", record.superseded_by.as_deref());
-    push_tags(&mut lines, &record.tags);
-    push_remaining_tail(&mut lines, record);
-    push_tail_key(&mut lines, record, TRACKER_KEY);
-    push_tail_key(&mut lines, record, TIMESTAMP_KEY);
-
-    format!("---\n{}\n---\n\n{}", lines.join("\n"), record.body)
-}
-
-fn push_optional(lines: &mut Vec<String>, key: &str, value: Option<&str>) {
-    if let Some(value) = value {
-        lines.push(format!("{key}: {}", format_scalar(value)));
+/// `text` without a leading four-digit number followed by `separator`;
+/// unchanged when that prefix is absent.
+fn strip_number<'a>(text: &'a str, separator: &str) -> &'a str {
+    let digits = text.bytes().take_while(u8::is_ascii_digit).count();
+    if digits != 4 {
+        return text;
     }
+    text[4..].strip_prefix(separator).unwrap_or(text)
 }
 
-/// Renders `tags` as a flow sequence, sorted for deterministic output — the
-/// `tags`/`record_tags` join carries no ordinal, so the original frontmatter
-/// order is not recoverable and alphabetical order is the canonical one.
-fn push_tags(lines: &mut Vec<String>, tags: &[String]) {
-    if tags.is_empty() {
-        return;
-    }
-    let mut sorted = tags.to_vec();
-    sorted.sort();
-    let rendered: Vec<String> = sorted.iter().map(|tag| format_scalar(tag)).collect();
-    lines.push(format!("tags: [{}]", rendered.join(", ")));
-}
-
-fn push_tail_key(lines: &mut Vec<String>, record: &ExtractedRecord, key: &str) {
-    if let Some(value) = tail_value(record, key) {
-        push_tail_value(lines, key, value);
-    }
-}
-
-/// Every tail entry except `status`/`tracker`/`timestamp`, which are pulled
-/// to their own fixed positions elsewhere in the fixed field order, in the
-/// ordinal order they arrive in `record.frontmatter_tail`.
-fn push_remaining_tail(lines: &mut Vec<String>, record: &ExtractedRecord) {
-    for (key, value) in &record.frontmatter_tail {
-        if is_special_tail_key(key) {
-            continue;
-        }
-        push_tail_value(lines, key, value);
-    }
-}
-
-/// Renders one tail entry: a [`TailValue::Scalar`] as `key: value`, a
-/// [`TailValue::Sequence`] as `key: [a, b]` — the same canonical flow style
-/// [`push_tags`] already uses for `tags:`, quoting each element with
-/// [`format_scalar`] (ADR 0019 slice S3b).
-fn push_tail_value(lines: &mut Vec<String>, key: &str, value: &TailValue) {
-    match value {
-        TailValue::Scalar(scalar) => lines.push(format!("{key}: {}", format_scalar(scalar))),
-        TailValue::Sequence(items) => {
-            let rendered: Vec<String> = items.iter().map(|item| format_scalar(item)).collect();
-            lines.push(format!("{key}: [{}]", rendered.join(", ")));
-        }
-    }
-}
-
-fn tail_value<'a>(record: &'a ExtractedRecord, key: &str) -> Option<&'a TailValue> {
-    record
-        .frontmatter_tail
-        .iter()
-        .find(|(k, _)| k == key)
-        .map(|(_, v)| v)
-}
-
-fn is_special_tail_key(key: &str) -> bool {
-    key == TRACKER_KEY || key == TIMESTAMP_KEY
-}
-
-const YAML_INDICATOR_PREFIXES: &str = "!&*-?|>%@`\"'#,[]{}";
-
-/// Renders `value` as a plain YAML scalar when safe, or a double-quoted
-/// scalar (with `\`/`"` escaped) when a plain scalar would be ambiguous —
-/// empty, starting with a YAML indicator character, containing `": "`,
-/// ending in `:`, or carrying leading/trailing whitespace.
-pub(crate) fn format_scalar(value: &str) -> String {
-    if needs_quoting(value) {
-        format!("\"{}\"", value.replace('\\', "\\\\").replace('"', "\\\""))
-    } else {
-        value.to_owned()
-    }
-}
-
-fn needs_quoting(value: &str) -> bool {
-    value.is_empty()
-        || value.starts_with(|c: char| YAML_INDICATOR_PREFIXES.contains(c))
-        || value.contains(": ")
-        || value.ends_with(':')
-        || value.trim() != value
-}
+mod canonical;
+mod tail;
+pub use canonical::to_canonical_markdown;
+pub(crate) use canonical::{format_flow_list, format_scalar, kept_tag, record_numbers};
+use tail::extract_frontmatter_tail;
 
 #[cfg(test)]
 mod tests;

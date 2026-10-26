@@ -29,6 +29,7 @@ fn bundle_with(label: &str, record: &str) -> PathBuf {
         "# Issue Index\n\n- [Work](/issues/0001-work.md)\n",
     );
     write(&bundle, "issues/0001-work.md", record);
+    common::index_bundle(&bundle);
     bundle
 }
 
@@ -98,7 +99,7 @@ fn a_title_heading_matching_the_frontmatter_title_is_not_a_section() {
 
 #[test]
 fn a_disagreeing_title_heading_still_passes_and_keeps_the_advisory() {
-    let body = format!("## Something else\n\n{SCOPE}{ACCEPTANCE}");
+    let body = format!("## 0001. Something else\n\n{SCOPE}{ACCEPTANCE}");
     let text = assert_passes("title-differs", &record("My title", &body));
     assert!(text.contains("HEADING"), "got: {text}");
 }
@@ -120,6 +121,7 @@ fn a_draft_prd_without_problem_motivation_fails_naming_it() {
         "# Index\n\n- [Doc](/prd/0001-doc.md)\n",
     );
     write(&bundle, "prd/0001-doc.md", prd);
+    common::index_bundle(&bundle);
     let (output, text) = check_bundle(&bundle);
     assert_ne!(output.status.code(), Some(0), "got: {text}");
     assert!(

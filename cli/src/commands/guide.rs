@@ -1,4 +1,4 @@
-//! `guide` verb wrapper (renamed from `skill` by ADR 0060): resolves the
+//! `guide` verb wrapper: resolves the
 //! guide's target skill/topic, then delegates to the embedded skill corpus
 //! through the shared `crate::output::OutputMode`.
 
@@ -18,19 +18,13 @@ struct Target {
 
 /// Resolves [`GuideArgs`] to a [`Target`] (see the struct's own docblock for
 /// the shapes this reconciles):
-/// 1. The hidden `--topic` flag (the retired `skill <name> --topic <t>`
-///    alias shape) wins outright: `--skill`, or else the positional, names
-///    the skill; `--topic` is the topic.
-/// 2. Otherwise, `--skill` given explicitly names the skill; the positional,
-///    if any, is the topic.
-/// 3. Otherwise, a positional that names a known embedded skill is the
+/// 1. `--skill` given explicitly names the skill; the positional, if any, is
+///    the topic.
+/// 2. Otherwise, a positional that names a known embedded skill is the
 ///    skill, with no topic — prints that skill's full `SKILL.md` body.
-/// 4. Otherwise, the default skill (`living-docs`); the positional, if any,
+/// 3. Otherwise, the default skill (`living-docs`); the positional, if any,
 ///    is the topic.
 fn resolve_target(args: &GuideArgs) -> Target {
-    if let Some(target) = resolve_hidden_topic_alias(args) {
-        return target;
-    }
     if let Some(skill) = &args.skill {
         return Target {
             skill: skill.clone(),
@@ -49,21 +43,6 @@ fn resolve_target(args: &GuideArgs) -> Target {
         skill: DEFAULT_SKILL.to_owned(),
         topic: args.topic_or_skill.clone(),
     }
-}
-
-/// Case 1 of [`resolve_target`]'s docblock: the hidden `--topic` flag (the
-/// retired `skill <name> --topic <t>` alias shape) wins outright when given.
-fn resolve_hidden_topic_alias(args: &GuideArgs) -> Option<Target> {
-    let topic = args.topic.as_ref()?;
-    let skill = args
-        .skill
-        .clone()
-        .or_else(|| args.topic_or_skill.clone())
-        .unwrap_or_else(|| DEFAULT_SKILL.to_owned());
-    Some(Target {
-        skill,
-        topic: Some(topic.clone()),
-    })
 }
 
 pub(crate) fn run_guide(args: GuideArgs, mode: OutputMode) -> ExitCode {
@@ -104,51 +83,39 @@ fn print_guide_result(result: Result<String, String>) -> ExitCode {
 mod tests {
     use super::*;
 
-    fn args(topic_or_skill: Option<&str>, skill: Option<&str>, topic: Option<&str>) -> GuideArgs {
+    fn args(topic_or_skill: Option<&str>, skill: Option<&str>) -> GuideArgs {
         GuideArgs {
             topic_or_skill: topic_or_skill.map(str::to_owned),
             skill: skill.map(str::to_owned),
-            topic: topic.map(str::to_owned),
             list: false,
         }
     }
 
     #[test]
     fn bare_positional_topic_resolves_under_the_default_skill() {
-        let target = resolve_target(&args(Some("adr"), None, None));
+        let target = resolve_target(&args(Some("adr"), None));
         assert_eq!(target.skill, "living-docs");
         assert_eq!(target.topic.as_deref(), Some("adr"));
     }
 
     #[test]
     fn positional_matching_a_known_skill_selects_it_with_no_topic() {
-        let target = resolve_target(&args(Some("okf-knowledge-format"), None, None));
+        let target = resolve_target(&args(Some("okf-knowledge-format"), None));
         assert_eq!(target.skill, "okf-knowledge-format");
         assert_eq!(target.topic, None);
     }
 
     #[test]
     fn no_positional_resolves_to_the_default_skill_with_no_topic() {
-        let target = resolve_target(&args(None, None, None));
+        let target = resolve_target(&args(None, None));
         assert_eq!(target.skill, "living-docs");
         assert_eq!(target.topic, None);
     }
 
     #[test]
     fn explicit_skill_flag_treats_the_positional_as_a_topic() {
-        let target = resolve_target(&args(
-            Some("conformance"),
-            Some("okf-knowledge-format"),
-            None,
-        ));
+        let target = resolve_target(&args(Some("conformance"), Some("okf-knowledge-format")));
         assert_eq!(target.skill, "okf-knowledge-format");
         assert_eq!(target.topic.as_deref(), Some("conformance"));
-    }
-
-    #[test]
-    fn retired_alias_shape_name_then_topic_flag_still_resolves() {
-        let target = resolve_target(&args(Some("living-docs"), None, Some("adr")));
-        assert_eq!(target.skill, "living-docs");
-        assert_eq!(target.topic.as_deref(), Some("adr"));
     }
 }

@@ -4,6 +4,8 @@ use std::process::ExitCode;
 
 mod args;
 mod commands;
+mod doc_gate;
+mod git;
 mod hooks;
 mod output;
 mod skill;
@@ -75,7 +77,10 @@ fn main() -> ExitCode {
             &changed_files,
             mode,
             color,
-            advisories,
+            &commands::check::Verbosity {
+                list_advisories: advisories,
+                quiet,
+            },
         ),
         Command::Fmt { paths, check } => commands::fmt::run_fmt(&cli.docs_dir, paths, check, mode),
         Command::Read(args) => commands::read::run_read(&cli.docs_dir, args, mode, quiet),
@@ -94,7 +99,7 @@ fn main() -> ExitCode {
         } => commands::install::run_install_hooks(dir, dry_run, &cli.docs_dir, quiet),
         Command::Uninstall {
             action: UninstallCmd::Hooks { dir, dry_run },
-        } => commands::uninstall::run_uninstall_hooks(dir, dry_run),
+        } => commands::uninstall::run_uninstall_hooks(dir, dry_run, &cli.docs_dir),
         Command::Completions { shell } => commands::completions::run_completions(shell),
     }
 }

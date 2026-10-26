@@ -1,7 +1,9 @@
 use crate::commands::next::next_number_from_store;
 
 mod fill;
-use crate::commands::index::{refresh_for_records, Indexed};
+use crate::commands::index::{
+    ensure_root_index, refresh_for_records, IndexFailure, Indexed, NoTypeIndex,
+};
 use crate::doc_type::{self, Identity};
 use crate::paths;
 use crate::store::DocStore;
@@ -13,12 +15,8 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-/// The point-of-use teaching line (ADR 0019, decision 3): printed after
-/// `new`'s created path, and repeated verbatim in the root `--help` about
-/// text and the `living-docs` SKILL.md stub, so an agent meets the
-/// CLI-owns-the-mechanics rule at the moment it authors a record.
 /// Optional authoring inputs for `new` beyond the type and title:
-/// `--description`, `--kind` (ADR 0036) and `--owner`.
+/// `--description`, `--kind` and `--owner`.
 #[derive(Default)]
 pub struct NewOptions<'a> {
     pub description: Option<&'a str>,
@@ -32,6 +30,10 @@ pub struct NewOptions<'a> {
     pub body: Option<&'a str>,
 }
 
+/// The point-of-use teaching line printed after `new`'s created path, and
+/// repeated verbatim in the root `--help` about text and the `living-docs`
+/// SKILL.md stub, so an agent meets the CLI-owns-the-mechanics rule at the
+/// moment it authors a record.
 pub const BODY_ONLY_INSTRUCTION: &str = "Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs set` / `supersede`.";
 
 pub fn run(
@@ -85,8 +87,33 @@ pub fn write(
     opts: &NewOptions,
 ) -> Result<Created, String> {
     let path = scaffold(store, docs_dir, doc_type, title, opts, &now_iso8601()?)?;
-    let indexed = refresh_for_records(store, docs_dir, &[path.as_path()]);
+    let mut indexed = refresh_for_records(store, docs_dir, &[path.as_path()]);
+    reach_from_root(docs_dir, doc_type, &mut indexed);
     Ok(Created { path, indexed })
+}
+
+/// Makes the bundle-root index reach the new record's type index, recording
+/// a failure (the record and its type index are already written) instead of
+/// aborting. A singleton has no type index, so it only gets a link-less root
+/// when none exists. A root written here is not listed in `indexed.written`,
+/// which names only the record's own type index.
+fn reach_from_root(docs_dir: &Path, doc_type: &str, indexed: &mut Indexed) {
+    let Some(spec) = doc_type::spec_for(doc_type) else {
+        return;
+    };
+    let singleton = matches!(spec.identity, Identity::Singleton { .. });
+    let touched: &[&str] = if singleton { &[] } else { &[spec.token] };
+    let no_type_index = if singleton {
+        NoTypeIndex::WriteLinkless
+    } else {
+        NoTypeIndex::WriteNothing
+    };
+    if let Err(error) = ensure_root_index(docs_dir, touched, no_type_index) {
+        indexed.failures.push(IndexFailure {
+            doc_type: None,
+            error,
+        });
+    }
 }
 
 /// Computes `new`'s target path and filled content without writing it —
@@ -187,7 +214,7 @@ fn scaffold(
 
 /// The single definition of `new`/`index`'s unsupported-type error, naming
 /// the offending `doc_type` and every token the registry ([`doc_type::DOC_TYPES`])
-/// currently supports, rather than a hand-maintained list (ADR 0026).
+/// currently supports, rather than a hand-maintained list.
 pub(crate) fn unsupported_type_message(doc_type: &str) -> String {
     let supported = doc_type::DOC_TYPES
         .iter()

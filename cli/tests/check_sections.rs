@@ -29,6 +29,7 @@ fn bundle_with(label: &str, record: &str) -> PathBuf {
         "# Issue Index\n\n- [Work](/issues/0001-work.md)\n",
     );
     write(&bundle, "issues/0001-work.md", record);
+    common::index_bundle(&bundle);
     bundle
 }
 
@@ -210,6 +211,7 @@ fn check_files(label: &str, files: &[(&str, &str)]) -> (Output, String) {
     for (rel, contents) in files {
         write(&bundle, rel, contents);
     }
+    common::index_bundle(&bundle);
     let output = run_check(&bundle);
     let err = String::from_utf8_lossy(&output.stderr).into_owned();
     let text = stdout_of(&output) + &err;

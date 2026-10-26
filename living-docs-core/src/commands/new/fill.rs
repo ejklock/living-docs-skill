@@ -10,16 +10,24 @@ use crate::record::format_scalar;
 /// frontmatter block only — never a serde round-trip, so body placeholders
 /// and frontmatter guidance comments outside those three keys survive
 /// byte-for-byte. `status` is seeded with `type_value`'s own resolved
-/// [`doc_type::DocTypeSpec::status_vocabulary`]'s first entry (ADR 0029)
+/// [`doc_type::DocTypeSpec::status_vocabulary`]'s first entry
 /// rather than a hardcoded literal, so `new issue "t"` seeds `status: open`
 /// while `new adr "t"` still seeds `status: Proposed`.
 pub(crate) fn fill_frontmatter(template: &str, type_value: &str, timestamp: &str) -> String {
-    let lines: Vec<&str> = template.lines().collect();
-    let Some(close) = frontmatter_close_index(&lines) else {
-        return template.to_string();
-    };
-    let status_value = seed_status_for(type_value);
+    let status_value = seed_status_for(type_value, template);
+    map_frontmatter_lines(template, |line| {
+        fill_frontmatter_line(line, type_value, &status_value, timestamp)
+    })
+}
 
+/// Rewrites every line strictly inside the leading frontmatter block through
+/// `edit`, leaving the fences and the body untouched; content without a
+/// closing fence comes back unchanged.
+fn map_frontmatter_lines(content: &str, edit: impl Fn(&str) -> String) -> String {
+    let lines: Vec<&str> = content.lines().collect();
+    let Some(close) = frontmatter_close_index(&lines) else {
+        return content.to_string();
+    };
     let filled: Vec<String> = lines
         .iter()
         .enumerate()
@@ -27,25 +35,37 @@ pub(crate) fn fill_frontmatter(template: &str, type_value: &str, timestamp: &str
             if i == 0 || i >= close {
                 line.to_string()
             } else {
-                fill_frontmatter_line(line, type_value, status_value, timestamp)
+                edit(line)
             }
         })
         .collect();
-
     filled.join("\n") + "\n"
 }
 
 /// The `status:` value a fresh record of `type_value`'s doc type should seed,
 /// resolved from that type's own registry row rather than a hardcoded
-/// literal (ADR 0029). Falls back to `"Proposed"` — the constant's prior
-/// hardcoded value — when `type_value` does not resolve to a registered type
-/// or that type's vocabulary is empty (e.g. Constitution, whose own `Draft |
-/// Ratified | Amended` vocabulary is out of this fn's scope).
-fn seed_status_for(type_value: &str) -> &'static str {
+/// literal. A type with an empty vocabulary (the constitution)
+/// keeps the `status:` literal its own `template` carries; `"Proposed"` is
+/// the last resort when the type is unregistered or the template has none.
+fn seed_status_for(type_value: &str, template: &str) -> String {
     doc_type::spec_for_frontmatter(type_value)
-        .and_then(|spec| spec.status_vocabulary.first())
-        .copied()
-        .unwrap_or("Proposed")
+        .and_then(|spec| match spec.status_vocabulary.first() {
+            Some(first) => Some((*first).to_string()),
+            None => template_status_literal(template),
+        })
+        .unwrap_or_else(|| "Proposed".to_string())
+}
+
+/// The value of the template's frontmatter `status:` line, without its
+/// trailing `# guidance comment`; `None` when absent or empty.
+fn template_status_literal(template: &str) -> Option<String> {
+    let lines: Vec<&str> = template.lines().collect();
+    let close = frontmatter_close_index(&lines)?;
+    let value = lines[1..close]
+        .iter()
+        .find_map(|line| line.strip_prefix("status:"))?;
+    let value = value.split('#').next().unwrap_or("").trim();
+    (!value.is_empty()).then(|| value.to_string())
 }
 
 pub(crate) fn frontmatter_close_index(lines: &[&str]) -> Option<usize> {
@@ -59,32 +79,17 @@ pub(crate) fn frontmatter_close_index(lines: &[&str]) -> Option<usize> {
 /// Fills the frontmatter `title:` line with `title`, quoted exactly as
 /// [`crate::record::to_canonical_markdown`] would (via
 /// [`format_scalar`]) — never a local quoting rule — so a fresh scaffold's
-/// frontmatter is already a canonical-check fixed point (ADR 0019).
+/// frontmatter is already a canonical-check fixed point.
 pub(crate) fn fill_frontmatter_title(content: &str, title: &str) -> String {
-    let lines: Vec<&str> = content.lines().collect();
-    let Some(close) = frontmatter_close_index(&lines) else {
-        return content.to_string();
-    };
-
-    let filled: Vec<String> = lines
-        .iter()
-        .enumerate()
-        .map(|(i, &line)| {
-            if i == 0 || i >= close {
-                line.to_string()
-            } else {
-                replace_targeted_value(line, "title", &format_scalar(title))
-                    .unwrap_or_else(|| line.to_string())
-            }
-        })
-        .collect();
-
-    filled.join("\n") + "\n"
+    map_frontmatter_lines(content, |line| {
+        replace_targeted_value(line, "title", &format_scalar(title))
+            .unwrap_or_else(|| line.to_string())
+    })
 }
 
 /// Fills the frontmatter `description:` line with `description`, quoted via
 /// [`format_scalar`] exactly as [`fill_frontmatter_title`] fills `title:` —
-/// the CLI-owned counterpart to hand-editing the placeholder (issue 0021).
+/// the CLI-owned counterpart to hand-editing the placeholder.
 /// Delegates to [`crate::commands::supersede::apply_frontmatter_field`], the
 /// same insert-or-replace primitive `describe` uses, so a template missing a
 /// `description:` line gets one inserted rather than the value being
@@ -160,7 +165,7 @@ pub(crate) fn replace_targeted_value(line: &str, key: &str, new_value: &str) -> 
 }
 
 /// Fills the frontmatter `kind:` line for a Named-identity type from the
-/// closed [`doc_type::VIEW_KIND_ORDER`] vocabulary (ADR 0036). `None`
+/// closed [`doc_type::VIEW_KIND_ORDER`] vocabulary. `None`
 /// keeps the template's seed; a kind on any other identity is refused —
 /// inserting the key there would invent frontmatter the type's template
 /// never declared.

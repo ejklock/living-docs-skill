@@ -24,7 +24,7 @@ pub(crate) fn run_supersede(
     mode: OutputMode,
     quiet: bool,
 ) -> ExitCode {
-    match commands::supersede::supersede(build_store().as_ref(), docs_dir, old, new) {
+    match commands::supersede::supersede(build_store(docs_dir).as_ref(), docs_dir, old, new) {
         Ok(superseded) => {
             if mode.is_json() {
                 println!(

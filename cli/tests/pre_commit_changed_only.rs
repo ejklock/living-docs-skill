@@ -62,6 +62,7 @@ fn repo_with_debt(label: &str) -> PathBuf {
     );
     write(&docs, "adr/0001-legacy-debt.md", LEGACY_DEBT);
     write(&docs, "adr/0002-clean.md", CLEAN);
+    common::index_bundle(&docs);
     git(
         &repo,
         &[

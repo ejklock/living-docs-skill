@@ -4,7 +4,7 @@ Issues are authored **in the repo first**, then published to the tracker. The re
 
 ## The workflow
 
-1. **Create** — write `docs/issues/NNNN-slug.md`: OKF frontmatter (`type`, `title`, `status`, `labels`, `blocked_by`, `tracker`) followed by the issue **body**. Add a row to `docs/issues/index.md`. *Then* publish to the tracker, stripping the frontmatter so only the body is sent (e.g. pipe the content below the closing `---` to `gh issue create --body-file -`).
+1. **Create** — write `docs/issues/NNNN-slug.md`: OKF frontmatter (`type`, `title`, `status`, `labels`, `blocked_by`, `tracker`) followed by the issue **body**. Write `labels`, `blocked_by` and `tracker` with `living-docs set <issue> labels|blocked_by|tracker <value>` (the two lists take comma-separated items; `tracker` takes one value), which keeps the frontmatter canonical. Add a row to `docs/issues/index.md`. *Then* publish to the tracker, stripping the frontmatter so only the body is sent (e.g. pipe the content below the closing `---` to `gh issue create --body-file -`).
 2. **Edit** — update the body file first, then push to the tracker (`gh issue edit <n> --body-file …`, frontmatter stripped).
 3. **Identical bodies** — the repo file's body (everything below the closing `---`) and the tracker issue body must match exactly. If they diverge, the repo wins; re-sync. Frontmatter is repo-only.
 4. **Metadata lives in frontmatter** — number, title, labels, blocked-by, status, and tracker number live in the issue file's **frontmatter** (and are mirrored into the `docs/issues/index.md` listing), *not* in the body. The body is portable prose; the frontmatter carries the tracker-specific fields.
@@ -28,6 +28,8 @@ A good issue body states, in order:
 ## Closing an issue
 
 `living-docs set <ref> status closed`, then `living-docs set <ref> section Outcome --from PATH|-` for the Outcome text. Open an issue with its prose in one step: `living-docs new issue "<title>" --body PATH|-`, the file carrying `### Scope` and `### Acceptance`.
+
+Two issues that share a number (two branches each ran `new`) are repaired with `living-docs set <path> number next` on the one to move, named by its path: it renames the file, rewrites the heading number and every in-bundle link, and regenerates the index.
 
 ## Rules
 

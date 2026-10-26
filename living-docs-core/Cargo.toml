@@ -16,3 +16,6 @@ pulldown-cmark = { version = "=0.13.4", default-features = false }
 regex = "1"
 merman-core = "=0.7.0"
 unicode-normalization = "0.1"
+
+[lints]
+workspace = true
