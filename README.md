@@ -368,8 +368,11 @@ in the repo, in Git, next to the code.
 **Why is there no search, database or web UI?**
 There was, and it was cut (ADR 0059): nothing in the authoring loop used it, and it
 was half the code. `living-docs read --topic <term>` and `grep` answer "where
-did we decide X?" on a repo-sized corpus. A search front returns as a workspace
-member the day a consumer needs cross-project search.
+did we decide X?" on a repo-sized corpus, and `read --links-to <TYPE/NNNN>` and
+`read --impact <TYPE/NNNN>` answer "what depends on this record?" from a link graph
+built in memory on each run (ADR 0074). On a 5,000-record bundle, `check` runs in
+about a second and `read` in about 0.2 s, so no index has earned its keep. A search
+front returns as a workspace member the day a consumer needs cross-project search.
 
 **What is OKF (Open Knowledge Format)?**
 A vendor-neutral format from Google Cloud Platform — markdown with YAML
