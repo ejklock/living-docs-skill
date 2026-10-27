@@ -2,7 +2,7 @@
 type: Issue
 title: core keeps dead run functions that print to stdout
 description: <One sentence — the change and its motivation.>
-status: open
+status: closed
 timestamp: 2026-10-27T00:47:08Z
 ---
 

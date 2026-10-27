@@ -2,7 +2,7 @@
 type: Issue
 title: integration tests leave their scratch directories behind
 description: <One sentence — the change and its motivation.>
-status: open
+status: closed
 timestamp: 2026-10-27T00:47:08Z
 ---
 
