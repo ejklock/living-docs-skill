@@ -1,6 +1,6 @@
 {
   "name": "living-docs",
-  "version": "0.24.0",
+  "version": "0.25.0",
   "description": "Deterministic CLI for living-docs authoring: ADRs, issues, research, indexes and checks.",
   "license": "MIT",
   "repository": {
