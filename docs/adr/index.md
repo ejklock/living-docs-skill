@@ -44,6 +44,7 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0071 — fmt repairs a record's CLI-owned fields: it seeds a missing timestamp and owner and aligns the title heading, leaving all other prose byte-identical](0071-fmt-repairs-a-record-s-cli-owned-fields-it-seeds-a-missing-timestamp-and-owner-and-aligns-the-title-heading-leaving-all-other-prose-byte-identical.md) - Accepted
 * [0072 — Records keep their own line endings: CRLF is read and written as CRLF, and a mixed-ending record fails check](0072-records-keep-their-own-line-endings-crlf-is-read-and-written-as-crlf-and-a-mixed-ending-record-fails-check.md) - Accepted
 * [0073 — The filesystem store is rooted at the bundle and refuses any read, write or rename that resolves outside it](0073-the-filesystem-store-is-rooted-at-the-bundle-and-refuses-any-read-write-or-rename-that-resolves-outside-it.md) - Accepted
+* [0074 — read --links-to and --impact answer who depends on a record from a link graph built in memory per run](0074-read-links-to-and-impact-answer-who-depends-on-a-record-from-a-link-graph-built-in-memory-per-run.md) - Accepted
 
 ## Superseded
 

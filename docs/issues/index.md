@@ -21,6 +21,9 @@ one slice per fresh context, starting from the skeleton.
 * [0094 — the one-way supersede link check lacks tests for its spelling, shared-number and path rules](0094-the-one-way-supersede-link-check-lacks-tests-for-its-spelling-shared-number-and-path-rules.md) - open
 * [0095 — check skips every entry of a supersedes list that mixes record numbers and other values](0095-check-skips-every-entry-of-a-supersedes-list-that-mixes-record-numbers-and-other-values.md) - open
 * [0096 — reserved files such as index.md are written outside the rooted store guard](0096-reserved-files-such-as-index-md-are-written-outside-the-rooted-store-guard.md) - open
+* [0097 — check and read grow quadratically with the bundle size](0097-check-and-read-grow-quadratically-with-the-bundle-size.md) - open
+* [0098 — read --links-to and --impact list the records that depend on a record](0098-read-links-to-and-impact-list-the-records-that-depend-on-a-record.md) - open
+* [0099 — data verbs panic when the reader closes stdout](0099-data-verbs-panic-when-the-reader-closes-stdout.md) - open
 
 ## Closed
 
