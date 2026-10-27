@@ -3,7 +3,9 @@
 //! `--color`/`NO_COLOR`, and `--quiet` for informational stderr lines.
 
 use clap::ValueEnum;
-use std::io::IsTerminal;
+use std::fmt;
+use std::io::{self, IsTerminal, Write};
+use std::process;
 
 /// Whether a data verb's success output is minified JSON or human text.
 /// `--json`/`--plain` are explicit overrides that always win; with neither
@@ -115,6 +117,67 @@ pub(crate) fn to_json<T: serde::Serialize>(value: &T) -> String {
         .unwrap_or_else(|err| format!("{{\"error\":\"failed to serialize JSON: {err}\"}}"))
 }
 
+/// How the process ends after a stdout write failed.
+#[derive(Debug, PartialEq, Eq)]
+struct Exit {
+    code: i32,
+    message: Option<String>,
+}
+
+/// The one place that decides what a stdout write result means: a reader that
+/// closed the pipe chose to stop, so nothing failed; any other error exits 1
+/// naming its cause. `None` means the write succeeded.
+fn exit_for(result: &io::Result<()>) -> Option<Exit> {
+    let err = result.as_ref().err()?;
+    Some(if err.kind() == io::ErrorKind::BrokenPipe {
+        Exit {
+            code: 0,
+            message: None,
+        }
+    } else {
+        Exit {
+            code: 1,
+            message: Some(format!("failed writing to stdout: {err}")),
+        }
+    })
+}
+
+fn finish(result: io::Result<()>) {
+    if let Some(exit) = exit_for(&result) {
+        if let Some(message) = exit.message {
+            eprintln!("{message}");
+        }
+        process::exit(exit.code);
+    }
+}
+
+/// Runs `write` on `out` then flushes, so a failure surfaces here instead of
+/// at the exit-time flush, where std swallows it.
+fn emit<W: Write>(out: &mut W, write: impl FnOnce(&mut W) -> io::Result<()>) -> io::Result<()> {
+    write(out)?;
+    out.flush()
+}
+
+/// The single stdout writer; a closed pipe exits 0 silently, any other error 1.
+pub(crate) fn write_stdout(args: fmt::Arguments<'_>) {
+    finish(emit(&mut io::stdout().lock(), |out| out.write_fmt(args)));
+}
+
+/// Writes raw bytes through the same decision as [`write_stdout`].
+pub(crate) fn write_stdout_bytes(bytes: &[u8]) {
+    finish(emit(&mut io::stdout().lock(), |out| out.write_all(bytes)));
+}
+
+/// Stdout counterpart of the std println macro, routed through [`write_stdout`].
+macro_rules! outln {
+    () => { $crate::output::write_stdout(format_args!("\n")) };
+    ($($arg:tt)*) => {
+        $crate::output::write_stdout(format_args!("{}\n", format_args!($($arg)*)))
+    };
+}
+
+pub(crate) use outln;
+
 /// Prints an informational line to stderr unless `--quiet` was given —
 /// warnings and progress notes, never errors (which always print).
 pub(crate) fn note(quiet: bool, message: &str) {
@@ -124,113 +187,5 @@ pub(crate) fn note(quiet: bool, message: &str) {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn output_mode_json_flag_wins_regardless_of_tty() {
-        assert_eq!(
-            OutputMode::resolve(true, false, false, true),
-            OutputMode::Json
-        );
-        assert_eq!(
-            OutputMode::resolve(true, false, false, false),
-            OutputMode::Json
-        );
-    }
-
-    #[test]
-    fn output_mode_plain_flag_wins_regardless_of_tty() {
-        assert_eq!(
-            OutputMode::resolve(false, true, false, true),
-            OutputMode::Text
-        );
-        assert_eq!(
-            OutputMode::resolve(false, true, false, false),
-            OutputMode::Text
-        );
-    }
-
-    #[test]
-    fn output_mode_defaults_to_json_off_a_tty() {
-        assert_eq!(
-            OutputMode::resolve(false, false, false, false),
-            OutputMode::Json
-        );
-    }
-
-    #[test]
-    fn output_mode_defaults_to_text_on_a_tty() {
-        assert_eq!(
-            OutputMode::resolve(false, false, false, true),
-            OutputMode::Text
-        );
-    }
-
-    #[test]
-    fn output_mode_explicit_color_always_implies_text_off_a_tty() {
-        assert_eq!(
-            OutputMode::resolve(false, false, true, false),
-            OutputMode::Text
-        );
-    }
-
-    #[test]
-    fn output_mode_json_flag_wins_over_explicit_color_always() {
-        assert_eq!(
-            OutputMode::resolve(true, false, true, false),
-            OutputMode::Json
-        );
-    }
-
-    #[test]
-    fn color_mode_always_wins_off_a_tty() {
-        assert_eq!(
-            ColorMode::resolve(ColorChoice::Always, false, false),
-            ColorMode::On
-        );
-    }
-
-    #[test]
-    fn color_mode_never_wins_on_a_tty() {
-        assert_eq!(
-            ColorMode::resolve(ColorChoice::Never, false, true),
-            ColorMode::Off
-        );
-    }
-
-    #[test]
-    fn color_mode_auto_is_off_when_no_color_env_is_set_even_on_a_tty() {
-        assert_eq!(
-            ColorMode::resolve(ColorChoice::Auto, true, true),
-            ColorMode::Off
-        );
-    }
-
-    #[test]
-    fn color_mode_auto_is_off_when_stdout_is_not_a_tty() {
-        assert_eq!(
-            ColorMode::resolve(ColorChoice::Auto, false, false),
-            ColorMode::Off
-        );
-    }
-
-    #[test]
-    fn color_mode_auto_is_on_for_a_plain_tty() {
-        assert_eq!(
-            ColorMode::resolve(ColorChoice::Auto, false, true),
-            ColorMode::On
-        );
-    }
-
-    #[test]
-    fn paint_wraps_text_in_the_styles_ansi_escape_when_on() {
-        let painted = paint(ColorMode::On, Style::Red, "boom");
-        assert_eq!(painted, "\x1b[31mboom\x1b[0m");
-    }
-
-    #[test]
-    fn paint_returns_the_text_unchanged_when_off() {
-        assert_eq!(paint(ColorMode::Off, Style::Green, "ok"), "ok");
-    }
-}
+#[path = "output/tests.rs"]
+mod tests;

@@ -48,9 +48,9 @@ pub(crate) fn parse_frontmatter(block: &str) -> Option<Value> {
 
 /// Reads `key` as a top-level scalar via the canonical `serde_yaml` mapping
 /// parse only — no [`raw_scalar_line`] fallback. Shared by
-/// `record::extract_record` and `check::records`'s per-file frontmatter
-/// checks, both of which want the strict reading and never the lenient
-/// recovery [`read_scalar_from_str`] layers on top of it.
+/// `check::records`'s per-file frontmatter checks, `sections`, and
+/// [`read_scalar_from_str`], which want the strict reading and layer any
+/// lenient recovery on top of it themselves.
 pub(crate) fn read_scalar_strict(block: &str, key: &str) -> Option<String> {
     let mapping = parse_frontmatter(block)?;
     let mapping = mapping.as_mapping()?;

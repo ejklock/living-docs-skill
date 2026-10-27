@@ -3,7 +3,7 @@
 //! `crate::hooks`'s embedded-asset materialization: the corpus is the only
 //! source, placement is idempotent, and `--dry-run` writes nothing.
 
-use crate::skill;
+use crate::{output::outln, skill};
 use clap::ValueEnum;
 use std::borrow::Cow;
 use std::fs;
@@ -77,7 +77,7 @@ pub(crate) fn install(
     match write_placements(&placements) {
         Ok(()) => {
             for placement in &placements {
-                println!("wrote {}", placement.dest.display());
+                outln!("wrote {}", placement.dest.display());
             }
             ExitCode::SUCCESS
         }
@@ -147,7 +147,7 @@ fn resolve_one(root: &Path, skill_name: &str, relative_path: &str) -> Result<Pla
 
 fn announce_dry_run(placements: &[Placement]) {
     for placement in placements {
-        println!("[dry-run] would write {}", placement.dest.display());
+        outln!("[dry-run] would write {}", placement.dest.display());
     }
 }
 

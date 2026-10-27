@@ -239,3 +239,62 @@ fn extract_record_keeps_a_supersedes_list_of_strings_that_is_not_all_record_numb
         )]
     );
 }
+
+#[test]
+fn extract_record_reads_all_six_scalar_keys_verbatim() {
+    let contents = "---\ntype: ADR\ntitle: T\ndescription: D\nsuperseded_by: x\nstatus: Accepted\nowner: me\n---\nBody.\n";
+    let extracted = extract_record(Path::new("adr/0001-a.md"), contents);
+
+    assert_eq!(extracted.doc_type, "ADR");
+    assert_eq!(extracted.title, "T");
+    assert_eq!(extracted.description, "D");
+    assert_eq!(extracted.superseded_by.as_deref(), Some("x"));
+    assert_eq!(extracted.status.as_deref(), Some("Accepted"));
+    assert_eq!(extracted.owner.as_deref(), Some("me"));
+}
+
+#[test]
+fn extract_record_reads_a_numeric_superseded_by_as_text() {
+    let plain = extract_record(
+        Path::new("adr/0001-a.md"),
+        "---\nsuperseded_by: 2\n---\nB\n",
+    );
+    let padded = extract_record(
+        Path::new("adr/0001-a.md"),
+        "---\nsuperseded_by: 0002\n---\nB\n",
+    );
+
+    assert_eq!(plain.superseded_by.as_deref(), Some("2"));
+    assert_eq!(padded.superseded_by.as_deref(), Some("0002"));
+}
+
+#[test]
+fn extract_record_reads_an_empty_or_null_scalar_as_absent() {
+    let contents = "---\ntype: ADR\nstatus: \"\"\nowner:\nsuperseded_by: null\n---\nBody.\n";
+    let extracted = extract_record(Path::new("adr/0001-a.md"), contents);
+
+    assert_eq!(extracted.status, None);
+    assert_eq!(extracted.owner, None);
+    assert_eq!(extracted.superseded_by, None);
+}
+
+#[test]
+fn extract_record_reads_no_scalar_from_an_unparseable_block() {
+    let contents = "---\ntype: ADR\ntitle: a: b\nstatus: Accepted\n---\n# 0003. Heading Title\n";
+    let extracted = extract_record(Path::new("adr/0003-stem.md"), contents);
+
+    assert_eq!(extracted.doc_type, "");
+    assert_eq!(extracted.status, None);
+    assert_eq!(extracted.title, "Heading Title");
+
+    let headless = extract_record(Path::new("adr/0003-stem.md"), "---\ntitle: a: b\n---\nx\n");
+    assert_eq!(headless.title, "stem");
+}
+
+#[test]
+fn extract_record_does_not_read_a_nested_key_as_top_level() {
+    let contents = "---\ntype: ADR\nmeta:\n  status: Accepted\n  owner: me\n---\nBody.\n";
+    let extracted = extract_record(Path::new("adr/0001-a.md"), contents);
+    assert_eq!(extracted.status, None);
+    assert_eq!(extracted.owner, None);
+}

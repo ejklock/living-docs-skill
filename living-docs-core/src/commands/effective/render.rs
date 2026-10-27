@@ -43,6 +43,9 @@ fn index_line(view: &View) -> String {
     if let Some(lineage) = &view.lineage {
         line.push_str(&format!(" ({lineage})"));
     }
+    if let Some(distance) = view.distance {
+        line.push_str(&format!(" [distance {distance}]"));
+    }
     line
 }
 
@@ -50,6 +53,9 @@ fn full_block(view: &View) -> String {
     let mut header = format!("## [{}] {}", label(view), view.title);
     if let Some(lineage) = &view.lineage {
         header.push_str(&format!("\n_{lineage}_"));
+    }
+    if let Some(distance) = view.distance {
+        header.push_str(&format!("\n_distance {distance}_"));
     }
     format!("{}\n\n{}", header, view.body.trim_end())
 }

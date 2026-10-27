@@ -9,22 +9,79 @@ fn is_reserved_matches_index_and_log_only() {
     assert!(!is_reserved("foo.md"));
 }
 
-#[test]
-fn sibling_record_exists_matches_dash_prefixed_and_bare_forms() {
-    let dir = Path::new("docs/adr");
-    let all_md = vec![dir.join("0007-old.md"), dir.join("0042.md")];
-
-    assert!(sibling_record_exists(dir, "0007", &all_md));
-    assert!(!sibling_record_exists(dir, "9999", &all_md));
-    assert!(sibling_record_exists(dir, "0042", &all_md));
+fn sibling_ids_for(paths: &[&str]) -> SiblingIds {
+    let all_md: Vec<PathBuf> = paths.iter().map(PathBuf::from).collect();
+    SiblingIds::new(&all_md)
 }
 
 #[test]
-fn sibling_record_exists_ignores_matches_outside_the_directory() {
-    let dir = Path::new("docs/adr");
-    let all_md = vec![Path::new("docs/bdr").join("0007-old.md")];
+fn sibling_ids_match_dash_prefixed_and_bare_forms() {
+    let dir = Path::new("/bundle/adr");
+    let ids = sibling_ids_for(&["/bundle/adr/0007-old.md", "/bundle/adr/0042.md"]);
 
-    assert!(!sibling_record_exists(dir, "0007", &all_md));
+    assert!(ids.contains(dir, "0007"));
+    assert!(!ids.contains(dir, "9999"));
+    assert!(ids.contains(dir, "0042"));
+}
+
+#[test]
+fn sibling_ids_ignore_matches_outside_the_directory() {
+    let ids = sibling_ids_for(&["/bundle/bdr/0007-old.md"]);
+
+    assert!(!ids.contains(Path::new("/bundle/adr"), "0007"));
+}
+
+#[test]
+fn sibling_ids_match_a_slugged_id_by_its_stem_or_a_longer_slug() {
+    let dir = Path::new("/bundle/adr");
+    let longer = sibling_ids_for(&["/bundle/adr/0002-x-y.md"]);
+    let exact = sibling_ids_for(&["/bundle/adr/0002-x.md"]);
+
+    assert!(longer.contains(dir, "0002-x"));
+    assert!(exact.contains(dir, "0002-x"));
+    assert!(!exact.contains(dir, "0002-x-y"));
+}
+
+fn supersede_reports(superseded_by: &str, siblings: &[&str]) -> Vec<String> {
+    let old = format!("---\ntype: ADR\nstatus: Superseded\n{superseded_by}\n---\n# Old\n");
+    let mut seed = vec![(OLD_ADR, old.as_str())];
+    seed.extend(siblings.iter().map(|path| (*path, NEW_ADR_ACCEPTED)));
+    let (store, all_md) = MapStore::seeded(&seed);
+    let mut reporter = Reporter::new();
+    check_supersede_chain(&store, &all_md, &mut reporter);
+    reporter.violations.into_iter().map(|v| v.message).collect()
+}
+
+#[test]
+fn check_supersede_chain_resolves_a_numeric_target_to_a_slugged_or_bare_sibling() {
+    assert!(supersede_reports("superseded_by: 0002", &["/bundle/adr/0002-x.md"]).is_empty());
+    assert!(supersede_reports("superseded_by: 0002", &["/bundle/adr/0002.md"]).is_empty());
+}
+
+#[test]
+fn check_supersede_chain_reports_a_target_found_only_elsewhere_or_only_as_a_longer_number() {
+    let expected = "superseded_by: 0002 has no matching record in /bundle/adr (invariant 4)";
+    for sibling in ["/bundle/other/0002-x.md", "/bundle/adr/00020-y.md"] {
+        assert_eq!(
+            supersede_reports("superseded_by: 0002", &[sibling]),
+            vec![expected.to_string()],
+            "{sibling}"
+        );
+    }
+}
+
+#[test]
+fn check_supersede_chain_resolves_a_slugged_target() {
+    assert!(supersede_reports("superseded_by: 0002-x", &["/bundle/adr/0002-x-y.md"]).is_empty());
+    assert!(supersede_reports("superseded_by: 0002-x", &["/bundle/adr/0002-x.md"]).is_empty());
+}
+
+#[test]
+fn check_supersede_chain_reports_an_empty_target() {
+    assert_eq!(
+        supersede_reports("superseded_by:", &[]),
+        vec!["status: Superseded but superseded_by is empty (invariant 4)".to_string()]
+    );
 }
 
 fn exit_code_is_success(code: ExitCode) -> bool {

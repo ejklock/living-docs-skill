@@ -81,3 +81,71 @@ fn check_callouts_passes_an_active_record_without_a_callout() {
 
     assert!(exit_code_is_success(reporter.finish()));
 }
+
+fn run_callouts(seed: &[(&str, &str)]) -> Vec<(String, String)> {
+    let (store, all_md) = MapStore::seeded(seed);
+    let mut reporter = Reporter::new();
+    check_callouts(&store, &all_md, &mut reporter);
+    reporter
+        .violations
+        .into_iter()
+        .map(|v| (v.file, v.message))
+        .collect()
+}
+
+fn retired(superseded_by: &str, successor: &str) -> String {
+    let line = callout::expected(Some("Superseded"), Some(successor)).unwrap();
+    format!("---\ntype: ADR\nstatus: Superseded\nsuperseded_by: {superseded_by}\n---\n\n{line}\n\n# Old\n")
+}
+
+#[test]
+fn a_callout_names_the_slugged_successor_the_bare_one_or_the_bare_number() {
+    let slugged = run_callouts(&[
+        ("/b/adr/0001-o.md", &retired("0002", "0002-n.md")),
+        ("/b/adr/0002-n.md", "---\ntype: ADR\n---\n# N\n"),
+    ]);
+    let bare = run_callouts(&[
+        ("/b/adr/0001-o.md", &retired("0002", "0002.md")),
+        ("/b/adr/0002.md", "---\ntype: ADR\n---\n# N\n"),
+    ]);
+    let absent = run_callouts(&[("/b/adr/0001-o.md", &retired("0002", "0002"))]);
+
+    assert!(slugged.is_empty(), "slugged successor: {slugged:?}");
+    assert!(bare.is_empty(), "bare successor: {bare:?}");
+    assert!(absent.is_empty(), "absent successor: {absent:?}");
+}
+
+#[test]
+fn two_retired_records_in_one_directory_each_resolve_their_own_successor() {
+    let found = run_callouts(&[
+        ("/b/adr/0001-a.md", &retired("0002", "0002-b.md")),
+        ("/b/adr/0002-b.md", "---\ntype: ADR\n---\n# B\n"),
+        ("/b/adr/0003-c.md", &retired("0004", "0004-d.md")),
+        ("/b/adr/0004-d.md", "---\ntype: ADR\n---\n# D\n"),
+    ]);
+
+    assert!(found.is_empty());
+}
+
+#[test]
+fn successors_resolve_per_directory_without_leaking_across_directories() {
+    let found = run_callouts(&[
+        ("/b/adr/0001-a.md", &retired("0002", "0002-adr-new.md")),
+        ("/b/adr/0002-adr-new.md", "---\ntype: ADR\n---\n# B\n"),
+        ("/b/issues/0001-a.md", &retired("0002", "0002-issue-new.md")),
+        ("/b/issues/0002-issue-new.md", "---\ntype: ADR\n---\n# B\n"),
+    ]);
+
+    assert!(found.is_empty());
+}
+
+#[test]
+fn a_mismatched_callout_is_reported_for_that_record_only() {
+    let found = run_callouts(&[
+        ("/b/adr/0001-a.md", &retired("0002", "0002-wrong.md")),
+        ("/b/adr/0002-b.md", "---\ntype: ADR\n---\n# B\n"),
+    ]);
+
+    assert_eq!(found.len(), 1);
+    assert_eq!(found[0].0, "/b/adr/0001-a.md");
+}

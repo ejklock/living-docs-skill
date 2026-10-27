@@ -1,5 +1,8 @@
 {
   "minLines": 5,
+  "ignorePattern": [
+    "fn list\\(&self, root: &Path\\) -> io::Result<Vec<PathBuf>> \\{\\s*self\\.inner\\.list\\(root\\)\\s*\\}"
+  ],
   "ignore": [
     "cli/tests/**",
     "scripts/tests/**",

@@ -31,7 +31,7 @@ fn report_rewritten(applied: &commands::set::Applied) {
     };
     let previous = previous.to_string_lossy();
     for path in &applied.rewritten {
-        println!("{}", path.display());
+        output::outln!("{}", path.display());
     }
     eprintln!(
         "living-docs set: rewrote {} in-bundle reference(s) to {previous}; references outside the bundle are not rewritten — run `grep -rn {previous} .`",
@@ -137,7 +137,7 @@ pub(crate) fn run_set(docs_dir: &Path, args: &SetArgs, mode: OutputMode, quiet: 
 
 fn print_applied(applied: &commands::set::Applied, key: &str, value: &str, mode: OutputMode) {
     if mode.is_json() {
-        println!(
+        output::outln!(
             "{}",
             output::to_json(&SetJson {
                 path: &applied.path,
@@ -148,7 +148,7 @@ fn print_applied(applied: &commands::set::Applied, key: &str, value: &str, mode:
             })
         );
     } else {
-        println!("{}", applied.path.display());
+        output::outln!("{}", applied.path.display());
         report_rewritten(applied);
     }
 }

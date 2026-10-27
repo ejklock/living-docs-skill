@@ -24,9 +24,7 @@ use std::path::Path;
 use serde_yaml::Value;
 
 use crate::doc_type::{self, Identity};
-use crate::frontmatter::{
-    frontmatter_block, parse_frontmatter, read_scalar_strict, scalar_to_string,
-};
+use crate::frontmatter::{frontmatter_block, parse_frontmatter, scalar_to_string};
 
 /// The `identity_kind` discriminator for a sequentially numbered doc
 /// (`NNNN`, e.g. adr/prd/issue).
@@ -122,17 +120,17 @@ pub fn extract_record(path: &Path, contents: &str) -> ExtractedRecord {
     let frontmatter = block.and_then(parse_frontmatter);
     let body = strip_frontmatter(contents).to_owned();
 
-    let doc_type = frontmatter_scalar(block, "type").unwrap_or_default();
+    let doc_type = frontmatter_scalar(frontmatter.as_ref(), "type").unwrap_or_default();
     let (number, concept_id, identity_kind) = extract_identity(path, &doc_type);
-    let description = frontmatter_scalar(block, "description").unwrap_or_default();
-    let title = frontmatter_scalar(block, "title")
+    let description = frontmatter_scalar(frontmatter.as_ref(), "description").unwrap_or_default();
+    let title = frontmatter_scalar(frontmatter.as_ref(), "title")
         .or_else(|| first_heading(&body))
         .unwrap_or_else(|| filename_stem(path));
     let supersedes = frontmatter_scalar_or_list(frontmatter.as_ref(), "supersedes");
-    let superseded_by = frontmatter_scalar(block, "superseded_by");
+    let superseded_by = frontmatter_scalar(frontmatter.as_ref(), "superseded_by");
     let tags = frontmatter_sequence(frontmatter.as_ref(), "tags");
-    let status = frontmatter_scalar(block, "status");
-    let owner = frontmatter_scalar(block, "owner");
+    let status = frontmatter_scalar(frontmatter.as_ref(), "status");
+    let owner = frontmatter_scalar(frontmatter.as_ref(), "owner");
     let frontmatter_tail = extract_frontmatter_tail(frontmatter.as_ref());
 
     ExtractedRecord {
@@ -204,11 +202,14 @@ fn concept_id_from_path(path: &Path) -> Option<String> {
 }
 
 /// [`extract_record`]'s typed-scalar reads (`type`, `title`, `description`,
-/// `superseded_by`, `status`, `owner`), delegating to the crate's
-/// shared strict reader ([`read_scalar_strict`]) once `block` has already
-/// been sliced.
-fn frontmatter_scalar(block: Option<&str>, key: &str) -> Option<String> {
-    read_scalar_strict(block?, key)
+/// `superseded_by`, `status`, `owner`), read from the already-parsed
+/// `frontmatter` so the block is parsed once; the same reading as
+/// [`crate::frontmatter::read_scalar_strict`].
+fn frontmatter_scalar(frontmatter: Option<&Value>, key: &str) -> Option<String> {
+    let value = frontmatter?
+        .as_mapping()?
+        .get(Value::String(key.to_owned()))?;
+    scalar_to_string(value)
 }
 
 /// Reads `key` as a single scalar (one entry) or a sequence of scalars (its

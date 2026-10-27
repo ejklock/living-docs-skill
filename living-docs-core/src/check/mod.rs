@@ -21,6 +21,7 @@ mod liveness;
 mod mermaid;
 mod moved_source;
 mod placeholder;
+mod read_once;
 mod records;
 mod report;
 mod sections;
@@ -64,12 +65,13 @@ pub fn compile(store: &dyn DocStore, bundle: &Path, require_owner: bool) -> Opti
 /// `db_store::DbDocStore::write_checked` that gates a write on the same
 /// invariants). Records are judged in LF form, mixed endings flagged from `raw`.
 fn run_all_checks(
-    raw: &dyn DocStore,
+    backing: &dyn DocStore,
     bundle: &Path,
     reporter: &mut Reporter,
     require_owner: bool,
     check_placeholders: bool,
 ) -> usize {
+    let raw: &dyn DocStore = &read_once::ReadOnceStore::new(backing);
     let store: &dyn DocStore = &LineEndingStore::new(raw, true);
     let all_md = store.list(bundle).unwrap_or_default();
     line_endings::check_line_endings(raw, &all_md, reporter);

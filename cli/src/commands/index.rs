@@ -26,10 +26,10 @@ pub(crate) fn run_index(docs_dir: &Path, doc_type: Option<String>, mode: OutputM
 fn render(written: &[PathBuf], mode: OutputMode) -> ExitCode {
     if mode.is_json() {
         let files = written.iter().map(PathBuf::as_path).collect();
-        println!("{}", output::to_json(&FilesJson { files }));
+        output::outln!("{}", output::to_json(&FilesJson { files }));
     } else {
         for path in written {
-            println!("{}", path.display());
+            output::outln!("{}", path.display());
         }
     }
     ExitCode::SUCCESS

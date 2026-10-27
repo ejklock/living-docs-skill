@@ -27,6 +27,15 @@ pub(super) fn fold_record(record: &ExtractedRecord) -> Folded {
     ])
 }
 
+/// Folds `record` only when there are `terms` to match: with none every record
+/// matches and scores 0, so the words are never read.
+pub(super) fn fold_for(record: &ExtractedRecord, terms: &[String]) -> Folded {
+    if terms.is_empty() {
+        return Folded(Default::default());
+    }
+    fold_record(record)
+}
+
 /// Whether every term starts some word in the title, description or body.
 pub(super) fn matches(folded: &Folded, terms: &[String]) -> bool {
     terms.iter().all(|term| {

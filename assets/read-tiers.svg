@@ -32,7 +32,7 @@
       <text x="88" y="250">One line per active record:</text>
       <text x="88" y="274">type, number, title, description.</text>
       <text x="88" y="298">Supersede chains collapse to the head.</text>
-      <text x="88" y="322">--topic &lt;term&gt; narrows the list.</text>
+      <text x="88" y="322">--topic, --links-to, --impact narrow it.</text>
     </g>
   </g>
   <g>

@@ -2,6 +2,7 @@
 //! verb): delegates to `crate::hooks`.
 
 use crate::hooks::{self, gitattributes};
+use crate::output::outln;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -47,10 +48,10 @@ fn remove_union_attribute(
     if dry_run {
         if gitattributes::has_union_line(project_root, &line) {
             let path = gitattributes::attributes_path(project_root);
-            println!("would remove {line} from {}", path.display());
+            outln!("would remove {line} from {}", path.display());
         }
     } else if let Some(path) = gitattributes::remove_union_line(project_root, &line)? {
-        println!("stripped {}", path.display());
+        outln!("stripped {}", path.display());
     }
     Ok(())
 }

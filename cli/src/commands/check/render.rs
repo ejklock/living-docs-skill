@@ -10,34 +10,34 @@ use std::path::Path;
 const NAMED_RECORDS: usize = 5;
 
 pub(super) fn render_text(report: &Report, color: ColorMode, list_advisories: bool) {
-    println!("Living Docs lint — bundle: {}", report.bundle);
-    println!();
+    output::outln!("Living Docs lint — bundle: {}", report.bundle);
+    output::outln!();
     for violation in &report.violations {
         let line = finding_line(report, &violation.file, &violation.message);
-        println!("{}", output::paint(color, Style::Red, &line));
+        output::outln!("{}", output::paint(color, Style::Red, &line));
     }
     if !report.advisories.is_empty() {
         render_advisories(report, color, list_advisories);
     }
-    println!();
+    output::outln!();
     render_verdict(report, color);
 }
 
 fn render_advisories(report: &Report, color: ColorMode, list_advisories: bool) {
     if !report.violations.is_empty() {
-        println!();
+        output::outln!();
     }
     for line in summary_lines(&report.advisories) {
-        println!("{}", output::paint(color, Style::Yellow, &line));
+        output::outln!("{}", output::paint(color, Style::Yellow, &line));
     }
     if !list_advisories {
-        println!("  run with --advisories to list each one");
+        output::outln!("  run with --advisories to list each one");
         return;
     }
-    println!();
+    output::outln!();
     for advisory in &report.advisories {
         let line = finding_line(report, &advisory.file, &advisory.message);
-        println!("{}", output::paint(color, Style::Yellow, &line));
+        output::outln!("{}", output::paint(color, Style::Yellow, &line));
     }
 }
 
@@ -107,13 +107,13 @@ fn record_label(file: &str) -> String {
 fn render_verdict(report: &Report, color: ColorMode) {
     if report.ok {
         let line = format!("OK — {} docs, no invariant violations.", report.docs);
-        println!("{}", output::paint(color, Style::Green, &line));
+        output::outln!("{}", output::paint(color, Style::Green, &line));
     } else {
         let line = format!(
             "FAIL — {} violation(s) across {} docs.",
             report.violations.len(),
             report.docs
         );
-        println!("{}", output::paint(color, Style::Red, &line));
+        output::outln!("{}", output::paint(color, Style::Red, &line));
     }
 }
