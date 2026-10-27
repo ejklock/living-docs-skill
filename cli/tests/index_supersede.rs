@@ -110,8 +110,6 @@ fn index_produces_sorted_rows_in_the_locked_format() {
         contents.find(first_row).unwrap() < contents.find(second_row).unwrap(),
         "rows are not sorted ascending by NNNN: {contents}"
     );
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -148,8 +146,6 @@ fn index_splits_adr_active_above_superseded_by_status() {
         "got: {contents}"
     );
     assert!(superseded_row > superseded_heading, "got: {contents}");
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -175,8 +171,6 @@ fn index_preserves_the_preamble_above_the_first_managed_heading_verbatim() {
         contents.contains("* [0001 — First Decision](0001-first.md) - Proposed"),
         "got: {contents}"
     );
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -189,8 +183,6 @@ fn index_uses_a_minimal_title_preamble_on_a_fresh_file() {
 
     let contents = fs::read_to_string(docs.join("prd/index.md")).unwrap();
     assert!(contents.starts_with("# PRDs\n\n"), "got: {contents}");
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -231,8 +223,6 @@ fn index_prd_splits_active_above_superseded_like_adr() {
     let old_row = prd_contents.find("0003-old.md").unwrap();
     assert!(draft_row < superseded_heading && implemented_row < superseded_heading);
     assert!(old_row > superseded_heading, "got: {prd_contents}");
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -278,8 +268,6 @@ fn index_issue_splits_open_above_closed_with_case_insensitive_done() {
     );
     assert!(closed_row > closed_heading, "got: {contents}");
     assert!(closed_row_case > closed_heading, "got: {contents}");
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -326,8 +314,6 @@ fn index_migrates_a_legacy_done_open_issues_index_to_open_closed() {
         contents.contains("* [0002 — Finished Issue](0002-finished.md) - done"),
         "got: {contents}"
     );
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -354,8 +340,6 @@ fn index_is_byte_identical_on_a_second_run() {
         first_bytes, second_bytes,
         "index generation is not idempotent"
     );
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -373,8 +357,6 @@ fn index_without_a_type_regenerates_every_supported_type_present() {
 
     assert!(docs.join("adr/index.md").exists());
     assert!(docs.join("prd/index.md").exists());
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 /// The regression this round fixes (ADR 0026 decision point 7): a bundle
@@ -413,8 +395,6 @@ fn index_without_a_type_leaves_a_check_clean_bundle_check_clean() {
         "bundle regressed from check-clean to failing after a bare index run: stdout: {}",
         String::from_utf8_lossy(&after.stdout)
     );
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 fn write_raw(docs: &Path, dir: &str, filename: &str, contents: &str) {
@@ -483,8 +463,6 @@ fn index_migrates_a_hand_maintained_table_format_index_into_the_canonical_bullet
         first_contents, second_contents,
         "migrated table-format index is not idempotent on a second run"
     );
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -517,8 +495,6 @@ fn index_falls_back_to_the_h1_heading_and_warns_when_title_frontmatter_is_absent
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("0007-legacy.md"), "got: {stderr}");
     assert!(stderr.contains("title"), "got: {stderr}");
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -546,8 +522,6 @@ fn index_renders_the_full_title_when_frontmatter_title_is_an_unquoted_scalar_wit
         ),
         "got: {contents}"
     );
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 fn run_new(docs: &Path, doc_type: &str, title: &str) -> Output {
@@ -591,8 +565,6 @@ fn supersede_wires_status_and_both_links_bidirectionally() {
         old_contents.contains("{{REJECTED_ALTERNATIVES:"),
         "hinted slot lost: {old_contents}"
     );
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -620,8 +592,6 @@ fn supersede_inserts_a_missing_supersedes_key_into_the_frontmatter_block() {
         1,
         "key inserted more than once: {new_contents}"
     );
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -634,8 +604,6 @@ fn supersede_fails_when_a_record_number_does_not_exist() {
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("no record found"), "got: {stderr}");
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -660,8 +628,6 @@ fn status_sets_the_field_and_preserves_body_and_other_frontmatter() {
         contents.contains("{{REJECTED_ALTERNATIVES:"),
         "hinted slot lost: {contents}"
     );
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -678,8 +644,6 @@ fn status_rejects_superseded_and_points_to_the_supersede_command_leaving_the_fil
 
     let after = fs::read_to_string(docs.join("adr/0001-a-decision.md")).unwrap();
     assert_eq!(before, after, "file must be left unchanged");
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -698,8 +662,6 @@ fn status_rejects_an_unknown_value_leaving_the_file_unchanged() {
 
     let after = fs::read_to_string(docs.join("adr/0001-a-decision.md")).unwrap();
     assert_eq!(before, after, "file must be left unchanged");
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -720,6 +682,4 @@ fn status_setting_the_current_status_again_is_a_byte_identical_no_op() {
         before, after,
         "re-setting the same status must be byte-identical"
     );
-
-    let _ = fs::remove_dir_all(&docs);
 }

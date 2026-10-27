@@ -1,5 +1,3 @@
-use std::fs;
-use std::path::Path;
 use std::process::Output;
 
 mod common;
@@ -49,10 +47,6 @@ fn lines(output: &Output) -> Vec<String> {
     stdout_of(output).lines().map(str::to_owned).collect()
 }
 
-fn cleanup(bundle: &Path) {
-    let _ = fs::remove_dir_all(bundle.parent().unwrap());
-}
-
 fn position(lines: &[String], needle: &str) -> usize {
     lines
         .iter()
@@ -84,7 +78,6 @@ fn summary_collapses_advisories_into_one_line_per_kind_after_the_violation() {
         "{text}"
     );
     assert_eq!(output.status.code(), Some(1));
-    cleanup(&bundle);
 }
 
 #[test]
@@ -102,7 +95,6 @@ fn summary_names_the_first_five_records_and_counts_the_rest() {
         "{text}"
     );
     assert_eq!(output.status.code(), Some(0));
-    cleanup(&bundle);
 }
 
 #[test]
@@ -118,7 +110,6 @@ fn summary_follows_the_header_after_exactly_one_blank_line_when_there_are_no_vio
     let out = lines(&output);
     assert_eq!(out[1], "", "{out:#?}");
     assert!(out[2].contains("1 SIZE advisory: 0001"), "{out:#?}");
-    cleanup(&bundle);
 }
 
 #[test]
@@ -134,7 +125,6 @@ fn summary_is_absent_when_there_are_no_advisories() {
     );
     assert!(text.contains("OK"), "{text}");
     assert_eq!(output.status.code(), Some(0));
-    cleanup(&bundle);
 }
 
 #[test]
@@ -154,7 +144,6 @@ fn advisories_flag_lists_every_advisory_after_the_summary() {
         "{out:#?}"
     );
     assert_eq!(output.status.code(), Some(1));
-    cleanup(&bundle);
 }
 
 #[test]
@@ -175,7 +164,6 @@ fn advisories_flag_is_accepted_with_mermaid_only() {
     assert_eq!(stdout_of(&plain), stdout_of(&flagged));
     assert_eq!(plain.status.code(), flagged.status.code());
     assert_eq!(flagged.status.code(), Some(0));
-    cleanup(&bundle);
 }
 
 #[test]
@@ -201,7 +189,6 @@ fn json_is_byte_identical_with_and_without_the_flag_and_keeps_absolute_files() {
         assert!(file.starts_with(path), "{advisory}");
         assert!(advisory["kind"].is_string() && advisory["message"].is_string());
     }
-    cleanup(&bundle);
 }
 
 #[test]
@@ -229,5 +216,4 @@ fn relative_paths_show_the_bundle_relative_form_for_absolute_and_relative_bundle
         assert!(text.contains("  adr/0099-orphan.md"), "{text}");
         assert!(text.contains("  adr/0001-a.md"), "{text}");
     }
-    cleanup(&bundle);
 }

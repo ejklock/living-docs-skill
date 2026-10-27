@@ -8,21 +8,10 @@ use crate::record::{
 };
 use crate::store::DocStore;
 use std::path::{Path, PathBuf};
-use std::process::ExitCode;
 
 pub(crate) use crate::commands::reference::find_record;
 #[cfg(test)]
 use crate::commands::reference::{parse_record_number, parse_record_reference};
-
-pub fn run(store: &dyn DocStore, docs_dir: &Path, old: &str, new: &str) -> ExitCode {
-    match supersede(store, docs_dir, old, new) {
-        Ok(_) => ExitCode::SUCCESS,
-        Err(message) => {
-            eprintln!("living-docs supersede: {message}");
-            ExitCode::from(2)
-        }
-    }
-}
 
 /// The two records `supersede` linked and what refreshing their indexes did.
 #[derive(Debug)]
@@ -34,8 +23,8 @@ pub struct Superseded {
 
 /// Wires both link directions and writes the retired-record callout on
 /// `old`, then refreshes the index of each type touched. Returns the two
-/// paths and the index outcome for the CLI front; [`run`] is the plain-text
-/// wrapper. A record with mixed line endings is refused before any write.
+/// paths and the index outcome for the CLI front. A record with mixed line
+/// endings is refused before any write.
 pub fn supersede(
     store: &dyn DocStore,
     docs_dir: &Path,

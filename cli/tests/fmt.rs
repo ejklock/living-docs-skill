@@ -77,8 +77,6 @@ fn fmt_rewrites_a_non_canonical_record_preserving_body_and_author_owned_values()
     assert!(rewritten.contains("description: Adopt quokka caching."));
     assert!(rewritten.contains("tags: [caching, performance]"));
     assert!(rewritten.ends_with("Adopt an aggressive quokka caching strategy.\n"));
-
-    let _ = fs::remove_dir_all(&bundle);
 }
 
 const WRAPPED_RECORD: &str = "---\ntype: ADR\ntitle: Quokka Caching\ndescription: Adopt quokka caching.\nowner: Quokka Team\nstatus: Accepted\ntags: [caching, performance]\ntimestamp: 2024-01-02T03:04:05Z\n---\n\n# Quokka Caching\n\nAdopt an aggressive quokka\ncaching strategy for the\nread-heavy endpoints.\n\n# References\n\n- First reference\n- Second reference\n- Third reference\n";
@@ -98,8 +96,6 @@ fn fmt_leaves_a_hard_wrapped_paragraph_and_a_reference_list_body_byte_identical(
         "expected no rewrites since the record's frontmatter was already canonical, got:\n{stdout}"
     );
     assert_eq!(read(&bundle, "adr/0001-doc.md"), WRAPPED_RECORD);
-
-    let _ = fs::remove_dir_all(&bundle);
 }
 
 #[test]
@@ -117,8 +113,6 @@ fn fmt_given_a_single_record_path_canonicalizes_only_that_record() {
     assert!(stdout.contains("1 record(s) rewritten."));
     assert_eq!(read(&bundle, "adr/0001-doc.md"), CANONICAL_RECORD);
     assert_eq!(read(&bundle, "adr/0002-other.md"), NON_CANONICAL_RECORD);
-
-    let _ = fs::remove_dir_all(&bundle);
 }
 
 #[test]
@@ -136,8 +130,6 @@ fn fmt_check_on_a_non_canonical_bundle_prints_pending_records_writes_nothing_and
         "expected the pending path in stdout, got:\n{stdout}"
     );
     assert_eq!(read(&bundle, "adr/0001-doc.md"), NON_CANONICAL_RECORD);
-
-    let _ = fs::remove_dir_all(&bundle);
 }
 
 #[test]
@@ -152,8 +144,6 @@ fn fmt_check_on_an_already_canonical_bundle_exits_zero() {
     assert!(output.status.success(), "stderr: {:?}", output.stderr);
     assert!(stdout.contains("0 record(s) would change."));
     assert_eq!(read(&bundle, "adr/0001-doc.md"), CANONICAL_RECORD);
-
-    let _ = fs::remove_dir_all(&bundle);
 }
 
 #[test]
@@ -179,8 +169,6 @@ fn fmt_is_idempotent_a_second_run_reports_zero_changes_and_bytes_are_identical()
         "expected no rewritten path on the second run, got:\n{second_stdout}"
     );
     assert_eq!(read(&bundle, "adr/0001-doc.md"), after_first);
-
-    let _ = fs::remove_dir_all(&bundle);
 }
 
 #[test]
@@ -197,8 +185,6 @@ fn fmt_never_touches_reserved_index_or_log_files() {
     assert!(output.status.success(), "stderr: {:?}", output.stderr);
     assert_eq!(read(&bundle, "index.md"), index_contents);
     assert_eq!(read(&bundle, "adr/log.md"), log_contents);
-
-    let _ = fs::remove_dir_all(&bundle);
 }
 
 #[test]
@@ -214,8 +200,6 @@ fn fmt_leaves_a_record_with_no_frontmatter_untouched() {
     assert!(output.status.success(), "stderr: {:?}", output.stderr);
     assert!(stdout.contains("0 record(s) rewritten."));
     assert_eq!(read(&bundle, "plain.md"), plain);
-
-    let _ = fs::remove_dir_all(&bundle);
 }
 
 fn issue_with_status(status: &str) -> String {
@@ -236,8 +220,6 @@ fn fmt_leaves_a_closed_issue_heading_alone_and_still_aligns_a_live_one() {
     write(&bundle, "issues/0001-real.md", &issue_with_status("open"));
     run_fmt(&bundle);
     assert!(read(&bundle, "issues/0001-real.md").contains("\n## 0001. Real\n"));
-
-    let _ = fs::remove_dir_all(bundle.parent().unwrap());
 }
 
 fn crlf(text: &str) -> String {
@@ -257,8 +239,6 @@ fn fmt_keeps_a_crlf_record_to_one_frontmatter_block_in_canonical_order() {
     assert!(stdout_of(&run_fmt(&bundle)).contains("0 record(s) rewritten."));
     assert_eq!(read(&bundle, "adr/0001-doc.md"), rewritten);
     assert_eq!(run_fmt_check(&bundle).status.code(), Some(0));
-
-    let _ = fs::remove_dir_all(bundle.parent().unwrap());
 }
 
 #[test]
@@ -275,8 +255,6 @@ fn fmt_refuses_a_record_with_mixed_line_endings_and_writes_nothing() {
     assert!(String::from_utf8_lossy(&output.stderr).contains("mixed line endings"));
     assert_eq!(read(&bundle, "adr/0001-doc.md"), mixed);
     assert_eq!(read(&bundle, "adr/0002-other.md"), NON_CANONICAL_RECORD);
-
-    let _ = fs::remove_dir_all(bundle.parent().unwrap());
 }
 
 #[test]
@@ -287,6 +265,4 @@ fn fmt_reports_a_missing_bundle_root_with_exit_code_two() {
     let output = run_fmt(&bundle);
 
     assert_eq!(output.status.code(), Some(2));
-
-    let _ = fs::remove_dir_all(bundle.parent().unwrap());
 }

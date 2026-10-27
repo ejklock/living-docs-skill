@@ -89,8 +89,6 @@ fn mermaid_only_with_no_fences_is_clean_without_requiring_docker() {
         stdout.contains("OK: 0 diagram(s)"),
         "expected an empty-sweep summary, got:\n{stdout}"
     );
-
-    let _ = fs::remove_dir_all(&bundle);
 }
 
 fn run_mermaid_only_without_docker_on_path(path: &Path) -> Output {
@@ -173,8 +171,6 @@ fn full_check_reports_the_parser_detail_alongside_the_file_line_pointer() {
         stdout.contains("invalid mermaid diagram:") && stdout.contains("expected"),
         "expected the parser's own detail (an 'expected' token list) inline, got:\n{stdout}"
     );
-
-    let _ = fs::remove_dir_all(&bundle);
 }
 
 #[test]

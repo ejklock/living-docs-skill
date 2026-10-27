@@ -49,8 +49,6 @@ fn new_scaffolds_0001_on_an_empty_tree() {
         "got: {printed_path}"
     );
     assert!(docs.join("adr/0001-my-title.md").exists());
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -64,8 +62,6 @@ fn new_allocates_the_next_number_past_an_existing_record() {
 
     assert!(output.status.success());
     assert!(docs.join("adr/0002-second-title.md").exists());
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -76,8 +72,6 @@ fn new_slugifies_the_title_to_lowercase_kebab_case() {
 
     assert!(output.status.success());
     assert!(docs.join("adr/0001-some-complex-title.md").exists());
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -91,8 +85,6 @@ fn new_maps_issue_to_the_plural_issues_directory() {
     assert!(path.exists());
     let contents = fs::read_to_string(&path).unwrap();
     assert!(contents.contains("type: Issue"));
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -115,8 +107,6 @@ fn new_fills_type_status_and_an_iso8601_timestamp() {
     assert_eq!(value.len(), 20, "unexpected timestamp: {value}");
     assert!(value.ends_with('Z'));
     assert_eq!(value.as_bytes()[10], b'T');
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -133,8 +123,6 @@ fn new_preserves_body_placeholders_and_their_hints_verbatim() {
     assert!(!contents.contains("<!--"));
     assert!(contents.contains("We will {{DECISION}}."));
     assert!(contents.contains("status: Proposed"));
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -152,8 +140,6 @@ fn new_rejects_an_unsupported_doc_type() {
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("unsupported doc type"));
     assert!(!docs.join(unsupported).exists());
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 /// ADR 0019, AC ac-s4-1: `new`'s title argument is CLI-filled into the
@@ -177,8 +163,6 @@ fn new_fills_the_frontmatter_title_from_the_argument_for_every_doc_type() {
             title_line, "title: My Decision",
             "{doc_type}: got:\n{contents}"
         );
-
-        let _ = fs::remove_dir_all(&docs);
     }
 }
 
@@ -197,8 +181,6 @@ fn new_quotes_a_title_containing_a_colon_exactly_as_the_canonical_serializer_wou
         contents.contains("title: \"Caching: A Deep Dive\"\n"),
         "got:\n{contents}"
     );
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 /// ADR 0019, AC ac-s4-2: `new`'s stdout carries the created path followed by
@@ -220,8 +202,6 @@ fn new_stdout_ends_with_the_body_only_instruction_after_the_created_path() {
     assert!(instruction_line.contains("living-docs set"));
     assert!(instruction_line.contains("supersede"));
     assert!(instruction_line.contains("index"));
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 /// AC1: `--description` writes the given sentence into the frontmatter
@@ -240,8 +220,6 @@ fn new_writes_the_given_description_into_frontmatter_for_the_fs_backend() {
         "got:\n{contents}"
     );
     assert!(!contents.contains("<One sentence"), "got:\n{contents}");
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 /// AC1: a description needing YAML quoting (e.g. a colon) is quoted the same
@@ -259,8 +237,6 @@ fn new_quotes_a_description_containing_a_colon_exactly_as_the_canonical_serializ
         contents.contains("description: \"Caching: a deep dive\"\n"),
         "got:\n{contents}"
     );
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 /// AC2: omitting `--description` keeps today's placeholder behavior
@@ -277,8 +253,6 @@ fn new_without_description_keeps_the_placeholder_for_the_fs_backend() {
         contents.contains("description: <One sentence"),
         "got:\n{contents}"
     );
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -292,6 +266,4 @@ fn new_honors_the_docs_dir_flag_across_repeated_calls() {
     assert!(second.status.success());
     assert!(docs.join("prd/0001-repeated-title.md").exists());
     assert!(docs.join("prd/0002-repeated-title.md").exists());
-
-    let _ = fs::remove_dir_all(&docs);
 }

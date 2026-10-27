@@ -22,8 +22,6 @@ fn fmt_leaves_mixed_files_it_never_rewrites_untouched() {
     assert_eq!(read(&bundle, "adr/log.md"), log);
     assert_eq!(read(&bundle, "notes.md"), PROSE);
     assert_eq!(read(&bundle, "adr/0001-doc.md"), CANONICAL_RECORD);
-
-    let _ = fs::remove_dir_all(bundle.parent().unwrap());
 }
 
 #[test]
@@ -41,6 +39,4 @@ fn fmt_still_refuses_a_mixed_record_with_frontmatter_beside_mixed_prose() {
         assert!(!stderr.contains("notes.md"), "got: {stderr}");
     }
     assert_eq!(read(&bundle, "adr/0001-doc.md"), record);
-
-    let _ = fs::remove_dir_all(bundle.parent().unwrap());
 }

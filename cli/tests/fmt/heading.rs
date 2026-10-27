@@ -95,7 +95,6 @@ fn check_fmt_check(label: &str, rel: &str, record: &str) -> (bool, bool, String,
     let after = check_disagrees(&bundle);
     super::run_fmt(&bundle);
     let again = std::fs::read_to_string(bundle.join(rel)).unwrap();
-    let _ = std::fs::remove_dir_all(bundle.parent().unwrap());
     (before, after, formatted, again)
 }
 

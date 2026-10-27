@@ -8,7 +8,6 @@ use crate::record::{extract_record, format_scalar, TailValue};
 use crate::sections;
 use crate::store::DocStore;
 use std::path::{Path, PathBuf};
-use std::process::ExitCode;
 
 mod issue_keys;
 mod renumber;
@@ -28,22 +27,6 @@ pub struct Applied {
     pub rewritten: Vec<PathBuf>,
     /// The index files refreshed after the write, and any that could not be.
     pub indexed: Indexed,
-}
-
-pub fn run(
-    store: &dyn DocStore,
-    docs_dir: &Path,
-    reference: &str,
-    key: &str,
-    value: &str,
-) -> ExitCode {
-    match apply(store, docs_dir, reference, key, value) {
-        Ok(_) => ExitCode::SUCCESS,
-        Err(message) => {
-            eprintln!("living-docs set: {message}");
-            ExitCode::from(2)
-        }
-    }
 }
 
 /// A reference is a bare `NNNN`, a `TYPE/NNNN`, or — for the types with no
@@ -68,8 +51,7 @@ pub fn run(
 /// a record of the type holds and a record in a supersede link
 /// ([`renumber`]). Nothing is written when
 /// the reference is unresolvable or the value fails validation. Returns what
-/// was written — the CLI front renders it as colored text or JSON;
-/// [`run`] is the plain-text-always convenience wrapper.
+/// was written — the CLI front renders it as colored text or JSON.
 pub fn apply(
     store: &dyn DocStore,
     docs_dir: &Path,

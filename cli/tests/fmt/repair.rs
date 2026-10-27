@@ -60,10 +60,6 @@ fn without_first_heading(body: &str) -> String {
     [&lines[..at], &lines[at + 1..]].concat().concat()
 }
 
-fn cleanup(bundle: &Path) {
-    let _ = fs::remove_dir_all(bundle.parent().unwrap());
-}
-
 fn repo_bundle(label: &str) -> Scratch {
     let bundle = temp_bundle(label);
     git(bundle.parent().unwrap(), None, &["init", "-q"]);
@@ -99,7 +95,6 @@ fn timestamp_comes_from_the_adding_commit_not_a_later_one() {
 
     assert!(output.status.success(), "{output:?}");
     assert_eq!(timestamp_of(&read(&bundle, HAND)), "2021-03-04T03:06:07Z");
-    cleanup(&bundle);
 }
 
 #[test]
@@ -108,8 +103,6 @@ fn timestamp_of_a_file_never_committed_falls_inside_the_run_window() {
     write(&bundle, HAND, ADR_HAND);
 
     assert_stamped_inside_the_run(&bundle);
-
-    cleanup(&bundle);
 }
 
 #[test]
@@ -120,7 +113,6 @@ fn timestamp_outside_a_git_repository_is_the_clock_without_error() {
     let output = assert_stamped_inside_the_run(&bundle);
 
     assert!(output.status.success(), "{output:?}");
-    cleanup(&bundle);
 }
 
 #[test]
@@ -135,7 +127,6 @@ fn timestamp_already_present_is_kept_byte_for_byte() {
     run(&bundle);
 
     assert_eq!(timestamp_of(&read(&bundle, HAND)), "2019-01-02T03:04:05Z");
-    cleanup(&bundle);
 }
 
 pub(super) fn fmt_record(identity: &[(&str, &str)], record: &str, rel: &str) -> String {
@@ -143,9 +134,7 @@ pub(super) fn fmt_record(identity: &[(&str, &str)], record: &str, rel: &str) -> 
     let bundle = temp_bundle(&format!("record-{}", NEXT.fetch_add(1, Ordering::SeqCst)));
     write(&bundle, rel, record);
     fmt_with(&bundle, identity, &[]);
-    let after = read(&bundle, rel);
-    cleanup(&bundle);
-    after
+    read(&bundle, rel)
 }
 
 #[test]
@@ -178,7 +167,6 @@ fn owner_stays_absent_without_a_git_identity_and_check_reports_it() {
         .unwrap();
 
     assert!(stdout_of(&check).contains("OWNER advisory"), "{check:?}");
-    cleanup(&bundle);
 }
 
 #[test]
@@ -261,7 +249,6 @@ fn check_mode_lists_a_record_needing_repair_and_writes_nothing() {
     assert_eq!(output.status.code(), Some(1), "{output:?}");
     assert!(stdout_of(&output).contains("0003-hand.md"));
     assert_eq!(read(&bundle, HAND), ADR_HAND);
-    cleanup(&bundle);
 }
 
 #[test]
@@ -280,7 +267,6 @@ fn check_mode_is_clean_after_one_fmt_and_a_second_fmt_writes_nothing() {
     );
     assert_eq!(read(&bundle, HAND), first);
     assert_eq!(check.status.code(), Some(0), "{check:?}");
-    cleanup(&bundle);
 }
 
 #[test]
@@ -294,5 +280,4 @@ fn check_mode_with_a_record_path_repairs_that_record_only() {
 
     assert!(read(&bundle, HAND).contains("# 0003. Hand"));
     assert_eq!(read(&bundle, "adr/0004-second.md"), other);
-    cleanup(&bundle);
 }

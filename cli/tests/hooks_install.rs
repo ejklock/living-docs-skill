@@ -135,8 +135,6 @@ fn install_materializes_the_hook_script_byte_identical_at_mode_0755() {
         let mode = fs::metadata(&installed).unwrap().permissions().mode();
         assert_eq!(mode & 0o777, 0o755, "{basename} unexpected mode: {mode:o}");
     }
-
-    let _ = fs::remove_dir_all(&project);
 }
 
 #[test]
@@ -162,8 +160,6 @@ fn install_is_idempotent_across_repeated_runs() {
         first_bytes, second_bytes,
         "repeated install must leave byte-identical files"
     );
-
-    let _ = fs::remove_dir_all(&project);
 }
 
 #[test]
@@ -183,8 +179,6 @@ fn dry_run_reports_the_plan_and_writes_nothing() {
     assert!(stdout.contains(".claude/settings.json"), "got: {stdout}");
     assert!(!project.join(".living-docs").exists());
     assert!(!project.join(".claude").exists());
-
-    let _ = fs::remove_dir_all(&project);
 }
 
 #[test]
@@ -199,8 +193,6 @@ fn install_defaults_dir_to_the_current_directory_when_omitted() {
 
     assert!(output.status.success());
     assert!(!project.join(".living-docs").exists());
-
-    let _ = fs::remove_dir_all(&project);
 }
 
 #[test]
@@ -223,8 +215,6 @@ fn install_wires_a_fresh_settings_json_with_one_sessionstart_entry_and_no_write_
         .expect("SessionStart entry carries a command string");
     assert!(session_command.contains(".living-docs/hooks/session-context.sh"));
     assert!(session_command.starts_with("LIVING_DOCS_BUNDLE=docs "));
-
-    let _ = fs::remove_dir_all(&project);
 }
 
 #[test]
@@ -260,8 +250,6 @@ fn install_preserves_unrelated_settings_entries_and_top_level_keys() {
         entry["hooks"][0]["command"] == "echo custom-guard" && entry["matcher"] == "Bash"
     });
     assert!(unrelated_still_present, "got: {pre_tool_use:?}");
-
-    let _ = fs::remove_dir_all(&project);
 }
 
 #[test]
@@ -280,8 +268,6 @@ fn install_replaces_living_docs_entries_on_reinstall_without_duplicating() {
         1,
         "got: {settings:?}"
     );
-
-    let _ = fs::remove_dir_all(&project);
 }
 
 #[test]
@@ -300,8 +286,6 @@ fn install_pins_a_custom_docs_dir_verbatim_into_the_generated_commands() {
         session_command.starts_with("LIVING_DOCS_BUNDLE=handbook "),
         "got: {session_command}"
     );
-
-    let _ = fs::remove_dir_all(&project);
 }
 
 #[test]
@@ -315,8 +299,6 @@ fn install_fails_with_exit_2_when_docs_dir_does_not_exist_and_writes_nothing() {
     assert!(stderr.contains("--docs-dir"), "got: {stderr}");
     assert!(!project.join(".living-docs").exists());
     assert!(!project.join(".claude").exists());
-
-    let _ = fs::remove_dir_all(&project);
 }
 
 #[test]
@@ -340,8 +322,6 @@ fn install_fails_with_exit_2_when_existing_settings_json_is_not_valid_json_and_n
     assert!(!project
         .join(".living-docs/hooks/session-context.sh")
         .exists());
-
-    let _ = fs::remove_dir_all(&project);
 }
 
 #[test]
@@ -359,8 +339,6 @@ fn install_materializes_pre_commit_byte_identical_at_mode_0755() {
     assert_eq!(actual, expected, "pre-commit bytes differ from the corpus");
     let mode = fs::metadata(&installed).unwrap().permissions().mode();
     assert_eq!(mode & 0o777, 0o755, "unexpected mode: {mode:o}");
-
-    let _ = fs::remove_dir_all(&project);
 }
 
 #[test]
@@ -373,8 +351,6 @@ fn install_succeeds_outside_a_git_repository_and_warns_on_stderr() {
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("core.hooksPath"), "got: {stderr}");
     assert!(project.join(".githooks/pre-commit").exists());
-
-    let _ = fs::remove_dir_all(&project);
 }
 
 #[test]
@@ -389,8 +365,6 @@ fn install_dry_run_does_not_touch_githooks_or_git_config() {
     assert!(stdout.contains("pre-commit"), "got: {stdout}");
     assert!(!project.join(".githooks").exists());
     assert_eq!(read_git_config(&project, "core.hooksPath"), None);
-
-    let _ = fs::remove_dir_all(&project);
 }
 
 #[test]
@@ -437,8 +411,6 @@ fn uninstall_removes_installed_artifacts_and_strips_settings_preserving_unrelate
             && entry["hooks"][0]["command"] == "echo custom-guard"),
         "got: {pre_tool_use:?}"
     );
-
-    let _ = fs::remove_dir_all(&project);
 }
 
 #[test]
@@ -451,8 +423,6 @@ fn uninstall_on_a_project_with_nothing_installed_is_a_clean_no_op() {
     assert!(!project.join(".living-docs").exists());
     assert!(!project.join(".githooks").exists());
     assert!(!project.join(".claude").exists());
-
-    let _ = fs::remove_dir_all(&project);
 }
 
 #[test]
@@ -487,8 +457,6 @@ fn uninstall_dry_run_reports_the_plan_and_changes_nothing() {
     }
     let after_pre_commit = fs::read(project.join(".githooks/pre-commit")).unwrap();
     assert_eq!(after_pre_commit, before_pre_commit);
-
-    let _ = fs::remove_dir_all(&project);
 }
 
 fn binary_dir() -> PathBuf {
@@ -623,8 +591,6 @@ fn pre_commit_script_is_fail_open_when_no_binary_resolves() {
     assert!(output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("skipped"), "got: {stderr}");
-
-    let _ = fs::remove_dir_all(&project);
 }
 
 #[test]
@@ -641,8 +607,6 @@ fn pre_commit_script_exits_zero_against_a_clean_bundle() {
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );
-
-    let _ = fs::remove_dir_all(&project);
 }
 
 #[test]
@@ -656,6 +620,4 @@ fn pre_commit_script_exits_nonzero_for_a_hand_written_noncanonical_record() {
     let output = run_pre_commit_script(&project, "bundle", None);
 
     assert!(!output.status.success());
-
-    let _ = fs::remove_dir_all(&project);
 }

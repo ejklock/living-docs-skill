@@ -1,4 +1,3 @@
-use std::fs;
 use std::process::Command;
 
 mod common;
@@ -62,6 +61,4 @@ fn check_on_missing_bundle_exits_with_code_2() {
         .expect("failed to run living-docs");
 
     assert_eq!(output.status.code(), Some(2));
-
-    let _ = fs::remove_dir_all(&docs);
 }

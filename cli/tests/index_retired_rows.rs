@@ -54,9 +54,7 @@ fn indexed_adr_index_contents(label: &str) -> String {
         String::from_utf8_lossy(&output.stderr)
     );
 
-    let contents = fs::read_to_string(docs.join("adr/index.md")).unwrap();
-    let _ = fs::remove_dir_all(docs.parent().unwrap());
-    contents
+    fs::read_to_string(docs.join("adr/index.md")).unwrap()
 }
 
 #[test]
@@ -123,6 +121,4 @@ fn open_closed_axis_never_carries_the_retired_section_note() {
         !contents.contains("History only"),
         "the issue Open/Closed axis must never carry the retired-section note: {contents}"
     );
-
-    let _ = fs::remove_dir_all(docs.parent().unwrap());
 }

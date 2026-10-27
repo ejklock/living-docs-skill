@@ -21,6 +21,10 @@ one slice per fresh context, starting from the skeleton.
 * [0094 — the one-way supersede link check lacks tests for its spelling, shared-number and path rules](0094-the-one-way-supersede-link-check-lacks-tests-for-its-spelling-shared-number-and-path-rules.md) - open
 * [0095 — check skips every entry of a supersedes list that mixes record numbers and other values](0095-check-skips-every-entry-of-a-supersedes-list-that-mixes-record-numbers-and-other-values.md) - open
 * [0096 — reserved files such as index.md are written outside the rooted store guard](0096-reserved-files-such-as-index-md-are-written-outside-the-rooted-store-guard.md) - open
+* [0102 — core keeps dead set and supersede run functions](0102-core-keeps-dead-set-and-supersede-run-functions.md) - open
+* [0103 — integration tests keep redundant manual cleanup calls](0103-integration-tests-keep-redundant-manual-cleanup-calls.md) - open
+* [0104 — check module docblock links to a run function that no longer exists](0104-check-module-docblock-links-to-a-run-function-that-no-longer-exists.md) - open
+* [0105 — check accepts the placeholder description that new writes](0105-check-accepts-the-placeholder-description-that-new-writes.md) - open
 
 ## Closed
 
