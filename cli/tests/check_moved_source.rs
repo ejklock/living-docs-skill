@@ -1,10 +1,10 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 mod common;
 use common::{run_check, run_check_advisories, stdout_of, write};
 
-fn temp_bundle(label: &str) -> PathBuf {
+fn temp_bundle(label: &str) -> common::Scratch {
     common::temp_bundle("moved-source", label)
 }
 

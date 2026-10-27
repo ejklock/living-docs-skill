@@ -1,6 +1,6 @@
 mod common;
 
-use common::{living_docs, run_new, temp_bundle};
+use common::{living_docs, run_new, temp_bundle, Scratch};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Output;
@@ -14,7 +14,7 @@ fn run(docs: &Path, args: &[&str]) -> Output {
         .unwrap()
 }
 
-fn two_adrs(label: &str) -> (PathBuf, PathBuf, PathBuf) {
+fn two_adrs(label: &str) -> (Scratch, PathBuf, PathBuf) {
     let docs = temp_bundle("set-read-back", label);
     assert!(run_new(&docs, "adr", "One").status.success());
     assert!(run_new(&docs, "adr", "Two").status.success());

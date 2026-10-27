@@ -1,17 +1,17 @@
 //! `check <record.md>` bundle-root choice: which directory the report names
 //! as the bundle for each step of the root rule.
 
-use std::path::{Path, PathBuf};
+use std::fs;
+use std::path::Path;
 use std::process::Output;
 
 mod common;
 use common::{living_docs, stdout_of, write};
 
-fn scratch(label: &str) -> PathBuf {
-    common::temp_bundle("check-record-roots", label)
-        .parent()
-        .unwrap()
-        .to_path_buf()
+fn scratch(label: &str) -> common::Scratch {
+    let root = common::Scratch::new(&format!("living-docs-check-record-roots-test-{label}"));
+    fs::create_dir_all(root.join("docs")).unwrap();
+    root
 }
 
 /// Runs `living-docs <global args> check --json <record>` from `cwd`.

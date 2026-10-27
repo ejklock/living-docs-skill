@@ -1,8 +1,11 @@
 #![allow(dead_code)]
 
+use std::ffi::OsStr;
 use std::fs;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn living_docs() -> Command {
@@ -74,18 +77,76 @@ pub fn stdout_of(output: &Output) -> String {
     String::from_utf8_lossy(&output.stdout).to_string()
 }
 
+/// A scratch directory tree removed when the guard drops, including while a
+/// panicking test unwinds. It derefs to the path tests work in, which is the
+/// tree's root or a directory inside it; the whole root is what gets removed.
+pub struct Scratch {
+    root: PathBuf,
+    path: PathBuf,
+}
+
+impl Scratch {
+    /// Creates a unique directory named after `name`; the guard derefs to it.
+    pub fn new(name: &str) -> Scratch {
+        Scratch::with_subdir(name, "")
+    }
+
+    /// Creates a unique root named after `name` holding `subdir`; the guard
+    /// derefs to `subdir` while dropping removes the root.
+    pub fn with_subdir(name: &str, subdir: &str) -> Scratch {
+        static NEXT: AtomicU64 = AtomicU64::new(0);
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let serial = NEXT.fetch_add(1, Ordering::Relaxed);
+        let root =
+            std::env::temp_dir().join(format!("{name}-{}-{nanos}-{serial}", std::process::id()));
+        let path = if subdir.is_empty() {
+            root.clone()
+        } else {
+            root.join(subdir)
+        };
+        fs::create_dir_all(&path).unwrap();
+        Scratch { root, path }
+    }
+
+    /// The directory the guard removes on drop.
+    pub fn root(&self) -> &Path {
+        &self.root
+    }
+}
+
+impl Deref for Scratch {
+    type Target = Path;
+    fn deref(&self) -> &Path {
+        &self.path
+    }
+}
+
+impl AsRef<Path> for Scratch {
+    fn as_ref(&self) -> &Path {
+        &self.path
+    }
+}
+
+impl AsRef<OsStr> for Scratch {
+    fn as_ref(&self) -> &OsStr {
+        self.path.as_os_str()
+    }
+}
+
+impl Drop for Scratch {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.root);
+    }
+}
+
 /// Builds a scratch bundle directory unique to this process run, scoped by
 /// `suite` (the calling test file) and `label` (the individual test case).
-pub fn temp_bundle(suite: &str, label: &str) -> PathBuf {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let dir = std::env::temp_dir()
-        .join(format!("living-docs-{suite}-test-{label}-{nanos}"))
-        .join("docs");
-    fs::create_dir_all(&dir).unwrap();
-    dir
+/// The guard derefs to the `docs` directory and removes its parent.
+pub fn temp_bundle(suite: &str, label: &str) -> Scratch {
+    Scratch::with_subdir(&format!("living-docs-{suite}-test-{label}"), "docs")
 }
 
 /// Regenerates every type index of `bundle` with the CLI, so a fixture's

@@ -23,7 +23,7 @@ fn new_view(docs: &Path, title: &str, kind: &str) {
     assert!(out.status.success(), "{out:?}");
 }
 
-fn view_bundle(label: &str) -> PathBuf {
+fn view_bundle(label: &str) -> common::Scratch {
     let docs = temp_bundle("set-named", label);
     new_view(&docs, "Rings", "component");
     docs

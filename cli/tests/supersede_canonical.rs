@@ -4,7 +4,7 @@
 //! that looks like a key never taking the key's place.
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Output;
 
 mod common;
@@ -18,7 +18,7 @@ fn adr(title: &str, extra: &str) -> String {
     )
 }
 
-fn three_adrs(label: &str) -> PathBuf {
+fn three_adrs(label: &str) -> common::Scratch {
     let bundle = temp_bundle("supersede-canonical", label);
     for (rel, title) in [("0001-a", "A"), ("0002-b", "B"), ("0003-c", "C")] {
         write(&bundle, &format!("adr/{rel}.md"), &adr(title, ""));

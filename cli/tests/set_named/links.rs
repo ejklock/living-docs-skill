@@ -32,7 +32,7 @@ fn assert_retitle_rewrites(docs: &Path, reference: &str, file: &str, texts: (&st
     assert!(!found.contains("broken link"), "{found}");
 }
 
-fn shared_name_bundle(label: &str) -> PathBuf {
+fn shared_name_bundle(label: &str) -> common::Scratch {
     let docs = temp_bundle("set-named", label);
     write_doc(&docs, "constitution.md", "# Root\n");
     new_view(&docs, "Constitution", "flow");

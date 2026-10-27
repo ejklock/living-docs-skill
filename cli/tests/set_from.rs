@@ -22,7 +22,7 @@ fn set(docs: &Path, args: &[&str], stdin: &str) -> Output {
     child.wait_with_output().unwrap()
 }
 
-fn issue_bundle(label: &str) -> (PathBuf, PathBuf) {
+fn issue_bundle(label: &str) -> (common::Scratch, PathBuf) {
     let docs = temp_bundle("set-from", label);
     assert!(run_new(&docs, "issue", "T").status.success());
     let path = docs.join("issues/0001-t.md");
@@ -105,7 +105,7 @@ fn from_value_trims_and_normalizes_line_endings() {
 
 const WITH_OUTCOME: &str = "### Outcome\n\nold\n\n#### sub\n\nold sub\n\n### Plan\n\nkeep\n";
 
-fn issue_with(label: &str, tail: &str) -> (PathBuf, PathBuf) {
+fn issue_with(label: &str, tail: &str) -> (common::Scratch, PathBuf) {
     let (docs, path) = issue_bundle(label);
     let text = fs::read_to_string(&path).unwrap();
     let head = text.split("### Scope").next().unwrap();

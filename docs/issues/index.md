@@ -21,6 +21,8 @@ one slice per fresh context, starting from the skeleton.
 * [0094 — the one-way supersede link check lacks tests for its spelling, shared-number and path rules](0094-the-one-way-supersede-link-check-lacks-tests-for-its-spelling-shared-number-and-path-rules.md) - open
 * [0095 — check skips every entry of a supersedes list that mixes record numbers and other values](0095-check-skips-every-entry-of-a-supersedes-list-that-mixes-record-numbers-and-other-values.md) - open
 * [0096 — reserved files such as index.md are written outside the rooted store guard](0096-reserved-files-such-as-index-md-are-written-outside-the-rooted-store-guard.md) - open
+* [0100 — integration tests leave their scratch directories behind](0100-integration-tests-leave-their-scratch-directories-behind.md) - open
+* [0101 — core keeps dead run functions that print to stdout](0101-core-keeps-dead-run-functions-that-print-to-stdout.md) - open
 
 ## Closed
 

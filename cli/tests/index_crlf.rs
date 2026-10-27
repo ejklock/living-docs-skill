@@ -2,7 +2,7 @@ mod common;
 
 use common::{living_docs, run_check, temp_bundle, write};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Output;
 
 const ALPHA: &str =
@@ -16,7 +16,7 @@ const ADR_INDEX: &str = "# ADRs\n\n## Active\n\n* [0001 — Alpha](0001-alpha.md
 const ISSUES_INDEX: &str = "# Issues\n\n## Open\n\n* [0001 — Gamma](0001-gamma.md) - open\n";
 const ROOT_INDEX: &str = "# Docs\n* [ADRs](adr/)\n* [Issues](issues/)\n";
 
-fn bundle(label: &str, crlf: bool) -> PathBuf {
+fn bundle(label: &str, crlf: bool) -> common::Scratch {
     let docs = temp_bundle("index-crlf", label);
     let eol = |text: &str| {
         if crlf {
@@ -168,7 +168,7 @@ fn the_mixed_endings_warning_follows_quiet_like_the_title_warning() {
 
 const MIXED_TEXT: &str = "mixed line endings";
 
-fn mixed_bundle(label: &str) -> PathBuf {
+fn mixed_bundle(label: &str) -> common::Scratch {
     let docs = bundle(label, false);
     write(&docs, "adr/0002-beta.md", &BETA.replacen('\n', "\r\n", 1));
     docs

@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Output;
 
 mod common;
@@ -17,7 +17,7 @@ fn record(owner: bool, extra_lines: usize) -> String {
     format!("---\ntype: ADR\ntitle: Doc\ndescription: A record.\n{owner}status: Accepted\n---\n\n# Doc\n\n{BODY}{filler}")
 }
 
-fn bundle_with(label: &str, records: &[(String, String)], orphan: bool) -> PathBuf {
+fn bundle_with(label: &str, records: &[(String, String)], orphan: bool) -> common::Scratch {
     let bundle = common::temp_bundle("digest", label);
     let mut index = String::from("# ADR Index\n\n");
     for (name, contents) in records {
@@ -33,7 +33,7 @@ fn bundle_with(label: &str, records: &[(String, String)], orphan: bool) -> PathB
     bundle
 }
 
-fn fixture(label: &str) -> PathBuf {
+fn fixture(label: &str) -> common::Scratch {
     bundle_with(
         label,
         &[

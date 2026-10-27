@@ -3,7 +3,7 @@
 //! the record's title.
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Output;
 
 mod common;
@@ -16,7 +16,7 @@ fn record(title: &str, body: &str) -> String {
     format!("---\ntype: Issue\ntitle: {title}\ndescription: d.\nstatus: open\n---\n\n{body}")
 }
 
-fn bundle_with(label: &str, record: &str) -> PathBuf {
+fn bundle_with(label: &str, record: &str) -> common::Scratch {
     let bundle = temp_bundle("sections-parser", label);
     write(
         &bundle,

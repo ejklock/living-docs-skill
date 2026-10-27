@@ -1,7 +1,6 @@
 521 cli/src/hooks.rs
 321 cli/src/skill_install.rs
 340 cli/src/skill.rs
-337 cli/tests/check_core.rs
-665 cli/tests/hooks_install.rs
-732 cli/tests/index_supersede.rs
-301 cli/tests/new.rs
+336 cli/tests/check_core.rs
+661 cli/tests/hooks_install.rs
+725 cli/tests/index_supersede.rs

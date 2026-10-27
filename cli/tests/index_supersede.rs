@@ -1,23 +1,16 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 mod common;
-use common::new_two_adrs_and_supersede;
+use common::{new_two_adrs_and_supersede, Scratch};
 
 fn living_docs() -> Command {
     Command::new(env!("CARGO_BIN_EXE_living-docs"))
 }
 
-fn temp_dir(label: &str) -> PathBuf {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let dir = std::env::temp_dir().join(format!("living-docs-idx-sup-test-{label}-{nanos}"));
-    fs::create_dir_all(&dir).unwrap();
-    dir
+fn temp_dir(label: &str) -> Scratch {
+    Scratch::new(&format!("living-docs-idx-sup-test-{label}"))
 }
 
 fn run_index(docs: &Path, doc_type: Option<&str>) -> Output {

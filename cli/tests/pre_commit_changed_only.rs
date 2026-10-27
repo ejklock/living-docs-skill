@@ -42,7 +42,7 @@ fn git(repo: &Path, args: &[&str]) -> Output {
 /// A git repo whose bundle carries one record with legacy debt and one clean
 /// record, with the repo's real pre-commit hook installed and only the clean
 /// record staged.
-fn repo_with_debt(label: &str) -> PathBuf {
+fn repo_with_debt(label: &str) -> common::Scratch {
     let repo = common::temp_bundle("pre-commit", label);
     git(&repo, &["init", "-q"]);
     let hook = repo.join(".git/hooks/pre-commit");

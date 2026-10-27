@@ -1,16 +1,12 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Command, Output};
-use std::time::{SystemTime, UNIX_EPOCH};
 
-fn temp_dir(label: &str) -> PathBuf {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let dir = std::env::temp_dir().join(format!("living-docs-owner-test-{label}-{nanos}"));
-    fs::create_dir_all(&dir).unwrap();
-    dir
+mod common;
+use common::Scratch;
+
+fn temp_dir(label: &str) -> Scratch {
+    Scratch::new(&format!("living-docs-owner-test-{label}"))
 }
 
 /// Runs the binary from `cwd` with the git identity pinned by environment:

@@ -34,7 +34,7 @@ fn self_linking(number: &str, title: &str, own_name: &str) -> String {
 
 const ADR_LINKER: &str = "---\ntype: ADR\ntitle: Cache\ndescription: d\nowner: o\nstatus: Accepted\ntimestamp: 2026-10-24T10:00:00Z\n---\n\n# 0001. Cache\n\nSee [b](../issues/0007-b.md).\n\n## Context\n\nc\n\n## Decision\n\nd\n\n## Consequences\n\nq\n";
 
-fn bundle(label: &str) -> PathBuf {
+fn bundle(label: &str) -> common::Scratch {
     let docs = temp_bundle("set-number", label);
     write(&docs, "issues/0005-linker.md", LINKER);
     write(&docs, "issues/0007-a.md", &issue("0007", "a", "open", ""));

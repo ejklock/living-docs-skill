@@ -1,7 +1,7 @@
 mod common;
 
 use common::{fixture, index_bundle, living_docs, run_check, stdout_of, temp_bundle, write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Output;
 
 const REPAIR: &str = "living-docs set <path> number next";
@@ -40,7 +40,7 @@ fn add(bundle: &Path, kind: &str, number: &str, slug: &str, status: &str) {
     );
 }
 
-fn indexed(label: &str, records: &[Rec]) -> PathBuf {
+fn indexed(label: &str, records: &[Rec]) -> common::Scratch {
     let bundle = temp_bundle("check-duplicate-numbers", label);
     let mut root = String::from("# Docs\n\n");
     for (kind, number, slug, status) in records {
@@ -240,7 +240,7 @@ fn run_scoped(bundle: &Path, changed: &[&str]) -> Output {
         .unwrap()
 }
 
-fn pair_with_unrelated(label: &str) -> PathBuf {
+fn pair_with_unrelated(label: &str) -> common::Scratch {
     indexed(
         label,
         &[issue("0007", "a"), issue("0007", "b"), issue("0009", "x")],

@@ -1,6 +1,6 @@
 mod common;
 
-use common::{living_docs, stdout_of, temp_bundle};
+use common::{living_docs, stdout_of, Scratch};
 use std::fs;
 use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
@@ -9,11 +9,8 @@ use std::process::{Command, Output};
 const UNION_LINE: &str = "docs/**/index.md merge=union";
 const BODY: &str = "### Scope\n\nOne thing.\n\n### Acceptance\n\n- It works.\n";
 
-fn project(label: &str) -> PathBuf {
-    let project = temp_bundle("gitattributes", label)
-        .parent()
-        .unwrap()
-        .to_path_buf();
+fn project(label: &str) -> Scratch {
+    let project = Scratch::new(&format!("living-docs-gitattributes-test-{label}"));
     fs::create_dir_all(project.join("docs")).unwrap();
     project
 }
@@ -122,7 +119,8 @@ fn a_symlinked_attributes_file_fails_install_and_uninstall_writing_nothing() {
 #[test]
 fn a_docs_dir_outside_the_project_skips_the_union_line_and_says_so() {
     let root = project("outside");
-    let outside = project("outside-docs").join("docs");
+    let outside_project = project("outside-docs");
+    let outside = outside_project.join("docs");
     let output = living_docs()
         .args(["install", "hooks", "--dir"])
         .arg(&root)
@@ -189,7 +187,7 @@ fn check(repo: &Path) -> Output {
         .unwrap()
 }
 
-fn merged_repo(label: &str) -> PathBuf {
+fn merged_repo(label: &str) -> Scratch {
     let repo = project(label);
     fs::write(
         repo.join("docs/index.md"),

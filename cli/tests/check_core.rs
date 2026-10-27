@@ -1,12 +1,12 @@
 use living_docs_core::doc_type::{self, Identity};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Output;
 
 mod common;
 use common::{fixture, living_docs, run_check, stdout_of, write};
 
-fn temp_bundle(label: &str) -> PathBuf {
+fn temp_bundle(label: &str) -> common::Scratch {
     common::temp_bundle("check", label)
 }
 
@@ -92,11 +92,10 @@ fn fixture_09_okf_canonical_bundle_is_clean() {
 
 #[test]
 fn missing_bundle_exits_with_code_2() {
-    let bundle = temp_bundle("missing").join("does-not-exist");
+    let scratch = temp_bundle("missing");
+    let bundle = scratch.join("does-not-exist");
     let output = run_check(&bundle);
     assert_eq!(output.status.code(), Some(2));
-
-    let _ = fs::remove_dir_all(bundle.parent().unwrap());
 }
 
 #[test]

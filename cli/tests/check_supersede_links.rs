@@ -3,7 +3,6 @@
 mod common;
 
 use common::{index_bundle, living_docs, run_check, stdout_of, temp_bundle, write};
-use std::path::PathBuf;
 
 const BODY: &str = "## Context\n\nWhy.\n\n## Decision\n\nWhat.\n\n## Consequences\n\nSo.\n\n## Verification\n\n- Checked.\n";
 
@@ -15,7 +14,7 @@ fn adr(number: &str, extra: &str) -> (String, String) {
     (format!("adr/{number}-d.md"), contents)
 }
 
-fn bundle_of(label: &str, records: &[(String, String)]) -> PathBuf {
+fn bundle_of(label: &str, records: &[(String, String)]) -> common::Scratch {
     let bundle = temp_bundle("check-supersede-links", label);
     write(&bundle, "index.md", "# Docs\n\n* [adr](adr/)\n");
     for (rel, contents) in records {

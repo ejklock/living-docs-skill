@@ -1,34 +1,13 @@
 use std::fs;
-use std::ops::Deref;
 use std::os::unix::fs::PermissionsExt;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Command, Output};
-use std::time::{SystemTime, UNIX_EPOCH};
+
+mod common;
+use common::Scratch;
 
 const HINT: &str = "living-docs install hooks";
 const RUNS_CHECK: &str = "#!/bin/sh\nliving-docs check docs\n";
-
-/// A scratch directory removed when the test ends.
-struct Scratch(PathBuf);
-
-impl Deref for Scratch {
-    type Target = Path;
-    fn deref(&self) -> &Path {
-        &self.0
-    }
-}
-
-impl Drop for Scratch {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.0);
-    }
-}
-
-impl AsRef<Path> for Scratch {
-    fn as_ref(&self) -> &Path {
-        &self.0
-    }
-}
 
 fn isolated<'a>(command: &'a mut Command, home: &Path) -> &'a mut Command {
     command
@@ -38,14 +17,10 @@ fn isolated<'a>(command: &'a mut Command, home: &Path) -> &'a mut Command {
 }
 
 fn temp_dir(label: &str) -> Scratch {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let dir = std::env::temp_dir().join(format!("living-docs-check-hint-{label}-{nanos}"));
+    let dir = Scratch::new(&format!("living-docs-check-hint-{label}"));
     fs::create_dir_all(dir.join("docs")).unwrap();
     fs::write(dir.join("docs/index.md"), "# Documents\n").unwrap();
-    Scratch(dir)
+    dir
 }
 
 fn living_docs(cwd: &Path, args: &[&str]) -> Output {

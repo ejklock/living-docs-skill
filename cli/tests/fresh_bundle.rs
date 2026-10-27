@@ -7,7 +7,7 @@ use std::path::Path;
 use std::process::Output;
 
 /// A fresh docs directory inside a new git repository, as a real project has.
-fn git_bundle(label: &str) -> std::path::PathBuf {
+fn git_bundle(label: &str) -> common::Scratch {
     let docs = temp_bundle("fresh-bundle", label);
     let init = std::process::Command::new("git")
         .args(["init", "-q"])
@@ -91,7 +91,8 @@ fn root_index_that_already_reaches_every_type_index_is_byte_identical() {
 
 #[test]
 fn root_index_is_written_in_the_nested_docs_dir() {
-    let docs = git_bundle("root-nested").join("deep/docs");
+    let bundle = git_bundle("root-nested");
+    let docs = bundle.join("deep/docs");
     fs::create_dir_all(&docs).unwrap();
     assert_new_ok(&docs, "adr", "A");
 

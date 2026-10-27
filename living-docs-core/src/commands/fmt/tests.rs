@@ -76,24 +76,35 @@ fn run_a_second_time_over_a_freshly_canonicalized_record_rewrites_nothing() {
     assert_eq!(store.contents("/bundle/adr/0001-doc.md"), after_first_pass);
 }
 
-#[test]
-fn run_reports_zero_rewrites_over_an_empty_bundle() {
-    let store = MapStore::seeded(&[]);
-    let bundle = std::env::temp_dir();
-
-    let code = run(&store, &bundle, false);
-
-    assert_eq!(format!("{code:?}"), format!("{:?}", ExitCode::SUCCESS));
+/// The records `outcome` listed: `Pending` for a check-only run, `Rewritten`
+/// otherwise. The other variant fails the test.
+fn paths_of(store: &MapStore, target: &Path, check_only: bool) -> Vec<PathBuf> {
+    match (
+        check_only,
+        outcome(store, target, check_only, &Seeds::default()),
+    ) {
+        (true, Ok(Outcome::Pending(paths))) | (false, Ok(Outcome::Rewritten(paths))) => paths,
+        (_, Ok(_)) => panic!("outcome returned the wrong variant for check_only={check_only}"),
+        (_, Err(message)) => panic!("outcome failed: {message}"),
+    }
 }
 
 #[test]
-fn run_exits_with_code_two_when_the_bundle_root_is_missing() {
+fn outcome_rewrites_nothing_over_an_empty_bundle() {
+    let store = MapStore::seeded(&[]);
+    let bundle = std::env::temp_dir();
+
+    assert!(paths_of(&store, &bundle, false).is_empty());
+}
+
+#[test]
+fn outcome_fails_when_the_bundle_root_is_missing() {
     let store = MapStore::seeded(&[]);
     let missing = std::env::temp_dir().join("living-docs-fmt-missing-bundle");
 
-    let code = run(&store, &missing, false);
+    let result = outcome(&store, &missing, false, &Seeds::default());
 
-    assert_eq!(format!("{code:?}"), format!("{:?}", ExitCode::from(2)));
+    assert!(matches!(result, Err(message) if message.starts_with("bundle root not found")));
 }
 
 #[test]
@@ -133,7 +144,7 @@ fn canonicalize_record_leaves_a_fenced_code_block_in_the_body_untouched() {
 }
 
 #[test]
-fn run_against_a_single_record_file_canonicalizes_only_that_file() {
+fn outcome_against_a_single_record_file_canonicalizes_only_that_file() {
     let non_canonical =
         "---\ntitle: Quokka Caching\ntype: ADR\ndescription: Adopt quokka caching.\n---\n\n# Quokka Caching\n\nBody.\n";
     let other = "---\ntitle: Other\ntype: ADR\ndescription: Other doc.\n---\n\n# Other\n\nBody.\n";
@@ -145,9 +156,9 @@ fn run_against_a_single_record_file_canonicalizes_only_that_file() {
         (other_path.to_str().unwrap(), other),
     ]);
 
-    let code = run(&store, &target, false);
+    let paths = paths_of(&store, &target, false);
 
-    assert_eq!(format!("{code:?}"), format!("{:?}", ExitCode::SUCCESS));
+    assert_eq!(paths, vec![target.clone()]);
     assert_eq!(
         store.contents(target.to_str().unwrap()),
         "---\ntype: ADR\ntitle: Quokka Caching\ndescription: Adopt quokka caching.\n---\n\n# Quokka Caching\n\nBody.\n"
@@ -157,16 +168,16 @@ fn run_against_a_single_record_file_canonicalizes_only_that_file() {
 }
 
 #[test]
-fn run_check_on_a_non_canonical_record_writes_nothing_and_reports_it() {
+fn outcome_check_on_a_non_canonical_record_writes_nothing_and_lists_it() {
     let non_canonical =
         "---\ntitle: Quokka Caching\ntype: ADR\ndescription: Adopt quokka caching.\n---\n\n# Quokka Caching\n\nBody.\n";
     let root = real_temp_tree("check-pending", &["adr/0001-doc.md"]);
     let target = root.join("adr/0001-doc.md");
     let store = MapStore::seeded(&[(target.to_str().unwrap(), non_canonical)]);
 
-    let code = run(&store, &root, true);
+    let paths = paths_of(&store, &root, true);
 
-    assert_eq!(format!("{code:?}"), format!("{:?}", ExitCode::from(1)));
+    assert_eq!(paths, vec![target.clone()]);
     assert_eq!(store.contents(target.to_str().unwrap()), non_canonical);
     let _ = std::fs::remove_dir_all(root);
 }
@@ -213,14 +224,14 @@ fn canonicalize_record_removes_a_stale_callout_from_an_active_record() {
 }
 
 #[test]
-fn run_check_reports_a_retired_record_missing_its_callout_as_pending() {
+fn outcome_check_lists_a_retired_record_missing_its_callout_as_pending() {
     let root = real_temp_tree("check-callout", &["adr/0001-old.md"]);
     let target = root.join("adr/0001-old.md");
     let store = MapStore::seeded(&[(target.to_str().unwrap(), &superseded_record("Old"))]);
 
-    let code = run(&store, &root, true);
+    let paths = paths_of(&store, &root, true);
 
-    assert_eq!(format!("{code:?}"), format!("{:?}", ExitCode::from(1)));
+    assert_eq!(paths, vec![target.clone()]);
     let _ = std::fs::remove_dir_all(root);
 }
 
@@ -241,15 +252,13 @@ fn a_second_canonicalize_after_reconciling_the_callout_rewrites_nothing() {
 }
 
 #[test]
-fn run_check_on_a_canonical_bundle_exits_zero() {
+fn outcome_check_on_a_canonical_bundle_lists_nothing() {
     let canonical = "---\ntype: ADR\ntitle: Quokka Caching\ndescription: Adopt quokka caching.\n---\n\n# Quokka Caching\n\nBody.\n";
     let root = real_temp_tree("check-canonical", &["adr/0001-doc.md"]);
     let target = root.join("adr/0001-doc.md");
     let store = MapStore::seeded(&[(target.to_str().unwrap(), canonical)]);
 
-    let code = run(&store, &root, true);
-
-    assert_eq!(format!("{code:?}"), format!("{:?}", ExitCode::SUCCESS));
+    assert!(paths_of(&store, &root, true).is_empty());
     assert_eq!(store.contents(target.to_str().unwrap()), canonical);
     let _ = std::fs::remove_dir_all(root);
 }

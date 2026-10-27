@@ -1,10 +1,10 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 mod common;
 use common::{living_docs, run_check, run_check_advisories, stdout_of, write};
 
-fn temp_bundle(label: &str) -> PathBuf {
+fn temp_bundle(label: &str) -> common::Scratch {
     common::temp_bundle("size", label)
 }
 
@@ -26,7 +26,7 @@ fn assert_no_size_note(bundle: &Path) {
     let _ = fs::remove_dir_all(bundle.parent().unwrap());
 }
 
-fn indexed_bundle_with(label: &str, record: &str) -> PathBuf {
+fn indexed_bundle_with(label: &str, record: &str) -> common::Scratch {
     let bundle = temp_bundle(label);
     write(&bundle, "index.md", "# Docs\n\n- [ADRs](/adr/index.md)\n");
     write(

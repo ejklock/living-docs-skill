@@ -1,10 +1,9 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 mod common;
-use common::{run_check, write};
+use common::{run_check, write, Scratch};
 
 fn living_docs() -> Command {
     Command::new(env!("CARGO_BIN_EXE_living-docs"))
@@ -19,14 +18,8 @@ fn fixture(name: &str) -> PathBuf {
         .join(name)
 }
 
-fn temp_dir(label: &str) -> PathBuf {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let dir = std::env::temp_dir().join(format!("living-docs-mermaid-test-{label}-{nanos}"));
-    fs::create_dir_all(&dir).unwrap();
-    dir
+fn temp_dir(label: &str) -> Scratch {
+    Scratch::new(&format!("living-docs-mermaid-test-{label}"))
 }
 
 /// `--plain` forces text mode regardless of the piped, non-TTY stdout a

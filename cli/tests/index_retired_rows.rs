@@ -1,10 +1,10 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 mod common;
 use common::{living_docs, write};
 
-fn temp_bundle(label: &str) -> PathBuf {
+fn temp_bundle(label: &str) -> common::Scratch {
     common::temp_bundle("retired-rows", label)
 }
 

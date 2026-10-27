@@ -2,7 +2,7 @@ use super::crlf::{tree, Tree};
 use super::*;
 
 /// ADRs One, Two and Three in a fresh bundle, the second with mixed endings.
-fn three_adrs(label: &str) -> PathBuf {
+fn three_adrs(label: &str) -> Scratch {
     let docs = temp_bundle("set-read-back", label);
     for title in ["One", "Two", "Three"] {
         assert!(run_new(&docs, "adr", title).status.success());
@@ -19,7 +19,8 @@ fn file(docs: &Path, rel: &str) -> String {
 
 #[test]
 fn a_mixed_target_is_refused_naming_the_endings_with_every_file_untouched() {
-    let section = std::env::temp_dir().join("living-docs-mixed-section.txt");
+    let scratch = Scratch::new("living-docs-mixed-section");
+    let section = scratch.join("section.txt");
     fs::write(&section, "Added text.\n").unwrap();
     let from = section.to_str().unwrap();
     for args in [
@@ -37,7 +38,6 @@ fn a_mixed_target_is_refused_naming_the_endings_with_every_file_untouched() {
         assert!(stderr.contains("mixed line endings"), "got: {stderr}");
         assert_eq!(tree(&docs), before, "{args:?}");
     }
-    let _ = fs::remove_file(section);
 }
 
 #[test]

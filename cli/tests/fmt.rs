@@ -6,9 +6,11 @@ mod mixed;
 mod repair;
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Command, Output};
-use std::time::{SystemTime, UNIX_EPOCH};
+
+mod common;
+use common::Scratch;
 
 fn living_docs() -> Command {
     Command::new(env!("CARGO_BIN_EXE_living-docs"))
@@ -32,16 +34,8 @@ fn stdout_of(output: &Output) -> String {
     String::from_utf8_lossy(&output.stdout).to_string()
 }
 
-fn temp_bundle(label: &str) -> PathBuf {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let dir = std::env::temp_dir()
-        .join(format!("living-docs-fmt-test-{label}-{nanos}"))
-        .join("docs");
-    fs::create_dir_all(&dir).unwrap();
-    dir
+fn temp_bundle(label: &str) -> Scratch {
+    Scratch::with_subdir(&format!("living-docs-fmt-test-{label}"), "docs")
 }
 
 fn write(bundle: &Path, rel: &str, contents: &str) {
@@ -287,7 +281,8 @@ fn fmt_refuses_a_record_with_mixed_line_endings_and_writes_nothing() {
 
 #[test]
 fn fmt_reports_a_missing_bundle_root_with_exit_code_two() {
-    let bundle = temp_bundle("missing").join("does-not-exist");
+    let scratch = temp_bundle("missing");
+    let bundle = scratch.join("does-not-exist");
 
     let output = run_fmt(&bundle);
 

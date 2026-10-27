@@ -1,7 +1,9 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
-use std::time::{SystemTime, UNIX_EPOCH};
+
+mod common;
+use common::Scratch;
 
 const SKILL_RELATIVE_PATHS: [(&str, &str); 5] = [
     ("living-docs", "SKILL.md"),
@@ -15,14 +17,8 @@ fn living_docs() -> Command {
     Command::new(env!("CARGO_BIN_EXE_living-docs"))
 }
 
-fn temp_dir(label: &str) -> PathBuf {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let dir = std::env::temp_dir().join(format!("living-docs-skill-install-test-{label}-{nanos}"));
-    fs::create_dir_all(&dir).unwrap();
-    dir
+fn temp_dir(label: &str) -> Scratch {
+    Scratch::new(&format!("living-docs-skill-install-test-{label}"))
 }
 
 fn unused_child_path(parent: &Path, label: &str) -> PathBuf {

@@ -2,19 +2,19 @@
 //! records a commit touched, so a bundle carrying legacy debt can still gate
 //! what it changes.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Output;
 
 mod common;
 use common::{living_docs, stdout_of, write};
 
-fn temp_bundle(label: &str) -> PathBuf {
+fn temp_bundle(label: &str) -> common::Scratch {
     common::temp_bundle("check-changed-files", label)
 }
 
 /// A bundle with one clean record and one carrying an unfilled placeholder —
 /// the debt a brownfield adopter inherits.
-fn dirty_bundle(label: &str) -> PathBuf {
+fn dirty_bundle(label: &str) -> common::Scratch {
     let bundle = temp_bundle(label);
     write(&bundle, "index.md", "# Docs\n\n* [ADRs](adr/)\n");
     write(

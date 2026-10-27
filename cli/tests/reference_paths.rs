@@ -23,7 +23,7 @@ fn run_set(docs: &Path, reference: &str) -> Output {
         .expect("failed to run living-docs set")
 }
 
-fn bundle_with_issue_0049(label: &str) -> (PathBuf, PathBuf) {
+fn bundle_with_issue_0049(label: &str) -> (common::Scratch, PathBuf) {
     let docs = temp_bundle("reference-paths", label);
     assert!(run_new(&docs, "issue", "Flaky upload").status.success());
     assert!(run_new(&docs, "adr", "Cache").status.success());

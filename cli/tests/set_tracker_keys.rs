@@ -14,7 +14,7 @@ fn set(docs: &Path, args: &[&str]) -> Output {
         .unwrap()
 }
 
-fn issue_bundle(label: &str) -> (PathBuf, PathBuf) {
+fn issue_bundle(label: &str) -> (common::Scratch, PathBuf) {
     let docs = temp_bundle("set-tracker-keys", label);
     assert!(run_new(&docs, "issue", "T").status.success());
     let path = docs.join("issues/0001-t.md");

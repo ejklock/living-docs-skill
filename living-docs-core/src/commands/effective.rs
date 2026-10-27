@@ -15,7 +15,6 @@ pub use dependents::{resolve_target, Dependents};
 use json::json_of;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::process::ExitCode;
 
 mod dependents;
 mod json;
@@ -45,11 +44,6 @@ pub(crate) struct View {
 
 /// A read record paired with its `bundle`-prefixed path.
 type Entry = (PathBuf, ExtractedRecord);
-
-pub fn run(store: &dyn DocStore, bundle: &Path, options: &Options) -> ExitCode {
-    print!("{}", compile(store, bundle, options));
-    ExitCode::SUCCESS
-}
 
 /// Selects and orders the in-force view's records — the pure core shared by
 /// [`compile`] (text) and [`compile_json`] (JSON) — returning the

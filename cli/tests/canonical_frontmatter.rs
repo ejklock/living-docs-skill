@@ -8,13 +8,13 @@
 //! ratchet baseline.
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Output;
 
 mod common;
 use common::{living_docs, new_two_adrs_and_supersede, run_check, run_new, run_supersede};
 
-fn temp_dir(label: &str) -> PathBuf {
+fn temp_dir(label: &str) -> common::Scratch {
     common::temp_bundle("canonical-frontmatter", label)
 }
 

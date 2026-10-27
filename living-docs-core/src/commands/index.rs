@@ -6,7 +6,6 @@ use crate::line_ending::{ending_of, Ending, LineEndingStore, MIXED_MESSAGE};
 use crate::store::DocStore;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::ExitCode;
 
 mod named;
 mod preamble;
@@ -37,23 +36,10 @@ fn all_type_tokens() -> Vec<String> {
         .collect()
 }
 
-pub fn run(store: &dyn DocStore, docs_dir: &Path, doc_type: Option<String>) -> ExitCode {
-    match write(store, docs_dir, doc_type) {
-        Ok(written) => {
-            written.iter().for_each(|p| println!("{}", p.display()));
-            ExitCode::SUCCESS
-        }
-        Err(message) => {
-            eprintln!("living-docs index: {message}");
-            ExitCode::from(2)
-        }
-    }
-}
-
 /// Regenerates `doc_type`'s index(es) and makes the bundle-root index reach
 /// them, returning the written paths (a type with no directory yet, or an
-/// index already current, is a silent no-op that lists nothing); [`run`]
-/// renders these as plain text, the CLI front also as JSON. A mixed-ending
+/// index already current, is a silent no-op that lists nothing); the
+/// CLI front renders these as plain text or JSON. A mixed-ending
 /// record keeps its row and draws a stderr warning, from this verb only.
 pub fn write(
     store: &dyn DocStore,
