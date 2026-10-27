@@ -22,6 +22,16 @@ pub(crate) struct ReadArgs {
     /// Plan and Outcome): what was agreed, not the working material.
     #[arg(long, conflicts_with = "full")]
     pub(crate) contract: bool,
+    /// Print only the live records whose body links the named record
+    /// (`TYPE/NNNN`), directly, in the usual order. Run it before editing
+    /// or superseding a record.
+    #[arg(long, value_name = "TYPE/NNNN", conflicts_with_all = ["topic", "impact"])]
+    pub(crate) links_to: Option<String>,
+    /// Print every live record that reaches the named record (`TYPE/NNNN`)
+    /// through a chain of links, each with its distance (1 is a direct
+    /// link), nearest first.
+    #[arg(long, value_name = "TYPE/NNNN", conflicts_with = "topic")]
+    pub(crate) impact: Option<String>,
 }
 
 /// Arguments for the `guide` verb.

@@ -2,6 +2,7 @@ use super::*;
 use crate::test_support::MapStore;
 use std::collections::BTreeMap;
 
+mod dependents;
 mod lineage;
 
 fn store_of(files: &[(&str, &str)]) -> MapStore {
@@ -17,6 +18,7 @@ fn options(topic: Option<&str>, full: bool) -> Options {
         topic: topic.map(str::to_string),
         full,
         contract: false,
+        dependents: None,
     }
 }
 

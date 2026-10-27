@@ -11,11 +11,14 @@
 use crate::record::{self, ExtractedRecord};
 use crate::store::DocStore;
 use crate::{doc_type, sections};
-use serde::Serialize;
+pub use dependents::{resolve_target, Dependents};
+use json::json_of;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+mod dependents;
+mod json;
 mod render;
 mod topic;
 
@@ -24,6 +27,8 @@ pub struct Options {
     pub topic: Option<String>,
     pub full: bool,
     pub contract: bool,
+    /// Narrows the view to the dependents of one record; excludes `topic`.
+    pub dependents: Option<Dependents>,
 }
 
 /// One record that survived selection, flattened to what the renderer needs.
@@ -34,6 +39,8 @@ pub(crate) struct View {
     pub description: String,
     pub body: String,
     pub lineage: Option<String>,
+    /// Link distance to the queried record; set only under `Dependents::Impact`.
+    pub distance: Option<usize>,
 }
 
 /// A read record paired with its `bundle`-prefixed path.
@@ -53,34 +60,44 @@ pub(crate) fn collect(
     options: &Options,
 ) -> (usize, Vec<View>) {
     let records = read_records(store, &store.list(bundle).unwrap_or_default());
-    let terms = options
-        .topic
-        .as_deref()
-        .map(topic::terms)
-        .unwrap_or_default();
     let withheld = records
         .iter()
         .filter(|(_, record)| !is_in_force(record.status.as_deref()))
         .count();
-
-    let mut active: Vec<(&Entry, topic::Folded)> = records
-        .iter()
-        .filter(|(_, record)| is_in_force(record.status.as_deref()))
-        .map(|entry| (entry, topic::fold_for(&entry.1, &terms)))
-        .filter(|(_, folded)| topic::matches(folded, &terms))
-        .collect();
-    active.sort_by_cached_key(|((_, record), folded)| {
-        (
-            std::cmp::Reverse(topic::score(folded, &terms)),
-            base_rank(record),
-        )
-    });
+    let ranked = rank_in_force(&records, options.topic.as_deref());
+    let selected = match &options.dependents {
+        Some(query) => dependents::narrow(&records, bundle, query, ranked),
+        None => ranked.into_iter().map(|index| (index, None)).collect(),
+    };
     let by_key = records_by_key(&records);
-    let views: Vec<View> = active
-        .iter()
-        .map(|((_, record), _)| view_of(record, &by_key, options.contract))
+    let views = selected
+        .into_iter()
+        .map(|(index, distance)| View {
+            distance,
+            ..view_of(&records[index].1, &by_key, options.contract)
+        })
         .collect();
     (withheld, views)
+}
+
+/// The indexes of the in-force records that match `topic`, best match first,
+/// then by reading order.
+fn rank_in_force(records: &[Entry], topic: Option<&str>) -> Vec<usize> {
+    let terms = topic.map(topic::terms).unwrap_or_default();
+    let mut active: Vec<(usize, topic::Folded)> = records
+        .iter()
+        .enumerate()
+        .filter(|(_, (_, record))| is_in_force(record.status.as_deref()))
+        .map(|(index, (_, record))| (index, topic::fold_for(record, &terms)))
+        .filter(|(_, folded)| topic::matches(folded, &terms))
+        .collect();
+    active.sort_by_cached_key(|(index, folded)| {
+        (
+            std::cmp::Reverse(topic::score(folded, &terms)),
+            base_rank(&records[*index].1),
+        )
+    });
+    active.into_iter().map(|(index, _)| index).collect()
 }
 
 /// A compiled view plus the counts a front needs to explain an empty result
@@ -113,46 +130,13 @@ pub fn read(store: &dyn DocStore, bundle: &Path, options: &Options, json: bool) 
     }
 }
 
-#[derive(Serialize)]
-struct RecordJson {
-    #[serde(rename = "type")]
-    doc_type: String,
-    number: Option<i32>,
-    title: String,
-    description: String,
-    lineage: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    body: Option<String>,
-}
-
-#[derive(Serialize)]
-struct EffectiveJson {
-    withheld: usize,
-    records: Vec<RecordJson>,
-}
-
 /// Minified-JSON counterpart of [`compile`]:
 /// `{"withheld":N,"records":[{"type","number","title","description",
-/// "lineage","body"?}]}` — `body` appears under `options.full` and under
-/// `options.contract`, the latter without detail-tier sections.
+/// "lineage","body"?,"distance"?}]}` — `body` appears under `options.full`
+/// and under `options.contract`, the latter without detail-tier sections;
+/// `distance` appears only under `Dependents::Impact`.
 pub fn compile_json(store: &dyn DocStore, bundle: &Path, options: &Options) -> String {
     read(store, bundle, options, true).output
-}
-
-fn json_of(withheld: usize, views: Vec<View>, options: &Options) -> String {
-    let records = views
-        .into_iter()
-        .map(|view| RecordJson {
-            doc_type: view.doc_type,
-            number: view.number,
-            title: view.title,
-            description: view.description,
-            lineage: view.lineage,
-            body: (options.full || options.contract).then_some(view.body),
-        })
-        .collect();
-    serde_json::to_string(&EffectiveJson { withheld, records })
-        .unwrap_or_else(|err| format!("{{\"error\":\"failed to serialize JSON: {err}\"}}"))
 }
 
 fn read_records(store: &dyn DocStore, all_md: &[PathBuf]) -> Vec<(PathBuf, ExtractedRecord)> {
@@ -196,6 +180,7 @@ fn view_of(record: &ExtractedRecord, by_key: &RecordsByKey, contract: bool) -> V
         description: record.description.clone(),
         body,
         lineage: lineage_of(record, by_key),
+        distance: None,
     }
 }
 

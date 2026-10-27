@@ -172,6 +172,8 @@ pub(crate) const READ_ABOUT: &str =
 pub(crate) const READ_EXAMPLES: &[&str] = &[
     "living-docs read --topic caching",
     "living-docs read --full",
+    "living-docs read --links-to adr/0012",
+    "living-docs read --impact adr/0012 --json",
 ];
 
 pub(crate) const GUIDE_ABOUT: &str =
