@@ -15,7 +15,7 @@ const ISSUE_BODY: &str =
 const ADR_BODY: &str =
     "\n# 0001. T\n\n## Context\n\nc.\n\n## Decision\n\nWe will d.\n\n## Consequences\n\nq.\n";
 
-fn bundle(label: &str, root: &str) -> PathBuf {
+fn bundle(label: &str, root: &str) -> common::Scratch {
     let docs = temp_bundle("mutation-verbs-index", label);
     write(&docs, "index.md", root);
     docs

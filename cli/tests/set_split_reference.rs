@@ -31,11 +31,8 @@ fn any_record_contains(dir: &std::path::Path, needle: &str) -> bool {
 }
 
 /// A temp root and its `my docs` bundle (a path with a space) holding one ADR.
-fn bundle_with_first_decision(label: &str) -> (std::path::PathBuf, std::path::PathBuf) {
-    let root = common::temp_bundle("split", label)
-        .parent()
-        .unwrap()
-        .to_path_buf();
+fn bundle_with_first_decision(label: &str) -> (common::Scratch, std::path::PathBuf) {
+    let root = common::Scratch::new(&format!("living-docs-split-test-{label}"));
     let docs = root.join("my docs");
     assert!(common::run_new(&docs, "adr", "First Decision")
         .status
@@ -144,10 +141,7 @@ fn a_quote_in_a_value_is_escaped_for_a_posix_shell() {
 
 #[test]
 fn the_printed_hint_runs_in_a_shell_with_the_same_effect_as_the_one_token_form() {
-    let parent = common::temp_bundle("split", "shell")
-        .parent()
-        .unwrap()
-        .to_path_buf();
+    let parent = common::Scratch::new("living-docs-split-test-shell");
     let docs = parent.join("my docs");
     assert!(common::run_new(&docs, "adr", "First Decision")
         .status

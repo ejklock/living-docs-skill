@@ -3,6 +3,7 @@
 //! stay under the file-size cap.
 
 use serde::Deserialize;
+use std::path::Path;
 use std::process::{Command, Output};
 
 mod common;
@@ -23,7 +24,7 @@ struct FilesJson {
 #[test]
 fn index_json_matches_the_documented_shape() {
     let docs = temp_bundle("output-contract", "index");
-    let docs = docs.as_path();
+    let docs: &Path = &docs;
     run(&[
         "--docs-dir",
         docs.to_str().unwrap(),
@@ -62,7 +63,7 @@ struct PendingJson {
 #[test]
 fn fmt_json_matches_the_documented_shape() {
     let docs = temp_bundle("output-contract", "fmt");
-    let docs = docs.as_path();
+    let docs: &Path = &docs;
     write(
         docs,
         "adr/0001-doc.md",

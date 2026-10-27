@@ -7,7 +7,7 @@ use std::path::Path;
 mod common;
 use common::{run_check_advisories, stdout_of, write};
 
-fn liveness_bundle(label: &str) -> std::path::PathBuf {
+fn liveness_bundle(label: &str) -> common::Scratch {
     common::temp_bundle("liveness", label)
 }
 

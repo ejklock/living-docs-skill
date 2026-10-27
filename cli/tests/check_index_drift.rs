@@ -24,7 +24,7 @@ fn new_issue(docs: &Path, title: &str) {
     );
 }
 
-fn indexed_bundle(label: &str) -> PathBuf {
+fn indexed_bundle(label: &str) -> common::Scratch {
     let docs = temp_bundle("check-index-drift", label);
     fs::write(docs.join("index.md"), "# Docs\n\n* [Issues](issues/)\n").unwrap();
     new_issue(&docs, "First");

@@ -11,7 +11,7 @@ fn adr(title: &str, body: &str) -> String {
 }
 
 /// 0002 and 0003 link 0001; 0004 links 0002.
-fn bundle(label: &str) -> std::path::PathBuf {
+fn bundle(label: &str) -> common::Scratch {
     let dir = temp_bundle("read-dependents", label);
     write(&dir, "adr/0001-a.md", &adr("Alpha", "root"));
     write(&dir, "adr/0002-b.md", &adr("Beta", "[a](/adr/0001-a.md)"));

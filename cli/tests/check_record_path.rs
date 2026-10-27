@@ -1,18 +1,18 @@
 //! `check <record.md>`: a record file named where a bundle root is expected
 //! checks the enclosing bundle, reporting only that record's findings.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Output;
 
 mod common;
 use common::{living_docs, stdout_of, write};
 
-fn temp_bundle(label: &str) -> PathBuf {
+fn temp_bundle(label: &str) -> common::Scratch {
     common::temp_bundle("check-record-path", label)
 }
 
 /// A bundle with one clean record and one carrying an unfilled placeholder.
-fn dirty_bundle(label: &str) -> PathBuf {
+fn dirty_bundle(label: &str) -> common::Scratch {
     let bundle = temp_bundle(label);
     write(&bundle, "index.md", "# Docs\n\n* [ADRs](adr/)\n");
     write(
@@ -178,7 +178,7 @@ fn json_for_a_record_path_has_the_shape_of_changed_files_json() {
 
 /// A bundle whose ADR links the issue record by a bundle-root-relative path,
 /// so the link resolves only against the real bundle root.
-fn linked_bundle(label: &str) -> PathBuf {
+fn linked_bundle(label: &str) -> common::Scratch {
     let bundle = temp_bundle(label);
     write(
         &bundle,

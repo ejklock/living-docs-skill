@@ -2,7 +2,9 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
-use std::time::{SystemTime, UNIX_EPOCH};
+
+mod common;
+use common::Scratch;
 
 const SCRIPT_BASENAMES: [&str; 1] = ["session-context.sh"];
 const LIVING_DOCS_MARKER: &str = ".living-docs/hooks/";
@@ -11,17 +13,11 @@ fn living_docs() -> Command {
     Command::new(env!("CARGO_BIN_EXE_living-docs"))
 }
 
-fn temp_dir(label: &str) -> PathBuf {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let dir = std::env::temp_dir().join(format!("living-docs-hooks-install-test-{label}-{nanos}"));
-    fs::create_dir_all(&dir).unwrap();
-    dir
+fn temp_dir(label: &str) -> Scratch {
+    Scratch::new(&format!("living-docs-hooks-install-test-{label}"))
 }
 
-fn project_with_bundle(label: &str, bundle: &str) -> PathBuf {
+fn project_with_bundle(label: &str, bundle: &str) -> common::Scratch {
     let project = temp_dir(label);
     fs::create_dir_all(project.join(bundle)).unwrap();
     project

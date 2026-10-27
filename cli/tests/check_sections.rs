@@ -2,7 +2,7 @@
 //! every live record of that type.
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Output;
 
 mod common;
@@ -16,7 +16,7 @@ fn issue(status: &str, body: &str) -> String {
     )
 }
 
-fn bundle_with(label: &str, record: &str) -> PathBuf {
+fn bundle_with(label: &str, record: &str) -> common::Scratch {
     let bundle = common::temp_bundle("sections", label);
     write(
         &bundle,

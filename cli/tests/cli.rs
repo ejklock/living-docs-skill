@@ -1,20 +1,15 @@
 use std::fs;
-use std::path::PathBuf;
 use std::process::Command;
-use std::time::{SystemTime, UNIX_EPOCH};
+
+mod common;
+use common::Scratch;
 
 fn living_docs() -> Command {
     Command::new(env!("CARGO_BIN_EXE_living-docs"))
 }
 
-fn temp_dir(label: &str) -> PathBuf {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let dir = std::env::temp_dir().join(format!("living-docs-cli-test-{label}-{nanos}"));
-    fs::create_dir_all(&dir).unwrap();
-    dir
+fn temp_dir(label: &str) -> Scratch {
+    Scratch::new(&format!("living-docs-cli-test-{label}"))
 }
 
 /// ADR 0019, AC ac-s4-3: the root `--help` about text carries the same

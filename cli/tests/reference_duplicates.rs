@@ -17,7 +17,7 @@ fn issue(number: &str, title: &str) -> String {
     )
 }
 
-fn duplicate_bundle(label: &str) -> PathBuf {
+fn duplicate_bundle(label: &str) -> common::Scratch {
     let docs = temp_bundle("reference-duplicates", label);
     write(&docs, "issues/0007-a.md", &issue("0007", "a"));
     write(&docs, "issues/0007-b.md", &issue("0007", "b"));
@@ -116,7 +116,7 @@ fn a_path_outside_the_bundle_is_refused() {
     assert_refused_unchanged(&before, &docs, &output, "outside the bundle");
 }
 
-fn lone_bundle(label: &str) -> PathBuf {
+fn lone_bundle(label: &str) -> common::Scratch {
     let docs = temp_bundle("reference-duplicates", label);
     write(&docs, "issues/0007-a.md", &issue("0007", "a"));
     write(&docs, "issues/0009-x.md", &issue("0009", "x"));

@@ -3,7 +3,7 @@
 //! and neither `fmt` nor `set` ever drops it.
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Output;
 
 mod common;
@@ -17,7 +17,7 @@ fn adr(title: &str, extra: &str) -> String {
     )
 }
 
-fn three_adrs(label: &str) -> PathBuf {
+fn three_adrs(label: &str) -> common::Scratch {
     let bundle = temp_bundle("supersede-keeps", label);
     write(&bundle, "adr/0001-a.md", &adr("A", ""));
     write(&bundle, "adr/0002-b.md", &adr("B", ""));
@@ -150,7 +150,7 @@ const UNWRITABLE: [(&str, &str); 3] = [
 ];
 
 /// Writes a refused record and a pending one beside it; returns the bundle.
-fn bundle_with_refused(index: usize, source: &str) -> PathBuf {
+fn bundle_with_refused(index: usize, source: &str) -> common::Scratch {
     let bundle = three_adrs(&format!("unwritable-{index}"));
     write(&bundle, REFUSED, &adr("D", &format!("{source}\n")));
     let pending = adr("E", "")

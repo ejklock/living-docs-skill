@@ -2,7 +2,7 @@ mod common;
 
 use common::{fixture, living_docs, temp_bundle};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 fn copy_tree(from: &Path, to: &Path, crlf: bool) {
     fs::create_dir_all(to).unwrap();
@@ -63,7 +63,7 @@ fn check_reports_a_dirty_crlf_bundle_with_the_findings_of_its_lf_twin() {
 }
 
 /// A clean bundle whose `foo.md` record is rewritten by `edit`.
-fn clean_bundle_with(label: &str, edit: &dyn Fn(&str) -> String) -> PathBuf {
+fn clean_bundle_with(label: &str, edit: &dyn Fn(&str) -> String) -> common::Scratch {
     let bundle = temp_bundle("check-crlf", label);
     copy_tree(&fixture("01-fence-link-clean"), &bundle, false);
     let record = bundle.join("foo.md");

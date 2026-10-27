@@ -93,7 +93,8 @@ fn assert_typed_files_stay_crlf(crlf: &Tree) {
 
 #[test]
 fn crlf_adr_writes_equal_the_lf_twin_with_crlf() {
-    let section = std::env::temp_dir().join("living-docs-set-read-back-section.txt");
+    let scratch = Scratch::new("living-docs-set-read-back-section");
+    let section = scratch.join("section.txt");
     fs::write(&section, "Added text.\n").unwrap();
     let from = section.to_str().unwrap();
     let commands: [&[&str]; 5] = [
@@ -114,7 +115,6 @@ fn crlf_adr_writes_equal_the_lf_twin_with_crlf() {
             "the root index keeps its own ending"
         );
     }
-    let _ = fs::remove_file(section);
 }
 
 #[test]

@@ -64,7 +64,7 @@ fn cleanup(bundle: &Path) {
     let _ = fs::remove_dir_all(bundle.parent().unwrap());
 }
 
-fn repo_bundle(label: &str) -> PathBuf {
+fn repo_bundle(label: &str) -> Scratch {
     let bundle = temp_bundle(label);
     git(bundle.parent().unwrap(), None, &["init", "-q"]);
     bundle

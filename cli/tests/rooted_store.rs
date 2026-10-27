@@ -28,7 +28,7 @@ fn untidy_issue(number: &str, title: &str) -> String {
 }
 
 struct Fixture {
-    docs: PathBuf,
+    docs: common::Scratch,
     outside: PathBuf,
     link: PathBuf,
 }
@@ -195,11 +195,8 @@ fn every_verb_works_through_a_symlinked_docs_dir() {
 
 #[test]
 fn new_in_a_project_with_no_docs_directory_creates_the_bundle() {
-    let project = temp_bundle("rooted-store", "fresh")
-        .parent()
-        .unwrap()
-        .to_path_buf();
-    let docs = project.join("fresh-docs");
+    let project = temp_bundle("rooted-store", "fresh");
+    let docs = project.root().join("fresh-docs");
 
     let output = run_new(&docs, "issue", "First");
 
