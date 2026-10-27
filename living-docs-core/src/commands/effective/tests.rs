@@ -258,3 +258,40 @@ fn reading_reports_how_many_records_matched_and_were_withheld() {
         some.output
     );
 }
+
+#[test]
+fn without_a_topic_records_list_in_base_rank_order_by_number() {
+    let adr_late = titled("0009", "Late adr", "d", "b");
+    let adr_early = titled("0002", "Early adr", "d", "b");
+    let prd = (
+        "docs/0005-p.md".to_string(),
+        "---\ntype: PRD\ntitle: A prd\ndescription: d\nstatus: Accepted\n---\n\nb".to_string(),
+    );
+    let out = listed(&[adr_late, adr_early, prd], None);
+    let at = |needle: &str| out.find(needle).expect(needle);
+    assert!(at("A prd") < at("Early adr"), "{out}");
+    assert!(at("Early adr") < at("Late adr"), "{out}");
+}
+
+#[test]
+fn a_whitespace_only_topic_lists_the_same_as_no_topic() {
+    let files = [
+        titled("0002", "Alpha", "d", "b"),
+        titled("0001", "Beta", "d", "b"),
+        retired("0003", "Gone"),
+    ];
+    assert_eq!(listed(&files, Some("   ")), listed(&files, None));
+}
+
+#[test]
+fn a_topic_keeps_only_matches_ranked_by_weighted_hits() {
+    let title_hit = titled("0003", "Storage layout", "d", "b");
+    let desc_hit = titled("0002", "Other", "storage plan", "b");
+    let body_hit = titled("0001", "Misc", "d", "storage mention");
+    let miss = titled("0004", "Unrelated", "d", "nothing");
+    let out = listed(&[body_hit, desc_hit, title_hit, miss], Some("storage"));
+    let at = |needle: &str| out.find(needle).expect(needle);
+    assert!(at("Storage layout") < at("Other"), "{out}");
+    assert!(at("Other") < at("Misc"), "{out}");
+    assert!(!out.contains("Unrelated"), "{out}");
+}

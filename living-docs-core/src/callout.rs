@@ -8,7 +8,7 @@
 use crate::commands::supersede::guard::{refusal_message, unwritable_key};
 use crate::record::{extract_record, to_canonical_markdown};
 use crate::store::DocStore;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 const SUPERSEDED_MARKER: &str = "> **SUPERSEDED";
 const DEPRECATED_MARKER: &str = "> **DEPRECATED";
@@ -91,10 +91,21 @@ fn strip_leading_callout(body: &str) -> String {
 /// back to the bare number when no sibling matches.
 pub fn successor_filename(store: &dyn DocStore, path: &Path, superseded_by: &str) -> String {
     let dir = path.parent().unwrap_or_else(|| Path::new("."));
-    let Ok(candidates) = store.list(dir) else {
-        return superseded_by.to_string();
-    };
-    find_sibling(&candidates, dir, superseded_by).unwrap_or_else(|| superseded_by.to_string())
+    successor_in(store.list(dir).ok().as_deref(), path, superseded_by)
+}
+
+/// [`successor_filename`] over a directory enumeration the caller already holds
+/// (`None` when the listing failed), so a caller judging many records lists
+/// each directory once.
+pub(crate) fn successor_in(
+    candidates: Option<&[PathBuf]>,
+    path: &Path,
+    superseded_by: &str,
+) -> String {
+    let dir = path.parent().unwrap_or_else(|| Path::new("."));
+    candidates
+        .and_then(|listed| find_sibling(listed, dir, superseded_by))
+        .unwrap_or_else(|| superseded_by.to_string())
 }
 
 fn find_sibling(candidates: &[std::path::PathBuf], dir: &Path, id: &str) -> Option<String> {

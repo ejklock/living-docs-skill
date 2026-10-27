@@ -10,6 +10,7 @@ use crate::commands::set::retitle;
 use crate::doc_type;
 use crate::frontmatter::{frontmatter_block, read_scalar_strict};
 use crate::store::{is_refusal, DocStore};
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 pub(crate) fn is_reserved(basename: &str) -> bool {
@@ -102,6 +103,7 @@ pub(crate) fn check_supersede_chain(
     all_md: &[PathBuf],
     reporter: &mut Reporter,
 ) {
+    let siblings = SiblingIds::new(all_md);
     for_each_readable_record(store, all_md, |f, contents| {
         if !has_frontmatter(&contents) {
             return;
@@ -110,7 +112,7 @@ pub(crate) fn check_supersede_chain(
             return;
         };
         if status.to_lowercase() == "superseded" {
-            check_supersede_target(f, &contents, all_md, reporter);
+            check_supersede_target(f, &contents, &siblings, reporter);
         }
     });
 }
@@ -134,7 +136,12 @@ pub(super) fn for_each_readable_record<'a>(
     }
 }
 
-fn check_supersede_target(f: &Path, contents: &str, all_md: &[PathBuf], reporter: &mut Reporter) {
+fn check_supersede_target(
+    f: &Path,
+    contents: &str,
+    siblings: &SiblingIds,
+    reporter: &mut Reporter,
+) {
     let Some(sb) = frontmatter_scalar(contents, "superseded_by") else {
         reporter.report(
             f,
@@ -143,7 +150,7 @@ fn check_supersede_target(f: &Path, contents: &str, all_md: &[PathBuf], reporter
         return;
     };
     let dir = f.parent().unwrap_or_else(|| Path::new("."));
-    if !sibling_record_exists(dir, &sb, all_md) {
+    if !siblings.contains(dir, &sb) {
         reporter.report(
             f,
             format!(
@@ -246,14 +253,36 @@ fn report_missing_owner(f: &Path, contents: &str, require_owner: bool, reporter:
     }
 }
 
-fn sibling_record_exists(dir: &Path, sb: &str, all_md: &[PathBuf]) -> bool {
-    all_md.iter().any(|p| record_id_matches(dir, p, sb))
+/// Every id a listed record answers to, per directory: its file stem, and
+/// each prefix of its name cut right before a `-`. One lookup then decides
+/// what [`record_id_matches`] decides by scanning the whole listing.
+struct SiblingIds(HashSet<(PathBuf, String)>);
+
+impl SiblingIds {
+    fn new(all_md: &[PathBuf]) -> Self {
+        let mut ids = HashSet::new();
+        for path in all_md {
+            let Some(dir) = path.parent() else { continue };
+            let name = file_name_str(path);
+            if let Some(stem) = name.strip_suffix(".md") {
+                ids.insert((dir.to_path_buf(), stem.to_string()));
+            }
+            for (cut, _) in name.match_indices('-') {
+                ids.insert((dir.to_path_buf(), name[..cut].to_string()));
+            }
+        }
+        Self(ids)
+    }
+
+    fn contains(&self, dir: &Path, id: &str) -> bool {
+        self.0.contains(&(dir.to_path_buf(), id.to_string()))
+    }
 }
 
 /// True when `path` is `dir`'s bare `<id>.md` or a `<id>-*.md` sibling —
-/// the two forms a record id may resolve to inside one directory. Shared by
-/// the supersede-chain sibling lookup and the moved-source successor-link
-/// clearing rule, so both read the same identity rule.
+/// the two forms a record id may resolve to inside one directory. The
+/// moved-source successor-link clearing rule asks it per link; the
+/// supersede-chain lookup answers the same rule through [`SiblingIds`].
 pub(crate) fn record_id_matches(dir: &Path, path: &Path, id: &str) -> bool {
     if path.parent() != Some(dir) {
         return false;

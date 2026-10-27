@@ -3,7 +3,7 @@
 //! `strip_fences`/`links_in`/`resolve_link`/`normpath` from `lint-docs.sh`.
 
 use super::{file_name_str, is_bundle_singleton, records, Reporter};
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -11,50 +11,64 @@ use std::path::{Path, PathBuf};
 /// `index.md`. A registry [`crate::doc_type::Identity::Singleton`] file at
 /// the bundle root (e.g. `constitution.md`) is deliberately exempt: it is the
 /// bundle's own root of trace, and has no directory index to be listed in.
+/// Each directory index is read and parsed once, however many records share it.
 pub(crate) fn check_directory_membership(
     bundle: &Path,
     all_md: &[PathBuf],
     reporter: &mut Reporter,
 ) {
+    let mut listings: HashMap<PathBuf, Option<HashSet<String>>> = HashMap::new();
     for f in all_md {
         if records::is_reserved(&file_name_str(f)) || is_bundle_singleton(bundle, f) {
             continue;
         }
-        check_file_is_indexed(bundle, f, reporter);
+        let dir = f.parent().unwrap_or_else(|| Path::new("."));
+        let listed = listings
+            .entry(dir.to_path_buf())
+            .or_insert_with(|| listed_targets(bundle, &dir.join("index.md")));
+        report_if_unindexed(dir, listed.as_ref(), f, reporter);
     }
 }
 
-fn check_file_is_indexed(bundle: &Path, f: &Path, reporter: &mut Reporter) {
-    let dir = f.parent().unwrap_or_else(|| Path::new("."));
-    let dir_index = dir.join("index.md");
-    if !dir_index.is_file() {
-        reporter.report(
+fn report_if_unindexed(
+    dir: &Path,
+    listed: Option<&HashSet<String>>,
+    f: &Path,
+    reporter: &mut Reporter,
+) {
+    match listed {
+        None => reporter.report(
             f,
             format!(
                 "no index.md in its directory ({}) — orphan (invariant 3)",
                 dir.display()
             ),
-        );
-        return;
-    }
-    if !is_listed_in(bundle, &dir_index, f) {
-        reporter.report(
+        ),
+        Some(targets) if !targets.contains(&normpath(&f.to_string_lossy())) => reporter.report(
             f,
             format!(
                 "not listed in {} — orphan (invariant 3)",
-                dir_index.display()
+                dir.join("index.md").display()
             ),
-        );
+        ),
+        Some(_) => {}
     }
 }
 
-fn is_listed_in(bundle: &Path, dir_index: &Path, target: &Path) -> bool {
+/// The resolved target of every link in `dir_index`, or `None` when the
+/// directory has no index file.
+fn listed_targets(bundle: &Path, dir_index: &Path) -> Option<HashSet<String>> {
+    if !dir_index.is_file() {
+        return None;
+    }
     let bundle_str = bundle.to_string_lossy();
     let dir_index_str = dir_index.to_string_lossy();
-    let target_norm = normpath(&target.to_string_lossy());
-    links_in(dir_index).into_iter().any(|tgt| {
-        resolve_link(&dir_index_str, &tgt, &bundle_str).is_some_and(|r| r == target_norm)
-    })
+    Some(
+        links_in(dir_index)
+            .into_iter()
+            .filter_map(|tgt| resolve_link(&dir_index_str, &tgt, &bundle_str))
+            .collect(),
+    )
 }
 
 /// Every directory `index.md` must be reachable from the bundle-root `index.md`
@@ -250,55 +264,4 @@ fn extract_paren_targets(text: &str) -> Vec<String> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn normpath_collapses_dot_and_dotdot_segments() {
-        assert_eq!(normpath("docs/./a.md"), "docs/a.md");
-        assert_eq!(
-            normpath("docs/tables/../datasets/index.md"),
-            "docs/datasets/index.md"
-        );
-        assert_eq!(normpath("/docs/../index.md"), "/index.md");
-    }
-
-    #[test]
-    fn resolve_link_skips_external_and_anchor_only_targets() {
-        assert_eq!(
-            resolve_link("docs/index.md", "https://example.com/x", "docs"),
-            None
-        );
-        assert_eq!(resolve_link("docs/index.md", "#section", "docs"), None);
-        assert_eq!(
-            resolve_link("docs/index.md", "mailto:a@b.com", "docs"),
-            None
-        );
-    }
-
-    #[test]
-    fn resolve_link_resolves_bundle_relative_and_file_relative_targets() {
-        assert_eq!(
-            resolve_link("docs/a/index.md", "/b/index.md", "docs"),
-            Some("docs/b/index.md".to_string())
-        );
-        assert_eq!(
-            resolve_link("docs/a/index.md", "./c.md", "docs"),
-            Some("docs/a/c.md".to_string())
-        );
-    }
-
-    #[test]
-    fn links_in_excludes_targets_inside_fenced_code_blocks() {
-        let nanos = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!("living-docs-graph-test-{nanos}.md"));
-        fs::write(&path, "[live](live.md)\n```\n[fenced](fenced.md)\n```\n").unwrap();
-
-        assert_eq!(links_in(&path), vec!["live.md".to_string()]);
-
-        let _ = fs::remove_file(&path);
-    }
-}
+mod tests;

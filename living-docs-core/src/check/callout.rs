@@ -9,9 +9,15 @@ use super::{file_name_str, Reporter};
 use crate::callout;
 use crate::record::extract_record;
 use crate::store::DocStore;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+type Listings = HashMap<PathBuf, Option<Vec<PathBuf>>>;
+
+/// Each directory is listed at most once per call, however many retired
+/// records it holds.
 pub(crate) fn check_callouts(store: &dyn DocStore, all_md: &[PathBuf], reporter: &mut Reporter) {
+    let mut listings = Listings::new();
     for f in all_md {
         if is_reserved(&file_name_str(f)) {
             continue;
@@ -22,16 +28,25 @@ pub(crate) fn check_callouts(store: &dyn DocStore, all_md: &[PathBuf], reporter:
         if !has_frontmatter(&contents) {
             continue;
         }
-        check_record_callout(store, f, &contents, reporter);
+        check_record_callout(store, &mut listings, f, &contents, reporter);
     }
 }
 
-fn check_record_callout(store: &dyn DocStore, f: &Path, contents: &str, reporter: &mut Reporter) {
+fn check_record_callout(
+    store: &dyn DocStore,
+    listings: &mut Listings,
+    f: &Path,
+    contents: &str,
+    reporter: &mut Reporter,
+) {
     let record = extract_record(f, contents);
-    let successor = record
-        .superseded_by
-        .as_deref()
-        .map(|superseded_by| callout::successor_filename(store, f, superseded_by));
+    let successor = record.superseded_by.as_deref().map(|superseded_by| {
+        let dir = f.parent().unwrap_or_else(|| Path::new("."));
+        let listing = listings
+            .entry(dir.to_path_buf())
+            .or_insert_with(|| store.list(dir).ok());
+        callout::successor_in(listing.as_deref(), f, superseded_by)
+    });
     let expected = callout::expected(record.status.as_deref(), successor.as_deref());
     let leading = callout::leading(&record.body);
 

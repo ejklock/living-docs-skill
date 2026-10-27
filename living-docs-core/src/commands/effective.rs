@@ -52,8 +52,7 @@ pub(crate) fn collect(
     bundle: &Path,
     options: &Options,
 ) -> (usize, Vec<View>) {
-    let all_md = store.list(bundle).unwrap_or_default();
-    let records = read_records(store, &all_md);
+    let records = read_records(store, &store.list(bundle).unwrap_or_default());
     let terms = options
         .topic
         .as_deref()
@@ -67,7 +66,7 @@ pub(crate) fn collect(
     let mut active: Vec<(&Entry, topic::Folded)> = records
         .iter()
         .filter(|(_, record)| is_in_force(record.status.as_deref()))
-        .map(|entry| (entry, topic::fold_record(&entry.1)))
+        .map(|entry| (entry, topic::fold_for(&entry.1, &terms)))
         .filter(|(_, folded)| topic::matches(folded, &terms))
         .collect();
     active.sort_by_cached_key(|((_, record), folded)| {
@@ -76,10 +75,10 @@ pub(crate) fn collect(
             base_rank(record),
         )
     });
-
+    let by_key = records_by_key(&records);
     let views: Vec<View> = active
         .iter()
-        .map(|((_, record), _)| view_of(record, &records, options.contract))
+        .map(|((_, record), _)| view_of(record, &by_key, options.contract))
         .collect();
     (withheld, views)
 }
@@ -182,7 +181,7 @@ fn is_in_force(status: Option<&str>) -> bool {
     )
 }
 
-fn view_of(record: &ExtractedRecord, all: &[(PathBuf, ExtractedRecord)], contract: bool) -> View {
+fn view_of(record: &ExtractedRecord, by_key: &RecordsByKey, contract: bool) -> View {
     let body = if contract {
         let schema =
             doc_type::spec_for_frontmatter(&record.doc_type).map_or(&[][..], |s| s.sections);
@@ -196,7 +195,7 @@ fn view_of(record: &ExtractedRecord, all: &[(PathBuf, ExtractedRecord)], contrac
         title: record.title.clone(),
         description: record.description.clone(),
         body,
-        lineage: lineage_of(record, all),
+        lineage: lineage_of(record, by_key),
     }
 }
 
@@ -205,8 +204,8 @@ fn view_of(record: &ExtractedRecord, all: &[(PathBuf, ExtractedRecord)], contrac
 /// a record replacing several lists every earliest ancestor comma-separated
 /// (`supersedes 0001, 0002`), followed by ` via` the intermediate records
 /// when there are any. `None` when the record supersedes nothing.
-fn lineage_of(record: &ExtractedRecord, all: &[(PathBuf, ExtractedRecord)]) -> Option<String> {
-    let mut lineage = supersede_lineage(record, all);
+fn lineage_of(record: &ExtractedRecord, by_key: &RecordsByKey) -> Option<String> {
+    let mut lineage = supersede_lineage(record, by_key);
     if lineage.earliest.is_empty() {
         lineage.earliest.extend(lineage.intermediate.pop());
     }
@@ -221,6 +220,7 @@ fn lineage_of(record: &ExtractedRecord, all: &[(PathBuf, ExtractedRecord)]) -> O
 }
 
 /// The ancestors of a head record, as zero-padded numbers in discovery order.
+#[derive(Default)]
 struct Lineage {
     /// Ancestors that replaced others in turn, direct-first.
     intermediate: Vec<String>,
@@ -230,19 +230,20 @@ struct Lineage {
 
 type RecordsByKey<'a> = BTreeMap<(String, i32), &'a ExtractedRecord>;
 
+/// Indexes every numbered record, a later duplicate replacing an earlier one.
+fn records_by_key(records: &[Entry]) -> RecordsByKey<'_> {
+    records
+        .iter()
+        .filter_map(|(_, r)| Some(((r.doc_type.clone(), r.number?), r)))
+        .collect()
+}
+
 /// Walks `supersedes` from `record` through the full record set (superseded
 /// ancestors included). A cycle or missing link stops that branch.
-fn supersede_lineage(record: &ExtractedRecord, all: &[(PathBuf, ExtractedRecord)]) -> Lineage {
-    let by_key: RecordsByKey = all
-        .iter()
-        .filter_map(|(_, r)| r.number.map(|n| ((r.doc_type.clone(), n), r)))
-        .collect();
-    let mut lineage = Lineage {
-        intermediate: Vec::new(),
-        earliest: Vec::new(),
-    };
+fn supersede_lineage(record: &ExtractedRecord, by_key: &RecordsByKey) -> Lineage {
+    let mut lineage = Lineage::default();
     let mut seen = Vec::new();
-    walk_ancestors(record, &by_key, &mut seen, &mut lineage);
+    walk_ancestors(record, by_key, &mut seen, &mut lineage);
     lineage
 }
 
