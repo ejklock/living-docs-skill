@@ -2,7 +2,6 @@
 //! indented code is not a heading and only a title-matching first heading is
 //! the record's title.
 
-use std::fs;
 use std::path::Path;
 use std::process::Output;
 
@@ -36,7 +35,6 @@ fn bundle_with(label: &str, record: &str) -> common::Scratch {
 fn check_bundle(bundle: &Path) -> (Output, String) {
     let output = run_check(bundle);
     let text = stdout_of(&output) + &String::from_utf8_lossy(&output.stderr);
-    let _ = fs::remove_dir_all(bundle.parent().unwrap());
     (output, text)
 }
 
@@ -81,7 +79,6 @@ fn read_contract_keeps_an_indented_plan_line_inside_scope() {
         .output()
         .expect("failed to run read");
     let text = stdout_of(&output);
-    let _ = fs::remove_dir_all(bundle.parent().unwrap());
     assert!(text.contains("### Plan"), "got: {text}");
     assert!(text.contains("tail"), "got: {text}");
 }

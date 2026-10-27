@@ -40,8 +40,6 @@ fn new_fills_the_title_heading_of_a_numbered_record() {
         !contents.contains("<Short decision title>"),
         "got:\n{contents}"
     );
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
@@ -53,6 +51,4 @@ fn new_fills_the_bare_title_heading_of_a_named_record() {
 
     let contents = fs::read_to_string(docs.join("architecture/request-flow.md")).unwrap();
     assert!(contents.contains("\n# Request Flow\n"), "got:\n{contents}");
-
-    let _ = fs::remove_dir_all(&docs);
 }

@@ -1,5 +1,4 @@
 use living_docs_core::doc_type::{self, Identity};
-use std::fs;
 use std::path::Path;
 use std::process::Output;
 
@@ -127,8 +126,6 @@ fn orphan_file_and_unreachable_index_are_both_reported() {
         stdout.contains("not reachable from"),
         "expected an unreachable-index violation, got:\n{stdout}"
     );
-
-    let _ = fs::remove_dir_all(&bundle);
 }
 
 #[test]
@@ -150,8 +147,6 @@ fn constitution_md_is_exempt_from_the_directory_index_listing_requirement() {
         "constitution.md must not be flagged as an orphan:\n{stdout}"
     );
     assert!(stdout.contains("no invariant violations"));
-
-    let _ = fs::remove_dir_all(&bundle);
 }
 
 #[test]
@@ -165,8 +160,6 @@ fn non_root_index_with_frontmatter_is_a_violation() {
 
     assert_eq!(output.status.code(), Some(1));
     assert!(stdout.contains("must not carry frontmatter"));
-
-    let _ = fs::remove_dir_all(&bundle);
 }
 
 #[test]
@@ -179,8 +172,6 @@ fn root_index_frontmatter_without_okf_version_is_a_violation() {
 
     assert_eq!(output.status.code(), Some(1));
     assert!(stdout.contains("lacks okf_version"));
-
-    let _ = fs::remove_dir_all(&bundle);
 }
 
 #[test]
@@ -191,8 +182,6 @@ fn root_index_frontmatter_with_okf_version_is_clean() {
     let output = run_check(&bundle);
     assert_eq!(output.status.code(), Some(0));
     assert!(stdout_of(&output).contains("no invariant violations"));
-
-    let _ = fs::remove_dir_all(&bundle);
 }
 
 #[test]
@@ -226,8 +215,6 @@ fn supersede_status_is_case_insensitive_and_a_valid_chain_is_clean() {
         "expected a clean supersede chain, got:\n{stdout}"
     );
     assert!(stdout.contains("no invariant violations"));
-
-    let _ = fs::remove_dir_all(&bundle);
 }
 
 /// ADR 0019, AC ac-s3-1: a hand-written record (here, a YAML comment on
@@ -264,8 +251,6 @@ fn hand_written_frontmatter_fails_check_and_passes_after_fmt() {
         !after_stdout.contains("living-docs fmt"),
         "expected fmt to clear the canonical violation, got:\n{after_stdout}"
     );
-
-    let _ = fs::remove_dir_all(&bundle);
 }
 
 /// ADR 0019, AC ac-s3-2: a fresh `new` scaffold, for every doc type carrying
@@ -293,8 +278,6 @@ fn fresh_new_scaffold_is_a_canonical_round_trip_fixed_point_for_every_doc_type()
             !stdout.contains("living-docs fmt"),
             "{doc_type} scaffold is not a canonical round-trip fixed point:\n{stdout}"
         );
-
-        let _ = fs::remove_dir_all(&docs);
     }
 }
 
@@ -331,6 +314,4 @@ fn hand_written_bundle_root_singleton_fails_check_with_the_fmt_remediation() {
 
     assert_eq!(output.status.code(), Some(1), "got:\n{stdout}");
     assert!(stdout.contains("living-docs fmt"), "got:\n{stdout}");
-
-    let _ = fs::remove_dir_all(&bundle);
 }

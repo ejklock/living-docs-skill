@@ -72,8 +72,6 @@ fn supersede_leaves_both_records_with_no_non_canonical_finding() {
         !stdout.contains("living-docs fmt"),
         "supersede left a non-canonical-frontmatter finding, stdout: {stdout}"
     );
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 /// AC2: `status`, `describe`, and `owner` each editing an already-present
@@ -95,8 +93,6 @@ fn status_describe_and_owner_each_leave_the_record_with_no_non_canonical_finding
         !stdout.contains("living-docs fmt"),
         "a mutation verb left a non-canonical-frontmatter finding, stdout: {stdout}"
     );
-
-    let _ = fs::remove_dir_all(&docs);
 }
 
 /// For `status`, `describe`, and `owner`, the body below the frontmatter
@@ -135,6 +131,4 @@ fn mutation_verbs_leave_the_body_below_the_frontmatter_byte_identical() {
         new_body_before,
         "status/describe/owner must not touch the body"
     );
-
-    let _ = fs::remove_dir_all(&docs);
 }

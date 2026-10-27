@@ -1,4 +1,3 @@
-use std::fs;
 use std::path::Path;
 
 mod common;
@@ -23,7 +22,6 @@ fn assert_no_size_note(bundle: &Path) {
     let output = run_check(bundle);
     assert_eq!(output.status.code(), Some(0));
     assert!(!stdout_of(&output).contains("SIZE"));
-    let _ = fs::remove_dir_all(bundle.parent().unwrap());
 }
 
 fn indexed_bundle_with(label: &str, record: &str) -> common::Scratch {
@@ -53,8 +51,6 @@ fn an_over_target_record_gets_a_size_advisory_naming_both_numbers_and_still_exit
     assert!(stdout.contains("120-line"), "got: {stdout}");
     assert!(stdout.contains("aim ~100"), "got: {stdout}");
     assert!(stdout.contains("no invariant violations"), "got: {stdout}");
-
-    let _ = fs::remove_dir_all(bundle.parent().unwrap());
 }
 
 #[test]
@@ -107,8 +103,6 @@ fn a_real_violation_still_fails_and_the_size_advisory_still_prints_alongside_it(
     let stdout = stdout_of(&output);
     assert!(stdout.contains("SIZE"), "got: {stdout}");
     assert!(stdout.contains("orphan"), "got: {stdout}");
-
-    let _ = fs::remove_dir_all(bundle.parent().unwrap());
 }
 
 #[test]

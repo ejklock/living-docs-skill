@@ -1,4 +1,3 @@
-use std::fs;
 use std::path::Path;
 
 mod common;
@@ -18,8 +17,6 @@ fn assert_clean(bundle: &Path) {
         "expected clean, got:\n{stdout}"
     );
     assert!(!stdout.contains("MOVED-SOURCE"), "got:\n{stdout}");
-
-    let _ = fs::remove_dir_all(bundle);
 }
 
 /// The exact retired-record callout line a fixture record must open with,
@@ -78,8 +75,6 @@ fn moved_source_finding_names_dependent_source_status_and_successor_and_stays_ex
     assert!(stdout.contains("b.md"), "got:\n{stdout}");
     assert!(stdout.contains("Superseded"), "got:\n{stdout}");
     assert!(stdout.contains("superseded by c"), "got:\n{stdout}");
-
-    let _ = fs::remove_dir_all(&bundle);
 }
 
 #[test]
@@ -156,6 +151,4 @@ fn a_broken_link_alongside_a_moved_source_candidate_keeps_its_own_error_class_an
             "a broken link must never be labelled MOVED-SOURCE, got:\n{line}"
         );
     }
-
-    let _ = fs::remove_dir_all(&bundle);
 }

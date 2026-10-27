@@ -1,7 +1,6 @@
 //! `check` requires the sections a doc type's registry row marks required on
 //! every live record of that type.
 
-use std::fs;
 use std::path::Path;
 use std::process::Output;
 
@@ -41,7 +40,6 @@ fn check_record(label: &str, record: &str) -> (Output, String) {
         stdout_of(&output),
         String::from_utf8_lossy(&output.stderr)
     );
-    let _ = fs::remove_dir_all(bundle.parent().unwrap());
     (output, text)
 }
 
@@ -197,7 +195,6 @@ fn changed_files_scopes_the_finding_to_touched_records() {
         "got: {}",
         stdout_of(&touched)
     );
-    let _ = fs::remove_dir_all(bundle.parent().unwrap());
 }
 
 fn adr(status: &str, body: &str) -> String {
@@ -215,7 +212,6 @@ fn check_files(label: &str, files: &[(&str, &str)]) -> (Output, String) {
     let output = run_check(&bundle);
     let err = String::from_utf8_lossy(&output.stderr).into_owned();
     let text = stdout_of(&output) + &err;
-    let _ = fs::remove_dir_all(bundle.parent().unwrap());
     (output, text)
 }
 

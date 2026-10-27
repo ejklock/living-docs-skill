@@ -81,8 +81,6 @@ fn install_materializes_every_skill_file_byte_identical_to_the_embedded_corpus()
             "{skill}/{relative} bytes differ from the corpus"
         );
     }
-
-    let _ = fs::remove_dir_all(&parent);
 }
 
 #[test]
@@ -103,8 +101,6 @@ fn install_places_the_okf_knowledge_format_reference_subdirectory() {
             .is_file(),
         "reference/SPEC.source.md was not placed"
     );
-
-    let _ = fs::remove_dir_all(&parent);
 }
 
 #[test]
@@ -124,8 +120,6 @@ fn install_is_idempotent_across_repeated_runs() {
         first_bytes, second_bytes,
         "repeated install must leave byte-identical files"
     );
-
-    let _ = fs::remove_dir_all(&parent);
 }
 
 #[test]
@@ -145,8 +139,6 @@ fn dry_run_reports_the_plan_and_writes_nothing() {
         );
     }
     assert!(!dest.exists(), "dry-run must not create the destination");
-
-    let _ = fs::remove_dir_all(&parent);
 }
 
 #[test]
@@ -158,8 +150,6 @@ fn install_defaults_the_harness_to_claude_when_omitted() {
 
     assert!(output.status.success());
     assert!(dest.join("living-docs/SKILL.md").is_file());
-
-    let _ = fs::remove_dir_all(&parent);
 }
 
 #[test]
@@ -177,8 +167,6 @@ fn unknown_harness_value_is_a_clean_clap_error_not_a_panic() {
         "must be a clean clap error, not a panic: {stderr}"
     );
     assert!(!dest.exists());
-
-    let _ = fs::remove_dir_all(&parent);
 }
 
 #[test]
@@ -201,8 +189,6 @@ fn install_scopes_to_the_project_relative_directory_when_project_is_given_withou
     assert!(project
         .join(".codex/skills/okf-knowledge-format/reference/SPEC.md")
         .is_file());
-
-    let _ = fs::remove_dir_all(&project);
 }
 
 #[test]
@@ -221,8 +207,6 @@ fn dir_override_ignores_harness_producing_identical_output_for_any_harness_value
         read_all_placed(&codex_dest),
         "--dir must override the destination regardless of --harness"
     );
-
-    let _ = fs::remove_dir_all(&parent);
 }
 
 #[test]
@@ -248,6 +232,4 @@ fn install_uses_an_overridden_home_for_the_global_destination_when_neither_proje
     assert!(fake_home
         .join(".pi/agent/skills/research-artifacts/SKILL.md")
         .is_file());
-
-    let _ = fs::remove_dir_all(&fake_home);
 }

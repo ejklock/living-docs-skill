@@ -1,4 +1,3 @@
-use std::fs;
 use std::path::Path;
 
 mod common;
@@ -18,8 +17,6 @@ fn assert_clean_no_broken_link(bundle: &Path) {
         "expected clean, got:\n{stdout}"
     );
     assert!(!stdout.contains("broken link"));
-
-    let _ = fs::remove_dir_all(bundle);
 }
 
 #[test]
@@ -99,8 +96,6 @@ fn broken_image_destination_is_reported_broken() {
         stdout.contains("broken link"),
         "expected a broken link violation for the image, got:\n{stdout}"
     );
-
-    let _ = fs::remove_dir_all(&bundle);
 }
 
 #[test]
