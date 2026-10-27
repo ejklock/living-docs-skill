@@ -2,7 +2,7 @@
 type: Issue
 title: check and read grow quadratically with the bundle size
 description: Remove the per-record whole-bundle work in check and read so they scale near-linearly, without a database.
-status: open
+status: closed
 timestamp: 2026-10-26T20:07:43Z
 ---
 

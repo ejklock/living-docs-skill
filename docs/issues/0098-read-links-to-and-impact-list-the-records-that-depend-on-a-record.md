@@ -2,7 +2,7 @@
 type: Issue
 title: read --links-to and --impact list the records that depend on a record
 description: "Implements ADR 0074: direct and transitive inbound links over live records, filtered read view, built per run"
-status: open
+status: closed
 timestamp: 2026-10-26T22:18:43Z
 ---
 

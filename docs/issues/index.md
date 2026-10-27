@@ -21,9 +21,6 @@ one slice per fresh context, starting from the skeleton.
 * [0094 — the one-way supersede link check lacks tests for its spelling, shared-number and path rules](0094-the-one-way-supersede-link-check-lacks-tests-for-its-spelling-shared-number-and-path-rules.md) - open
 * [0095 — check skips every entry of a supersedes list that mixes record numbers and other values](0095-check-skips-every-entry-of-a-supersedes-list-that-mixes-record-numbers-and-other-values.md) - open
 * [0096 — reserved files such as index.md are written outside the rooted store guard](0096-reserved-files-such-as-index-md-are-written-outside-the-rooted-store-guard.md) - open
-* [0097 — check and read grow quadratically with the bundle size](0097-check-and-read-grow-quadratically-with-the-bundle-size.md) - open
-* [0098 — read --links-to and --impact list the records that depend on a record](0098-read-links-to-and-impact-list-the-records-that-depend-on-a-record.md) - open
-* [0099 — data verbs panic when the reader closes stdout](0099-data-verbs-panic-when-the-reader-closes-stdout.md) - open
 
 ## Closed
 
@@ -109,3 +106,6 @@ one slice per fresh context, starting from the skeleton.
 * [0085 — fmt rewrites the title heading of a record titled with digits only on every run](0085-fmt-rewrites-the-title-heading-of-a-record-titled-with-digits-only-on-every-run.md) - closed
 * [0086 — the canonical writer does not escape a carriage return so such a value is refused](0086-the-canonical-writer-does-not-escape-a-carriage-return-so-such-a-value-is-refused.md) - closed
 * [0089 — six functions exceed the 30-line limit because the workspace clippy gate omits too_many_lines](0089-six-functions-exceed-the-30-line-limit-because-the-workspace-clippy-gate-omits-too-many-lines.md) - closed
+* [0097 — check and read grow quadratically with the bundle size](0097-check-and-read-grow-quadratically-with-the-bundle-size.md) - closed
+* [0098 — read --links-to and --impact list the records that depend on a record](0098-read-links-to-and-impact-list-the-records-that-depend-on-a-record.md) - closed
+* [0099 — data verbs panic when the reader closes stdout](0099-data-verbs-panic-when-the-reader-closes-stdout.md) - closed

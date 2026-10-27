@@ -2,7 +2,7 @@
 type: Issue
 title: data verbs panic when the reader closes stdout
 description: A closed stdout pipe makes print! panic; every stdout write goes through one writer that ends silently with exit 0 on a broken pipe
-status: open
+status: closed
 timestamp: 2026-10-26T22:52:42Z
 ---
 
