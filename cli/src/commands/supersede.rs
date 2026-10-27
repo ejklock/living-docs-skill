@@ -27,7 +27,7 @@ pub(crate) fn run_supersede(
     match commands::supersede::supersede(build_store(docs_dir).as_ref(), docs_dir, old, new) {
         Ok(superseded) => {
             if mode.is_json() {
-                println!(
+                output::outln!(
                     "{}",
                     output::to_json(&SupersedeJson {
                         old: &superseded.old,
@@ -36,8 +36,8 @@ pub(crate) fn run_supersede(
                     })
                 );
             } else {
-                println!("{}", superseded.old.display());
-                println!("{}", superseded.new.display());
+                output::outln!("{}", superseded.old.display());
+                output::outln!("{}", superseded.new.display());
             }
             report_indexed("supersede", &superseded.indexed, mode, quiet)
         }

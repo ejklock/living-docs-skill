@@ -3,6 +3,7 @@
 //! `crate::skill_install` and `crate::hooks` respectively.
 
 use crate::hooks::{self, gitattributes};
+use crate::output::outln;
 use crate::skill_install::{self, Harness};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -71,9 +72,9 @@ fn add_union_attribute(
     };
     let path = gitattributes::attributes_path(project_root);
     if dry_run {
-        println!("would add {line} to {}", path.display());
+        outln!("would add {line} to {}", path.display());
     } else if let Some(written) = gitattributes::add_union_line(project_root, &line)? {
-        println!("wrote {}", written.display());
+        outln!("wrote {}", written.display());
     }
     Ok(())
 }

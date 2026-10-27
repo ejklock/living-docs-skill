@@ -92,11 +92,11 @@ fn render_paths<'a, T: Serialize>(
 ) {
     if mode.is_json() {
         let borrowed = paths.iter().map(PathBuf::as_path).collect();
-        println!("{}", output::to_json(&to_json(borrowed)));
+        output::outln!("{}", output::to_json(&to_json(borrowed)));
         return;
     }
     for path in paths {
-        println!("{}", path.display());
+        output::outln!("{}", path.display());
     }
-    println!("{} {summary_suffix}", paths.len());
+    output::outln!("{} {summary_suffix}", paths.len());
 }

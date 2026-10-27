@@ -1,4 +1,4 @@
-use crate::skill;
+use crate::{output::outln, skill};
 use serde_json::{json, Value};
 use std::borrow::Cow;
 use std::os::unix::fs::PermissionsExt;
@@ -82,7 +82,7 @@ pub(crate) fn install(
     arm_git_hooks_path(project_root, quiet);
     match write_settings(&settings_path, &settings) {
         Ok(()) => {
-            println!("wired {}", settings_path.display());
+            outln!("wired {}", settings_path.display());
             ExitCode::SUCCESS
         }
         Err(err) => report_failure(&err.to_string()),
@@ -115,7 +115,7 @@ pub(crate) fn uninstall(project_root: &Path, dry_run: bool) -> ExitCode {
         if let Err(err) = write_settings(&settings_path, &settings) {
             return report_failure(&err.to_string());
         }
-        println!("stripped {}", settings_path.display());
+        outln!("stripped {}", settings_path.display());
     }
     ExitCode::SUCCESS
 }
@@ -149,19 +149,19 @@ fn basename_of(path: &'static str) -> &'static str {
 
 fn announce_dry_run(scripts: &[HookScript]) {
     for script in scripts {
-        println!("[dry-run] would write {}", dest_display(script.basename));
+        outln!("[dry-run] would write {}", dest_display(script.basename));
     }
 }
 
 fn announce_dry_run_pre_commit() {
-    println!(
+    outln!(
         "[dry-run] would write {GIT_HOOKS_DEST_SUBDIR}/{}",
         basename_of(PRE_COMMIT_ASSET_PATH)
     );
 }
 
 fn announce_dry_run_wiring(settings_path: &Path, bundle: &str) {
-    println!(
+    outln!(
         "[dry-run] would wire {} (LIVING_DOCS_BUNDLE={bundle})",
         settings_path.display()
     );
@@ -185,7 +185,7 @@ fn write_script_to(dest_dir: &Path, script: &HookScript) -> io::Result<()> {
     let dest = dest_dir.join(script.basename);
     fs::write(&dest, script.bytes.as_ref())?;
     fs::set_permissions(&dest, fs::Permissions::from_mode(SCRIPT_MODE))?;
-    println!("wrote {}", dest.display());
+    outln!("wrote {}", dest.display());
     Ok(())
 }
 
@@ -369,16 +369,16 @@ fn remove_artifacts(paths: &[PathBuf]) -> io::Result<()> {
 
 fn remove_one(path: &Path) -> io::Result<()> {
     fs::remove_file(path)?;
-    println!("removed {}", path.display());
+    outln!("removed {}", path.display());
     Ok(())
 }
 
 fn announce_uninstall_dry_run(removable: &[PathBuf], strips_settings: bool, settings_path: &Path) {
     for path in removable {
-        println!("[dry-run] would remove {}", path.display());
+        outln!("[dry-run] would remove {}", path.display());
     }
     if strips_settings {
-        println!(
+        outln!(
             "[dry-run] would strip living-docs entries from {}",
             settings_path.display()
         );

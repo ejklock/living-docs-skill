@@ -3,7 +3,7 @@
 //! through the shared `crate::output::OutputMode`.
 
 use crate::args::GuideArgs;
-use crate::output::OutputMode;
+use crate::output::{write_stdout_bytes, OutputMode};
 use crate::skill;
 use crate::store::report_failure;
 use std::process::ExitCode;
@@ -72,7 +72,7 @@ pub(crate) fn run_guide(args: GuideArgs, mode: OutputMode) -> ExitCode {
 fn print_guide_result(result: Result<String, String>) -> ExitCode {
     match result {
         Ok(output) => {
-            print!("{output}");
+            write_stdout_bytes(output.as_bytes());
             ExitCode::SUCCESS
         }
         Err(err) => report_failure(&err),

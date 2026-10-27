@@ -31,7 +31,7 @@ pub(crate) fn run_check(
         return exit_bundle_root_not_found(&bundle);
     };
     if mode.is_json() {
-        println!("{}", output::to_json(&report));
+        output::outln!("{}", output::to_json(&report));
     } else {
         render::render_text(&report, color, verbosity.list_advisories);
     }
@@ -153,7 +153,7 @@ fn compile_scoped(bundle: &Path, require_owner: bool, changed_files: &[PathBuf])
 pub(crate) fn run_mermaid_only(paths: &[PathBuf], mode: OutputMode, color: ColorMode) -> ExitCode {
     let report = check::compile_mermaid_only(paths);
     if mode.is_json() {
-        println!("{}", output::to_json(&report));
+        output::outln!("{}", output::to_json(&report));
     } else {
         render_mermaid_text(&report, color);
     }
@@ -166,25 +166,25 @@ pub(crate) fn run_mermaid_only(paths: &[PathBuf], mode: OutputMode, color: Color
 
 fn render_mermaid_text(report: &MermaidReport, color: ColorMode) {
     for error in &report.errors {
-        println!("FAIL {}:{}", error.file, error.line);
+        output::outln!("FAIL {}:{}", error.file, error.line);
         for line in error.message.lines().take(5) {
-            println!("    {line}");
+            output::outln!("    {line}");
         }
     }
-    println!();
+    output::outln!();
     if report.ok {
         let line = format!(
             "OK: {} diagram(s) across {} file(s).",
             report.diagrams, report.files
         );
-        println!("{}", output::paint(color, Style::Green, &line));
+        output::outln!("{}", output::paint(color, Style::Green, &line));
     } else {
         let line = format!(
             "FAIL: {} of {} diagram(s) failed to parse.",
             report.errors.len(),
             report.diagrams
         );
-        println!("{}", output::paint(color, Style::Red, &line));
+        output::outln!("{}", output::paint(color, Style::Red, &line));
     }
 }
 

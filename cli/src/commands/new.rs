@@ -39,7 +39,7 @@ fn seeded_owner(doc_type: &str, given: Option<&str>) -> Option<String> {
 
 fn print_created(created: &commands::new::Created, mode: OutputMode) {
     if mode.is_json() {
-        println!(
+        output::outln!(
             "{}",
             output::to_json(&NewJson {
                 path: &created.path,
@@ -48,8 +48,8 @@ fn print_created(created: &commands::new::Created, mode: OutputMode) {
             })
         );
     } else {
-        println!("{}", created.path.display());
-        println!("{BODY_ONLY_INSTRUCTION}");
+        output::outln!("{}", created.path.display());
+        output::outln!("{BODY_ONLY_INSTRUCTION}");
     }
 }
 

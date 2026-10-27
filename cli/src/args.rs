@@ -10,7 +10,7 @@
 //! sibling subcommands, so it cannot do this grouping itself. Off a TTY the
 //! help and version print as JSON from `args/help_json.rs`.
 
-use crate::output::ColorChoice;
+use crate::output::{outln, ColorChoice};
 use clap::error::ErrorKind;
 use clap::{CommandFactory, FromArgMatches, Parser, Subcommand};
 use clap_complete::Shell;
@@ -44,7 +44,7 @@ pub(crate) fn parse() -> Cli {
 fn exit_with(err: &clap::Error, command: &clap::Command, argv: &[std::ffi::OsString]) -> ! {
     if help_json::wants_json(argv) {
         if let Some(document) = json_document(err.kind(), command, argv) {
-            println!("{document}");
+            outln!("{document}");
             std::process::exit(err.exit_code());
         }
     }

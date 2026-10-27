@@ -3,7 +3,7 @@
 //! resolved output mode, and explains an empty `--topic` result on stderr.
 
 use crate::args::ReadArgs;
-use crate::output::OutputMode;
+use crate::output::{write_stdout_bytes, OutputMode};
 use crate::store::build_store;
 use living_docs_core::commands::effective::{self, Dependents, Options, Reading};
 use living_docs_core::store::DocStore;
@@ -26,7 +26,7 @@ pub(crate) fn run_read(docs_dir: &Path, args: ReadArgs, mode: OutputMode, quiet:
         dependents,
     };
     let reading = effective::read(store.as_ref(), docs_dir, &options, mode.is_json());
-    print!("{}", reading.output);
+    write_stdout_bytes(reading.output.as_bytes());
     if let Some(topic) = options.topic.as_deref().filter(|_| !quiet) {
         report_no_match(&reading, topic, docs_dir);
     }
