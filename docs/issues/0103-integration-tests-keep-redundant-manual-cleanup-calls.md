@@ -2,7 +2,7 @@
 type: Issue
 title: integration tests keep redundant manual cleanup calls
 description: Drop the manual test cleanup calls that the Scratch guard already makes, keeping the ones that set up a case.
-status: open
+status: closed
 timestamp: 2026-10-27T02:38:50Z
 ---
 

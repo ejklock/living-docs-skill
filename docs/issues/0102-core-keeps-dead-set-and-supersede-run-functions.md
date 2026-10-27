@@ -2,7 +2,7 @@
 type: Issue
 title: core keeps dead set and supersede run functions
 description: Remove the uncalled set and supersede run functions, so the core maps no result to an exit code.
-status: open
+status: closed
 timestamp: 2026-10-27T02:38:49Z
 ---
 
