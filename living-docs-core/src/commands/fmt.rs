@@ -24,38 +24,6 @@ use crate::record::{extract_record, to_canonical_markdown, ExtractedRecord};
 use crate::store::{is_refusal, DocStore};
 pub use repair::Seeds;
 use std::path::{Path, PathBuf};
-use std::process::ExitCode;
-
-/// Canonicalizes `target`'s frontmatter — a bundle root or a single record
-/// path — printing each pending record and a summary count. With
-/// `check_only`, prints the same pending records but writes nothing, and
-/// returns a non-zero exit code when any record is pending.
-pub fn run(store: &dyn DocStore, target: &Path, check_only: bool) -> ExitCode {
-    match outcome(store, target, check_only, &Seeds::default()) {
-        Ok(Outcome::Rewritten(paths)) => {
-            for path in &paths {
-                println!("{}", path.display());
-            }
-            println!("{} record(s) rewritten.", paths.len());
-            ExitCode::SUCCESS
-        }
-        Ok(Outcome::Pending(paths)) => {
-            for path in &paths {
-                println!("{}", path.display());
-            }
-            println!("{} record(s) would change.", paths.len());
-            if paths.is_empty() {
-                ExitCode::SUCCESS
-            } else {
-                ExitCode::from(1)
-            }
-        }
-        Err(message) => {
-            eprintln!("living-docs fmt: {message}");
-            ExitCode::from(2)
-        }
-    }
-}
 
 /// `fmt`'s outcome: which records were rewritten, or (`--check`) which are
 /// pending. Kept as one type so a caller matches on the mode it asked for
@@ -67,9 +35,8 @@ pub enum Outcome {
 
 /// Canonicalizes `target`'s frontmatter (or, under `check_only`, reports
 /// which records would change) without printing anything — the CLI front
-/// renders this as colored text or JSON; [`run`] is the plain-text-always
-/// convenience wrapper over it. `seeds` carries the git-derived values a
-/// missing timestamp or owner is filled with.
+/// renders this as colored text or JSON. `seeds` carries the git-derived
+/// values a missing timestamp or owner is filled with.
 pub fn outcome(
     store: &dyn DocStore,
     target: &Path,

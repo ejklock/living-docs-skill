@@ -12,7 +12,6 @@ pub(crate) use fill::{
     fill_frontmatter_owner, fill_frontmatter_title, fill_heading,
 };
 use std::path::{Path, PathBuf};
-use std::process::ExitCode;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Optional authoring inputs for `new` beyond the type and title:
@@ -30,43 +29,11 @@ pub struct NewOptions<'a> {
     pub body: Option<&'a str>,
 }
 
-/// The point-of-use teaching line printed after `new`'s created path, and
+/// The point-of-use teaching line the CLI prints after `new`'s created path, and
 /// repeated verbatim in the root `--help` about text and the `living-docs`
 /// SKILL.md stub, so an agent meets the CLI-owns-the-mechanics rule at the
 /// moment it authors a record.
 pub const BODY_ONLY_INSTRUCTION: &str = "Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs set` / `supersede`.";
-
-pub fn run(
-    store: &dyn DocStore,
-    docs_dir: &Path,
-    doc_type: &str,
-    title: &str,
-    opts: &NewOptions,
-) -> ExitCode {
-    match write(store, docs_dir, doc_type, title, opts) {
-        Ok(created) => {
-            println!("{}", created.path.display());
-            println!("{BODY_ONLY_INSTRUCTION}");
-            report_index_failure(&created.indexed)
-        }
-        Err(message) => {
-            eprintln!("living-docs new: {message}");
-            ExitCode::from(2)
-        }
-    }
-}
-
-/// Names the first index that could not be refreshed and exits 1, so a
-/// script sees the half-finished state a usage error (exit 2) never has.
-fn report_index_failure(indexed: &Indexed) -> ExitCode {
-    match indexed.failures.first() {
-        None => ExitCode::SUCCESS,
-        Some(failure) => {
-            eprintln!("living-docs new: {failure}");
-            ExitCode::from(1)
-        }
-    }
-}
 
 /// The record `new` wrote and what refreshing its type's index did.
 #[derive(Debug)]
@@ -77,8 +44,7 @@ pub struct Created {
 
 /// Scaffolds and writes the new record, then refreshes its type's index,
 /// returning both without printing anything — the CLI front renders this as
-/// colored text or JSON; [`run`] is the plain-text-always
-/// convenience wrapper over it.
+/// colored text or JSON.
 pub fn write(
     store: &dyn DocStore,
     docs_dir: &Path,
