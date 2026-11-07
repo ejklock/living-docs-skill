@@ -2,7 +2,7 @@
 type: Issue
 title: Project guide is AGENTS.md with CLAUDE.md a symlink to it
 description: Make the skill create the project guide as AGENTS.md with CLAUDE.md a symlink, so every harness reads one guide.
-status: open
+status: closed
 timestamp: 2026-11-07T14:09:51Z
 ---
 
