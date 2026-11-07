@@ -42,7 +42,7 @@ the CLI's job; the judgment prose (the "why") is yours to write directly in the 
 
 ## Setting up living docs in a new project
 
-1. Create the project guide (`CLAUDE.md` or equivalent) with a **Docs index** section. Use `templates/claude-hard-rules.md` as the starting point for the hard-rules section; fill in the placeholders before committing.
+1. Create the project guide as `AGENTS.md` at the project root with a **Docs index** section, then link `CLAUDE.md` to it (`ln -s AGENTS.md CLAUDE.md`) and commit the symlink, so every agent harness reads the same guide. Use `templates/claude-hard-rules.md` as the starting point for the hard-rules section; fill in the placeholders before committing.
 2. Create `docs/` with the directories the project needs (`adr/`, `issues/`, and `prd/`/`research/`/`architecture/` as they earn their place). Seed `docs/constitution.md` from `templates/constitution.md`. Add the bundle-root `docs/index.md` (carrying `okf_version: "0.1"`), and give each directory its own `index.md` listing from day one — even if near-empty.
 3. Seed the architecture views (`docs/architecture/`) with the high-level Mermaid diagrams the system already has, once it is worth drawing (`rules/architecture-diagrams.md`).
 4. Record any already-made decisions as ADRs so they are not re-litigated — but **confirm each with the user before recording** (see *Adopting living docs in an existing project*, steps 2–4); never back-fill an ADR by inference alone.
@@ -51,7 +51,7 @@ the CLI's job; the judgment prose (the "why") is yours to write directly in the 
 
 An existing codebase already embodies decisions that were never written down. The failure mode here is the agent **back-filling ADRs by inference and presenting them as settled** — recording decisions the user was never asked to confirm. Adoption is therefore an *elicitation* exercise, not a transcription one.
 
-1. **Scaffold without deciding.** Create `docs/` + each directory's `index.md` and the bundle-root `docs/index.md`. This is mechanical — no decisions are made here.
+1. **Scaffold without deciding.** Create `docs/` + each directory's `index.md` and the bundle-root `docs/index.md`. Make the project guide `AGENTS.md` with `CLAUDE.md` a symlink to it: a lone `CLAUDE.md` moves with `git mv CLAUDE.md AGENTS.md` before `ln -s AGENTS.md CLAUDE.md`; when both files exist with different content, ask the user how to merge them. This is mechanical — no decisions are made here.
 2. **Read the existing context first, then inventory the decisions — as candidates, not records.** Harvest what the project already carries: the code itself, plus the `README`, the agent guides (`CLAUDE.md` / `AGENTS.md`), package manifests, and any design notes. From that, produce a *list* of the load-bearing decisions the project appears to embody (stack, boundaries, data model, key trade-offs). Do **not** write ADRs yet.
 3. **Present the inventory to the user and confirm each.** For every candidate, state the inferred decision and the alternatives it appears to have ruled out, and ask the user to confirm, correct, or discard it — grill the load-bearing ones (`grill-me` if installed). The user owns the decision; the agent only surfaces what the code implies.
 4. **Record only the confirmed decisions as ADRs.** These are origin records — they supersede nothing. Capture the chosen option *and* the rejected alternatives the user confirmed. A candidate the user discards, or one whose rationale nobody actually knows, is **not** invented into an ADR.

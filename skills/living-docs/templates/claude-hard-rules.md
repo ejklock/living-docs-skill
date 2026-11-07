@@ -1,6 +1,6 @@
-# CLAUDE.md — Hard Rules Template
+# AGENTS.md — Hard Rules Template
 
-Copy this block into the project's `CLAUDE.md` and fill in the `<placeholders>`. Adapt the table of locations to match the project's actual directory structure.
+Copy this block into the project's `AGENTS.md` (`CLAUDE.md` is a symlink to it) and fill in the `<placeholders>`. Adapt the table of locations to match the project's actual directory structure.
 
 ---
 

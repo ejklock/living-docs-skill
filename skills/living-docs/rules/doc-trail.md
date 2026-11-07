@@ -46,7 +46,7 @@ Agents learn boundaries from counterexamples better than from definitions. Each 
 
 | Type | Lives in | Purpose | Mutability |
 |---|---|---|---|
-| Project guide | `CLAUDE.md` / `README.md` (root) | Entry point: scope, stack, docs index, mandatory workflows | Live — edit freely |
+| Project guide | `AGENTS.md` (`CLAUDE.md` is a symlink to it) / `README.md` (root) | Entry point: scope, stack, docs index, mandatory workflows | Live — edit freely |
 | Constitution | `docs/constitution.md` | Foundational source of truth: product scope, non-negotiables | Amend-only once ratified (amendment log) |
 | Architecture | `docs/architecture/` + index | Living Mermaid views: structure, data model, flows | Live — must match code |
 | ADR | `docs/adr/NNNN-slug.md` | One decision expensive to reverse, with its alternatives | Append-only (supersede) |
