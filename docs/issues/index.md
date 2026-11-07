@@ -23,6 +23,7 @@ one slice per fresh context, starting from the skeleton.
 * [0096 — reserved files such as index.md are written outside the rooted store guard](0096-reserved-files-such-as-index-md-are-written-outside-the-rooted-store-guard.md) - open
 * [0104 — check module docblock links to a run function that no longer exists](0104-check-module-docblock-links-to-a-run-function-that-no-longer-exists.md) - open
 * [0105 — check accepts the placeholder description that new writes](0105-check-accepts-the-placeholder-description-that-new-writes.md) - open
+* [0106 — Project guide is AGENTS.md with CLAUDE.md a symlink to it](0106-project-guide-is-agents-md-with-claude-md-a-symlink-to-it.md) - open
 
 ## Closed
 
