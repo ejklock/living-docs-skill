@@ -2,7 +2,7 @@
 type: Issue
 title: A skill with no topics lists as an empty line in guide, and the project guide miscounts the verbs
 description: Make guide --list and guide --help say when a skill has no topics and how to read it, and state ten verbs plus completions in CLAUDE.md and README.md.
-status: open
+status: closed
 timestamp: 2026-11-09T11:53:41Z
 ---
 

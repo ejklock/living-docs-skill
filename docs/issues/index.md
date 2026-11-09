@@ -23,7 +23,6 @@ one slice per fresh context, starting from the skeleton.
 * [0096 — reserved files such as index.md are written outside the rooted store guard](0096-reserved-files-such-as-index-md-are-written-outside-the-rooted-store-guard.md) - open
 * [0104 — check module docblock links to a run function that no longer exists](0104-check-module-docblock-links-to-a-run-function-that-no-longer-exists.md) - open
 * [0105 — check accepts the placeholder description that new writes](0105-check-accepts-the-placeholder-description-that-new-writes.md) - open
-* [0108 — A skill with no topics lists as an empty line in guide, and the project guide miscounts the verbs](0108-a-skill-with-no-topics-lists-as-an-empty-line-in-guide-and-the-project-guide-miscounts-the-verbs.md) - open
 * [0109 — Regroup the CLI under write, read and manage with check top-level, and move every surface that teaches a command](0109-regroup-the-cli-under-write-read-and-manage-with-check-top-level-and-move-every-surface-that-teaches-a-command.md) - open
 
 ## Closed
@@ -119,3 +118,4 @@ one slice per fresh context, starting from the skeleton.
 * [0103 — integration tests keep redundant manual cleanup calls](0103-integration-tests-keep-redundant-manual-cleanup-calls.md) - closed
 * [0106 — Project guide is AGENTS.md with CLAUDE.md a symlink to it](0106-project-guide-is-agents-md-with-claude-md-a-symlink-to-it.md) - closed
 * [0107 — Ship the living-docs-drift skill: anchor resolution plus a configurable LLM judge, advisory report outside the bundle](0107-ship-the-living-docs-drift-skill-anchor-resolution-plus-a-configurable-llm-judge-advisory-report-outside-the-bundle.md) - closed
+* [0108 — A skill with no topics lists as an empty line in guide, and the project guide miscounts the verbs](0108-a-skill-with-no-topics-lists-as-an-empty-line-in-guide-and-the-project-guide-miscounts-the-verbs.md) - closed
