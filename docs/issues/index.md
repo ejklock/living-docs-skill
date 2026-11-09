@@ -23,6 +23,7 @@ one slice per fresh context, starting from the skeleton.
 * [0096 — reserved files such as index.md are written outside the rooted store guard](0096-reserved-files-such-as-index-md-are-written-outside-the-rooted-store-guard.md) - open
 * [0104 — check module docblock links to a run function that no longer exists](0104-check-module-docblock-links-to-a-run-function-that-no-longer-exists.md) - open
 * [0105 — check accepts the placeholder description that new writes](0105-check-accepts-the-placeholder-description-that-new-writes.md) - open
+* [0108 — A skill with no topics lists as an empty line in guide, and the project guide miscounts the verbs](0108-a-skill-with-no-topics-lists-as-an-empty-line-in-guide-and-the-project-guide-miscounts-the-verbs.md) - open
 
 ## Closed
 

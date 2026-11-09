@@ -86,7 +86,8 @@ fronts:
   as workspace fronts when a consumer needs cross-project search or an independently
   deployed surface; `grep` and `read --topic` answer the search question until then.
 - **Ten verbs, one gate.** `new`, `set`, `supersede`, `index`, `check`, `fmt`,
-  `read`, `guide`, `install`, `uninstall`. `check` at commit and in CI is the only
+  `read`, `guide`, `install`, `uninstall`, plus the `completions` shell-completion
+  utility (ADR 0060), which is not a verb of the contract. `check` at commit and in CI is the only
   enforcement; there is no write-time hook.
 - **One authoring path.** `new` scaffolds the numbered file with frontmatter and heading
   filled and every body section as a `{{SLOT: hint}}`; the author edits the body; an

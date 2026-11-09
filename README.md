@@ -20,7 +20,7 @@ optional PRD, a constitution, living [Mermaid](https://mermaid.js.org/) architec
 views), never *what* technology a project uses.
 
 The mechanical half of that discipline is owned end-to-end by the bundled
-**`living-docs` CLI** — one self-contained Rust binary with ten verbs that
+**`living-docs` CLI** — one self-contained Rust binary with ten verbs (plus a `completions` utility) that
 **scaffolds records** (`new`), **drives their lifecycle** (`set`, `supersede`),
 **rebuilds indexes** (`index`, `fmt`), **validates the invariants** (`check`),
 **compiles the in-force view an agent reads** (`read`), and **serves the skill

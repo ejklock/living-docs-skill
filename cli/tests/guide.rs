@@ -195,3 +195,55 @@ fn kept_guide_spellings_still_work_after_the_refusals() {
     let body = stdout_of(&skill);
     assert!(body.contains("# Living Docs"), "got:\n{body}");
 }
+
+const DRIFT_LINE: &str =
+    "living-docs-drift: no topics; living-docs guide living-docs-drift prints its SKILL.md";
+
+#[test]
+fn list_says_a_topicless_skill_has_no_topics_and_names_the_command_for_its_body() {
+    let output = run_guide(&["--list", "--plain"]);
+    let stdout = stdout_of(&output);
+    assert_eq!(output.status.code(), Some(0), "got:\n{stdout}");
+    let lines: Vec<&str> = stdout.lines().collect();
+    assert!(lines.contains(&DRIFT_LINE), "got:\n{stdout}");
+    assert!(
+        lines.iter().any(|l| l.starts_with("living-docs: adr, ")),
+        "got:\n{stdout}"
+    );
+    for skill in ["research-artifacts: ", "okf-knowledge-format: "] {
+        let line = lines.iter().find(|l| l.starts_with(skill));
+        assert!(
+            line.is_some_and(|l| l.len() > skill.len() && !l.contains("no topics")),
+            "got:\n{stdout}"
+        );
+    }
+}
+
+#[test]
+fn json_list_keeps_the_topicless_skill_with_an_empty_topic_array() {
+    let output = run_guide(&["--list", "--json"]);
+    let stdout = stdout_of(&output);
+    assert_eq!(output.status.code(), Some(0), "got:\n{stdout}");
+    let expected = serde_json::json!({"skills":[
+        {"name":"living-docs","topics":["adr","architecture-diagrams","architecture-view","check","claude-hard-rules","constitution","context-index","doc-trail","issue","issue-workflow","okf-format","prd","procedure","research","semantic-index","size-targets","spine"]},
+        {"name":"living-docs-drift","topics":[]},
+        {"name":"okf-knowledge-format","topics":["about","concept","conformance","index","log","model","procedure"]},
+        {"name":"research-artifacts","topics":["about","research-general-references","research-index","research-report","rules","structure"]}
+    ]});
+    let actual: serde_json::Value = serde_json::from_str(&stdout).expect("valid json");
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn help_shows_the_no_topics_line_and_the_named_command_prints_the_skill_body() {
+    let help = run_guide(&["--help", "--plain"]);
+    let help_out = stdout_of(&help);
+    assert!(help_out.contains(DRIFT_LINE), "got:\n{help_out}");
+    assert!(
+        !help_out.contains("living-docs-drift:;"),
+        "got:\n{help_out}"
+    );
+    let body = run_guide(&["living-docs-drift", "--plain"]);
+    assert_eq!(body.status.code(), Some(0), "{}", stderr_of(&body));
+    assert!(stdout_of(&body).contains("# Living Docs Drift"));
+}
