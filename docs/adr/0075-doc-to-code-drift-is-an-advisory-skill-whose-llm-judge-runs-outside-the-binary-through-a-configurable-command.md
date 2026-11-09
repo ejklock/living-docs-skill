@@ -17,7 +17,7 @@ Two earlier answers failed. [ADR 0032](/adr/0032-doc-code-lineage-is-declared-no
 
 A read-only probe of this bundle (2026-11-08) confirmed it. Of the source paths cited in live records, 137 resolve and 19 do not; all 19 are in Accepted ADRs and are history (ADR 0059 cites the `docker-compose.yml` it removed), and none is in an open issue. Path resolution answers only half the question. The other half, whether the code still does what the record says, is the logic divergence that a deterministic check cannot see.
 
-google/elephant-goldfish-model (commit 5382b17) solves the second half with an LLM skill that reads each design document with the code it cites and reports missing features, incomplete models, logic shortcuts and architectural divergence into a dated report. The agent-memory curator (its ADR 0155) shows a safe shape for that judgment: a versioned JSON payload in, JSON out, no tools, a command adapter whose argv comes from configuration, and the caller validating every answer.
+google/elephant-goldfish-model (commit 5382b17) solves the second half with an LLM skill that reads each design document with the code it cites and reports missing features, incomplete models, logic shortcuts and architectural divergence into a dated report. A command adapter gives that judgment a safe shape: a versioned JSON payload in, JSON out, no tools, an argv that comes from configuration, and a caller that validates every answer.
 
 This repository's own rule forbids that judgment inside the binary: [ADR 0001](/adr/0001-living-docs-cli.md) and the determinism boundary keep the CLI free of any LLM, and [ADR 0060](/adr/0060-the-cli-surface-is-a-contract-ten-intention-named-verbs-one-output-mode-per-stream-documented-exit-codes-and-help-written-for-an-agent.md) fixes its surface at ten verbs.
 
@@ -35,7 +35,7 @@ We will detect doc-to-code drift with a `living-docs-drift` skill that ships bes
 
 Rejected alternatives:
 
-- **The judge command inside the binary** (a `drift` verb or a `check` flag running the configured command). It mirrors the curator most closely, but it puts non-reproducible judgment prose inside the tool that ADR 0001 keeps deterministic, and it adds a verb or flag to the surface ADR 0060 fixed.
+- **The judge command inside the binary** (a `drift` verb or a `check` flag running the configured command). It keeps the whole flow in one tool, but it puts non-reproducible judgment prose inside the tool that ADR 0001 keeps deterministic, and it adds a verb or flag to the surface ADR 0060 fixed.
 - **A deterministic anchor advisory in `check` now.** It is the `stale-impact` class ADR 0057 removed for lack of a true positive, and the probe found none in the records it would cover.
 - **A prompt-only skill, as EGM ships it.** No driver means the agent running it chooses the files, the format and whether a failed judgment counts as clean; the payload, the schema and the fail direction are the parts that make the result trustworthy.
 - **A Rust front in the workspace** (ADR 0033). It would type the payload, but it adds a second release artifact for a tool that only shells out and reshapes JSON; a script beside the skill ships with the skill.

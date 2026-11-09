@@ -22,7 +22,7 @@ Implements [ADR 0075](/adr/0075-doc-to-code-drift-is-an-advisory-skill-whose-llm
 ### Decision
 
 - **Language: bash plus `jq`**, like the repository's other scripts and fixtures, rather than a Rust front (ADR 0075 rejects it).
-- **Configuration by environment**: `LIVING_DOCS_DRIFT_JUDGE` holds the judge command line (default `claude -p --tools ""`), `LIVING_DOCS_DRIFT_TIMEOUT` the per-call seconds (default 300); `--docs-dir`, `--root` and `--out` flags match the CLI's names. Not chosen: a TOML file like the curator's, which a single-command script does not need.
+- **Configuration by environment**: `LIVING_DOCS_DRIFT_JUDGE` holds the judge command line (default `claude -p --tools ""`), `LIVING_DOCS_DRIFT_TIMEOUT` the per-call seconds (default 300); `--docs-dir`, `--root` and `--out` flags match the CLI's names. Not chosen: a TOML configuration file, which a single-command script does not need.
 - **Status from frontmatter**: the script reads `status:` from each record file and keeps the terminal issue statuses (`closed`, `done`) in its own list, because `read --json` carries no status and adding one is a binary change ADR 0075 excludes.
 - **Excerpt bound**: each cited file contributes at most its first 200 lines, at most 20 anchors per record; a truncated excerpt says so in the payload.
 - **One fenced block tolerated**: a judge answer wrapped in a single ```` ```json ```` fence is unwrapped before validation; anything else that is not the bare JSON object is an invalid answer.
