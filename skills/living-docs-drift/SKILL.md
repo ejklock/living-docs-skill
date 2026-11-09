@@ -1,7 +1,7 @@
 ---
 name: living-docs-drift
 description: Check whether the live records of a living-docs bundle still match the code they cite, and write a dated advisory drift report. Use when the owner asks whether the docs, architecture views, constitution, open issues or Accepted ADRs have drifted from the code. Runs a driver script that resolves each record's code anchors and asks a configurable judge command; never a gate.
-version: "0.26.0"
+version: "0.26.1"
 metadata:
   type: skill
   layer: procedural
