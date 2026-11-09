@@ -1,0 +1,1 @@
+{"schema_version":1,"verdict":"no_drift","findings":[{"kind":"missing_feature","summary":"x","path":"src/a.rs"}]}

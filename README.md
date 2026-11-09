@@ -105,6 +105,7 @@ task needs:
 | [`skills/living-docs/`](skills/living-docs/) | The skill: the five invariants, the doc trail, per-doc-type conventions (`rules/`) and starter templates (`templates/`). |
 | [`skills/okf-knowledge-format/`](skills/okf-knowledge-format/) | The **format** standard the docs use — Open Knowledge Format (OKF): markdown + YAML frontmatter, required `type`, reserved `index.md`/`log.md`, bundle-relative links. The OKF spec is **vendored verbatim** from Google Cloud Platform. |
 | [`skills/research-artifacts/`](skills/research-artifacts/) | The research-note format and source discipline that feeds ADRs (the `docs/research/` half of the trail). |
+| [`skills/living-docs-drift/`](skills/living-docs-drift/) | **Doc-to-code drift, advisory**: `scripts/drift.sh` resolves the code anchors live records cite, asks a configurable LLM judge (default `claude -p --tools ""`) whether the code still matches each record, and writes a dated report outside the bundle. Runs outside the binary and is never a gate (ADR 0075). |
 | [`cli/`](cli/) (authoring verbs) | **Deterministic authoring**: `new` scaffolds a record with CLI-owned numbering, frontmatter and title heading, and every body section as a `{{SLOT: hint}}` the agent replaces with prose. `new --body PATH|-` takes the body from a file or stdin. `set` sets the lifecycle fields (`set <ref> <key> --from PATH|-` reads any value from a file or stdin; `set <ref> section "<heading>" --from PATH|-` replaces or appends one body section), `set <path> number next` renumbers a record (the repair for two records sharing a number) with its heading, in-bundle links and index, `supersede` wires both link directions and writes the retired-record callout; all three leave the index of every type they touched current, and `index` rebuilds every index as the repair for a hand-edited or merged bundle. `new` also writes a missing bundle-root `index.md` (link-less when the first record is the constitution) and `index` writes one when a type index exists; both append one link line for each type index the root does not yet reach, never rewriting a line already there, so a bundle built only through the CLI passes `check` from its first record; `new constitution "<title>"` seeds `status: Draft` and the given title as its heading, `fmt` canonicalizes frontmatter and repairs the CLI-owned fields of a hand-written record: it seeds a missing `timestamp` from the commit that added the file, seeds a missing required `owner` from git config, and aligns the title heading with the frontmatter title, changing no other prose (`fmt --check` lists the records it would change and writes nothing). Architecture is a first-class doc type: `new view "<name>" --kind <context\|container\|component\|flow\|sequence\|state\|data-model\|deployment>` scaffolds one view per concern in `docs/architecture/`, and the generated index sorts them in C4/arc42 zoom order. |
 | [`cli/`](cli/) (`living-docs read`) | **The agent-facing read**: active records only, supersede chains collapsed to the head with a one-line lineage, retired records withheld and counted. `--topic <term>` filters, `--contract` prints each record's contract sections (an issue's Scope and Acceptance, an ADR's Context, Decision and Consequences), `--full` prints whole bodies, `--links-to` and `--impact` list the live records that link a record directly or through a chain (the check before a supersede or an edit). An agent reads this, never `index.md`. |
 | [`cli/`](cli/) (`living-docs check`) | The **deterministic checker** for the mechanical invariants — frontmatter/`type`, indexing + reachability, link resolution, supersede integrity and the retired-record callout, unfilled `{{SLOT}}` placeholders, required sections on live records (each type's schema in the registry), and Mermaid fences (in-process via the pure-Rust [`merman-core`](https://crates.io/crates/merman-core) parser — no Docker, no daemon). A single self-contained binary: native `serde_yaml` frontmatter parsing and native `pulldown-cmark` link extraction — no host tools needed. *A constraint without an instrument is a vibe*; this is the instrument. It runs at commit and in CI. |
@@ -207,7 +208,7 @@ make help            # list every target
 
 **Claude Code**, **OpenCode**, and **Codex** share the same model: they
 auto-discover folders of `SKILL.md` files from their skills directory, so
-`living-docs install skills` just copies the three skills there (OpenCode
+`living-docs install skills` just copies the four skills there (OpenCode
 additionally reads `.claude/skills`, so a Claude install already covers it).
 **Pi** has no native skills directory — after the skills are copied, reference
 them once from your `AGENTS.md`:
@@ -215,7 +216,8 @@ them once from your `AGENTS.md`:
 ```markdown
 ## Living Docs
 Follow the documentation discipline in skills/living-docs/SKILL.md,
-skills/okf-knowledge-format/SKILL.md, and skills/research-artifacts/SKILL.md.
+skills/okf-knowledge-format/SKILL.md, skills/research-artifacts/SKILL.md,
+and skills/living-docs-drift/SKILL.md.
 ```
 
 ### Cursor and GitHub Copilot
@@ -233,7 +235,8 @@ or `.github/instructions/living-docs.instructions.md` (with
 ### Skill content — served by the CLI, not copied to disk
 
 Native harnesses (Claude Code, OpenCode, Codex, Pi) only get each skill's slim
-`SKILL.md` stub (plus `okf-knowledge-format/reference/`, the vendored spec) — the
+`SKILL.md` stub (plus `okf-knowledge-format/reference/`, the vendored spec, and
+`living-docs-drift`'s `prompt.md` and `scripts/drift.sh`, the drift driver) — the
 full per-doc-type conventions (`rules/`) and starter templates (`templates/`)
 travel **inside the `living-docs` binary** and are reached with `living-docs guide`,
 not by reading files off disk:
@@ -263,8 +266,8 @@ options for `<verb> --help`).
 
 ### Any other tool
 
-Copy `skills/living-docs/`, `skills/okf-knowledge-format/`, and
-`skills/research-artifacts/` into wherever that tool loads instructions from, or
+Copy `skills/living-docs/`, `skills/okf-knowledge-format/`,
+`skills/research-artifacts/`, and `skills/living-docs-drift/` into wherever that tool loads instructions from, or
 just read the `SKILL.md` files — they are plain markdown meant to be read by
 humans and agents alike.
 
@@ -294,6 +297,7 @@ See [`ATTRIBUTION.md`](ATTRIBUTION.md) for how Living Docs relates to his work.
 - Writing or editing an **ADR**, **PRD**, **constitution**, or **issue** → load the
   matching topic with `living-docs guide <topic>`.
 - Recording **research** → the `research-artifacts` skill.
+- Asking whether live records still match the code → the `living-docs-drift` skill (advisory report, never a gate).
 - Drawing or updating an **architecture / data-flow / sequence view**
   (living Mermaid, in-repo text that must match the code).
 - A doc grew too large or mixes concerns → **split into a semantic index**.

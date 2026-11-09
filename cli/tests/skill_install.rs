@@ -5,7 +5,10 @@ use std::process::{Command, Output};
 mod common;
 use common::Scratch;
 
-const SKILL_RELATIVE_PATHS: [(&str, &str); 5] = [
+const SKILL_RELATIVE_PATHS: [(&str, &str); 8] = [
+    ("living-docs-drift", "SKILL.md"),
+    ("living-docs-drift", "scripts/drift.sh"),
+    ("living-docs-drift", "prompt.md"),
     ("living-docs", "SKILL.md"),
     ("okf-knowledge-format", "SKILL.md"),
     ("okf-knowledge-format", "reference/SPEC.md"),

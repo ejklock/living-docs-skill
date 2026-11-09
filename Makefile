@@ -23,7 +23,7 @@ DOCKER_CARGO = docker run --rm \
 LIVING_DOCS_BIN := target/release/living-docs
 
 .DEFAULT_GOAL := help
-.PHONY: help check lint test-fixtures \
+.PHONY: help check lint test-fixtures test-drift-skill \
         test-release-gate test-version-gate version \
         test-filesize-gate filesize \
         allow-inventory test-allow-inventory-gate test-install-gate test-npm-gate \
@@ -33,7 +33,7 @@ help: ## Show this help
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-check: version filesize allow-inventory build test-fixtures test-release-gate test-version-gate test-filesize-gate test-allow-inventory-gate test-install-gate test-npm-gate ## Check version sync, file-size ratchet, allow-inventory gate, validate install.sh, run Rust tests, living-docs check + mermaid, hook fixtures, release-asset gate fixtures, version-gate fixtures, file-size gate fixtures, allow-inventory gate fixtures, install gate fixtures, dry-run install.sh
+check: version filesize allow-inventory build test-fixtures test-drift-skill test-release-gate test-version-gate test-filesize-gate test-allow-inventory-gate test-install-gate test-npm-gate ## Check version sync, file-size ratchet, allow-inventory gate, validate install.sh, run Rust tests, living-docs check + mermaid, hook fixtures, drift skill fixtures, release-asset gate fixtures, version-gate fixtures, file-size gate fixtures, allow-inventory gate fixtures, install gate fixtures, dry-run install.sh
 	bash -n install.sh
 	bash -n scripts/check-version.sh
 	bash -n scripts/verify-release-assets.sh
@@ -41,6 +41,8 @@ check: version filesize allow-inventory build test-fixtures test-release-gate te
 	bash -n scripts/check-allow-inventory.sh
 	bash -n scripts/tests/install/run.sh
 	bash -n scripts/tests/npm/run.sh
+	bash -n skills/living-docs-drift/scripts/drift.sh
+	bash -n skills/living-docs-drift/tests/run.sh
 	cargo test --manifest-path cli/Cargo.toml
 	$(LIVING_DOCS_BIN) check --require-owner --plain examples/linkly/docs
 	$(LIVING_DOCS_BIN) check --mermaid-only
@@ -48,6 +50,9 @@ check: version filesize allow-inventory build test-fixtures test-release-gate te
 
 test-fixtures: build ## Run the hostile/negative fixtures that guard the check parsers
 	LIVING_DOCS_BIN=$(LIVING_DOCS_BIN) ./skills/living-docs/tests/run.sh
+
+test-drift-skill: build ## Run the living-docs-drift driver fixtures, stub judges, no model
+	LIVING_DOCS_BIN=$(LIVING_DOCS_BIN) ./skills/living-docs-drift/tests/run.sh
 
 test-release-gate: ## Run the verify-release-assets.sh fixtures (ADR 0024), stubbed gh
 	./scripts/tests/verify-release-assets/run.sh

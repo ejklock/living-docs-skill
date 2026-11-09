@@ -6,10 +6,9 @@
 use crate::{output::outln, skill};
 use clap::ValueEnum;
 use std::borrow::Cow;
-use std::fs;
-use std::io;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::{fs, io};
 
 /// The AI harnesses `install skills` places the corpus for natively — every
 /// one auto-discovers `SKILL.md` files under its own skills directory, so
@@ -28,7 +27,11 @@ struct SkillAssetSpec {
     relative_paths: &'static [&'static str],
 }
 
-const SKILL_ASSET_SPECS: [SkillAssetSpec; 3] = [
+const SKILL_ASSET_SPECS: [SkillAssetSpec; 4] = [
+    SkillAssetSpec {
+        skill: "living-docs-drift",
+        relative_paths: &["SKILL.md", "scripts/drift.sh", "prompt.md"],
+    },
     SkillAssetSpec {
         skill: "living-docs",
         relative_paths: &["SKILL.md"],
@@ -176,19 +179,16 @@ mod tests {
     #[folder = "../skills/"]
     struct SkillCorpusAssets;
 
-    /// Whether `relative_path` (relative to a skill's own directory, e.g.
-    /// `reference/SPEC.md`) is one `install skills` places on a harness's
-    /// filesystem, versus one served through `living-docs guide <topic>
-    /// --skill <name>`. Only the slim-stub `SKILL.md` (ADR 0014) and
-    /// anything a stub links to directly by relative path — vendored
-    /// external material such as `okf-knowledge-format`'s `reference/` spec
-    /// — has to exist on disk; `rules/`, `templates/`, `hooks/`, `scripts/`,
-    /// and `tests/` are progressive-disclosure or dev-only content the CLI
-    /// (or, for `hooks/`, `install hooks`) serves instead.
-    /// [`SKILL_ASSET_SPECS`] must declare exactly the paths this predicate
-    /// accepts, proven below.
+    /// Whether `relative_path` (relative to a skill's own directory) is one
+    /// `install skills` places on a harness's filesystem: the slim-stub
+    /// `SKILL.md` and anything a stub links to or runs by relative path
+    /// (`reference/` vendored material, the drift skill's `prompt.md` and
+    /// `scripts/drift.sh`). `rules/`, `templates/`, `hooks/`, other
+    /// `scripts/` and `tests/` are served by the CLI or dev-only.
+    /// [`SKILL_ASSET_SPECS`] must declare exactly these paths, proven below.
     fn is_skill_install_asset(relative_path: &str) -> bool {
-        relative_path == "SKILL.md" || relative_path.starts_with("reference/")
+        matches!(relative_path, "SKILL.md" | "prompt.md" | "scripts/drift.sh")
+            || relative_path.starts_with("reference/")
     }
 
     fn declared_paths(skill_name: &str) -> BTreeSet<String> {

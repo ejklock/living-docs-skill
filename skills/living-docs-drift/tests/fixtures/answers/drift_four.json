@@ -1,0 +1,1 @@
+{"schema_version":1,"verdict":"drift","findings":[{"kind":"missing_feature","summary":"feature absent","path":"src/a.rs"},{"kind":"incomplete_model","summary":"model partial","path":"src/a.rs"},{"kind":"logic_shortcut","summary":"shortcut taken","path":"src/b.rs"},{"kind":"architectural_divergence","summary":"layers crossed","path":"src/b.rs"}]}
