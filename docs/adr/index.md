@@ -45,6 +45,7 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0072 — Records keep their own line endings: CRLF is read and written as CRLF, and a mixed-ending record fails check](0072-records-keep-their-own-line-endings-crlf-is-read-and-written-as-crlf-and-a-mixed-ending-record-fails-check.md) - Accepted
 * [0073 — The filesystem store is rooted at the bundle and refuses any read, write or rename that resolves outside it](0073-the-filesystem-store-is-rooted-at-the-bundle-and-refuses-any-read-write-or-rename-that-resolves-outside-it.md) - Accepted
 * [0074 — read --links-to and --impact answer who depends on a record from a link graph built in memory per run](0074-read-links-to-and-impact-answer-who-depends-on-a-record-from-a-link-graph-built-in-memory-per-run.md) - Accepted
+* [0075 — Doc-to-code drift is an advisory skill whose LLM judge runs outside the binary through a configurable command](0075-doc-to-code-drift-is-an-advisory-skill-whose-llm-judge-runs-outside-the-binary-through-a-configurable-command.md) - Accepted
 
 ## Superseded
 
