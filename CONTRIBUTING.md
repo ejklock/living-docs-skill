@@ -35,6 +35,7 @@ skills/
   living-docs/             the skill: SKILL.md + rules/ + templates/ + hooks/ (enforcement scripts)
   okf-knowledge-format/    the file format (OKF spec vendored verbatim)
   research-artifacts/      the research-note format
+  living-docs-drift/       doc-to-code drift: SKILL.md + prompt.md + scripts/drift.sh + tests/
 references/
   prior-art-landscape.md   sourced prior-art analysis (the attribution backbone)
 assets/                    README images (hand-authored SVG, no build step)
@@ -153,7 +154,7 @@ fails if the copies disagree. To cut a release:
 
 ```bash
 # 1. bump the version everywhere, in one commit
-#    edit VERSION and the three skills/*/SKILL.md `version:` lines to X.Y.Z
+#    edit VERSION and the four skills/*/SKILL.md `version:` lines to X.Y.Z
 ./scripts/check-version.sh X.Y.Z        # must print "Version OK"
 make check                              # full local gate
 
