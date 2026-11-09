@@ -2,7 +2,7 @@
 type: Issue
 title: "Ship the living-docs-drift skill: anchor resolution plus a configurable LLM judge, advisory report outside the bundle"
 description: Add a living-docs-drift skill whose driver resolves record anchors, asks a configurable judge command about drift and writes a dated advisory report, as ADR 0075 decides.
-status: open
+status: closed
 timestamp: 2026-11-09T03:17:16Z
 ---
 
