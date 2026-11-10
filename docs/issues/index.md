@@ -24,6 +24,7 @@ one slice per fresh context, starting from the skeleton.
 * [0104 — check module docblock links to a run function that no longer exists](0104-check-module-docblock-links-to-a-run-function-that-no-longer-exists.md) - open
 * [0105 — check accepts the placeholder description that new writes](0105-check-accepts-the-placeholder-description-that-new-writes.md) - open
 * [0109 — Regroup the CLI under write, read and manage with check top-level, and move every surface that teaches a command](0109-regroup-the-cli-under-write-read-and-manage-with-check-top-level-and-move-every-surface-that-teaches-a-command.md) - open
+* [0110 — Publish the npm package under @ejklock/living-docs](0110-publish-the-npm-package-under-ejklock-living-docs.md) - open
 
 ## Closed
 
