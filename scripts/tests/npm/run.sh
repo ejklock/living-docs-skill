@@ -132,7 +132,7 @@ check() { # check <name> <ok:0|1> [detail]
   fi
 }
 
-installed_pkg() { printf '%s/node_modules/living-docs' "$1"; }
+installed_pkg() { printf '%s/node_modules/@ejklock/living-docs' "$1"; }
 
 asset_fetch_count() { grep -c "GET /v$VERSION/$ASSET\$" "$ACCESS_LOG"; }
 

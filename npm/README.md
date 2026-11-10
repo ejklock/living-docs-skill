@@ -1,7 +1,8 @@
 # living-docs
 
-npm wrapper for the [`living-docs`](https://github.com/ejklock/living-docs-skill) CLI, the
-deterministic layer of Living Docs authoring (`new`, `set`, `supersede`, `index`, `check`, `fmt`, `read`).
+npm wrapper, published as `@ejklock/living-docs` (the installed command stays `living-docs`),
+for the [`living-docs`](https://github.com/ejklock/living-docs-skill) CLI, the deterministic
+layer of Living Docs authoring (`new`, `set`, `supersede`, `index`, `check`, `fmt`, `read`).
 
 The package has no dependencies. It downloads the release binary for your platform from the
 GitHub release matching the package version and verifies its sha256 before using it.
@@ -9,10 +10,10 @@ GitHub release matching the package version and verifies its sha256 before using
 ## Install
 
 ```bash
-npm install -g living-docs
+npm install -g @ejklock/living-docs
 living-docs --version
 
-npx living-docs check --plain docs
+npx @ejklock/living-docs check --plain docs
 ```
 
 Supported platforms: macOS and Linux on x64 and arm64 (the four release targets

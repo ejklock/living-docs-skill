@@ -1,5 +1,5 @@
 {
-  "name": "living-docs",
+  "name": "@ejklock/living-docs",
   "version": "0.26.1",
   "description": "Deterministic CLI for living-docs authoring: ADRs, issues, research, indexes and checks.",
   "license": "MIT",

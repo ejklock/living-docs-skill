@@ -145,8 +145,8 @@ Installing Living Docs is three independent steps:
    Or through npm (Node 18 or later; downloads the same sha256-verified release asset):
 
    ```bash
-   npm install -g living-docs     # installs the `living-docs` command
-   npx living-docs --version      # or run it without installing
+   npm install -g @ejklock/living-docs     # installs the `living-docs` command
+   npx @ejklock/living-docs --version      # or run it without installing
    ```
 
    Useful flags: `--dir <path>` (custom destination, default `~/.local/bin`),

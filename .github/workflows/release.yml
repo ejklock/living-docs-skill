@@ -13,9 +13,9 @@ name: Release
 # install.sh downloads these by that exact name (asset-naming contract). A third job,
 # `verify-release-assets`, runs `if: always()` after the first two and promotes the release
 # to published only once every expected asset is present and checksum-valid, keeping it draft
-# otherwise. A last job, `publish-npm`, publishes the `living-docs` npm package
-# (npm/) with provenance after verification succeeds, and is skipped when the NPM_TOKEN
-# secret is empty.
+# otherwise. A last job, `publish-npm`, stages the `@ejklock/living-docs` npm
+# package (npm/) through npm trusted publishing (GitHub OIDC), with no token, after
+# verification succeeds; the owner approves the staged version with 2FA before it goes live.
 
 on:
   push:
@@ -135,29 +135,21 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
-      - uses: actions/checkout@v5
-
-      - name: Skip when the npm token is absent
-        id: gate
-        run: |
-          if [ -z "${NODE_AUTH_TOKEN}" ]; then
-            echo "NPM_TOKEN is not set; skipping npm publish."
-            echo "publish=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "publish=true" >> "$GITHUB_OUTPUT"
-          fi
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
       - name: Set up Node
-        if: steps.gate.outputs.publish == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
-      - name: Publish living-docs to npm with provenance
-        if: steps.gate.outputs.publish == 'true'
+      # Staged publishing through trusted publishing (OIDC) needs npm 11.15.0 or later.
+      - name: Install npm 11.21.2
+        run: |
+          npm install -g npm@11.21.2
+          npm --version
+
+      - name: Stage @ejklock/living-docs on npm for approval
         working-directory: npm
-        run: npm publish --provenance --access public
+        run: npm stage publish --provenance --access public
