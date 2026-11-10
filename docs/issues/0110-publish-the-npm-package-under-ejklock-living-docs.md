@@ -2,7 +2,7 @@
 type: Issue
 title: Publish the npm package under @ejklock/living-docs
 description: Rename the npm wrapper to the owner's scope, update the install lines, and publish it from the release workflow through npm trusted publishing with no token.
-status: open
+status: closed
 timestamp: 2026-11-09T23:40:11Z
 ---
 
