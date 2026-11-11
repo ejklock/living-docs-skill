@@ -45,7 +45,6 @@ Implements [ADR 0078](/adr/0078-an-mcp-front-serves-the-bundle-over-stdio-as-wri
 
 ### Plan
 
-- S1: crate skeleton, `living-docs mcp` subcommand, dual-era stdio server with `server/discover` and `instructions`, version site | files: Cargo.toml, mcp/, cli/src/args.rs, cli/src/commands/mcp.rs, scripts/check-version.sh | after: issue 0109
-- S2: read-side tools `read`, `check`, `manage` with the parity test | files: mcp/ | after: S1
-- S3: write-side tool `write` (`new`, `set`, `supersede`) with the parity test and the ADR 0001 fitness function over MCP | files: mcp/ | after: S2
-- S4: teaching surfaces: the hook's read verbs, the install lines in README, npm README and SKILL.md | files: skills/living-docs/hooks/session-context.sh, skills/living-docs/SKILL.md, README.md, npm/README.md | after: S3
+- S1: a library crate serves one bundle over stdio as the write, read (records), manage and check tools, dual-era (2025-11-25 initialize and 2026-07-28 server/discover with instructions), proved by an rmcp client test | files: Cargo.toml, Cargo.lock, mcp/, scripts/check-version.sh | after: none
+- S2: living-docs mcp --docs-dir starts that server; read guide serves the skill corpus, moved where the mcp crate can reach it without depending on cli; a parity test finds each tool and its CLI path leave the same files and JSON | files: cli/src/args/, cli/src/commands/mcp.rs, cli/src/skill.rs, cli/src/commands/, mcp/, living-docs-core/src/ | after: S1, issue 0109
+- S3: the session hook teaches the read verbs and README, npm README and SKILL.md show how to add the server to a client | files: skills/living-docs/hooks/session-context.sh, skills/living-docs/SKILL.md, README.md, npm/README.md | after: S2
