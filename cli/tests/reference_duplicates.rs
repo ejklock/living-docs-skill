@@ -47,7 +47,7 @@ fn set(docs: &Path, reference: &str) -> Output {
     living_docs()
         .arg("--docs-dir")
         .arg(docs)
-        .args(["set", reference, "description", "x"])
+        .args(["write", "set", reference, "description", "x"])
         .output()
         .unwrap()
 }
@@ -134,7 +134,7 @@ fn a_path_naming_no_file_is_refused_on_every_key_and_in_supersede() {
         living_docs()
             .arg("--docs-dir")
             .arg(&docs)
-            .args(["set", typo, "number", "next"])
+            .args(["write", "set", typo, "number", "next"])
             .output()
             .unwrap(),
         run_supersede(&docs, typo, "issues/0009-x.md"),

@@ -4,7 +4,7 @@ use common::{fixture, index_bundle, living_docs, run_check, stdout_of, temp_bund
 use std::path::Path;
 use std::process::Output;
 
-const REPAIR: &str = "living-docs set <path> number next";
+const REPAIR: &str = "living-docs write set <path> number next";
 
 fn record(kind: &str, number: &str, slug: &str, status: &str) -> String {
     let (doc_type, title, body) = if kind == "adr" {

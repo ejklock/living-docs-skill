@@ -51,7 +51,7 @@ fn stderr_of(output: &Output) -> String {
 
 fn run_guide(args: &[&str]) -> Output {
     living_docs()
-        .arg("guide")
+        .args(["read", "guide"])
         .args(args)
         .output()
         .expect("failed to run living-docs guide")

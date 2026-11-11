@@ -23,14 +23,14 @@ fn adr_with_description(description: &str, eol: &str) -> String {
 
 fn fmt(bundle: &Path) {
     let out = living_docs()
-        .args(["fmt", bundle.to_str().unwrap(), "--plain"])
+        .args(["manage", "fmt", bundle.to_str().unwrap(), "--plain"])
         .output()
         .expect("failed to run living-docs fmt");
     assert!(out.status.success(), "{}", stdout_of(&out));
 }
 
 fn assert_clean(bundle: &Path) {
-    let args = ["--docs-dir", bundle.to_str().unwrap(), "index"];
+    let args = ["--docs-dir", bundle.to_str().unwrap(), "manage", "index"];
     assert!(living_docs().args(args).output().unwrap().status.success());
     let verdict = run_check(bundle);
     assert!(verdict.status.success(), "{}", stdout_of(&verdict));
@@ -93,7 +93,13 @@ fn set_from_a_file_holding_a_carriage_return_writes_the_escape() {
     let source = docs.join("value.txt");
     fs::write(&source, "a\rb").unwrap();
     let out = living_docs()
-        .args(["--docs-dir", docs.to_str().unwrap(), "set", "adr/0001"])
+        .args([
+            "--docs-dir",
+            docs.to_str().unwrap(),
+            "write",
+            "set",
+            "adr/0001",
+        ])
         .args(["description", "--from", source.to_str().unwrap(), "--plain"])
         .output()
         .unwrap();

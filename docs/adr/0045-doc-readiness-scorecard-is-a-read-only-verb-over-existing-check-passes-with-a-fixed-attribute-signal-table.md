@@ -7,7 +7,7 @@ status: Deprecated
 timestamp: 2026-08-27T21:25:24Z
 ---
 
-> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.
+> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.
 
 # 0045. Doc-readiness scorecard is a read-only verb over existing check passes with a fixed attribute-signal table
 

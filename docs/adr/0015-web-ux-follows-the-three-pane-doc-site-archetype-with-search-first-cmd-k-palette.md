@@ -8,7 +8,7 @@ tags: [frontend, ux, web]
 timestamp: 2026-07-19T02:16:09Z
 ---
 
-> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.
+> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.
 
 # 0015. Web UX follows the three-pane doc-site archetype with a search-first Cmd+K palette
 

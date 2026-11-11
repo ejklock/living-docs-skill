@@ -42,7 +42,11 @@ fn stderr_of(output: &Output) -> String {
 #[test]
 fn adr_without_owner_takes_the_git_user_name_after_description() {
     let cwd = temp_dir("name");
-    let out = run(&cwd, &[("user.name", "Ada Lovelace")], &["new", "adr", "T"]);
+    let out = run(
+        &cwd,
+        &[("user.name", "Ada Lovelace")],
+        &["write", "new", "adr", "T"],
+    );
     let record = created_record(&cwd, &out);
     let lines: Vec<&str> = record.lines().collect();
     let owner = lines
@@ -62,7 +66,7 @@ fn adr_without_owner_falls_back_to_the_git_email() {
     let out = run(
         &cwd,
         &[("user.email", "ada@example.com")],
-        &["new", "adr", "T"],
+        &["write", "new", "adr", "T"],
     );
     assert!(created_record(&cwd, &out).contains("owner: ada@example.com"));
 }
@@ -73,7 +77,7 @@ fn explicit_owner_wins_and_stays_silent() {
     let out = run(
         &cwd,
         &[("user.name", "Ada")],
-        &["new", "adr", "T", "--owner", "Bob"],
+        &["write", "new", "adr", "T", "--owner", "Bob"],
     );
     let record = created_record(&cwd, &out);
     assert!(
@@ -86,7 +90,7 @@ fn explicit_owner_wins_and_stays_silent() {
 #[test]
 fn adr_without_any_git_identity_has_no_owner_line() {
     let cwd = temp_dir("none");
-    let out = run(&cwd, &[], &["new", "adr", "T"]);
+    let out = run(&cwd, &[], &["write", "new", "adr", "T"]);
     assert!(!created_record(&cwd, &out).contains("owner:"));
     assert!(!stderr_of(&out).contains("owner seeded from git config"));
 }
@@ -97,7 +101,7 @@ fn quiet_silences_the_seeded_owner_line_but_still_seeds() {
     let out = run(
         &cwd,
         &[("user.name", "Ada")],
-        &["--quiet", "new", "adr", "T"],
+        &["--quiet", "write", "new", "adr", "T"],
     );
     assert!(created_record(&cwd, &out).contains("owner: Ada"));
     assert!(!stderr_of(&out).contains("owner seeded from git config"));
@@ -106,6 +110,10 @@ fn quiet_silences_the_seeded_owner_line_but_still_seeds() {
 #[test]
 fn issue_never_gets_an_owner_from_git() {
     let cwd = temp_dir("issue");
-    let out = run(&cwd, &[("user.name", "Ada")], &["new", "issue", "T"]);
+    let out = run(
+        &cwd,
+        &[("user.name", "Ada")],
+        &["write", "new", "issue", "T"],
+    );
     assert!(!created_record(&cwd, &out).contains("owner:"));
 }

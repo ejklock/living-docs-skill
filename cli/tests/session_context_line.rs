@@ -41,7 +41,7 @@ fn hook_teaches_the_number_key_of_set() {
 #[test]
 fn hook_teaches_index_repairs_an_index_after_a_merge() {
     let out = hook_output();
-    assert!(out.contains("`living-docs index` repairs"), "{out}");
+    assert!(out.contains("`living-docs manage index` repairs"), "{out}");
     assert!(out.contains("after a merge"), "{out}");
 }
 
@@ -50,14 +50,14 @@ fn hook_still_names_every_verb_it_taught_before() {
     let out = hook_output();
     for verb in [
         "write ONLY the body below the closing ---",
-        "living-docs new <type>",
-        "living-docs set <TYPE/NNNN> <key> <value>",
-        "`living-docs index`",
+        "living-docs write new <type>",
+        "living-docs write set <TYPE/NNNN> <key> <value>",
+        "`living-docs manage index`",
         "--body",
         "--from PATH|-",
         "section \"<heading>\"",
-        "living-docs supersede",
-        "living-docs fmt",
+        "living-docs write supersede",
+        "living-docs manage fmt",
         "never argv",
         "fails `living-docs check` at commit",
     ] {

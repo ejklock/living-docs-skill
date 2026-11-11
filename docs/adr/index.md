@@ -50,7 +50,7 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 
 ## Superseded
 
-_History only. Do not act on these records — run `living-docs read` for what is in force._
+_History only. Do not act on these records — run `living-docs read records` for what is in force._
 
 * [0003 — Storage backend is config-selected, mutually exclusive, and both modes authoritative](0003-storage-backend-model.md) - Deprecated (no successor)
 * [0004 — db-mode runs on ParadeDB by default with SQLite opt-in, over SeaORM](0004-db-engine-and-data-layer.md) - Deprecated (no successor)

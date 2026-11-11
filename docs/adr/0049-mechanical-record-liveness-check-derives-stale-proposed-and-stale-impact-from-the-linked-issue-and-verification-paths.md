@@ -7,7 +7,7 @@ status: Deprecated
 timestamp: 2026-09-11T11:51:50Z
 ---
 
-> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.
+> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.
 
 # 0049. Mechanical record liveness: check derives stale-proposed and stale-impact from the linked issue and Verification paths
 

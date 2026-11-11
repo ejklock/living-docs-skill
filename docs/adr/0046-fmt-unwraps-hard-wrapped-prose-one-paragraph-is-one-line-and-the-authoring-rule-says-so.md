@@ -8,7 +8,7 @@ superseded_by: 0047
 timestamp: 2026-09-01T19:57:47Z
 ---
 
-> **SUPERSEDED — do not act on this record.** Replaced by [0047](0047-living-docs-fmt-is-frontmatter-only-and-the-record-body-stays-byte-identical.md). Run `living-docs read` for what is in force.
+> **SUPERSEDED — do not act on this record.** Replaced by [0047](0047-living-docs-fmt-is-frontmatter-only-and-the-record-body-stays-byte-identical.md). Run `living-docs read records` for what is in force.
 
 # 0046. fmt unwraps hard-wrapped prose: one paragraph is one line, and the authoring rule says so
 

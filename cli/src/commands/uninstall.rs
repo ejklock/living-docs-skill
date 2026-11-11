@@ -20,7 +20,7 @@ pub(crate) fn run_uninstall_hooks(
 ) -> ExitCode {
     let project_root = dir.unwrap_or_else(|| PathBuf::from("."));
     if let Err(message) = gitattributes::preflight(&project_root) {
-        eprintln!("living-docs uninstall hooks: {message}");
+        eprintln!("living-docs manage uninstall hooks: {message}");
         return ExitCode::from(2);
     }
     let code = hooks::uninstall(&project_root, dry_run);
@@ -30,7 +30,7 @@ pub(crate) fn run_uninstall_hooks(
     match remove_union_attribute(&project_root, docs_dir, dry_run) {
         Ok(()) => code,
         Err(message) => {
-            eprintln!("living-docs uninstall hooks: {message}");
+            eprintln!("living-docs manage uninstall hooks: {message}");
             ExitCode::from(2)
         }
     }

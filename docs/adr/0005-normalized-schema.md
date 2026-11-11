@@ -8,7 +8,7 @@ tags: [architecture, check, database, eav, identity, multi-project, normalizatio
 timestamp: 2026-07-16T00:00:00Z
 ---
 
-> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.
+> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.
 
 # 0005. Normalized DB schema — projects root, typed records with an EAV tail, typed relations
 

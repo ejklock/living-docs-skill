@@ -7,7 +7,7 @@ mod common;
 use common::{living_docs, stdout_of, temp_bundle, write};
 
 fn read(docs_dir: &Path, extra: &[&str]) -> Output {
-    let mut args = vec!["--docs-dir", docs_dir.to_str().unwrap(), "read"];
+    let mut args = vec!["--docs-dir", docs_dir.to_str().unwrap(), "read", "records"];
     args.extend_from_slice(extra);
     living_docs()
         .args(&args)

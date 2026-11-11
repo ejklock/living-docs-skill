@@ -7,7 +7,7 @@ status: Deprecated
 timestamp: 2026-09-11T12:34:31Z
 ---
 
-> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.
+> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.
 
 # 0052. Materiality criterion for the doc trail: a record earns an ADR/BDR when the decision is expensive to reverse, with advisory inflation signals
 

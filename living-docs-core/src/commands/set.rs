@@ -208,7 +208,7 @@ fn validate_status(new_status: &str, spec: &DocTypeSpec) -> Result<(), String> {
     }
     if new_status.eq_ignore_ascii_case("superseded") {
         return Err(
-            "'Superseded' must be set via `living-docs supersede <old> <new>`, which also wires the supersedes/superseded_by links".to_string(),
+            "'Superseded' must be set via `living-docs write supersede <old> <new>`, which also wires the supersedes/superseded_by links".to_string(),
         );
     }
     Err(format!(

@@ -18,7 +18,7 @@ fn run_set(docs: &Path, reference: &str) -> Output {
     living_docs()
         .arg("--docs-dir")
         .arg(docs)
-        .args(["set", reference, "status", "closed"])
+        .args(["write", "set", reference, "status", "closed"])
         .output()
         .expect("failed to run living-docs set")
 }
@@ -61,7 +61,7 @@ fn alias_directory_name_creates_and_indexes_the_record() {
     let indexed = living_docs()
         .arg("--docs-dir")
         .arg(&docs)
-        .args(["index", "issues"])
+        .args(["manage", "index", "issues"])
         .output()
         .unwrap();
     assert!(indexed.status.success(), "{}", stderr_of(&indexed));
@@ -132,6 +132,7 @@ fn path_relative_to_the_repo_root_resolves() {
         .args([
             "--docs-dir",
             bundle_name,
+            "write",
             "set",
             reference.as_str(),
             "status",

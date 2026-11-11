@@ -31,15 +31,18 @@ fn first_stdout_line(output: &Output) -> String {
 #[test]
 fn new_issue_with_an_accented_title_gets_an_ascii_filename() {
     let docs = temp_dir("new");
-    let path = first_stdout_line(&run(&docs, &["new", "issue", "Horário de atendimento"]));
+    let path = first_stdout_line(&run(
+        &docs,
+        &["write", "new", "issue", "Horário de atendimento"],
+    ));
     assert!(path.ends_with("-horario-de-atendimento.md"), "{path}");
 }
 
 #[test]
 fn set_title_with_accents_renames_to_an_ascii_slug() {
     let docs = temp_dir("retitle");
-    first_stdout_line(&run(&docs, &["new", "issue", "Plain"]));
-    let out = run(&docs, &["set", "1", "title", "Ação"]);
+    first_stdout_line(&run(&docs, &["write", "new", "issue", "Plain"]));
+    let out = run(&docs, &["write", "set", "1", "title", "Ação"]);
     assert!(out.status.success(), "{out:?}");
     let names: Vec<String> = fs::read_dir(docs.join("issues"))
         .unwrap()

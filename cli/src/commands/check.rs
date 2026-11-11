@@ -55,14 +55,14 @@ fn exit_bundle_root_not_found(bundle: &Path) -> ExitCode {
     ExitCode::from(2)
 }
 
-/// Suggests `install hooks` on stderr when the repository holding `bundle`
+/// Suggests `manage install hooks` on stderr when the repository holding `bundle`
 /// has no pre-commit doc-gate; silent outside a git repository and under
 /// `--quiet`.
 fn note_missing_doc_gate(bundle: &Path, quiet: bool) {
     if crate::doc_gate::doc_gate_armed(bundle) == Some(false) {
         output::note(
             quiet,
-            "living-docs check: no pre-commit doc-gate is armed in this repository; run `living-docs install hooks` to enforce it at commit",
+            "living-docs check: no pre-commit doc-gate is armed in this repository; run `living-docs manage install hooks` to enforce it at commit",
         );
     }
 }

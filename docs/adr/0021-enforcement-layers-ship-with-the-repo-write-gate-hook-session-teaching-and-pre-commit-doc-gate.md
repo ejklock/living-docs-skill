@@ -8,7 +8,7 @@ tags: [check, cli, enforcement, hooks, tokens]
 timestamp: 2026-07-29T01:51:15Z
 ---
 
-> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.
+> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.
 
 # 0021. Enforcement layers ship with the repo: write-gate hook, session teaching, and pre-commit doc-gate
 

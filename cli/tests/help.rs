@@ -1,13 +1,14 @@
-//! `--help`/`completions` coverage: the root help lists exactly
-//! the ten verbs plus `completions`, grouped under the four documented
-//! headings, with `effective`/`skill` absent (retired); and
-//! `completions <shell>` prints a non-empty script.
+//! `--help`/`completions` coverage: the root help lists the four verbs
+//! (`write`, `read`, `manage`, `check`) without group headings, with
+//! `effective`/`skill` absent (retired), every operation's help ends with
+//! its examples and the exit-code table, and `completions <shell>` prints a
+//! non-empty script.
 
 use std::collections::BTreeSet;
 use std::process::{Command, Output};
 
 #[path = "../src/args.rs"]
-#[allow(dead_code)]
+#[allow(dead_code, unused_imports)]
 mod args;
 #[path = "../src/output.rs"]
 #[allow(dead_code)]
@@ -31,19 +32,7 @@ fn stdout_of(output: &Output) -> String {
     String::from_utf8_lossy(&output.stdout).to_string()
 }
 
-const VERBS: [&str; 11] = [
-    "new",
-    "set",
-    "supersede",
-    "index",
-    "fmt",
-    "check",
-    "read",
-    "guide",
-    "install",
-    "uninstall",
-    "completions",
-];
+const VERBS: [&str; 4] = ["write", "read", "manage", "check"];
 
 fn lists_as_a_command(help: &str, name: &str) -> bool {
     help.lines()
@@ -61,7 +50,7 @@ fn non_hidden_verb_names() -> BTreeSet<String> {
 }
 
 #[test]
-fn root_help_lists_exactly_the_ten_verbs_plus_completions() {
+fn root_help_lists_the_four_verbs() {
     let output = living_docs()
         .arg("--help")
         .output()
@@ -109,7 +98,7 @@ fn every_non_hidden_verb_help_documents_exit_codes() {
 }
 
 #[test]
-fn root_help_contains_the_four_group_headings() {
+fn root_help_lists_the_verbs_without_group_headings() {
     let output = living_docs()
         .arg("--help")
         .output()
@@ -117,7 +106,7 @@ fn root_help_contains_the_four_group_headings() {
     let help = stdout_of(&output);
 
     for heading in ["Authoring:", "Gate:", "Reading:", "Distribution:"] {
-        assert!(help.contains(heading), "missing {heading}:\n{help}");
+        assert!(!help.contains(heading), "unexpected {heading}:\n{help}");
     }
 }
 
@@ -135,23 +124,73 @@ fn root_help_documents_the_exit_codes() {
     assert!(help.contains('2'), "got:\n{help}");
 }
 
+fn collect_operation_paths(
+    command: &clap::Command,
+    trail: &mut Vec<String>,
+    leaves: &mut Vec<Vec<String>>,
+) {
+    let children: Vec<&clap::Command> = command
+        .get_subcommands()
+        .filter(|sub| !sub.is_hide_set() && sub.get_name() != "help")
+        .collect();
+    if children.is_empty() {
+        leaves.push(trail.clone());
+    }
+    for child in children {
+        trail.push(child.get_name().to_string());
+        collect_operation_paths(child, trail, leaves);
+        trail.pop();
+    }
+}
+
+#[test]
+fn every_operation_help_carries_examples_and_the_exit_code_table() {
+    use clap::CommandFactory;
+    let mut leaves = Vec::new();
+    collect_operation_paths(&args::Cli::command(), &mut Vec::new(), &mut leaves);
+    for group in ["write", "read", "manage"] {
+        assert!(
+            leaves.iter().any(|path| path.len() > 1 && path[0] == group),
+            "no operation found under {group}: {leaves:?}"
+        );
+    }
+    for path in leaves {
+        let output = living_docs()
+            .args(&path)
+            .arg("--help")
+            .output()
+            .unwrap_or_else(|_| panic!("failed to run living-docs {path:?} --help"));
+        let help = stdout_of(&output);
+        let label = path.join(" ");
+        assert!(output.status.success(), "{label} --help got:\n{help}");
+        assert!(
+            help.contains("Examples:"),
+            "{label} lacks examples:\n{help}"
+        );
+        assert!(
+            help.contains("Exit codes:"),
+            "{label} lacks the exit-code table:\n{help}"
+        );
+    }
+}
+
 #[test]
 fn verb_help_carries_an_examples_section() {
     let output = living_docs()
-        .args(["new", "--help"])
+        .args(["write", "new", "--help"])
         .output()
         .expect("failed to run living-docs new --help");
     let help = stdout_of(&output);
 
     assert!(output.status.success(), "got:\n{help}");
     assert!(help.contains("Examples:"), "got:\n{help}");
-    assert!(help.contains("living-docs new"), "got:\n{help}");
+    assert!(help.contains("living-docs write new"), "got:\n{help}");
 }
 
 #[test]
 fn completions_bash_prints_a_non_empty_script() {
     let output = living_docs()
-        .args(["completions", "bash"])
+        .args(["manage", "completions", "bash"])
         .output()
         .expect("failed to run living-docs completions bash");
     let stdout = stdout_of(&output);
@@ -165,7 +204,7 @@ fn completions_bash_prints_a_non_empty_script() {
 fn completions_supports_zsh_and_fish() {
     for shell in ["zsh", "fish"] {
         let output = living_docs()
-            .args(["completions", shell])
+            .args(["manage", "completions", shell])
             .output()
             .unwrap_or_else(|_| panic!("failed to run living-docs completions {shell}"));
         let stdout = stdout_of(&output);
@@ -184,9 +223,11 @@ fn registered_type_list() -> String {
 
 #[test]
 fn type_positional_help_lists_the_registered_tokens_in_registry_order() {
-    for verb in ["new", "index"] {
+    for verb in [["write", "new"], ["manage", "index"]] {
+        let verb = verb.join(" ");
         let output = living_docs()
-            .args([verb, "--help"])
+            .args(verb.split(' '))
+            .arg("--help")
             .output()
             .unwrap_or_else(|_| panic!("failed to run living-docs {verb} --help"));
         let help = stdout_of(&output);
@@ -202,12 +243,12 @@ fn type_positional_help_lists_the_registered_tokens_in_registry_order() {
 #[test]
 fn set_help_shows_a_record_path_example() {
     let output = living_docs()
-        .args(["set", "--help"])
+        .args(["write", "set", "--help"])
         .output()
         .expect("failed to run living-docs set --help");
     let help = stdout_of(&output);
     assert!(
-        help.contains("living-docs set issues/0049-flaky-upload-test.md status closed"),
+        help.contains("living-docs write set issues/0049-flaky-upload-test.md status closed"),
         "got:\n{help}"
     );
 }
@@ -215,7 +256,7 @@ fn set_help_shows_a_record_path_example() {
 #[test]
 fn completions_rejects_an_unknown_shell_with_exit_code_two() {
     let output = living_docs()
-        .args(["completions", "no-such-shell"])
+        .args(["manage", "completions", "no-such-shell"])
         .output()
         .expect("failed to run living-docs completions no-such-shell");
     assert_eq!(output.status.code(), Some(2));

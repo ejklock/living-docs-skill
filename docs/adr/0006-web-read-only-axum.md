@@ -9,7 +9,7 @@ tags: [architecture, axum, front, read-only, search, web]
 timestamp: 2026-07-16T00:00:00Z
 ---
 
-> **SUPERSEDED — do not act on this record.** Replaced by [0016](0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md). Run `living-docs read` for what is in force.
+> **SUPERSEDED — do not act on this record.** Replaced by [0016](0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md). Run `living-docs read records` for what is in force.
 
 # 0006. The web view is a read-only axum server reusing living-docs-core
 

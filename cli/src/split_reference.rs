@@ -19,17 +19,17 @@ pub(crate) fn hint(argv: &[OsString]) -> Option<String> {
         .map(|a| a.to_str())
         .collect::<Option<_>>()?;
     let verb = first_positional(&words)?;
-    if words[verb] != "set" {
+    if words[verb] != "write" || *words.get(verb + 1)? != "set" {
         return None;
     }
-    let (token, number) = (*words.get(verb + 1)?, *words.get(verb + 2)?);
+    let (token, number) = (*words.get(verb + 2)?, *words.get(verb + 3)?);
     let numeric = !number.is_empty() && number.bytes().all(|b| b.is_ascii_digit());
     if !numeric || living_docs_core::paths::dir_for(token).is_none() {
         return None;
     }
     let joined = format!("{token}/{number}");
     let mut fixed = words.clone();
-    fixed.splice(verb + 1..verb + 3, [joined.as_str()]);
+    fixed.splice(verb + 2..verb + 4, [joined.as_str()]);
     let command: Vec<String> = fixed.iter().map(|word| shell_quote(word)).collect();
     Some(format!(
         "hint: write the reference as one token: living-docs {}",

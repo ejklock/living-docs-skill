@@ -2,38 +2,38 @@
 //!
 //! `--help` comes from the explicit `about`/`after_help` attributes in
 //! `args/help.rs`, one short line plus a real `Examples:` block per verb,
-//! and from the help on each argument here. The root `--help`'s verb listing
-//! is grouped into Authoring (`new`, `set`, `supersede`, `index`, `fmt`),
-//! Gate (`check`), Reading (`read`, `guide`), and Distribution (`install`,
-//! `uninstall`, `completions`) by `help::root_command_template` — clap's
-//! `next_help_heading` groups an individual subcommand's own args, not
-//! sibling subcommands, so it cannot do this grouping itself. Off a TTY the
-//! help and version print as JSON from `args/help_json.rs`.
+//! and from the help on each argument here. The root `--help` lists the four
+//! verbs (`write`, `read`, `manage`, `check`) in clap's own command listing.
+//! Off a TTY the help and version print as JSON from `args/help_json.rs`.
 
 use crate::output::{outln, ColorChoice};
 use clap::error::ErrorKind;
 use clap::{CommandFactory, FromArgMatches, Parser, Subcommand};
-use clap_complete::Shell;
 
 #[path = "args/help.rs"]
 mod help;
 #[path = "args/help_json.rs"]
 mod help_json;
+#[path = "args/manage.rs"]
+mod manage;
 #[path = "split_reference.rs"]
 pub(crate) mod split_reference;
 #[path = "args/sub.rs"]
 mod sub;
+#[path = "args/write.rs"]
+mod write;
+pub(crate) use manage::ManageCmd;
 use std::path::PathBuf;
-pub(crate) use sub::{GuideArgs, InstallCmd, ReadArgs, UninstallCmd};
+pub(crate) use sub::{
+    CheckArgs, GuideArgs, InstallCmd, NewRecordArgs, ReadArgs, ReadCmd, UninstallCmd,
+};
+pub(crate) use write::WriteCmd;
 
-/// Parses argv into a [`Cli`], first grafting the hand-grouped root command
-/// listing (`help::root_command_template`) onto the derived [`Command`] —
-/// clap's derive has no hook for a custom template, so this stands in for
-/// [`Cli::parse`]. Help and version requests print JSON instead of clap's
-/// text when the output mode resolves to JSON; every other clap error exits
-/// as clap would.
+/// Parses argv into a [`Cli`] like [`Cli::parse`], except that help and
+/// version requests print JSON instead of clap's text when the output mode
+/// resolves to JSON; every other clap error exits as clap would.
 pub(crate) fn parse() -> Cli {
-    let command = Cli::command().help_template(help::root_command_template());
+    let command = Cli::command();
     let argv: Vec<std::ffi::OsString> = std::env::args_os().collect();
     match command.clone().try_get_matches_from(&argv) {
         Ok(matches) => Cli::from_arg_matches(&matches).unwrap_or_else(|err| err.exit()),
@@ -79,7 +79,7 @@ fn json_document(
 #[command(
     name = "living-docs",
     version,
-    about = "Deterministic layer of Living Docs authoring. Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs set` / `supersede`.",
+    about = "Deterministic layer of Living Docs authoring. Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs write set` / `write supersede`.",
     after_help = help::exit_codes_text()
 )]
 pub(crate) struct Cli {
@@ -111,116 +111,41 @@ pub(crate) struct Cli {
 
 #[derive(Subcommand)]
 pub(crate) enum Command {
-    #[command(about = help::NEW_ABOUT, long_about = None, after_help = help::with_exit_codes(help::NEW_EXAMPLES))]
-    New {
-        #[arg(value_name = "TYPE", help = help::doc_type_help())]
-        doc_type: String,
-        /// Title of the new record; it becomes the heading and the file slug.
-        title: String,
-        /// Seeds the frontmatter `description:` field with this sentence
-        /// instead of the template's placeholder.
-        #[arg(long)]
-        description: Option<String>,
-        /// Architecture views only: seeds the frontmatter `kind:` field from
-        /// the C4/arc42 vocabulary (context, container, component, flow,
-        /// sequence, state, data-model, deployment) that orders the
-        /// generated architecture index.
-        #[arg(long)]
-        kind: Option<String>,
-        #[arg(long, help = help::owner_help())]
-        owner: Option<String>,
-        /// Replaces the template's body slots with the text of this file, or
-        /// of standard input for `-`; the CLI places it below the heading
-        /// and never writes prose itself.
-        #[arg(long, value_name = "PATH")]
-        body: Option<String>,
+    #[command(
+        about = help::WRITE_ABOUT,
+        long_about = None,
+        subcommand_required = true,
+        arg_required_else_help = true,
+        after_help = help::with_exit_codes(help::WRITE_EXAMPLES)
+    )]
+    Write {
+        #[command(subcommand)]
+        operation: WriteCmd,
     },
-    /// `title` also rewrites the heading, renames the file to the new slug
-    /// and repoints every in-bundle reference; it is refused on a record
-    /// closed for good. `number` renames the record to a free number
-    /// (`NNNN` or `next`), the repair for two records sharing a number.
-    #[command(about = help::SET_ABOUT, long_about = None, after_help = help::with_exit_codes(help::SET_EXAMPLES))]
-    Set {
-        #[arg(help = help::reference_help())]
-        reference: String,
-        #[arg(help = help::set_key_help())]
-        key: String,
-        /// The new value; for the `section` key, the section heading.
-        value: Option<String>,
-        /// Reads the value, or for `section` the text under the heading, from
-        /// this file or from standard input for `-`. `section` replaces the
-        /// named body section or appends it when absent.
-        #[arg(long, value_name = "PATH")]
-        from: Option<String>,
+    #[command(
+        about = help::READ_ABOUT,
+        long_about = None,
+        subcommand_required = true,
+        arg_required_else_help = true,
+        after_help = help::with_exit_codes(help::READ_EXAMPLES)
+    )]
+    Read {
+        #[command(subcommand)]
+        operation: ReadCmd,
     },
-    #[command(about = help::SUPERSEDE_ABOUT, long_about = None, after_help = help::with_exit_codes(help::SUPERSEDE_EXAMPLES))]
-    Supersede {
-        #[arg(help = format!("the record being retired: {}", help::reference_help()))]
-        old: String,
-        #[arg(help = format!("the record that replaces it: {}", help::reference_help()))]
-        new: String,
-    },
-    /// With no `doc_type`, regenerates every registered type's index.
-    #[command(about = help::INDEX_ABOUT, long_about = None, after_help = help::with_exit_codes(help::INDEX_EXAMPLES))]
-    Index {
-        #[arg(value_name = "TYPE", help = help::doc_type_help())]
-        doc_type: Option<String>,
-    },
-    #[command(about = help::FMT_ABOUT, long_about = None, after_help = help::with_exit_codes(help::FMT_EXAMPLES))]
-    Fmt {
-        /// A bundle root or a single record path; filesystem backend only.
-        paths: Vec<PathBuf>,
-        /// Report what is pending without writing anything; exits 1 when a
-        /// record is not canonical.
-        #[arg(long)]
-        check: bool,
+    #[command(
+        about = help::MANAGE_ABOUT,
+        long_about = None,
+        subcommand_required = true,
+        arg_required_else_help = true,
+        after_help = help::with_exit_codes(help::MANAGE_EXAMPLES)
+    )]
+    Manage {
+        #[command(subcommand)]
+        operation: ManageCmd,
     },
     #[command(about = help::CHECK_ABOUT, long_about = help::check_long_about(), after_help = help::with_exit_codes(help::CHECK_EXAMPLES))]
-    Check {
-        /// The bundle root to validate (default docs) or, with
-        /// `--mermaid-only`, the file(s) or directory(ies) to sweep for
-        /// mermaid fences.
-        paths: Vec<PathBuf>,
-        /// Validate only mermaid fences over `paths`, skipping every other invariant.
-        #[arg(long)]
-        mermaid_only: bool,
-        /// Promotes a missing `owner` on a doctype whose registry row
-        /// requires it from a warning to an invariant violation.
-        #[arg(long)]
-        require_owner: bool,
-        /// Report only the findings anchored to these records, so a bundle
-        /// with legacy debt can gate a commit on what it touched. Every
-        /// invariant still runs over the whole bundle.
-        #[arg(long, num_args = 1.., value_name = "PATH")]
-        changed_files: Vec<PathBuf>,
-        /// Lists every advisory after the per-kind summary instead of the
-        /// summary alone; the JSON output is unaffected.
-        #[arg(long)]
-        advisories: bool,
-    },
-    #[command(about = help::READ_ABOUT, long_about = None, after_help = help::with_exit_codes(help::READ_EXAMPLES))]
-    Read(ReadArgs),
-    #[command(about = help::GUIDE_ABOUT, long_about = None, after_help = help::with_exit_codes(help::GUIDE_EXAMPLES))]
-    Guide(GuideArgs),
-    #[command(about = help::INSTALL_ABOUT, long_about = None, after_help = help::with_exit_codes(help::INSTALL_EXAMPLES))]
-    Install {
-        #[command(subcommand)]
-        action: InstallCmd,
-    },
-    /// There is no `uninstall skills`: no verb wrote a skills-directory
-    /// pointer to undo.
-    #[command(about = help::UNINSTALL_ABOUT, long_about = None, after_help = help::with_exit_codes(help::UNINSTALL_EXAMPLES))]
-    Uninstall {
-        #[command(subcommand)]
-        action: UninstallCmd,
-    },
-    /// Generated by `clap_complete` straight from this command tree, so it
-    /// never drifts from the verbs and flags above.
-    #[command(about = help::COMPLETIONS_ABOUT, long_about = None, after_help = help::with_exit_codes(help::COMPLETIONS_EXAMPLES))]
-    Completions {
-        /// The shell to generate the completion script for.
-        shell: Shell,
-    },
+    Check(CheckArgs),
 }
 
 #[cfg(test)]

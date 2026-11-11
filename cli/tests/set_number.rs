@@ -65,7 +65,7 @@ fn number(docs: &Path, reference: &str, value: &str) -> Output {
     living_docs()
         .arg("--docs-dir")
         .arg(docs)
-        .args(["set", reference, "number", value, "--plain"])
+        .args(["write", "set", reference, "number", value, "--plain"])
         .output()
         .unwrap()
 }
@@ -227,7 +227,7 @@ fn an_architecture_view_and_the_constitution_are_refused_unchanged() {
     let view = living_docs()
         .arg("--docs-dir")
         .arg(&docs)
-        .args(["new", "view", "Rings", "--kind", "component"])
+        .args(["write", "new", "view", "Rings", "--kind", "component"])
         .output()
         .unwrap();
     assert!(view.status.success());
@@ -277,7 +277,7 @@ fn a_record_keeps_working_links_to_itself_after_a_retitle() {
     let output = living_docs()
         .arg("--docs-dir")
         .arg(&docs)
-        .args(["set", own, "title", "Ex", "--plain"])
+        .args(["write", "set", own, "title", "Ex", "--plain"])
         .output()
         .unwrap();
     assert!(output.status.success(), "{}", stderr(&output));

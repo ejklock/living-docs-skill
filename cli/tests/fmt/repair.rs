@@ -14,7 +14,7 @@ fn fmt_with(target: &Path, identity: &[(&str, &str)], flags: &[&str]) -> Output 
         cmd.env(format!("GIT_CONFIG_KEY_{i}"), key)
             .env(format!("GIT_CONFIG_VALUE_{i}"), value);
     }
-    cmd.arg("fmt")
+    cmd.args(["manage", "fmt"])
         .args(flags)
         .arg(target)
         .arg("--plain")

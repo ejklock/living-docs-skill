@@ -34,7 +34,13 @@ fn bundle(label: &str, crlf: bool) -> common::Scratch {
 
 fn index(docs: &Path, args: &[&str]) -> Output {
     living_docs()
-        .args(["--docs-dir", docs.to_str().unwrap(), "index", "--plain"])
+        .args([
+            "--docs-dir",
+            docs.to_str().unwrap(),
+            "manage",
+            "index",
+            "--plain",
+        ])
         .args(args)
         .output()
         .unwrap()
@@ -106,7 +112,13 @@ fn set_on_a_crlf_record_leaves_an_index_that_index_and_check_accept() {
     let docs = bundle("crlf-set", true);
     assert!(index(&docs, &[]).status.success());
     let set = living_docs()
-        .args(["--docs-dir", docs.to_str().unwrap(), "set", "adr/0002"])
+        .args([
+            "--docs-dir",
+            docs.to_str().unwrap(),
+            "write",
+            "set",
+            "adr/0002",
+        ])
         .args(["status", "Accepted", "--plain"])
         .output()
         .unwrap();
@@ -147,7 +159,7 @@ fn a_record_with_mixed_endings_keeps_its_row_and_its_bytes() {
         mixed
     );
     let warning = format!(
-        "living-docs index: {}: the record has mixed line endings (CRLF and bare LF); make them all LF or all CRLF first",
+        "living-docs manage index: {}: the record has mixed line endings (CRLF and bare LF); make them all LF or all CRLF first",
         docs.join("adr/0002-beta.md").display()
     );
     assert_eq!(stderr_of(&out).trim_end(), warning);
@@ -199,9 +211,12 @@ fn only_the_index_verb_warns_about_a_mixed_record() {
     let runs = [
         verb(&docs, &["check", "--plain"]),
         verb(&docs, &narrowed),
-        verb(&docs, &["new", "adr", "Third", "--plain"]),
-        verb(&docs, &["set", "adr/0001", "status", "Proposed", "--plain"]),
-        verb(&docs, &["supersede", "0001", "0003", "--plain"]),
+        verb(&docs, &["write", "new", "adr", "Third", "--plain"]),
+        verb(
+            &docs,
+            &["write", "set", "adr/0001", "status", "Proposed", "--plain"],
+        ),
+        verb(&docs, &["write", "supersede", "0001", "0003", "--plain"]),
     ];
     for run in &runs {
         assert!(!stderr_of(run).contains(MIXED_TEXT), "{}", stderr_of(run));

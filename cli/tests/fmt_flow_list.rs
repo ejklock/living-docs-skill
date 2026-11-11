@@ -17,7 +17,7 @@ fn adr(extra: &str) -> String {
 
 fn fmt(bundle: &Path) -> Output {
     living_docs()
-        .args(["fmt", bundle.to_str().unwrap(), "--plain"])
+        .args(["manage", "fmt", bundle.to_str().unwrap(), "--plain"])
         .output()
         .expect("failed to run living-docs fmt")
 }
@@ -43,7 +43,7 @@ fn formatted(label: &str, extra: &str, key: &str) -> String {
         once
     );
     assert!(living_docs()
-        .args(["--docs-dir", bundle.to_str().unwrap(), "index"])
+        .args(["--docs-dir", bundle.to_str().unwrap(), "manage", "index"])
         .output()
         .unwrap()
         .status

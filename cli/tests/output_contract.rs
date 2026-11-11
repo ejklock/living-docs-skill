@@ -127,7 +127,13 @@ fn read_json_matches_the_documented_shape() {
         "---\ntype: ADR\ntitle: New\ndescription: d\nstatus: Accepted\nsupersedes: \"0001\"\n---\n\n# 0002. New\n\nbody\n",
     );
 
-    let output = run(&["--docs-dir", bundle.to_str().unwrap(), "read", "--json"]);
+    let output = run(&[
+        "--docs-dir",
+        bundle.to_str().unwrap(),
+        "read",
+        "records",
+        "--json",
+    ]);
     let stdout = stdout_of(&output);
     assert!(output.status.success(), "got:\n{stdout}");
     let parsed: ReadJson = serde_json::from_str(stdout.trim_end())

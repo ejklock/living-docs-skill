@@ -7,7 +7,7 @@ use std::process::Output;
 
 fn set(docs: &Path, args: &[&str]) -> Output {
     living_docs()
-        .args(["--docs-dir", docs.to_str().unwrap(), "set"])
+        .args(["--docs-dir", docs.to_str().unwrap(), "write", "set"])
         .args(args)
         .arg("--plain")
         .output()
@@ -45,7 +45,7 @@ fn scaffold_findings(docs: &Path) -> String {
 fn assert_clean(docs: &Path) {
     assert_eq!(stdout_of(&run_check(docs)), scaffold_findings(docs));
     let fmt = living_docs()
-        .args(["fmt", docs.to_str().unwrap(), "--check"])
+        .args(["manage", "fmt", docs.to_str().unwrap(), "--check"])
         .output()
         .unwrap();
     assert!(fmt.status.success(), "fmt --check failed: {fmt:?}");
@@ -257,7 +257,7 @@ fn a_tracker_that_reads_as_a_number_when_plain_is_written_quoted() {
 #[test]
 fn help_names_the_issue_keys_as_settable() {
     let out = living_docs()
-        .args(["set", "--help", "--json"])
+        .args(["write", "set", "--help", "--json"])
         .output()
         .unwrap();
     let doc: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();

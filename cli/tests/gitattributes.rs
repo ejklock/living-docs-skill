@@ -17,7 +17,7 @@ fn project(label: &str) -> Scratch {
 
 fn install(project: &Path, extra: &[&str]) -> Output {
     living_docs()
-        .args(["install", "hooks", "--dir"])
+        .args(["manage", "install", "hooks", "--dir"])
         .arg(project)
         .args(["--docs-dir", "docs", "--quiet"])
         .args(extra)
@@ -27,7 +27,7 @@ fn install(project: &Path, extra: &[&str]) -> Output {
 
 fn uninstall(project: &Path) -> Output {
     living_docs()
-        .args(["uninstall", "hooks", "--dir"])
+        .args(["manage", "uninstall", "hooks", "--dir"])
         .arg(project)
         .output()
         .unwrap()
@@ -122,7 +122,7 @@ fn a_docs_dir_outside_the_project_skips_the_union_line_and_says_so() {
     let outside_project = project("outside-docs");
     let outside = outside_project.join("docs");
     let output = living_docs()
-        .args(["install", "hooks", "--dir"])
+        .args(["manage", "install", "hooks", "--dir"])
         .arg(&root)
         .arg("--docs-dir")
         .arg(&outside)
@@ -167,7 +167,7 @@ fn new_issue(repo: &Path, title: &str) {
     fs::write(&body, BODY).unwrap();
     let output = living_docs()
         .current_dir(repo)
-        .args(["new", "issue", title, "--plain", "--body"])
+        .args(["write", "new", "issue", title, "--plain", "--body"])
         .arg(&body)
         .output()
         .unwrap();
@@ -217,7 +217,10 @@ fn parallel_branches_adding_issues_merge_without_conflict_and_check_names_the_re
     assert_eq!(drifted.status.code(), Some(1), "{}", stdout_of(&drifted));
     let report = stdout_of(&drifted);
     assert!(report.contains("issues/index.md"), "{report}");
-    assert!(report.contains("living-docs index issue"), "{report}");
+    assert!(
+        report.contains("living-docs manage index issue"),
+        "{report}"
+    );
 }
 
 #[test]
@@ -225,7 +228,7 @@ fn indexing_after_a_union_merge_leaves_only_the_colliding_number() {
     let repo = merged_repo("merge-index");
     let indexed = living_docs()
         .current_dir(&repo)
-        .args(["index", "--plain"])
+        .args(["manage", "index", "--plain"])
         .output()
         .unwrap();
     assert!(indexed.status.success());
@@ -238,7 +241,7 @@ fn indexing_after_a_union_merge_leaves_only_the_colliding_number() {
         text.contains("0002-alpha.md") && text.contains("0002-beta.md"),
         "{text}"
     );
-    assert!(!text.contains("living-docs index issue"), "{text}");
+    assert!(!text.contains("living-docs manage index issue"), "{text}");
 }
 
 fn issue_file(repo: &Path, name: &str) -> PathBuf {
@@ -249,7 +252,7 @@ fn set_beta_number_next(repo: &Path) -> Output {
     let stale = Path::new("docs").join("issues").join("0002-beta.md");
     living_docs()
         .current_dir(repo)
-        .arg("set")
+        .args(["write", "set"])
         .arg(stale)
         .args(["number", "next", "--plain"])
         .output()
@@ -261,7 +264,7 @@ fn set_number_next_repairs_a_union_merge_collision_until_check_passes() {
     let repo = merged_repo("merge-repair");
     let indexed = living_docs()
         .current_dir(&repo)
-        .args(["index", "--plain"])
+        .args(["manage", "index", "--plain"])
         .output()
         .unwrap();
     assert!(indexed.status.success());

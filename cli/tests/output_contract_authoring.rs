@@ -25,23 +25,11 @@ struct FilesJson {
 fn index_json_matches_the_documented_shape() {
     let docs = temp_bundle("output-contract", "index");
     let docs: &Path = &docs;
-    run(&[
-        "--docs-dir",
-        docs.to_str().unwrap(),
-        "new",
-        "adr",
-        "First Decision",
-        "--plain",
-    ]);
+    let dir = docs.to_str().unwrap();
+    new_adr(dir, "First Decision");
     std::fs::remove_file(docs.join("adr/index.md")).unwrap();
 
-    let output = run(&[
-        "--docs-dir",
-        docs.to_str().unwrap(),
-        "index",
-        "adr",
-        "--json",
-    ]);
+    let output = run(&["--docs-dir", dir, "manage", "index", "adr", "--json"]);
     let stdout = stdout_of(&output);
     assert!(output.status.success(), "got:\n{stdout}");
     let parsed: FilesJson = serde_json::from_str(stdout.trim_end())
@@ -70,14 +58,14 @@ fn fmt_json_matches_the_documented_shape() {
         "---\ntitle: Doc\ntype: ADR\ndescription: d\n---\n# Doc\n\nBody.\n",
     );
 
-    let check_output = run(&["fmt", docs.to_str().unwrap(), "--check", "--json"]);
+    let check_output = run(&["manage", "fmt", docs.to_str().unwrap(), "--check", "--json"]);
     let check_stdout = stdout_of(&check_output);
     let pending: PendingJson = serde_json::from_str(check_stdout.trim_end()).unwrap_or_else(|e| {
         panic!("fmt --check --json emits valid JSON: {e}\ngot:\n{check_stdout}")
     });
     assert_eq!(pending.pending.len(), 1);
 
-    let write_output = run(&["fmt", docs.to_str().unwrap(), "--json"]);
+    let write_output = run(&["manage", "fmt", docs.to_str().unwrap(), "--json"]);
     let write_stdout = stdout_of(&write_output);
     let files: FilesJson = serde_json::from_str(write_stdout.trim_end())
         .unwrap_or_else(|e| panic!("fmt --json emits valid JSON: {e}\ngot:\n{write_stdout}"));
@@ -103,6 +91,7 @@ fn new_json_matches_the_documented_shape() {
     let output = run(&[
         "--docs-dir",
         docs.to_str().unwrap(),
+        "write",
         "new",
         "adr",
         "A New Record",
@@ -139,18 +128,13 @@ struct SetJson {
 #[test]
 fn set_json_matches_the_documented_shape() {
     let docs = temp_bundle("output-contract", "set");
-    run(&[
-        "--docs-dir",
-        docs.to_str().unwrap(),
-        "new",
-        "adr",
-        "Set Target",
-        "--plain",
-    ]);
+    let dir = docs.to_str().unwrap();
+    new_adr(dir, "Set Target");
 
     let output = run(&[
         "--docs-dir",
-        docs.to_str().unwrap(),
+        dir,
+        "write",
         "set",
         "0001",
         "status",
@@ -181,6 +165,7 @@ fn set_section_json_reports_the_key_and_the_heading() {
     let output = run(&[
         "--docs-dir",
         dir,
+        "write",
         "set",
         "0001",
         "section",
@@ -206,7 +191,7 @@ struct SupersedeJson {
 }
 
 fn new_adr(docs: &str, title: &str) {
-    run(&["--docs-dir", docs, "new", "adr", title, "--plain"]);
+    run(&["--docs-dir", docs, "write", "new", "adr", title, "--plain"]);
 }
 
 #[test]
@@ -216,7 +201,15 @@ fn supersede_json_matches_the_documented_shape() {
     new_adr(docs, "Old Decision");
     new_adr(docs, "New Decision");
 
-    let output = run(&["--docs-dir", docs, "supersede", "0001", "0002", "--json"]);
+    let output = run(&[
+        "--docs-dir",
+        docs,
+        "write",
+        "supersede",
+        "0001",
+        "0002",
+        "--json",
+    ]);
     let stdout = stdout_of(&output);
     assert!(output.status.success(), "got:\n{stdout}");
     let parsed: SupersedeJson = serde_json::from_str(stdout.trim_end())

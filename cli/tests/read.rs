@@ -9,7 +9,13 @@ mod common;
 use common::{living_docs, stdout_of, write};
 
 fn read(docs_dir: &Path, extra: &[&str]) -> Output {
-    let mut args = vec!["--docs-dir", docs_dir.to_str().unwrap(), "read", "--plain"];
+    let mut args = vec![
+        "--docs-dir",
+        docs_dir.to_str().unwrap(),
+        "read",
+        "records",
+        "--plain",
+    ];
     args.extend_from_slice(extra);
     living_docs()
         .args(&args)
@@ -55,7 +61,15 @@ fn empty_topic_result_keeps_json_shape_and_explains_itself_on_stderr() {
     let dir = bundle.to_str().unwrap();
 
     let output = living_docs()
-        .args(["--docs-dir", dir, "read", "--json", "--topic", "zzqq"])
+        .args([
+            "--docs-dir",
+            dir,
+            "read",
+            "records",
+            "--json",
+            "--topic",
+            "zzqq",
+        ])
         .output()
         .expect("failed to run living-docs read");
 
@@ -64,7 +78,7 @@ fn empty_topic_result_keeps_json_shape_and_explains_itself_on_stderr() {
     assert_eq!(
         String::from_utf8_lossy(&output.stderr),
         format!(
-            "living-docs read: no live record mentions 'zzqq' (1 retired withheld); try a broader term or `grep -ril 'zzqq' {dir}`\n"
+            "living-docs read records: no live record mentions 'zzqq' (1 retired withheld); try a broader term or `grep -ril 'zzqq' {dir}`\n"
         )
     );
 }
@@ -99,7 +113,7 @@ fn quiet_silences_the_empty_result_hint() {
     let dir = bundle.to_str().unwrap();
 
     let output = living_docs()
-        .args(["--docs-dir", dir, "--quiet", "read", "--plain"])
+        .args(["--docs-dir", dir, "--quiet", "read", "records", "--plain"])
         .args(["--topic", "zzqq"])
         .output()
         .expect("failed to run living-docs read");

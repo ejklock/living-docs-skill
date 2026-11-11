@@ -9,7 +9,7 @@ tags: [check, cli, enforcement, frontmatter, hooks]
 timestamp: 2026-07-24T01:34:45Z
 ---
 
-> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.
+> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.
 
 # 0020. Hand-write hook is scoped to CLI-owned type directories, not the whole bundle
 

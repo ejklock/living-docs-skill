@@ -28,7 +28,7 @@ pub(crate) fn list() -> Result<String, String> {
 fn render_skill_line(name: String) -> String {
     let topics = topic_keys_for_skill(&name);
     if topics.is_empty() {
-        return format!("{name}: no topics; living-docs guide {name} prints its SKILL.md\n");
+        return format!("{name}: no topics; living-docs read guide {name} prints its SKILL.md\n");
     }
     let joined = topics.into_iter().collect::<Vec<_>>().join(", ");
     format!("{name}: {joined}\n")

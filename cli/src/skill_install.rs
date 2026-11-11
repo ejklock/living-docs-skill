@@ -166,7 +166,7 @@ fn write_one(placement: &Placement) -> io::Result<()> {
 }
 
 fn report_failure(message: &str) -> ExitCode {
-    eprintln!("living-docs install skills: {message}");
+    eprintln!("living-docs manage install skills: {message}");
     ExitCode::from(2)
 }
 

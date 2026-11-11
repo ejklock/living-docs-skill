@@ -17,7 +17,14 @@ fn temp_dir(label: &str) -> Scratch {
 /// Runs `new` with `--plain` (ADR 0060: default output is JSON off a TTY).
 fn run_new(docs: &Path, doc_type: &str, title: &str) -> Output {
     living_docs()
-        .args(["--docs-dir", docs.to_str().unwrap(), "new", doc_type, title])
+        .args([
+            "--docs-dir",
+            docs.to_str().unwrap(),
+            "write",
+            "new",
+            doc_type,
+            title,
+        ])
         .arg("--plain")
         .output()
         .expect("failed to run living-docs")
@@ -29,7 +36,14 @@ fn stderr_of(output: &Output) -> String {
 
 fn run_new_with_description(docs: &Path, doc_type: &str, title: &str, description: &str) -> Output {
     living_docs()
-        .args(["--docs-dir", docs.to_str().unwrap(), "new", doc_type, title])
+        .args([
+            "--docs-dir",
+            docs.to_str().unwrap(),
+            "write",
+            "new",
+            doc_type,
+            title,
+        ])
         .args(["--description", description, "--plain"])
         .output()
         .expect("failed to run living-docs")
@@ -167,7 +181,7 @@ fn new_fills_the_frontmatter_title_from_the_argument_for_every_doc_type() {
 }
 
 /// A title requiring YAML quoting is filled using the same canonical
-/// quoting `living-docs fmt`/`check` expect (`record::format_scalar`), not a
+/// quoting `living-docs manage fmt`/`check` expect (`record::format_scalar`), not a
 /// local rule — so the scaffold stays a canonical round-trip fixed point.
 #[test]
 fn new_quotes_a_title_containing_a_colon_exactly_as_the_canonical_serializer_would() {
@@ -199,7 +213,7 @@ fn new_stdout_ends_with_the_body_only_instruction_after_the_created_path() {
     assert!(first_line.ends_with("adr/0001-instructed-decision.md"));
     let instruction_line = lines.next().expect("stdout has a second line");
     assert!(instruction_line.contains("Write ONLY the body below the closing"));
-    assert!(instruction_line.contains("living-docs set"));
+    assert!(instruction_line.contains("living-docs write set"));
     assert!(instruction_line.contains("supersede"));
     assert!(instruction_line.contains("index"));
 }

@@ -7,7 +7,7 @@ use std::process::Output;
 
 fn set(docs: &Path, args: &[&str]) -> Output {
     living_docs()
-        .args(["--docs-dir", docs.to_str().unwrap(), "set"])
+        .args(["--docs-dir", docs.to_str().unwrap(), "write", "set"])
         .args(args)
         .arg("--plain")
         .output()
@@ -17,7 +17,7 @@ fn set(docs: &Path, args: &[&str]) -> Output {
 fn new_view(docs: &Path, title: &str, kind: &str) {
     let out = living_docs()
         .args(["--docs-dir", docs.to_str().unwrap()])
-        .args(["new", "view", title, "--kind", kind])
+        .args(["write", "new", "view", title, "--kind", kind])
         .output()
         .unwrap();
     assert!(out.status.success(), "{out:?}");
@@ -133,7 +133,7 @@ fn a_view_title_renames_the_file_and_repoints_references() {
     assert!(!read(&docs, "architecture/index.md").contains("rings.md"));
     let before = snapshot(&docs);
     let indexed = living_docs()
-        .args(["--docs-dir", docs.to_str().unwrap(), "index"])
+        .args(["--docs-dir", docs.to_str().unwrap(), "manage", "index"])
         .output()
         .unwrap();
     assert!(indexed.status.success(), "{indexed:?}");

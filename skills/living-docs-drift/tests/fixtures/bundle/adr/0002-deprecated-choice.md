@@ -7,7 +7,7 @@ status: Deprecated
 timestamp: 2026-06-20T00:00:00Z
 ---
 
-> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.
+> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.
 
 # 0002. Deprecated choice
 

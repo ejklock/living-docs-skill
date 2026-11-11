@@ -36,7 +36,7 @@ pub(crate) fn run_fmt(
     match fmt::outcome(store.as_ref(), &target, check_only, &seeds) {
         Ok(outcome) => render(&outcome, mode),
         Err(message) => {
-            eprintln!("living-docs fmt: {message}");
+            eprintln!("living-docs manage fmt: {message}");
             ExitCode::from(2)
         }
     }

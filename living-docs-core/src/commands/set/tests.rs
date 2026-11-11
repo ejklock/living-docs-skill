@@ -31,7 +31,7 @@ fn set_status_reserves_superseded_for_the_supersede_verb() {
     let store = store();
     let err = apply(&store, Path::new("/bundle"), "0001", "status", "Superseded")
         .expect_err("Superseded is set only via supersede");
-    assert!(err.contains("living-docs supersede"), "got: {err}");
+    assert!(err.contains("living-docs write supersede"), "got: {err}");
 }
 
 #[test]
@@ -42,7 +42,7 @@ fn set_status_deprecated_adds_the_deprecated_callout() {
     assert!(
         contents.contains(
             "> **DEPRECATED — do not act on this record.** It has no successor. \
-             Run `living-docs read` for what is in force.\n\n# A Decision"
+             Run `living-docs read records` for what is in force.\n\n# A Decision"
         ),
         "got: {contents}"
     );

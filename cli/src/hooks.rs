@@ -204,7 +204,7 @@ fn arm_git_hooks_path(project_root: &Path, quiet: bool) {
 
 fn warn_hooks_path(quiet: bool, detail: &str) {
     let message = format!(
-        "living-docs install hooks: could not set core.hooksPath ({detail}) — the pre-commit doc-gate will not run automatically outside a git repository"
+        "living-docs manage install hooks: could not set core.hooksPath ({detail}) — the pre-commit doc-gate will not run automatically outside a git repository"
     );
     crate::output::note(quiet, &message);
 }

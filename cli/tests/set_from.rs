@@ -8,7 +8,7 @@ use std::process::{Output, Stdio};
 
 fn set(docs: &Path, args: &[&str], stdin: &str) -> Output {
     let mut child = living_docs()
-        .args(["--docs-dir", docs.to_str().unwrap(), "set"])
+        .args(["--docs-dir", docs.to_str().unwrap(), "write", "set"])
         .args(args)
         .arg("--plain")
         .stdin(Stdio::piped())

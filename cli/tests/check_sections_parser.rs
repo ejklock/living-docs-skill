@@ -75,7 +75,7 @@ fn read_contract_keeps_an_indented_plan_line_inside_scope() {
     let output = living_docs()
         .arg("--docs-dir")
         .arg(&bundle)
-        .args(["read", "--contract", "--plain"])
+        .args(["read", "records", "--contract", "--plain"])
         .output()
         .expect("failed to run read");
     let text = stdout_of(&output);

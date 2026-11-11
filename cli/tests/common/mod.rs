@@ -36,6 +36,7 @@ pub fn run_new(docs_dir: &Path, doc_type: &str, title: &str) -> Output {
         .args([
             "--docs-dir",
             docs_dir.to_str().unwrap(),
+            "write",
             "new",
             doc_type,
             title,
@@ -49,6 +50,7 @@ pub fn run_supersede(docs_dir: &Path, old: &str, new: &str) -> Output {
         .args([
             "--docs-dir",
             docs_dir.to_str().unwrap(),
+            "write",
             "supersede",
             old,
             new,
@@ -153,7 +155,13 @@ pub fn temp_bundle(suite: &str, label: &str) -> Scratch {
 /// indexes are the ones `index` writes and `check` finds no drift in them.
 pub fn index_bundle(bundle: &Path) {
     let output = living_docs()
-        .args(["--docs-dir", bundle.to_str().unwrap(), "index", "--plain"])
+        .args([
+            "--docs-dir",
+            bundle.to_str().unwrap(),
+            "manage",
+            "index",
+            "--plain",
+        ])
         .output()
         .expect("failed to run living-docs index");
     assert!(output.status.success(), "index failed");

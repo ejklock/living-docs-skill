@@ -15,7 +15,7 @@ pub(crate) fn run_read(docs_dir: &Path, args: ReadArgs, mode: OutputMode, quiet:
     let dependents = match dependents_of(store.as_ref(), docs_dir, &args) {
         Ok(dependents) => dependents,
         Err(message) => {
-            eprintln!("living-docs read: {message}");
+            eprintln!("living-docs read records: {message}");
             return ExitCode::from(2);
         }
     };
@@ -57,7 +57,7 @@ fn report_no_match(reading: &Reading, topic: &str, docs_dir: &Path) {
         return;
     }
     eprintln!(
-        "living-docs read: no live record mentions '{topic}' ({} retired withheld); try a broader term or `grep -ril '{topic}' {}`",
+        "living-docs read records: no live record mentions '{topic}' ({} retired withheld); try a broader term or `grep -ril '{topic}' {}`",
         reading.withheld,
         docs_dir.display()
     );

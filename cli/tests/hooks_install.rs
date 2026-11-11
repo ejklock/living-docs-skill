@@ -32,7 +32,7 @@ fn corpus_root() -> PathBuf {
 
 fn run_hooks_install(args: &[&str]) -> Output {
     living_docs()
-        .arg("install")
+        .args(["manage", "install"])
         .arg("hooks")
         .args(args)
         .output()
@@ -41,7 +41,7 @@ fn run_hooks_install(args: &[&str]) -> Output {
 
 fn run_hooks_uninstall(args: &[&str]) -> Output {
     living_docs()
-        .arg("uninstall")
+        .args(["manage", "uninstall"])
         .arg("hooks")
         .args(args)
         .output()
@@ -186,7 +186,7 @@ fn install_defaults_dir_to_the_current_directory_when_omitted() {
     let project = project_with_bundle("default-dir", "docs");
 
     let output = living_docs()
-        .args(["install", "hooks", "--dry-run"])
+        .args(["manage", "install", "hooks", "--dry-run"])
         .current_dir(&project)
         .output()
         .expect("failed to run living-docs install hooks");
@@ -536,7 +536,7 @@ fn scaffold_canonical_bundle(project: &Path, bundle: &str) {
     let new_output = living_docs()
         .arg("--docs-dir")
         .arg(&docs_dir)
-        .args(["new", "adr", "Pre Commit Fixture"])
+        .args(["write", "new", "adr", "Pre Commit Fixture"])
         .output()
         .expect("failed to scaffold a record");
     assert!(new_output.status.success(), "new failed: {new_output:?}");
@@ -544,7 +544,7 @@ fn scaffold_canonical_bundle(project: &Path, bundle: &str) {
     let index_output = living_docs()
         .arg("--docs-dir")
         .arg(&docs_dir)
-        .args(["index", "adr"])
+        .args(["manage", "index", "adr"])
         .output()
         .expect("failed to build the adr index");
     assert!(

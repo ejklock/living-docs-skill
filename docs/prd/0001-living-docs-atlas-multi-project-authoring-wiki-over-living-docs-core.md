@@ -7,7 +7,7 @@ tags: [atlas, authoring, codegraph, glossary, multi-project, ontology, prd, sear
 timestamp: 2026-07-20T14:45:52Z
 ---
 
-> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.
+> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.
 
 # 1. Living Docs Atlas — Multi-Project Authoring Wiki over `living-docs-core`
 

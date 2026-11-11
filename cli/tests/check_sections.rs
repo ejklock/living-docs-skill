@@ -253,7 +253,7 @@ fn a_proposed_adr_without_context_fails() {
 
 #[test]
 fn a_deprecated_adr_without_consequences_passes() {
-    let callout = "> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.\n\n";
+    let callout = "> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.\n\n";
     let record =
         adr("Deprecated", "Prose.\n").replace("# 0001. Doc", &format!("{callout}# 0001. Doc"));
     assert_numbered_passes("adr", "adr-dep", &record);

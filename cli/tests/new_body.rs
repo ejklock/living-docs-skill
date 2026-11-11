@@ -11,7 +11,14 @@ const BODY_TAIL: &str = "## 0001. T\n\n### Scope\n\nOne thing.\n\n### Acceptance
 
 fn new_issue(docs: &Path, extra: &[&str], stdin: &str) -> Output {
     let mut child = living_docs()
-        .args(["--docs-dir", docs.to_str().unwrap(), "new", "issue", "T"])
+        .args([
+            "--docs-dir",
+            docs.to_str().unwrap(),
+            "write",
+            "new",
+            "issue",
+            "T",
+        ])
         .args(extra)
         .arg("--plain")
         .stdin(Stdio::piped())
@@ -34,7 +41,7 @@ fn new_with_body_file(docs: &Path, content: &str, extra: &[&str]) -> Output {
 }
 
 fn index_bundle(docs: &Path) {
-    let args = ["--docs-dir", docs.to_str().unwrap(), "index"];
+    let args = ["--docs-dir", docs.to_str().unwrap(), "manage", "index"];
     assert!(living_docs().args(args).output().unwrap().status.success());
     let root = "# Docs\n\n- [Issues](/issues/index.md)\n";
     fs::write(docs.join("index.md"), root).unwrap();

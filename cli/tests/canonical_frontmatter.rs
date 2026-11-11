@@ -23,6 +23,7 @@ fn run_set(docs: &Path, reference: &str, key: &str, value: &str) -> Output {
         .args([
             "--docs-dir",
             docs.to_str().unwrap(),
+            "write",
             "set",
             reference,
             key,
@@ -52,7 +53,7 @@ fn body_of(path: &Path) -> String {
 }
 
 /// The exact retired-record callout line a Superseded record must open
-/// with, sourced from the same module `living-docs fmt` writes through.
+/// with, sourced from the same module `living-docs manage fmt` writes through.
 fn superseded_callout(successor: &str) -> String {
     living_docs_core::callout::expected(Some("superseded"), Some(successor))
         .expect("a superseded status always yields a callout")
@@ -69,7 +70,7 @@ fn supersede_leaves_both_records_with_no_non_canonical_finding() {
     let check = run_check(&docs);
     let stdout = String::from_utf8_lossy(&check.stdout);
     assert!(
-        !stdout.contains("living-docs fmt"),
+        !stdout.contains("living-docs manage fmt"),
         "supersede left a non-canonical-frontmatter finding, stdout: {stdout}"
     );
 }
@@ -90,7 +91,7 @@ fn status_describe_and_owner_each_leave_the_record_with_no_non_canonical_finding
     let check = run_check(&docs);
     let stdout = String::from_utf8_lossy(&check.stdout);
     assert!(
-        !stdout.contains("living-docs fmt"),
+        !stdout.contains("living-docs manage fmt"),
         "a mutation verb left a non-canonical-frontmatter finding, stdout: {stdout}"
     );
 }

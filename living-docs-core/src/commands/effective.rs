@@ -1,4 +1,4 @@
-//! `living-docs read` (the module keeps its original name `effective`
+//! `living-docs read records` (the module keeps its original name `effective`
 //! internally): the agent-facing read of the bundle — active records only
 //! (superseded/deprecated withheld), supersede chains collapsed to the head
 //! with a one-line lineage, grouped by kind then number. `--topic` restricts

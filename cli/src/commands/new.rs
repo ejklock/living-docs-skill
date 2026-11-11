@@ -63,12 +63,12 @@ pub(crate) fn run_new(
 ) -> ExitCode {
     let seeded = seeded_owner(doc_type, args.owner);
     if let (Some(owner), false) = (&seeded, quiet) {
-        eprintln!("living-docs new: owner seeded from git config: {owner}");
+        eprintln!("living-docs write new: owner seeded from git config: {owner}");
     }
     let body = match args.body.map(prose::read_body).transpose() {
         Ok(body) => body,
         Err(message) => {
-            eprintln!("living-docs new: {message}");
+            eprintln!("living-docs write new: {message}");
             return ExitCode::from(2);
         }
     };
@@ -82,10 +82,10 @@ pub(crate) fn run_new(
     match commands::new::write(store.as_ref(), docs_dir, doc_type, title, &opts) {
         Ok(created) => {
             print_created(&created, mode);
-            report_indexed("new", &created.indexed, mode, quiet)
+            report_indexed("write new", &created.indexed, mode, quiet)
         }
         Err(message) => {
-            eprintln!("living-docs new: {message}");
+            eprintln!("living-docs write new: {message}");
             ExitCode::from(2)
         }
     }

@@ -8,7 +8,7 @@ superseded_by: 0025
 timestamp: 2026-07-29T16:08:56Z
 ---
 
-> **SUPERSEDED — do not act on this record.** Replaced by [0025](0025-releases-are-born-draft-and-earn-publication-by-passing-the-asset-gate.md). Run `living-docs read` for what is in force.
+> **SUPERSEDED — do not act on this record.** Replaced by [0025](0025-releases-are-born-draft-and-earn-publication-by-passing-the-asset-gate.md). Run `living-docs read records` for what is in force.
 
 # 0024. A release is atomic: a missing binary asset fails the workflow and demotes the release to a draft
 

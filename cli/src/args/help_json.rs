@@ -54,18 +54,11 @@ struct VerbDoc {
 }
 
 #[derive(Serialize)]
-struct GroupDoc {
-    name: &'static str,
-    commands: Vec<&'static str>,
-}
-
-#[derive(Serialize)]
 struct RootDoc {
     name: String,
     version: String,
     about: String,
     usage: String,
-    groups: Vec<GroupDoc>,
     options: Vec<OptionDoc>,
     commands: Vec<CommandDoc>,
     exit_codes: Vec<ExitCodeDoc>,
@@ -186,16 +179,11 @@ fn root_doc(root: &Command) -> RootDoc {
         .filter(|sub| !sub.is_hide_set() && sub.get_name() != "help")
         .map(|sub| command_doc(sub, &[root.get_name()]))
         .collect();
-    let groups = help::groups()
-        .into_iter()
-        .map(|(name, commands)| GroupDoc { name, commands })
-        .collect();
     RootDoc {
         name: root.get_name().to_owned(),
         version: root.get_version().unwrap_or_default().to_owned(),
         about: about_of(root),
         usage: usage_of(root),
-        groups,
         options: options_of(root, true),
         commands,
         exit_codes: exit_codes(),

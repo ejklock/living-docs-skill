@@ -54,7 +54,7 @@ pub struct DocTypeSpec {
     /// records, in seed order — `status_vocabulary[0]` is what `new`
     /// seed a fresh record with (ADR 0029). `Superseded` is deliberately
     /// never a member of any row: it is reachable only through
-    /// `living-docs supersede`, which also wires the
+    /// `living-docs write supersede`, which also wires the
     /// `supersedes`/`superseded_by` links.
     pub status_vocabulary: &'static [&'static str],
     /// Whether `check` treats a missing `owner:` frontmatter value on this

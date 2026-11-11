@@ -9,7 +9,7 @@ tags: [cli, documentation, skill-distribution, tokens, tooling]
 timestamp: 2026-07-18T19:40:42Z
 ---
 
-> **SUPERSEDED — do not act on this record.** Replaced by [0017](0017-skill-md-stubs-are-pure-routers-the-spine-and-all-detail-move-to-cli-topics.md). Run `living-docs read` for what is in force.
+> **SUPERSEDED — do not act on this record.** Replaced by [0017](0017-skill-md-stubs-are-pure-routers-the-spine-and-all-detail-move-to-cli-topics.md). Run `living-docs read records` for what is in force.
 
 # 0014. The CLI serves skill content from an embedded corpus; harness SKILL.md files are slim stubs
 

@@ -86,12 +86,12 @@ fn assert_ends_silently_when_reader_closes_mid_stream(args: &[&str]) {
 
 #[test]
 fn read_json_full_ends_silently_when_the_reader_closes_stdout() {
-    assert_ends_silently_when_reader_closes_mid_stream(&["read", "--json", "--full"]);
+    assert_ends_silently_when_reader_closes_mid_stream(&["read", "records", "--json", "--full"]);
 }
 
 #[test]
 fn read_plain_full_ends_silently_when_the_reader_closes_stdout() {
-    assert_ends_silently_when_reader_closes_mid_stream(&["read", "--plain", "--full"]);
+    assert_ends_silently_when_reader_closes_mid_stream(&["read", "records", "--plain", "--full"]);
 }
 
 #[test]
@@ -101,22 +101,22 @@ fn check_json_ends_silently_when_the_reader_closes_stdout() {
 
 #[test]
 fn guide_ends_silently_when_the_reader_closes_stdout() {
-    assert_ends_silently_when_reader_is_gone(&["guide"]);
+    assert_ends_silently_when_reader_is_gone(&["read", "guide"]);
 }
 
 #[test]
 fn guide_list_ends_silently_when_the_reader_closes_stdout() {
-    assert_ends_silently_when_reader_is_gone(&["guide", "--list", "--plain"]);
+    assert_ends_silently_when_reader_is_gone(&["read", "guide", "--list", "--plain"]);
 }
 
 #[test]
 fn completions_end_silently_when_the_reader_closes_stdout() {
-    assert_ends_silently_when_reader_is_gone(&["completions", "zsh"]);
+    assert_ends_silently_when_reader_is_gone(&["manage", "completions", "zsh"]);
 }
 
 #[test]
 fn open_stdout_still_carries_the_whole_output() {
-    let (code, len) = open_pipe_run(&["read", "--json", "--full"]);
+    let (code, len) = open_pipe_run(&["read", "records", "--json", "--full"]);
     assert_eq!(code, Some(0));
     assert!(len > PIPE_BUFFER_BYTES);
 }

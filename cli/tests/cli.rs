@@ -23,7 +23,7 @@ fn root_help_carries_the_body_only_instruction() {
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     assert!(stdout.contains("Write ONLY the body below the closing"));
-    assert!(stdout.contains("living-docs set"));
+    assert!(stdout.contains("living-docs write set"));
     assert!(stdout.contains("supersede"));
     assert!(stdout.contains("index"));
 }

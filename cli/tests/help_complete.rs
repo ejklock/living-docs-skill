@@ -70,19 +70,25 @@ fn every_command_argument_and_option_has_help_text() {
     assert!(missing.is_empty(), "undocumented: {missing:?}");
 }
 
+fn collect_help_surfaces<'a>(
+    command: &'a Value,
+    trail: &mut Vec<&'a str>,
+    surfaces: &mut Vec<String>,
+) {
+    trail.push(command["name"].as_str().unwrap_or_default());
+    surfaces.push(plain_help(trail));
+    for sub in command["subcommands"].as_array().into_iter().flatten() {
+        collect_help_surfaces(sub, trail, surfaces);
+    }
+    trail.pop();
+}
+
 #[test]
 fn no_help_string_cites_a_record_number_or_a_test_concern() {
     let doc = root_doc();
     let mut surfaces = vec![stdout_of(&["--help"]), plain_help(&[])];
     for command in doc["commands"].as_array().expect("commands") {
-        let verb = command["name"].as_str().unwrap_or_default();
-        surfaces.push(plain_help(&[verb]));
-        for sub in command["subcommands"].as_array().into_iter().flatten() {
-            surfaces.push(plain_help(&[
-                verb,
-                sub["name"].as_str().unwrap_or_default(),
-            ]));
-        }
+        collect_help_surfaces(command, &mut Vec::new(), &mut surfaces);
     }
 
     for surface in surfaces {
@@ -94,7 +100,7 @@ fn no_help_string_cites_a_record_number_or_a_test_concern() {
 
 #[test]
 fn set_help_names_the_keys_and_every_registered_status_vocabulary() {
-    let help = plain_help(&["set"]);
+    let help = plain_help(&["write", "set"]);
 
     for key in ["status", "description", "owner", "title", "section"] {
         assert!(help.contains(key), "missing key {key}:\n{help}");
@@ -111,7 +117,7 @@ fn set_help_names_the_keys_and_every_registered_status_vocabulary() {
         assert!(help.contains(&expected), "missing '{expected}':\n{help}");
     }
     assert!(
-        help.contains("Superseded is set only by `supersede`"),
+        help.contains("Superseded is set only by `write supersede`"),
         "{help}"
     );
 }
@@ -119,7 +125,7 @@ fn set_help_names_the_keys_and_every_registered_status_vocabulary() {
 #[test]
 fn set_and_supersede_help_state_the_three_reference_forms() {
     for verb in ["set", "supersede"] {
-        let help = plain_help(&[verb]);
+        let help = plain_help(&["write", verb]);
         assert!(help.contains("NNNN"), "{verb}:\n{help}");
         assert!(help.contains("TYPE/NNNN"), "{verb}:\n{help}");
         assert!(help.contains("directory name"), "{verb}:\n{help}");
@@ -129,7 +135,7 @@ fn set_and_supersede_help_state_the_three_reference_forms() {
 
 #[test]
 fn new_help_says_owner_is_seeded_from_git_config_on_types_that_require_one() {
-    let help = plain_help(&["new"]);
+    let help = plain_help(&["write", "new"]);
 
     assert!(help.contains("git config user.name"), "{help}");
     assert!(help.contains("user.email"), "{help}");
@@ -144,8 +150,8 @@ fn new_help_says_owner_is_seeded_from_git_config_on_types_that_require_one() {
 
 #[test]
 fn guide_help_names_every_topic_that_guide_list_prints() {
-    let listing = stdout_of(&["guide", "--list", "--plain"]);
-    let help = plain_help(&["guide"]);
+    let listing = stdout_of(&["read", "guide", "--list", "--plain"]);
+    let help = plain_help(&["read", "guide"]);
 
     let mut compared = 0;
     for line in listing.lines() {

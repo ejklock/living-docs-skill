@@ -1,11 +1,72 @@
-//! Second-level subcommand enums for `install`, `uninstall`, and `guide`.
+//! Operation enums and argument structs for `read`, `manage install` and `manage uninstall`.
 
 use super::help;
 use crate::skill_install::Harness;
 use clap::{Args, Subcommand};
 use std::path::PathBuf;
 
-/// Arguments for the `read` verb, factored into their own `Args` struct so the
+/// Arguments for `write new`.
+#[derive(Args)]
+pub(crate) struct NewRecordArgs {
+    #[arg(value_name = "TYPE", help = help::doc_type_help())]
+    pub(crate) doc_type: String,
+    /// Title of the new record; it becomes the heading and the file slug.
+    pub(crate) title: String,
+    /// Seeds the frontmatter `description:` field with this sentence
+    /// instead of the template's placeholder.
+    #[arg(long)]
+    pub(crate) description: Option<String>,
+    /// Architecture views only: seeds the frontmatter `kind:` field from
+    /// the C4/arc42 vocabulary (context, container, component, flow,
+    /// sequence, state, data-model, deployment) that orders the
+    /// generated architecture index.
+    #[arg(long)]
+    pub(crate) kind: Option<String>,
+    #[arg(long, help = help::owner_help())]
+    pub(crate) owner: Option<String>,
+    /// Replaces the template's body slots with the text of this file, or
+    /// of standard input for `-`; the CLI places it below the heading
+    /// and never writes prose itself.
+    #[arg(long, value_name = "PATH")]
+    pub(crate) body: Option<String>,
+}
+
+/// Arguments for the `check` verb.
+#[derive(Args)]
+pub(crate) struct CheckArgs {
+    /// The bundle root to validate (default docs) or, with
+    /// `--mermaid-only`, the file(s) or directory(ies) to sweep for
+    /// mermaid fences.
+    pub(crate) paths: Vec<PathBuf>,
+    /// Validate only mermaid fences over `paths`, skipping every other invariant.
+    #[arg(long)]
+    pub(crate) mermaid_only: bool,
+    /// Promotes a missing `owner` on a doctype whose registry row
+    /// requires it from a warning to an invariant violation.
+    #[arg(long)]
+    pub(crate) require_owner: bool,
+    /// Report only the findings anchored to these records, so a bundle
+    /// with legacy debt can gate a commit on what it touched. Every
+    /// invariant still runs over the whole bundle.
+    #[arg(long, num_args = 1.., value_name = "PATH")]
+    pub(crate) changed_files: Vec<PathBuf>,
+    /// Lists every advisory after the per-kind summary instead of the
+    /// summary alone; the JSON output is unaffected.
+    #[arg(long)]
+    pub(crate) advisories: bool,
+}
+
+/// The `read` verb's operations: the in-force record view and the embedded
+/// skill corpus.
+#[derive(Subcommand)]
+pub(crate) enum ReadCmd {
+    #[command(about = help::RECORDS_ABOUT, long_about = None, after_help = help::with_exit_codes(help::RECORDS_EXAMPLES))]
+    Records(ReadArgs),
+    #[command(about = help::GUIDE_ABOUT, long_about = None, after_help = help::with_exit_codes(help::GUIDE_EXAMPLES))]
+    Guide(GuideArgs),
+}
+
+/// Arguments for `read records`, factored into their own `Args` struct so the
 /// top-level `Command` enum stays within the file-size ratchet.
 #[derive(Args)]
 pub(crate) struct ReadArgs {
@@ -34,7 +95,7 @@ pub(crate) struct ReadArgs {
     pub(crate) impact: Option<String>,
 }
 
-/// Arguments for the `guide` verb.
+/// Arguments for `read guide`.
 ///
 /// `topic_or_skill` is a single positional that resolves two ways: when it
 /// names an embedded skill (e.g. `okf-knowledge-format`) it selects that
@@ -110,7 +171,7 @@ pub(crate) enum InstallCmd {
 
 #[derive(Subcommand)]
 pub(crate) enum UninstallCmd {
-    /// Removes the artifacts `install hooks` wrote — the
+    /// Removes the artifacts `manage install hooks` wrote — the
     /// `.living-docs/hooks/` script, `.githooks/pre-commit`, and the
     /// living-docs entries in `<dir>/.claude/settings.json` — leaving
     /// unrelated entries and `core.hooksPath` untouched. A clean no-op when
