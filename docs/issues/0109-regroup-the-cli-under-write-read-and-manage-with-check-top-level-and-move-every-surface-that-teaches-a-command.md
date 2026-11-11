@@ -37,5 +37,6 @@ Implements [ADR 0076](/adr/0076-the-cli-groups-its-operations-under-write-read-a
 
 ### Plan
 
-1. Binary: clap tree, dispatch, help, hints and messages, and every test or fixture runner that calls the binary.
-2. Teaching surfaces: rules, templates, SKILL.md files, hooks, README, CONTRIBUTING, CLAUDE.md, Makefile, install.sh, npm, examples, and the CLI-written callouts regenerated over `docs/`.
+- S1: the binary answers under write, read and manage with check top-level; every old top-level name exits 2; bare write/read/manage print their help and exit 2; every hint and error names the new path | files: cli/src/args.rs, cli/src/args/, cli/src/main.rs, cli/src/commands/, cli/src/*.rs messages, living-docs-core/src messages and callout text, cli/tests/, skills/living-docs/tests/run.sh, scripts/tests/ | after: none
+- S2: every surface that teaches a command names the new path | files: skills/*/rules/, skills/*/SKILL.md, skills/living-docs/templates/, skills/living-docs/hooks/, skills/living-docs-drift/, README.md, CONTRIBUTING.md, CLAUDE.md, Makefile, install.sh, npm/, examples/ | after: none (written from ADR 0076's table, integrated after S1)
+- S3: the CLI-written callouts and index notes under docs/ are regenerated with the S1 binary and the combined flow passes: manage install hooks, the session hook and pre-commit run green, make check passes | files: docs/ (regenerated only) | after: S1, S2
