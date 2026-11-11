@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # pre-commit — living-docs doc-gate, distributed copy (ADR 0021 layer 3,
-# ADR 0023 distribution channel 2). `living-docs install hooks` materializes
+# ADR 0023 distribution channel 2). `living-docs manage install hooks` materializes
 # this file to <project>/.githooks/pre-commit and points core.hooksPath at
 # .githooks; skills/living-docs/hooks/ stays the single source of truth.
 #

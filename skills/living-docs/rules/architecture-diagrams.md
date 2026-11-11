@@ -10,17 +10,17 @@ Views are registry records in `docs/architecture/`, scaffolded and indexed by th
 one file per concern, never a single mega-file:
 
 ```bash
-living-docs new view "Context" --kind context     # docs/architecture/context.md
-living-docs new view "Backends" --kind container
-living-docs index view                            # regenerates architecture/index.md
+living-docs write new view "Context" --kind context     # docs/architecture/context.md
+living-docs write new view "Backends" --kind container
+living-docs manage index view                            # regenerates architecture/index.md
 ```
 
 `--kind` seeds the CLI-validated `kind:` frontmatter from the closed vocabulary `context |
 container | component | flow | sequence | state | data-model | deployment`; the generated
 `architecture/index.md` sorts rows in that C4/arc42 zoom order (kind rank, then filename),
 so the index reads outside-in without hand-maintenance. The docs-handwrite hook covers
-`architecture/` exactly like the numbered type directories: records are born via `new
-view`, the index via `living-docs index`, and only the body below the closing `---` is
+`architecture/` exactly like the numbered type directories: records are born via `write new
+view`, the index via `living-docs manage index`, and only the body below the closing `---` is
 hand-edited. Views carry no status and are never superseded — they are living documents
 updated in place; git history is the trail.
 

@@ -4,7 +4,7 @@ Issues are authored **in the repo first**, then published to the tracker. The re
 
 ## The workflow
 
-1. **Create** — write `docs/issues/NNNN-slug.md`: OKF frontmatter (`type`, `title`, `status`, `labels`, `blocked_by`, `tracker`) followed by the issue **body**. Write `labels`, `blocked_by` and `tracker` with `living-docs set <issue> labels|blocked_by|tracker <value>` (the two lists take comma-separated items; `tracker` takes one value), which keeps the frontmatter canonical. Add a row to `docs/issues/index.md`. *Then* publish to the tracker, stripping the frontmatter so only the body is sent (e.g. pipe the content below the closing `---` to `gh issue create --body-file -`).
+1. **Create** — write `docs/issues/NNNN-slug.md`: OKF frontmatter (`type`, `title`, `status`, `labels`, `blocked_by`, `tracker`) followed by the issue **body**. Write `labels`, `blocked_by` and `tracker` with `living-docs write set <issue> labels|blocked_by|tracker <value>` (the two lists take comma-separated items; `tracker` takes one value), which keeps the frontmatter canonical. Add a row to `docs/issues/index.md`. *Then* publish to the tracker, stripping the frontmatter so only the body is sent (e.g. pipe the content below the closing `---` to `gh issue create --body-file -`).
 2. **Edit** — update the body file first, then push to the tracker (`gh issue edit <n> --body-file …`, frontmatter stripped).
 3. **Identical bodies** — the repo file's body (everything below the closing `---`) and the tracker issue body must match exactly. If they diverge, the repo wins; re-sync. Frontmatter is repo-only.
 4. **Metadata lives in frontmatter** — number, title, labels, blocked-by, status, and tracker number live in the issue file's **frontmatter** (and are mirrored into the `docs/issues/index.md` listing), *not* in the body. The body is portable prose; the frontmatter carries the tracker-specific fields.
@@ -23,17 +23,17 @@ A good issue body states, in order:
 - **Plan** (optional) — a short outline (and slicing, for large tasks) so a reader knows the approach.
 - **Outcome** (optional) — what shipped and what was learned.
 
-`check` enforces Scope and Acceptance on live issues. Scope, Decision and Acceptance are the contract tier; Plan and Outcome are the detail tier. Orient with `living-docs read --contract`, which omits the detail tier, and open the issue file for the detail.
+`check` enforces Scope and Acceptance on live issues. Scope, Decision and Acceptance are the contract tier; Plan and Outcome are the detail tier. Orient with `living-docs read records --contract`, which omits the detail tier, and open the issue file for the detail.
 
 ## Closing an issue
 
-`living-docs set <ref> status closed`, then `living-docs set <ref> section Outcome --from PATH|-` for the Outcome text. Open an issue with its prose in one step: `living-docs new issue "<title>" --body PATH|-`, the file carrying `### Scope` and `### Acceptance`.
+`living-docs write set <ref> status closed`, then `living-docs write set <ref> section Outcome --from PATH|-` for the Outcome text. Open an issue with its prose in one step: `living-docs write new issue "<title>" --body PATH|-`, the file carrying `### Scope` and `### Acceptance`.
 
-Two issues that share a number (two branches each ran `new`) are repaired with `living-docs set <path> number next` on the one to move, named by its path: it renames the file, rewrites the heading number and every in-bundle link, and regenerates the index.
+Two issues that share a number (two branches each ran `write new`) are repaired with `living-docs write set <path> number next` on the one to move, named by its path: it renames the file, rewrites the heading number and every in-bundle link, and regenerates the index.
 
 ## Rules
 
-1. **Number consistently** with the project's scheme; every issue is indexed (`new`, `set` and `supersede` keep the index current; `living-docs index` repairs a hand-edited or merged bundle).
+1. **Number consistently** with the project's scheme; every issue is indexed (`write new`, `write set` and `write supersede` keep the index current; `living-docs manage index` repairs a hand-edited or merged bundle).
 2. **Link bidirectionally** — body links to its PRD/ADR; the PRD/ADR's decision log or the issue index links back.
 3. **Closing keywords** belong in the PR that resolves the issue (`Closes #NN`), not scattered in the body.
 4. **Historical issue bodies are not rewritten** when superseded — set the frontmatter `status` (e.g. `superseded`) and annotate the `index.md` row, leaving the body as closed history.

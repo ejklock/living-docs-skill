@@ -20,11 +20,11 @@ optional PRD, a constitution, living [Mermaid](https://mermaid.js.org/) architec
 views), never *what* technology a project uses.
 
 The mechanical half of that discipline is owned end-to-end by the bundled
-**`living-docs` CLI** — one self-contained Rust binary with ten verbs (plus a `completions` utility) that
-**scaffolds records** (`new`), **drives their lifecycle** (`set`, `supersede`),
-**rebuilds indexes** (`index`, `fmt`), **validates the invariants** (`check`),
-**compiles the in-force view an agent reads** (`read`), and **serves the skill
-corpus and the enforcement hooks** (`guide`, `install`, `uninstall`). There is no LLM
+**`living-docs` CLI** — one self-contained Rust binary with four verbs (`write`, `read`, `manage`, `check`) that
+**scaffolds records** (`write new`), **drives their lifecycle** (`write set`, `write supersede`),
+**rebuilds indexes** (`manage index`, `manage fmt`), **validates the invariants** (`check`),
+**compiles the in-force view an agent reads** (`read records`), and **serves the skill
+corpus and the enforcement hooks** (`read guide`, `manage install`, `manage uninstall`). There is no LLM
 inside the tool: the agent writes only the judgment prose; everything mechanical is
 deterministic and reproducible.
 
@@ -91,7 +91,7 @@ the choice in the issue. When in doubt, it is an issue.
 
 Each record type declares its sections in the registry (ADR 0064): which ones are
 **required**, and which tier each belongs to. `check` fails a live record that lacks a
-required section, and `read` discloses by tier, so an agent loads only the depth the
+required section, and `read records` discloses by tier, so an agent loads only the depth the
 task needs:
 
 ![Read levels: index, --contract, --full; required sections per type](assets/read-tiers.svg)
@@ -106,10 +106,10 @@ task needs:
 | [`skills/okf-knowledge-format/`](skills/okf-knowledge-format/) | The **format** standard the docs use — Open Knowledge Format (OKF): markdown + YAML frontmatter, required `type`, reserved `index.md`/`log.md`, bundle-relative links. The OKF spec is **vendored verbatim** from Google Cloud Platform. |
 | [`skills/research-artifacts/`](skills/research-artifacts/) | The research-note format and source discipline that feeds ADRs (the `docs/research/` half of the trail). |
 | [`skills/living-docs-drift/`](skills/living-docs-drift/) | **Doc-to-code drift, advisory**: `scripts/drift.sh` resolves the code anchors live records cite, asks a configurable LLM judge (default `claude -p --tools ""`) whether the code still matches each record, and writes a dated report outside the bundle. Runs outside the binary and is never a gate (ADR 0075). |
-| [`cli/`](cli/) (authoring verbs) | **Deterministic authoring**: `new` scaffolds a record with CLI-owned numbering, frontmatter and title heading, and every body section as a `{{SLOT: hint}}` the agent replaces with prose. `new --body PATH|-` takes the body from a file or stdin. `set` sets the lifecycle fields (`set <ref> <key> --from PATH|-` reads any value from a file or stdin; `set <ref> section "<heading>" --from PATH|-` replaces or appends one body section), `set <path> number next` renumbers a record (the repair for two records sharing a number) with its heading, in-bundle links and index, `supersede` wires both link directions and writes the retired-record callout; all three leave the index of every type they touched current, and `index` rebuilds every index as the repair for a hand-edited or merged bundle. `new` also writes a missing bundle-root `index.md` (link-less when the first record is the constitution) and `index` writes one when a type index exists; both append one link line for each type index the root does not yet reach, never rewriting a line already there, so a bundle built only through the CLI passes `check` from its first record; `new constitution "<title>"` seeds `status: Draft` and the given title as its heading, `fmt` canonicalizes frontmatter and repairs the CLI-owned fields of a hand-written record: it seeds a missing `timestamp` from the commit that added the file, seeds a missing required `owner` from git config, and aligns the title heading with the frontmatter title, changing no other prose (`fmt --check` lists the records it would change and writes nothing). Architecture is a first-class doc type: `new view "<name>" --kind <context\|container\|component\|flow\|sequence\|state\|data-model\|deployment>` scaffolds one view per concern in `docs/architecture/`, and the generated index sorts them in C4/arc42 zoom order. |
-| [`cli/`](cli/) (`living-docs read`) | **The agent-facing read**: active records only, supersede chains collapsed to the head with a one-line lineage, retired records withheld and counted. `--topic <term>` filters, `--contract` prints each record's contract sections (an issue's Scope and Acceptance, an ADR's Context, Decision and Consequences), `--full` prints whole bodies, `--links-to` and `--impact` list the live records that link a record directly or through a chain (the check before a supersede or an edit). An agent reads this, never `index.md`. |
+| [`cli/`](cli/) (authoring verbs) | **Deterministic authoring**: `write new` scaffolds a record with CLI-owned numbering, frontmatter and title heading, and every body section as a `{{SLOT: hint}}` the agent replaces with prose. `write new --body PATH|-` takes the body from a file or stdin. `write set` sets the lifecycle fields (`write set <ref> <key> --from PATH|-` reads any value from a file or stdin; `write set <ref> section "<heading>" --from PATH|-` replaces or appends one body section), `write set <path> number next` renumbers a record (the repair for two records sharing a number) with its heading, in-bundle links and index, `write supersede` wires both link directions and writes the retired-record callout; all three leave the index of every type they touched current, and `manage index` rebuilds every index as the repair for a hand-edited or merged bundle. `write new` also writes a missing bundle-root `index.md` (link-less when the first record is the constitution) and `manage index` writes one when a type index exists; both append one link line for each type index the root does not yet reach, never rewriting a line already there, so a bundle built only through the CLI passes `check` from its first record; `write new constitution "<title>"` seeds `status: Draft` and the given title as its heading, `manage fmt` canonicalizes frontmatter and repairs the CLI-owned fields of a hand-written record: it seeds a missing `timestamp` from the commit that added the file, seeds a missing required `owner` from git config, and aligns the title heading with the frontmatter title, changing no other prose (`manage fmt --check` lists the records it would change and writes nothing). Architecture is a first-class doc type: `write new view "<name>" --kind <context\|container\|component\|flow\|sequence\|state\|data-model\|deployment>` scaffolds one view per concern in `docs/architecture/`, and the generated index sorts them in C4/arc42 zoom order. |
+| [`cli/`](cli/) (`living-docs read records`) | **The agent-facing read**: active records only, supersede chains collapsed to the head with a one-line lineage, retired records withheld and counted. `--topic <term>` filters, `--contract` prints each record's contract sections (an issue's Scope and Acceptance, an ADR's Context, Decision and Consequences), `--full` prints whole bodies, `--links-to` and `--impact` list the live records that link a record directly or through a chain (the check before a supersede or an edit). An agent reads this, never `index.md`. |
 | [`cli/`](cli/) (`living-docs check`) | The **deterministic checker** for the mechanical invariants — frontmatter/`type`, indexing + reachability, link resolution, supersede integrity and the retired-record callout, unfilled `{{SLOT}}` placeholders, required sections on live records (each type's schema in the registry), and Mermaid fences (in-process via the pure-Rust [`merman-core`](https://crates.io/crates/merman-core) parser — no Docker, no daemon). A single self-contained binary: native `serde_yaml` frontmatter parsing and native `pulldown-cmark` link extraction — no host tools needed. *A constraint without an instrument is a vibe*; this is the instrument. It runs at commit and in CI. |
-| [`cli/`](cli/) (`living-docs guide` / `install` / `uninstall`) | The skill corpus travels **inside the binary** and is served on demand (`guide --list`, `guide adr`); `install hooks` materializes the session-teaching hook and the pre-commit doc-gate into a project, `install skills` places the corpus into a harness's skills directory. |
+| [`cli/`](cli/) (`living-docs read guide` / `manage install` / `manage uninstall`) | The skill corpus travels **inside the binary** and is served on demand (`read guide --list`, `read guide adr`); `manage install hooks` materializes the session-teaching hook and the pre-commit doc-gate into a project, `manage install skills` places the corpus into a harness's skills directory. |
 | [`references/prior-art-landscape.md`](references/prior-art-landscape.md) | The sourced prior-art analysis — every part of Living Docs mapped to its established originator, so every "credit, not invention" claim has a checkable citation. |
 | [`examples/linkly/`](examples/linkly/) | A worked, **lint-clean** end-to-end corpus (constitution → PRD → ADR → issue) for a fictional URL shortener — the discipline shown, not just described, and the fixture CI runs `living-docs check` against. |
 
@@ -155,10 +155,10 @@ Installing Living Docs is three independent steps:
 2. **Place the skills** for your harness:
 
    ```bash
-   living-docs install skills --harness claude     # ~/.claude/skills (or .claude/skills with --project)
-   living-docs install skills --harness opencode    # ~/.config/opencode/skills (or .opencode/skills)
-   living-docs install skills --harness codex       # ~/.codex/skills (or .codex/skills)
-   living-docs install skills --harness pi          # ~/.pi/agent/skills (or .pi/skills)
+   living-docs manage install skills --harness claude     # ~/.claude/skills (or .claude/skills with --project)
+   living-docs manage install skills --harness opencode    # ~/.config/opencode/skills (or .opencode/skills)
+   living-docs manage install skills --harness codex       # ~/.codex/skills (or .codex/skills)
+   living-docs manage install skills --harness pi          # ~/.pi/agent/skills (or .pi/skills)
    ```
 
    `--project` installs into the current repo instead of the global user dir;
@@ -168,19 +168,19 @@ Installing Living Docs is three independent steps:
 3. **Arm enforcement:**
 
    ```bash
-   living-docs install hooks [--dir <project>] [--docs-dir <bundle>] [--dry-run]
+   living-docs manage install hooks [--dir <project>] [--docs-dir <bundle>] [--dry-run]
    ```
 
    Materializes the session-teaching script into `.living-docs/hooks/`, wires
    `.claude/settings.json` with the resolved bundle pinned as
    `LIVING_DOCS_BUNDLE=`, and installs the pre-commit doc-gate at
    `.githooks/pre-commit` (pointing `core.hooksPath` at it). Remove everything
-   it wrote with the sibling `living-docs uninstall hooks`. It also adds
+   it wrote with the sibling `living-docs manage uninstall hooks`. It also adds
    `<docs-dir>/**/index.md merge=union` to `.gitattributes`, so two branches
    that each add a record merge without a conflict in the type index (git's
    built-in `union` driver keeps both sides' lines). The merged index may then
    hold rows twice or out of order, and `check` fails on it naming the index;
-   one `living-docs index <type>` regenerates it and the gate passes. There is
+   one `living-docs manage index <type>` regenerates it and the gate passes. There is
    deliberately **no write-time hook** — a pre-write block teaches the agent to
    negotiate with the block, not to use the CLI; a failing `check` in the same
    session does.
@@ -201,14 +201,14 @@ make help            # list every target
 
 | Tool | Mechanism | Default location (global · `--project`) | Enforcement |
 |---|---|---|---|
-| **Claude Code** | native `SKILL.md` skills | `~/.claude/skills` · `.claude/skills` | `living-docs install hooks` — session teaching + pre-commit doc-gate |
-| **OpenCode** | native `SKILL.md` skills (also reads `.claude/skills`) | `~/.config/opencode/skills` · `.opencode/skills` | `living-docs install hooks` — pre-commit doc-gate |
-| **Codex** | native `SKILL.md` skills | `~/.codex/skills` · `.codex/skills` | `living-docs install hooks` — pre-commit doc-gate |
-| **Pi** | skills dir + `AGENTS.md` pointer | `~/.pi/agent/skills` · `.pi/skills` | `living-docs install hooks` — pre-commit doc-gate |
+| **Claude Code** | native `SKILL.md` skills | `~/.claude/skills` · `.claude/skills` | `living-docs manage install hooks` — session teaching + pre-commit doc-gate |
+| **OpenCode** | native `SKILL.md` skills (also reads `.claude/skills`) | `~/.config/opencode/skills` · `.opencode/skills` | `living-docs manage install hooks` — pre-commit doc-gate |
+| **Codex** | native `SKILL.md` skills | `~/.codex/skills` · `.codex/skills` | `living-docs manage install hooks` — pre-commit doc-gate |
+| **Pi** | skills dir + `AGENTS.md` pointer | `~/.pi/agent/skills` · `.pi/skills` | `living-docs manage install hooks` — pre-commit doc-gate |
 
 **Claude Code**, **OpenCode**, and **Codex** share the same model: they
 auto-discover folders of `SKILL.md` files from their skills directory, so
-`living-docs install skills` just copies the four skills there (OpenCode
+`living-docs manage install skills` just copies the four skills there (OpenCode
 additionally reads `.claude/skills`, so a Claude install already covers it).
 **Pi** has no native skills directory — after the skills are copied, reference
 them once from your `AGENTS.md`:
@@ -225,12 +225,12 @@ and skills/living-docs-drift/SKILL.md.
 Both tools read a plain markdown instruction rather than a native skills
 directory, and a placement verb for two one-file harnesses isn't worth its
 maintenance (ADR 0028). Point them at the skill content directly instead of
-generating a file: run `living-docs guide --plain` and paste its
+generating a file: run `living-docs read guide --plain` and paste its
 output into `.cursor/rules/living-docs.mdc` (with `globs: "docs/**,**/*.md"`)
 or `.github/instructions/living-docs.instructions.md` (with
 `applyTo: "docs/**,**/*.md"`) — or just point either tool at the installed
 `SKILL.md` under your harness's skills directory. Enforcement is the same
-`living-docs install hooks` step as every other harness.
+`living-docs manage install hooks` step as every other harness.
 
 ### Skill content — served by the CLI, not copied to disk
 
@@ -238,17 +238,17 @@ Native harnesses (Claude Code, OpenCode, Codex, Pi) only get each skill's slim
 `SKILL.md` stub (plus `okf-knowledge-format/reference/`, the vendored spec, and
 `living-docs-drift`'s `prompt.md` and `scripts/drift.sh`, the drift driver) — the
 full per-doc-type conventions (`rules/`) and starter templates (`templates/`)
-travel **inside the `living-docs` binary** and are reached with `living-docs guide`,
+travel **inside the `living-docs` binary** and are reached with `living-docs read guide`,
 not by reading files off disk:
 
 ```bash
-living-docs guide --list                          # every embedded skill and its topics
-living-docs guide                                  # the full living-docs/SKILL.md body
-living-docs guide adr                              # just the adr topic's rules (+ template)
+living-docs read guide --list                          # every embedded skill and its topics
+living-docs read guide                                  # the full living-docs/SKILL.md body
+living-docs read guide adr                              # just the adr topic's rules (+ template)
 ```
 
-Output is **context-aware** — for `guide` and every other data verb (`check`, `read`,
-`index`, `fmt`, `new`, `set`, `supersede`): piped or otherwise non-TTY output defaults
+Output is **context-aware** — for `read guide` and every other data verb (`check`, `read records`,
+`manage index`, `manage fmt`, `write new`, `write set`, `write supersede`): piped or otherwise non-TTY output defaults
 to minified single-line JSON (the machine-friendly shape another agent parses); a real
 terminal gets human-readable, colored plain text. `--json` and `--plain` override the
 autodetection in either direction and are mutually exclusive; `--color=auto|always|never`
@@ -293,9 +293,9 @@ See [`ATTRIBUTION.md`](ATTRIBUTION.md) for how Living Docs relates to his work.
 
 - Standing up documentation for a project (`docs/` structure, the docs index,
   ADR/issue directories).
-- Reading the corpus as an agent (what governs X *now*) → `living-docs read`.
+- Reading the corpus as an agent (what governs X *now*) → `living-docs read records`.
 - Writing or editing an **ADR**, **PRD**, **constitution**, or **issue** → load the
-  matching topic with `living-docs guide <topic>`.
+  matching topic with `living-docs read guide <topic>`.
 - Recording **research** → the `research-artifacts` skill.
 - Asking whether live records still match the code → the `living-docs-drift` skill (advisory report, never a gate).
 - Drawing or updating an **architecture / data-flow / sequence view**
@@ -354,9 +354,9 @@ and `templates/`) that an AI coding agent loads and follows. Living Docs is a
 skill that teaches the agent how to keep a decision log in sync with code.
 
 **Which tools does Living Docs work with?**
-Claude Code, OpenCode, and Codex (native `SKILL.md` skills, `living-docs install
+Claude Code, OpenCode, and Codex (native `SKILL.md` skills, `living-docs manage install
 skills`), Pi (`AGENTS.md`), and Cursor and GitHub Copilot by pointing their
-rule/instruction file at `living-docs guide --plain`. Because the
+rule/instruction file at `living-docs read guide --plain`. Because the
 skill is plain markdown, any agent that reads instruction files can use it.
 See [Installation](#installation).
 
@@ -364,18 +364,18 @@ See [Installation](#installation).
 Living Docs is not a generator and not a hosting tool. It is a *discipline* — five
 no-drift governance invariants plus a doc trail (constitution → PRD → ADR →
 issues → code). The agent **follows** the discipline as it works; a deterministic
-CLI **authors** the mechanical half (`living-docs new` / `set` / `supersede` /
-`index`) and **verifies** it (`living-docs check`) at commit and in CI. Prompt-level
+CLI **authors** the mechanical half (`living-docs write new` / `write set` / `write supersede` /
+`manage index`) and **verifies** it (`living-docs check`) at commit and in CI. Prompt-level
 guidance plus a machine check — not one pretending to be the other. Your docs live
 in the repo, in Git, next to the code.
 
 **Why is there no search, database or web UI?**
 There was, and it was cut (ADR 0059): nothing in the authoring loop used it, and it
-was half the code. `living-docs read --topic <term>` and `grep` answer "where
-did we decide X?" on a repo-sized corpus, and `read --links-to <TYPE/NNNN>` and
-`read --impact <TYPE/NNNN>` answer "what depends on this record?" from a link graph
+was half the code. `living-docs read records --topic <term>` and `grep` answer "where
+did we decide X?" on a repo-sized corpus, and `read records --links-to <TYPE/NNNN>` and
+`read records --impact <TYPE/NNNN>` answer "what depends on this record?" from a link graph
 built in memory on each run (ADR 0074). On a 5,000-record bundle, `check` runs in
-about a second and `read` in about 0.2 s, so no index has earned its keep. A search
+about a second and `read records` in about 0.2 s, so no index has earned its keep. A search
 front returns as a workspace member the day a consumer needs cross-project search.
 
 **What is OKF (Open Knowledge Format)?**
