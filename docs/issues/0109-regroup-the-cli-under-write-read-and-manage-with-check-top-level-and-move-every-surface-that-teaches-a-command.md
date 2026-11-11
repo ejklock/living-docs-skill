@@ -24,6 +24,9 @@ Implements [ADR 0076](/adr/0076-the-cli-groups-its-operations-under-write-read-a
 
 - **A bare verb prints its help and exits 2.** `living-docs write`, `read` and `manage` with no operation list their operations; not chosen: defaulting `read` to `read records`, which would make `read` the one verb that behaves differently.
 - **Two slices in one release.** The binary with its tests first, then the teaching surfaces; both merge before 0.27.0 is tagged, so no release ships a binary its own guide contradicts.
+- **Every message prefix names the new path.** stderr lines read `living-docs write new:`, `living-docs read records:`, `living-docs manage index:`; a script matching the old prefix breaks, and the release notes say so. Not chosen: keeping the old prefix, which would name a command that no longer exists.
+- **The root help lists the four verbs without group headings.** `write`, `read`, `manage` and `check` in one list; not chosen: keeping the Authoring/Gate/Reading/Distribution headings, which put `manage` (also `index` and `fmt`) under "Distribution".
+- **The upgrade is announced.** A bundle with a retired record fails `check` after the upgrade until `manage fmt` and `manage index` regenerate its callouts and index notes; the release notes give those two commands.
 
 ### Acceptance
 
