@@ -7,7 +7,7 @@ superseded_by: 0111
 timestamp: 2026-08-05T20:33:40Z
 ---
 
-> **SUPERSEDED — do not act on this record.** Replaced by [0111](0111-mcp-front-serve-the-bundle-over-stdio-as-write-read-manage-and-check-tools-from-living-docs-mcp.md). Run `living-docs read` for what is in force.
+> **SUPERSEDED — do not act on this record.** Replaced by [0111](0111-mcp-front-serve-the-bundle-over-stdio-as-write-read-manage-and-check-tools-from-living-docs-mcp.md). Run `living-docs read records` for what is in force.
 
 <!-- Status lives in frontmatter (`status`), not a body line. Settable values are
      exactly open | in-progress | closed. `living-docs supersede` sets Superseded on
