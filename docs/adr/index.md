@@ -47,6 +47,7 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0075 — Doc-to-code drift is an advisory skill whose LLM judge runs outside the binary through a configurable command](0075-doc-to-code-drift-is-an-advisory-skill-whose-llm-judge-runs-outside-the-binary-through-a-configurable-command.md) - Accepted
 * [0076 — The CLI groups its operations under write, read and manage as nested subcommands, with check kept top-level](0076-the-cli-groups-its-operations-under-write-read-and-manage-as-nested-subcommands-with-check-kept-top-level.md) - Proposed
 * [0077 — The npm package is published under the scoped name @ejklock/living-docs because the unscoped name belongs to another author](0077-the-npm-package-is-published-under-the-scoped-name-ejklock-living-docs-because-the-unscoped-name-belongs-to-another-author.md) - Accepted
+* [0078 — An MCP front serves the bundle over stdio as write, read, manage and check tools from the living-docs mcp subcommand](0078-an-mcp-front-serves-the-bundle-over-stdio-as-write-read-manage-and-check-tools-from-the-living-docs-mcp-subcommand.md) - Proposed
 
 ## Superseded
 
