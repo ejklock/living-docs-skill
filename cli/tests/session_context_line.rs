@@ -85,7 +85,10 @@ fn hook_exits_zero_and_stays_one_line_without_a_cli() {
     assert!(output.status.success());
     assert!(out.contains("CLI not built"), "{out}");
     assert_eq!(out.trim_end_matches('\n').lines().count(), 1, "{out}");
-    assert!(out.contains("living-docs read records --topic <term>"), "{out}");
+    assert!(
+        out.contains("living-docs read records --topic <term>"),
+        "{out}"
+    );
 }
 
 #[test]
