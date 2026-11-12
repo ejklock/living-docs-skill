@@ -8,8 +8,6 @@ timestamp: 2026-11-09T11:53:41Z
 
 ## 0108. A skill with no topics lists as an empty line in guide, and the project guide miscounts the verbs
 
-## A skill with no topics lists as an empty line in guide, and the project guide miscounts the verbs
-
 `living-docs guide --list --plain` prints `living-docs-drift:` with nothing after the colon, and `living-docs guide --help` reads `living-docs-drift:;`, because the drift skill added in [ADR 0075](/adr/0075-doc-to-code-drift-is-an-advisory-skill-whose-llm-judge-runs-outside-the-binary-through-a-configurable-command.md) ships a `SKILL.md` with no `rules/` or `templates/`. A reader cannot tell that `living-docs guide living-docs-drift` prints that skill's `SKILL.md`. Separately, `CLAUDE.md` and `README.md` say the CLI has ten verbs while `--help` lists eleven: [ADR 0060](/adr/0060-the-cli-surface-is-a-contract-ten-intention-named-verbs-one-output-mode-per-stream-documented-exit-codes-and-help-written-for-an-agent.md) fixed ten verbs and shipped `completions` beside them as the shell-completion utility, and the guides never said so.
 
 ### Scope

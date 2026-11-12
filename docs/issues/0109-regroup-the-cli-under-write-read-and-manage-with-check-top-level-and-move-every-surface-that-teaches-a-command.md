@@ -8,8 +8,6 @@ timestamp: 2026-11-09T12:08:07Z
 
 ## 0109. Regroup the CLI under write, read and manage with check top-level, and move every surface that teaches a command
 
-## Regroup the CLI under write, read and manage with check top-level, and move every surface that teaches a command
-
 Implements [ADR 0076](/adr/0076-the-cli-groups-its-operations-under-write-read-and-manage-as-nested-subcommands-with-check-kept-top-level.md): the ten verbs and the `completions` utility become operations nested under `write`, `read` and `manage`, `check` stays top-level, and the old top-level names are removed in 0.28.0 with no aliases.
 
 ### Scope
