@@ -25,6 +25,8 @@ one slice per fresh context, starting from the skeleton.
 * [0105 — check accepts the placeholder description that new writes](0105-check-accepts-the-placeholder-description-that-new-writes.md) - open
 * [0109 — Regroup the CLI under write, read and manage with check top-level, and move every surface that teaches a command](0109-regroup-the-cli-under-write-read-and-manage-with-check-top-level-and-move-every-surface-that-teaches-a-command.md) - open
 * [0111 — MCP front: serve the bundle over stdio as write, read, manage and check tools from living-docs mcp](0111-mcp-front-serve-the-bundle-over-stdio-as-write-read-manage-and-check-tools-from-living-docs-mcp.md) - open
+* [0112 — stale-proposed counts only issues that declare Implements for the ADR](0112-stale-proposed-counts-only-issues-that-declare-implements-for-the-adr.md) - open
+* [0113 — write set section refuses to drop child headings](0113-write-set-section-refuses-to-drop-child-headings.md) - open
 
 ## Closed
 

@@ -48,6 +48,8 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0076 — The CLI groups its operations under write, read and manage as nested subcommands, with check kept top-level](0076-the-cli-groups-its-operations-under-write-read-and-manage-as-nested-subcommands-with-check-kept-top-level.md) - Proposed
 * [0077 — The npm package is published under the scoped name @ejklock/living-docs because the unscoped name belongs to another author](0077-the-npm-package-is-published-under-the-scoped-name-ejklock-living-docs-because-the-unscoped-name-belongs-to-another-author.md) - Accepted
 * [0078 — An MCP front serves the bundle over stdio as write, read, manage and check tools from the living-docs mcp subcommand](0078-an-mcp-front-serves-the-bundle-over-stdio-as-write-read-manage-and-check-tools-from-the-living-docs-mcp-subcommand.md) - Proposed
+* [0079 — stale-proposed counts only an issue that declares it implements the ADR](0079-stale-proposed-counts-only-an-issue-that-declares-it-implements-the-adr.md) - Proposed
+* [0080 — write set section refuses to drop child headings the new text does not carry](0080-write-set-section-refuses-to-drop-child-headings-the-new-text-does-not-carry.md) - Proposed
 
 ## Superseded
 
