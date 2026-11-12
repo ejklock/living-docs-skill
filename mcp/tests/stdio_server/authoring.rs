@@ -1,5 +1,6 @@
 use crate::common::{
-    call, connect, data, is_error, message, new_adr, snapshot, Era, Scratch, BODY,
+    adr_after_seeding, call, connect, data, fmt_after_stripping, is_error, message, new_adr,
+    snapshot, Era, Scratch, ADR, BODY,
 };
 use serde_json::json;
 
@@ -201,4 +202,93 @@ async fn index_refresh_success_lists_the_index_and_is_not_an_error() {
         .iter()
         .any(|file| file.as_str().unwrap().ends_with("adr/index.md")));
     assert!(created.get("failures").is_none(), "{created}");
+}
+
+#[tokio::test]
+async fn seed_owner_from_the_git_user_name() {
+    let record = adr_after_seeding(&[("user.name", "Ada Lovelace")]).await;
+    assert!(record.contains("owner: Ada Lovelace"), "{record}");
+}
+
+#[tokio::test]
+async fn seed_owner_falls_back_to_the_git_email() {
+    let record = adr_after_seeding(&[("user.email", "ada@example.com")]).await;
+    assert!(record.contains("owner: ada@example.com"), "{record}");
+}
+
+#[tokio::test]
+async fn seed_owner_keeps_an_explicit_owner_over_git() {
+    let scratch = Scratch::new();
+    scratch.init_repo(&[("user.name", "Ada")]);
+    let client = connect(&scratch.bundle(), Era::Initialize).await;
+    new_adr(&client, "Use postgres", BODY).await;
+    let record = scratch.read(ADR);
+    assert!(
+        record.contains("owner: Eve") && !record.contains("Ada"),
+        "{record}"
+    );
+}
+
+#[tokio::test]
+async fn seed_owner_without_a_git_identity_leaves_no_owner_line() {
+    let record = adr_after_seeding(&[]).await;
+    assert!(!record.contains("owner:"), "{record}");
+}
+
+#[tokio::test]
+async fn seed_owner_skips_a_type_that_needs_none() {
+    let scratch = Scratch::new();
+    scratch.init_repo(&[("user.name", "Ada")]);
+    let client = connect(&scratch.bundle(), Era::Initialize).await;
+    let args = json!({"operation": "new", "type": "issue", "title": "A bug"});
+    let result = call(&client, "write", args).await;
+    assert!(!is_error(&result), "{}", message(&result));
+    let path = data(&result)["path"].as_str().unwrap().to_string();
+    let record = std::fs::read_to_string(path).unwrap();
+    assert!(!record.contains("owner:"), "{record}");
+}
+
+#[tokio::test]
+async fn seed_fmt_timestamp_from_the_commit_that_added_the_record() {
+    let scratch = fmt_after_stripping("timestamp:", &[("user.name", "Ada")]).await;
+    let record = scratch.read(ADR);
+    assert!(
+        record.contains("timestamp: 2020-01-02T03:04:05Z"),
+        "{record}"
+    );
+}
+
+#[tokio::test]
+async fn seed_fmt_timestamp_from_the_clock_for_an_uncommitted_record() {
+    let record = fmt_after_stripping("timestamp:", &[]).await.read(ADR);
+    let stamp = record
+        .lines()
+        .find_map(|line| line.strip_prefix("timestamp: "))
+        .unwrap_or_else(|| panic!("no timestamp in {record}"));
+    let digits = stamp.chars().filter(char::is_ascii_digit).count();
+    assert!(
+        stamp.len() == 20 && stamp.ends_with('Z') && digits == 14,
+        "{stamp}"
+    );
+}
+
+#[tokio::test]
+async fn seed_fmt_owner_from_the_git_identity() {
+    let scratch = fmt_after_stripping("owner:", &[("user.name", "Ada Lovelace")]).await;
+    let record = scratch.read(ADR);
+    assert!(record.contains("owner: Ada Lovelace"), "{record}");
+}
+
+#[tokio::test]
+async fn seed_fmt_check_only_writes_nothing_and_lists_the_record_pending() {
+    let scratch = Scratch::new();
+    let client = connect(&scratch.bundle(), Era::Initialize).await;
+    new_adr(&client, "Use postgres", BODY).await;
+    scratch.strip_line(ADR, "timestamp:");
+    let before = snapshot(&scratch.bundle());
+    let args = json!({"operation": "fmt", "check_only": true});
+    let result = call(&client, "manage", args).await;
+    assert!(!is_error(&result), "{}", message(&result));
+    assert_eq!(data(&result)["pending"].as_array().unwrap().len(), 1);
+    assert_eq!(snapshot(&scratch.bundle()), before);
 }

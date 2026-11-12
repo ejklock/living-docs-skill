@@ -3,9 +3,9 @@
 //! or JSON, with the git-derived timestamp and owner seeds it computes.
 
 use crate::commands::check::{bundle_root_of, check_bundle};
-use crate::git;
 use crate::output::{self, OutputMode};
 use crate::store::build_store;
+use fs_store::git;
 use living_docs_core::commands::fmt::{self, Outcome, Seeds};
 use serde::Serialize;
 use std::path::{Path, PathBuf};
@@ -29,7 +29,7 @@ pub(crate) fn run_fmt(
 ) -> ExitCode {
     let target = check_bundle(docs_dir, paths);
     let seeds = Seeds {
-        owner: git::identity(),
+        owner: git::identity(docs_dir),
         added_at: Some(git::added_at),
     };
     let store = build_store(&store_root(&target, docs_dir));

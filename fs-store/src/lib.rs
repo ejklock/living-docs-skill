@@ -2,6 +2,8 @@
 //! `living_docs_core::check`'s doc-enumeration semantics: recursive walk,
 //! `.md` files only, sorted, lenient on unreadable subdirectories.
 
+pub mod git;
+
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};

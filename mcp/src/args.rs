@@ -26,7 +26,7 @@ pub struct NewArgs {
     pub description: Option<String>,
     /// The kind, for the types that take one.
     pub kind: Option<String>,
-    /// The owner for the frontmatter.
+    /// The owner for the frontmatter. When omitted on a type that requires an owner, the server seeds the git user.name, else user.email, of the bundle's repository.
     pub owner: Option<String>,
     /// The prose below the title heading; frontmatter is never part of it.
     pub body: Option<String>,

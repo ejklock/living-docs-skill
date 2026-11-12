@@ -5,9 +5,9 @@ use super::prose;
 use super::report::report_indexed;
 use crate::output::{self, OutputMode};
 use crate::store::build_store;
+use fs_store::git::seeded_owner;
 use living_docs_core::commands;
 use living_docs_core::commands::new::{NewOptions, BODY_ONLY_INSTRUCTION};
-use living_docs_core::doc_type::spec_for;
 use serde::Serialize;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -26,15 +26,6 @@ struct NewJson<'a> {
     path: &'a Path,
     instruction: &'a str,
     indexed: &'a [PathBuf],
-}
-
-/// The owner for a type whose registry row requires one and the caller gave
-/// none: the git `user.name`, else `user.email`.
-fn seeded_owner(doc_type: &str, given: Option<&str>) -> Option<String> {
-    if given.is_some() || !spec_for(doc_type).is_some_and(|spec| spec.requires_owner) {
-        return None;
-    }
-    crate::git::identity()
 }
 
 fn print_created(created: &commands::new::Created, mode: OutputMode) {
@@ -61,7 +52,7 @@ pub(crate) fn run_new(
     mode: OutputMode,
     quiet: bool,
 ) -> ExitCode {
-    let seeded = seeded_owner(doc_type, args.owner);
+    let seeded = seeded_owner(docs_dir, doc_type, args.owner);
     if let (Some(owner), false) = (&seeded, quiet) {
         eprintln!("living-docs write new: owner seeded from git config: {owner}");
     }

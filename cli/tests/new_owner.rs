@@ -12,6 +12,11 @@ fn temp_dir(label: &str) -> Scratch {
 /// Runs the binary from `cwd` with the git identity pinned by environment:
 /// `identity` is a list of git config `(key, value)` pairs, empty for none.
 fn run(cwd: &Path, identity: &[(&str, &str)], args: &[&str]) -> Output {
+    run_in(cwd, "docs", identity, args)
+}
+
+/// Like `run`, with the bundle directory chosen by the caller.
+fn run_in(cwd: &Path, docs_dir: &str, identity: &[(&str, &str)], args: &[&str]) -> Output {
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_living-docs"));
     cmd.current_dir(cwd)
         .env("GIT_CONFIG_GLOBAL", "/dev/null")
@@ -22,7 +27,7 @@ fn run(cwd: &Path, identity: &[(&str, &str)], args: &[&str]) -> Output {
         cmd.env(format!("GIT_CONFIG_KEY_{i}"), key)
             .env(format!("GIT_CONFIG_VALUE_{i}"), value);
     }
-    cmd.args(["--docs-dir", "docs"])
+    cmd.args(["--docs-dir", docs_dir])
         .args(args)
         .arg("--plain")
         .output()
@@ -105,6 +110,28 @@ fn quiet_silences_the_seeded_owner_line_but_still_seeds() {
     );
     assert!(created_record(&cwd, &out).contains("owner: Ada"));
     assert!(!stderr_of(&out).contains("owner seeded from git config"));
+}
+
+#[test]
+fn owner_comes_from_the_bundles_repository_not_the_working_directory() {
+    let repo = temp_dir("repo");
+    for args in [&["init", "-q"][..], &["config", "user.name", "Repo Owner"]] {
+        let status = Command::new("git")
+            .arg("-C")
+            .arg(&*repo)
+            .args(args)
+            .status();
+        assert!(status.expect("git runs").success());
+    }
+    let cwd = temp_dir("elsewhere");
+    let docs = repo.join("docs");
+    let out = run_in(
+        &cwd,
+        docs.to_str().unwrap(),
+        &[],
+        &["write", "new", "adr", "T"],
+    );
+    assert!(created_record(&cwd, &out).contains("owner: Repo Owner"));
 }
 
 #[test]

@@ -8,7 +8,6 @@ use std::process::ExitCode;
 mod args;
 mod commands;
 mod doc_gate;
-mod git;
 mod hooks;
 mod output;
 mod skill;

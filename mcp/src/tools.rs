@@ -2,7 +2,7 @@ use crate::args::{
     CheckArgs, ManageArgs, NewArgs, ReadArgs, RecordsArgs, SetArgs, SupersedeArgs, WriteArgs,
 };
 use crate::BundleServer;
-use fs_store::FsStore;
+use fs_store::{git, FsStore};
 use living_docs_core::check;
 use living_docs_core::commands::effective::{self, Dependents};
 use living_docs_core::commands::fmt::{self, Outcome as FmtOutcome, Seeds};
@@ -55,10 +55,11 @@ fn indexed(mut written: Value, done: &Indexed) -> Result<Value, Refusal> {
 }
 
 fn run_new(docs_dir: &Path, args: &NewArgs) -> Written {
+    let seeded = git::seeded_owner(docs_dir, &args.doc_type, args.owner.as_deref());
     let opts = new::NewOptions {
         description: args.description.as_deref(),
         kind: args.kind.as_deref(),
-        owner: args.owner.as_deref(),
+        owner: args.owner.as_deref().or(seeded.as_deref()),
         body: args.body.as_deref(),
     };
     let created = new::write(
@@ -157,7 +158,11 @@ fn run_manage(docs_dir: &Path, args: &ManageArgs) -> Answer {
             Ok(json!({ "files": shown_all(&written) }))
         }
         ManageArgs::Fmt(args) => {
-            let outcome = fmt::outcome(&store, docs_dir, args.check_only, &Seeds::default())?;
+            let seeds = Seeds {
+                owner: git::identity(docs_dir),
+                added_at: Some(git::added_at),
+            };
+            let outcome = fmt::outcome(&store, docs_dir, args.check_only, &seeds)?;
             Ok(match outcome {
                 FmtOutcome::Rewritten(paths) => json!({ "files": shown_all(&paths) }),
                 FmtOutcome::Pending(paths) => json!({ "pending": shown_all(&paths) }),
