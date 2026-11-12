@@ -2,6 +2,8 @@
 mod heading;
 #[path = "fmt/mixed.rs"]
 mod mixed;
+#[path = "fmt/owner.rs"]
+mod owner;
 #[path = "fmt/repair.rs"]
 mod repair;
 
