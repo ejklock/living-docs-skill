@@ -14,6 +14,7 @@ pub enum Bundle {
     NonCanonical,
     Canonical,
     StaleIndexes,
+    ReadOnlyIndex,
 }
 
 /// The records every scaffolded bundle holds, one `|`-separated CLI call per row.
@@ -45,7 +46,7 @@ fn scaffold(docs: &Path, body: &Path) {
 pub fn make_bundle(kind: Bundle, docs: &Path, body: &Path) {
     match kind {
         Bundle::Canonical => copy_tree(&common::fixture("09-okf-canonical"), docs),
-        Bundle::Scaffolded => scaffold(docs, body),
+        Bundle::Scaffolded | Bundle::ReadOnlyIndex => scaffold(docs, body),
         Bundle::StaleIndexes => {
             scaffold(docs, body);
             for index in ["adr/index.md", "architecture/index.md"] {
@@ -65,3 +66,17 @@ pub fn make_bundle(kind: Bundle, docs: &Path, body: &Path) {
         }
     }
 }
+
+/// Makes the decision index of each bundle copy read-only or writable again,
+/// so a refresh of it fails while the record write itself succeeds.
+#[cfg(unix)]
+pub fn set_index_writable(copies: &[&Path], writable: bool) {
+    use std::os::unix::fs::PermissionsExt;
+    let mode = if writable { 0o644 } else { 0o444 };
+    for docs in copies {
+        fs::set_permissions(docs.join("adr/index.md"), fs::Permissions::from_mode(mode)).unwrap();
+    }
+}
+
+#[cfg(not(unix))]
+pub fn set_index_writable(_copies: &[&Path], _writable: bool) {}

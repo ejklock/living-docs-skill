@@ -44,6 +44,17 @@ const CHECK: &[&str] = &[
     r#"check unfilled slot | check | check | {} | report,shows="ok":false,shows=unfilled"#,
 ];
 
+#[cfg(unix)]
+const WRITE_WITH_UNWRITABLE_INDEX: &[&str] = &[
+    r#"write new adr keeps the record when the index refresh fails | write new adr Two --owner o --description d | write | {"operation":"new","type":"adr","title":"Two","owner":"o","description":"d"} | readonly,partial"#,
+];
+
+#[cfg(unix)]
+#[test]
+fn write_with_an_unwritable_index_matches_the_cli() {
+    assert_parity(&parse(WRITE_WITH_UNWRITABLE_INDEX));
+}
+
 #[test]
 fn write_operations_match_the_cli() {
     assert_parity(&parse(WRITE));

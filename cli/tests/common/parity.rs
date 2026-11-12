@@ -3,7 +3,7 @@
 //! difference in the files left behind or the JSON returned.
 
 use crate::common::mcp_session::Session;
-use crate::common::parity_bundles::{make_bundle, Bundle, BODY};
+use crate::common::parity_bundles::{make_bundle, set_index_writable, Bundle, BODY};
 use crate::common::{copy_tree, living_docs, Scratch};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
@@ -18,16 +18,19 @@ pub struct Case {
     tool: String,
     args: Value,
     fails: bool,
+    partial: bool,
     report: bool,
     shows: Vec<String>,
 }
 
 /// Reads table rows of `name | cli words | tool | tool arguments as JSON |
 /// flags`. The flags are optional and comma-separated: `canonical`,
-/// `noncanonical` or `stale` pick the fixture bundle, `fails` expects both
-/// paths to refuse the call, `report` expects the CLI to exit non-zero while
-/// the tool returns its result without an error, `shows=<fragment>` requires that compact JSON fragment in
-/// both results. In `{body}`, a CLI word is the body file's path and a tool
+/// `noncanonical`, `stale` or `readonly` (the decision index is read-only)
+/// pick the fixture bundle, `fails` expects both paths to refuse the call
+/// and change no file, `partial` expects both to write the record and fail
+/// the index refresh, `report` expects the CLI to exit non-zero while the
+/// tool returns its result without an error, `shows=<fragment>` requires that
+/// compact JSON fragment in both results. In `{body}`, a CLI word is the body file's path and a tool
 /// argument is its text.
 pub fn parse(table: &[&str]) -> Vec<Case> {
     table.iter().map(|row| parse_row(row)).collect()
@@ -44,6 +47,7 @@ fn parse_row(row: &str) -> Case {
         ("canonical", Bundle::Canonical),
         ("noncanonical", Bundle::NonCanonical),
         ("stale", Bundle::StaleIndexes),
+        ("readonly", Bundle::ReadOnlyIndex),
     ]
     .into_iter()
     .find(|(flag, _)| flags.contains(flag))
@@ -55,6 +59,7 @@ fn parse_row(row: &str) -> Case {
         tool: tool.to_string(),
         args: serde_json::from_str(args).unwrap_or_else(|e| panic!("{name}: {e}")),
         fails: flags.contains(&"fails"),
+        partial: flags.contains(&"partial"),
         report: flags.contains(&"report"),
         shows: flags
             .iter()
@@ -111,6 +116,7 @@ fn normalize(value: &Value, docs: &Path) -> Value {
 struct Outcome {
     cli_ok: bool,
     cli: Option<Value>,
+    cli_err: String,
     mcp_error: bool,
     mcp: Option<Value>,
 }
@@ -149,23 +155,71 @@ fn run_both(case: &Case, cli_docs: &Path, mcp_docs: &Path, body: &Path) -> Outco
     let result = session.call(2, &case.tool, &inline_body(&case.args, body));
     Outcome {
         cli_ok: output.status.success(),
+        cli_err: String::from_utf8_lossy(&output.stderr).into_owned(),
         cli: serde_json::from_slice(&output.stdout).ok(),
         mcp_error: result["isError"] == json!(true),
         mcp: result.get("structuredContent").cloned().or(Some(result)),
     }
 }
 
-fn refusal_problems(outcome: &Outcome, files: [&Files; 3]) -> Vec<String> {
-    let mut problems = Vec::new();
-    if outcome.cli_ok || !outcome.mcp_error {
-        problems.push(format!(
+fn failed_problem(outcome: &Outcome) -> Option<String> {
+    (outcome.cli_ok || !outcome.mcp_error).then(|| {
+        format!(
             "expected both to fail: cli ok {}, mcp error {}",
             outcome.cli_ok, outcome.mcp_error
-        ));
-    }
+        )
+    })
+}
+
+fn refusal_problems(outcome: &Outcome, files: [&Files; 3]) -> Vec<String> {
+    let mut problems: Vec<String> = failed_problem(outcome).into_iter().collect();
     let [start, cli, mcp] = files;
     if cli != start || mcp != start {
         problems.push("a failed call changed files".to_string());
+    }
+    problems
+}
+
+/// Each failure the tool names must appear in the CLI's stderr.
+fn failure_problems(outcome: &Outcome) -> Vec<String> {
+    let failures = outcome
+        .mcp
+        .as_ref()
+        .and_then(|mcp| mcp["failures"].as_array());
+    let Some(failures) = failures.filter(|list| !list.is_empty()) else {
+        return vec!["the tool reported no failures".to_string()];
+    };
+    let stderr = &outcome.cli_err;
+    failures
+        .iter()
+        .map(|failure| failure.as_str().unwrap_or_default().to_string())
+        .filter(|text| text.is_empty() || !stderr.contains(text.as_str()))
+        .map(|text| format!("cli stderr lacks failure {text:?}:\n{stderr}"))
+        .collect()
+}
+
+/// A write whose index refresh failed keeps the new record and the old index
+/// in both copies, with the same JSON apart from the tool's `failures`.
+fn partial_problems(outcome: &Outcome, docs: [&Path; 2], files: [&Files; 3]) -> Vec<String> {
+    let [start, cli_files, mcp_files] = files;
+    let mut problems = failure_problems(outcome);
+    problems.extend(failed_problem(outcome));
+    let mut mcp = outcome.mcp.clone();
+    if let Some(Value::Object(map)) = mcp.as_mut() {
+        map.remove("failures");
+    }
+    let cli = outcome.cli.as_ref().map(|v| normalize(v, docs[0]));
+    let mcp = mcp.as_ref().map(|v| normalize(v, docs[1]));
+    if cli != mcp || cli.is_none() {
+        problems.push(format!("json differs\n  cli: {cli:?}\n  mcp: {mcp:?}"));
+    }
+    let kept = start
+        .iter()
+        .all(|(path, text)| cli_files.get(path) == Some(text));
+    if cli_files != mcp_files || !kept || cli_files.len() <= start.len() {
+        problems.push(format!(
+            "files differ\n  cli: {cli_files:#?}\n  mcp: {mcp_files:#?}"
+        ));
     }
     problems
 }
@@ -203,6 +257,9 @@ fn compare(case: &Case, outcome: &Outcome, docs: [&Path; 2], start: &Files) -> V
     if case.fails {
         return refusal_problems(outcome, [start, &cli_files, &mcp_files]);
     }
+    if case.partial {
+        return partial_problems(outcome, docs, [start, &cli_files, &mcp_files]);
+    }
     let cli = outcome.cli.as_ref().map(|v| normalize(v, docs[0]));
     let mcp = outcome.mcp.as_ref().map(|v| normalize(v, docs[1]));
     let mut problems = result_problems(case, &cli, &mcp);
@@ -223,7 +280,14 @@ fn mismatches(case: &Case) -> Vec<String> {
     make_bundle(case.bundle, &cli, &body);
     copy_tree(&cli, &mcp);
     let start = files_of(&cli);
+    let lock = |writable| {
+        if matches!(case.bundle, Bundle::ReadOnlyIndex) {
+            set_index_writable(&[&cli, &mcp], writable);
+        }
+    };
+    lock(false);
     let outcome = run_both(case, &cli, &mcp, &body);
+    lock(true);
     compare(case, &outcome, [&cli, &mcp], &start)
         .into_iter()
         .map(|problem| format!("{}: {problem}", case.name))
