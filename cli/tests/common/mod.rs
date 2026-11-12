@@ -1,5 +1,9 @@
 #![allow(dead_code)]
 
+pub mod mcp_session;
+pub mod parity;
+pub mod parity_bundles;
+
 use std::ffi::OsStr;
 use std::fs;
 use std::ops::Deref;
@@ -165,6 +169,20 @@ pub fn index_bundle(bundle: &Path) {
         .output()
         .expect("failed to run living-docs index");
     assert!(output.status.success(), "index failed");
+}
+
+/// Copies the directory tree under `from` into `to`, creating `to`.
+pub fn copy_tree(from: &Path, to: &Path) {
+    fs::create_dir_all(to).unwrap();
+    for entry in fs::read_dir(from).unwrap() {
+        let entry = entry.unwrap();
+        let target = to.join(entry.file_name());
+        if entry.file_type().unwrap().is_dir() {
+            copy_tree(&entry.path(), &target);
+        } else {
+            fs::copy(entry.path(), &target).unwrap();
+        }
+    }
 }
 
 pub fn write(bundle: &Path, rel: &str, contents: &str) {
