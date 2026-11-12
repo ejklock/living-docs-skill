@@ -38,6 +38,7 @@ Implements [ADR 0078](/adr/0078-an-mcp-front-serves-the-bundle-over-stdio-as-wri
 - Follow-up found during this issue: the pre-commit doc-gate (`.githooks/pre-commit` and the shipped `skills/living-docs/hooks/pre-commit`) prefers the repository build `target/release/living-docs` and falls back to the one on `PATH`. Not taken: keep `PATH` first, which runs an older global binary against a newer bundle (owner, 2026-11-12).
 - Follow-up found during this issue: liveness counts only an issue whose body carries `Implements [ADR NNNN]` for that ADR, so a historical citation of a closed issue no longer marks a Proposed ADR stale; it ships under a new ADR amending ADR 0057. Not taken: keep the rule and document it (owner, 2026-11-12).
 - Follow-up found during this issue: `write set <ref> section <H2>` refuses with exit 2 when the section holds child headings the new text does not carry, instead of dropping them silently; it ships under a new ADR. Not taken: warn and proceed; keep the replacement as is (owner, 2026-11-12).
+- The duplicate-code gate ignores `.githooks/**`: the repository's pre-commit hook is a local copy of the distributed `skills/living-docs/hooks/pre-commit`, and the binary-order change touches both, which surfaced their shared block. Unifying the two hooks into one source is its own issue. Not taken: unify them before closing the binary-order change; change only the repository hook, against the binary-order decision (owner, 2026-11-12).
 
 ### Acceptance
 

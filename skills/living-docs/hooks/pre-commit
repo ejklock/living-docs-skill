@@ -15,16 +15,16 @@ ROOT="$(git rev-parse --show-toplevel)"
 BUNDLE="${LIVING_DOCS_BUNDLE:-docs}"
 
 resolve_bin() {
-  if command -v living-docs >/dev/null 2>&1; then
-    command -v living-docs
-  elif [ -x "$ROOT/target/release/living-docs" ]; then
+  if [ -x "$ROOT/target/release/living-docs" ]; then
     printf '%s' "$ROOT/target/release/living-docs"
+  elif command -v living-docs >/dev/null 2>&1; then
+    command -v living-docs
   fi
 }
 
 BIN="$(resolve_bin)"
 if [ -z "$BIN" ]; then
-  echo "living-docs pre-commit: no binary found (PATH or target/release) — doc-gate skipped, CI will enforce it. Build with \`make build\`." >&2
+  echo "living-docs pre-commit: no binary found (target/release or PATH) — doc-gate skipped, CI will enforce it. Build with \`make build\`." >&2
   exit 0
 fi
 

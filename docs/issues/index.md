@@ -27,6 +27,7 @@ one slice per fresh context, starting from the skeleton.
 * [0111 — MCP front: serve the bundle over stdio as write, read, manage and check tools from living-docs mcp](0111-mcp-front-serve-the-bundle-over-stdio-as-write-read-manage-and-check-tools-from-living-docs-mcp.md) - open
 * [0112 — stale-proposed counts only issues that declare Implements for the ADR](0112-stale-proposed-counts-only-issues-that-declare-implements-for-the-adr.md) - open
 * [0113 — write set section refuses to drop child headings](0113-write-set-section-refuses-to-drop-child-headings.md) - open
+* [0114 — The distributed pre-commit hook lacks the changed-only opt-in the repository hook has](0114-the-distributed-pre-commit-hook-lacks-the-changed-only-opt-in-the-repository-hook-has.md) - open
 
 ## Closed
 
