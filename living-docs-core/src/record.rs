@@ -241,7 +241,9 @@ fn frontmatter_sequence(frontmatter: Option<&Value>, key: &str) -> Vec<String> {
     sequence.iter().filter_map(scalar_to_string).collect()
 }
 
-fn strip_frontmatter(contents: &str) -> &str {
+/// The text after a leading `---` frontmatter block, or all of `contents` when
+/// there is none.
+pub(crate) fn strip_frontmatter(contents: &str) -> &str {
     let Some(rest) = contents.strip_prefix("---\n") else {
         return contents;
     };

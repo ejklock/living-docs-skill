@@ -19,10 +19,12 @@ every advisory in full, and the JSON output always carries them all. The kinds:
 
 - `SIZE` — a decision/execution body past the ~120-line target (aim ~100; research exempt).
 - `MOVED-SOURCE` — a record whose linked source path moved.
-- `LIVENESS stale-proposed` (ADR 0049) — an ADR still at its seed status (`Proposed`) whose
-  linked issue is already `closed`/`done`/`Superseded`: the work landed but the record never
-  left its birth state. Currency has a sound oracle where materiality does not, so the checkable
-  part lives in the tool; the exit code stays put.
+- `LIVENESS stale-proposed` (ADR 0049, ADR 0079) — an ADR still at its seed status (`Proposed`)
+  that an issue already `closed`/`done`/`Superseded` declares it implements: the issue body
+  holds `Implements` (any case) followed by a link to the ADR, so the work landed but the record
+  never left its birth state. A link from the ADR to an issue is history and never counts.
+  Currency has a sound oracle where materiality does not, so the checkable part lives in the
+  tool; the exit code stays put.
 
 ```bash
 living-docs check docs   # check the project's bundle; exit 1 on any violation
