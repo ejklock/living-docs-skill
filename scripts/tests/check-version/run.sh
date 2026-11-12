@@ -122,13 +122,6 @@ assert_out_has() { # assert_out_has <name> <substring>
   check "$1" "$ok"
 }
 
-assert_out_count() { # assert_out_count <name> <substring> <expected-count>
-  local ok=0 actual
-  actual="$(grep -cF -- "$2" <<<"$OUT")"
-  [[ "$actual" == "$3" ]] && ok=1
-  check "$1" "$ok"
-}
-
 echo "check-version fixtures"
 echo
 
