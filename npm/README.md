@@ -63,8 +63,13 @@ For an `mcpServers` JSON object, `command` holds the program alone and `args` th
 }
 ```
 
-A client that does not start the server in the project root needs an absolute `--docs-dir`
-(`"args": ["mcp", "--docs-dir", "/path/to/project/docs"]`).
+A client that does not start the server in the project root needs an absolute `--docs-dir`,
+in either form:
+
+```text
+"args": ["mcp", "--docs-dir", "/path/to/project/docs"]
+"args": ["-y", "@ejklock/living-docs", "mcp", "--docs-dir", "/path/to/project/docs"]
+```
 
 ## Environment
 
