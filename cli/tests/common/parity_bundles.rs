@@ -15,6 +15,7 @@ pub enum Bundle {
     Canonical,
     StaleIndexes,
     ReadOnlyIndex,
+    Nested,
 }
 
 /// The records every scaffolded bundle holds, one `|`-separated CLI call per row.
@@ -52,6 +53,17 @@ pub fn make_bundle(kind: Bundle, docs: &Path, body: &Path) {
             for index in ["adr/index.md", "architecture/index.md"] {
                 fs::remove_file(docs.join(index)).unwrap();
             }
+        }
+        Bundle::Nested => {
+            scaffold(docs, body);
+            let record = docs.join("adr/0001-cache-strategy.md");
+            let text = fs::read_to_string(&record).unwrap();
+            let nested = text.replace("## Decision\n", "### Detail\n\nkept\n\n## Decision\n");
+            assert_ne!(
+                text, nested,
+                "the fixture record must carry a Decision section"
+            );
+            fs::write(record, nested).unwrap();
         }
         Bundle::NonCanonical => {
             scaffold(docs, body);

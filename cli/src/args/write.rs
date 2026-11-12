@@ -22,7 +22,8 @@ pub(crate) enum WriteCmd {
         value: Option<String>,
         /// Reads the value, or for `section` the text under the heading, from
         /// this file or from standard input for `-`. `section` replaces the
-        /// named body section or appends it when absent.
+        /// named body section or appends it when absent; a section with child
+        /// headings is refused, exit 2, unless the text carries each of them.
         #[arg(long, value_name = "PATH")]
         from: Option<String>,
     },

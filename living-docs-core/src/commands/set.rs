@@ -134,7 +134,8 @@ fn settle_in_place(
 /// heading is matched the way `check` matches a required section. The
 /// frontmatter is not touched; the callout is reconciled and the type's index
 /// refreshed like every other key. A blank or multi-line `heading` is
-/// refused before anything is written.
+/// refused before anything is written, and so is a replacement that would
+/// drop child headings the new text does not carry.
 pub fn apply_section(
     store: &dyn DocStore,
     docs_dir: &Path,
@@ -149,9 +150,21 @@ pub fn apply_section(
     refuse_mixed(store, &path)?;
     let store: &dyn DocStore = &LineEndingStore::new(store, false);
     let contents = store.read(&path).map_err(|e| e.to_string())?;
+    refuse_dropped_children(&contents, heading.trim(), text)?;
     let updated = sections::replace_or_append_section(&contents, heading.trim(), text);
     store.write(&path, &updated).map_err(|e| e.to_string())?;
     settle_in_place(store, docs_dir, path)
+}
+
+fn refuse_dropped_children(contents: &str, heading: &str, text: &str) -> Result<(), String> {
+    let missing = sections::missing_children(contents, heading, text);
+    if missing.is_empty() {
+        return Ok(());
+    }
+    Err(format!(
+        "section '{heading}' holds child headings the new text does not carry: {}; include them in the new text, or remove them by editing the body",
+        missing.join(", ")
+    ))
 }
 
 fn resolve_field(

@@ -11,6 +11,7 @@ const WRITE: &[&str] = &[
     r#"write new view with a kind | write new view Gears --kind component --description gears | write | {"operation":"new","type":"view","title":"Gears","kind":"component","description":"gears"}"#,
     r#"write set field | write set adr/0001 status Accepted | write | {"operation":"set","reference":"adr/0001","key":"status","value":"Accepted"}"#,
     r#"write set section | write set adr/0001 section Context --from {body} | write | {"operation":"set","reference":"adr/0001","heading":"Context","text":"{body}"}"#,
+    r#"write set section dropping a child heading | write set adr/0001 section Context --from {body} | write | {"operation":"set","reference":"adr/0001","heading":"Context","text":"{body}"} | nested,fails"#,
     r#"write supersede | write supersede adr/0001 adr/0002 | write | {"operation":"supersede","old":"adr/0001","new":"adr/0002"}"#,
     r#"write set unknown reference | write set adr/9999 status Accepted | write | {"operation":"set","reference":"adr/9999","key":"status","value":"Accepted"} | fails"#,
 ];

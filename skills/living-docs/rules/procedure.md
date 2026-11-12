@@ -20,6 +20,7 @@ the CLI's job; the judgment prose (the "why") is yours to write directly in the 
   the slots; `write set <ref> <key> --from PATH|-` reads any field value the same way; `write set <ref> section
   "<heading>" --from PATH|-` replaces that section's text, or appends the section when the record
   lacks it. A heading is matched case-insensitively, as `check` matches a required section.
+  A section that holds child headings is replaced only by text that carries each child (same level and text); otherwise the command exits 2, names the missing children and writes nothing.
   The CLI places the text where told and writes none of it.
 - **Repair a duplicate record number with `living-docs write set <path> number next`.** Two records of one type that share a number (parallel branches each ran `write new`) make a reference by number ambiguous, so name the record to move by its path: `write set <path> number next` (or `number NNNN`) renames the file, rewrites its heading number and every in-bundle link, and regenerates the index, on any status. A record in a `supersedes`/`superseded_by` link is refused until that link is renumbered by hand.
 - **Write the body prose directly.** The CLI must never author rationale, so there is no

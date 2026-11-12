@@ -24,3 +24,7 @@ Implements [ADR 0080](/adr/0080-write-set-section-refuses-to-drop-child-headings
 - A child carried at another level, or with other text, counts as missing.
 - A heading inside a fenced or indented code block is not a child.
 - The MCP `write` tool's `set` operation returns the same refusal.
+
+### Decision
+
+- Children are matched as a multiset: each heading of the new text carries at most one child of the same level and case-insensitive text, so two same-named children (two `##### Example` under sibling children) need two carried copies, and a missing one is named in the refusal. Not taken: track duplicate children in a separate issue; treat duplicates as out of the rule (owner, 2026-11-12).

@@ -24,14 +24,13 @@ pub struct Case {
 }
 
 /// Reads table rows of `name | cli words | tool | tool arguments as JSON |
-/// flags`. The flags are optional and comma-separated: `canonical`,
-/// `noncanonical`, `stale` or `readonly` (the decision index is read-only)
-/// pick the fixture bundle, `fails` expects both paths to refuse the call
-/// and change no file, `partial` expects both to write the record and fail
-/// the index refresh, `report` expects the CLI to exit non-zero while the
-/// tool returns its result without an error, `shows=<fragment>` requires that
-/// compact JSON fragment in both results. In `{body}`, a CLI word is the body file's path and a tool
-/// argument is its text.
+/// flags`. Optional, comma-separated flags: `canonical`, `noncanonical`,
+/// `stale`, `nested` (a child under Context) or `readonly` (decision index is
+/// read-only) pick the fixture bundle, `fails` expects both paths to refuse the
+/// call and change no file, `partial` expects both to write the record and fail
+/// the index refresh, `report` expects the CLI to exit non-zero while the tool
+/// returns its result without an error, `shows=<fragment>` requires that compact
+/// JSON fragment in both results. In `{body}`, a CLI word is the body file's path and a tool argument is its text.
 pub fn parse(table: &[&str]) -> Vec<Case> {
     table.iter().map(|row| parse_row(row)).collect()
 }
@@ -48,6 +47,7 @@ fn parse_row(row: &str) -> Case {
         ("noncanonical", Bundle::NonCanonical),
         ("stale", Bundle::StaleIndexes),
         ("readonly", Bundle::ReadOnlyIndex),
+        ("nested", Bundle::Nested),
     ]
     .into_iter()
     .find(|(flag, _)| flags.contains(flag))

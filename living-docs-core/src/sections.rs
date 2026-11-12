@@ -2,6 +2,8 @@
 //! which declared sections a record carries (`check`'s required-section pass,
 //! `read`'s tiered disclosure).
 
+use std::collections::HashMap;
+
 use crate::doc_type::{SectionSpec, Tier};
 use crate::frontmatter::{frontmatter_block, read_scalar_strict};
 
@@ -71,17 +73,10 @@ pub(crate) fn replace_or_append_section(contents: &str, heading: &str, text: &st
     let lines = classified(body);
     let sections = section_headings(contents, &lines);
     let text = format!("{}\n", text.trim_end());
-    let Some(&(start, level, _)) = sections
-        .iter()
-        .find(|(_, _, name)| name.eq_ignore_ascii_case(heading))
-    else {
+    let Some((start, end)) = section_span(&sections, lines.len(), heading) else {
         let marks = "#".repeat(dominant_level(&sections));
         return format!("{}\n\n{marks} {heading}\n\n{text}", contents.trim_end());
     };
-    let end = sections
-        .iter()
-        .find(|(index, other, _)| *index > start && *other <= level)
-        .map_or(lines.len(), |(index, _, _)| *index);
     let joined = |range: &[(&str, Option<(usize, String)>)]| -> String {
         range.iter().map(|(line, _)| *line).collect()
     };
@@ -89,6 +84,57 @@ pub(crate) fn replace_or_append_section(contents: &str, heading: &str, text: &st
     let rest = joined(&lines[end..]);
     let gap = if rest.is_empty() { "" } else { "\n" };
     format!("{front}{}\n\n{text}{gap}{rest}", kept.trim_end())
+}
+
+/// The line range of the section headed `heading`, from its heading line to
+/// the next heading of its own level or higher (or `total` lines), matched as
+/// [`has_section`] matches.
+fn section_span(
+    sections: &[(usize, usize, &str)],
+    total: usize,
+    heading: &str,
+) -> Option<(usize, usize)> {
+    let &(start, level, _) = sections
+        .iter()
+        .find(|(_, _, name)| name.eq_ignore_ascii_case(heading))?;
+    let end = sections
+        .iter()
+        .find(|(index, other, _)| *index > start && *other <= level)
+        .map_or(total, |(index, _, _)| *index);
+    Some((start, end))
+}
+
+/// The headings, written as `#### Text`, that the section headed `heading`
+/// holds below its own heading line and `text` does not carry. Children and
+/// the headings of `text` match as a multiset of level and case-insensitive
+/// text: each heading of `text` carries at most one child, so a section holding
+/// two same-named children needs two copies. A heading inside a code block is
+/// neither a child nor a carrier. An absent section holds no children.
+pub(crate) fn missing_children(contents: &str, heading: &str, text: &str) -> Vec<String> {
+    let (_, body) = contents.split_at(contents.len() - body_of(contents).len());
+    let lines = classified(body);
+    let sections = section_headings(contents, &lines);
+    let Some((start, end)) = section_span(&sections, lines.len(), heading) else {
+        return Vec::new();
+    };
+    let mut carried: HashMap<(usize, String), usize> = HashMap::new();
+    for (level, found) in classified(text).into_iter().filter_map(|(_, found)| found) {
+        *carried.entry((level, found.to_lowercase())).or_default() += 1;
+    }
+    sections
+        .iter()
+        .filter(|(index, _, _)| *index > start && *index < end)
+        .filter(
+            |(_, level, name)| match carried.get_mut(&(*level, name.to_lowercase())) {
+                Some(copies) if *copies > 0 => {
+                    *copies -= 1;
+                    false
+                }
+                _ => true,
+            },
+        )
+        .map(|(_, level, name)| format!("{} {name}", "#".repeat(*level)))
+        .collect()
 }
 
 /// Every non-title heading as (line index, level, text), the record's own

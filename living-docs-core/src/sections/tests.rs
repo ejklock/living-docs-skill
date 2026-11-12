@@ -155,3 +155,136 @@ fn the_title_heading_is_never_the_section_replaced() {
     assert!(updated.contains("## 0001. T\n\n### Scope"), "{updated}");
     assert!(updated.ends_with("### T\n\nn\n"), "{updated}");
 }
+
+fn record_with(section: &str) -> String {
+    format!("---\ntitle: T\n---\n\n## 0001. T\n\n### Scope\n\n{section}\n### Plan\n\np\n")
+}
+
+fn missing(section: &str, text: &str) -> Vec<String> {
+    missing_children(&record_with(section), "Scope", text)
+}
+
+const NONE: [&str; 0] = [];
+
+#[test]
+fn a_child_absent_from_the_new_text_is_missing() {
+    assert_eq!(
+        missing("s\n\n#### Child A\n\nx\n", "new\n"),
+        ["#### Child A"]
+    );
+}
+
+#[test]
+fn a_child_carried_at_the_same_level_and_text_in_any_case_is_not_missing() {
+    assert_eq!(
+        missing("s\n\n#### Child A\n\nx\n", "new\n\n#### child a\n\ny\n"),
+        NONE
+    );
+}
+
+#[test]
+fn a_child_carried_at_another_level_is_missing() {
+    assert_eq!(
+        missing("s\n\n#### Child A\n\nx\n", "new\n\n##### Child A\n"),
+        ["#### Child A"]
+    );
+}
+
+#[test]
+fn a_child_carried_with_other_text_is_missing() {
+    assert_eq!(
+        missing("s\n\n#### Child A\n\nx\n", "new\n\n#### Child B\n"),
+        ["#### Child A"]
+    );
+}
+
+#[test]
+fn a_section_without_children_misses_none() {
+    assert_eq!(missing("s\n\n", "new\n"), NONE);
+}
+
+#[test]
+fn a_heading_like_line_in_a_fenced_block_of_the_section_is_not_a_child() {
+    assert_eq!(missing("s\n\n```\n#### Fake\n```\n\n", "new\n"), NONE);
+}
+
+#[test]
+fn a_heading_like_line_in_an_indented_block_of_the_section_is_not_a_child() {
+    assert_eq!(missing("s\n\n    #### Fake\n\n", "new\n"), NONE);
+}
+
+#[test]
+fn a_child_like_line_in_a_code_block_of_the_new_text_does_not_carry_it() {
+    assert_eq!(
+        missing(
+            "s\n\n#### Child A\n\nx\n",
+            "new\n\n```\n#### Child A\n```\n"
+        ),
+        ["#### Child A"]
+    );
+}
+
+#[test]
+fn only_the_child_the_new_text_does_not_carry_is_missing() {
+    assert_eq!(
+        missing(
+            "s\n\n#### Child A\n\nx\n\n#### Child B\n\ny\n",
+            "new\n\n#### Child B\n"
+        ),
+        ["#### Child A"]
+    );
+}
+
+#[test]
+fn a_grandchild_counts_as_a_child() {
+    assert_eq!(
+        missing(
+            "s\n\n#### Child A\n\nx\n\n##### Grand\n\ny\n",
+            "new\n\n#### Child A\n"
+        ),
+        ["##### Grand"]
+    );
+}
+
+#[test]
+fn a_child_of_another_section_is_not_a_child_of_this_one() {
+    let contents = "---\ntitle: T\n---\n\n## 0001. T\n\n### Scope\n\ns\n\n### Plan\n\n#### Step\n";
+    assert_eq!(missing_children(contents, "Scope", "n\n"), NONE);
+}
+
+#[test]
+fn an_absent_section_misses_no_children() {
+    assert_eq!(missing_children(RECORD, "Notes", "n\n"), NONE);
+}
+
+const TWINS: &str = "s\n\n#### A\n\n##### Example\n\nex-a\n\n#### B\n\n##### Example\n\nex-b\n";
+
+#[test]
+fn two_same_named_children_with_one_carried_copy_miss_one() {
+    let text = "n\n\n#### A\n\n##### Example\n\nz\n\n#### B\n";
+    assert_eq!(missing(TWINS, text), ["##### Example"]);
+}
+
+#[test]
+fn two_same_named_children_with_two_carried_copies_miss_none() {
+    let text = "n\n\n#### A\n\n##### Example\n\n#### B\n\n##### Example\n";
+    assert_eq!(missing(TWINS, text), NONE);
+}
+
+#[test]
+fn two_same_named_children_with_three_carried_copies_miss_none() {
+    let text = "n\n\n##### Example\n\n#### A\n\n##### Example\n\n#### B\n\n##### Example\n";
+    assert_eq!(missing(TWINS, text), NONE);
+}
+
+#[test]
+fn a_carried_copy_in_another_case_consumes_one_of_two_same_named_children() {
+    let text = "n\n\n#### A\n\n##### example\n\n#### B\n";
+    assert_eq!(missing(TWINS, text), ["##### Example"]);
+}
+
+#[test]
+fn a_carried_copy_at_one_level_does_not_consume_the_same_name_at_another_level() {
+    let section = "s\n\n#### Example\n\nx\n\n##### Example\n\ny\n";
+    assert_eq!(missing(section, "n\n\n#### Example\n"), ["##### Example"]);
+}
