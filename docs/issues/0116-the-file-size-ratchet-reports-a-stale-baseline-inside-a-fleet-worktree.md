@@ -13,9 +13,10 @@ timestamp: 2026-11-12T18:19:45Z
 ### Scope
 
 - The exclusion applies to worktrees nested inside the checkout being checked, never to the checkout's own location: match on the path relative to `$root`.
+- The same fix applies to `scripts/check-allow-inventory.sh`, which enumerates with the same `-not -path '*/.claude/worktrees/*'` and reports the same stale entries inside a worktree (seen by the issue 0112 coder, 2026-11-12).
 - Kept: the ratchet rules, the baseline format and the exclusion of nested worktrees from the main checkout.
 
 ### Acceptance
 
-- `make check` (the file-size step) gives the same verdict in a worktree under `.claude/worktrees/` as in the main checkout at the same commit.
-- A `.rs` file inside a nested `.claude/worktrees/<name>/` of the main checkout is still not counted; a test under `scripts/tests/` covers both cases.
+- `make check` (the file-size and allow-inventory steps) gives the same verdict in a worktree under `.claude/worktrees/` as in the main checkout at the same commit.
+- A `.rs` file inside a nested `.claude/worktrees/<name>/` of the main checkout is still not counted by either script; the fixtures under `scripts/tests/check-file-size/` and `scripts/tests/check-allow-inventory/` cover both cases.
