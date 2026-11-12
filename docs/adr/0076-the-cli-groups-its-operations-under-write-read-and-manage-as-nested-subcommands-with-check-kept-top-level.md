@@ -1,7 +1,7 @@
 ---
 type: ADR
 title: The CLI groups its operations under write, read and manage as nested subcommands, with check kept top-level
-description: Group the CLI's operations under write, read and manage as nested subcommands, keep check top-level, and remove the old verbs in 0.27.0 with no aliases.
+description: Group the CLI's operations under write, read and manage as nested subcommands, keep check top-level, and remove the old verbs in 0.28.0 with no aliases.
 owner: Evaldo Klock
 status: Proposed
 timestamp: 2026-11-09T12:03:06Z
@@ -37,7 +37,7 @@ We will group the CLI's operations under three verbs, with the operation as a ne
 
 - **Arguments, flags, outputs and exit codes do not change.** Each operation keeps its current arguments and flags, its JSON and plain output, and the exit codes ADR 0060 documented; only the path to it changes. The global flags (`--docs-dir`, `--json`, `--plain`, `--color`, `--quiet`) stay global.
 - **A verb with no operation prints its own help and exits 2**, listing its operations, so `living-docs write` teaches the next word.
-- **A direct break, no aliases.** The old top-level names are removed in the same release; there is no deprecation window. The release is a minor version (0.27.0), not 1.0.0, because the project is pre-1.0 and the owner is not cutting 1.0 yet.
+- **A direct break, no aliases.** The old top-level names are removed in the same release; there is no deprecation window. The release is a minor version (0.28.0; 0.27.0 shipped before the regroup landed), not 1.0.0, because the project is pre-1.0 and the owner is not cutting 1.0 yet.
 - **Everything that teaches or calls a command moves in the same release.** The binary's own help, hints and error messages; the session-teaching and pre-commit hooks; the skill corpus served by `read guide`; the README, CONTRIBUTING and the project guide; the Makefile, CI and install scripts.
 
 This replaces the verb list of ADR 0060. ADR 0060's output contract (one output mode per stream, JSON off a TTY), its exit codes and its help-for-an-agent rule stay in force.
@@ -55,7 +55,7 @@ Rejected alternatives:
 **Easier / gained:**
 - A human learns four words, `write`, `read`, `manage` and `check`, and discovers each operation from that verb's help.
 **Harder / accepted trade-offs:**
-- Every command in consumer scripts, installed hooks and skills breaks at 0.27.0. A consumer must upgrade the binary and rerun `living-docs manage install hooks` and `living-docs manage install skills` together.
+- Every command in consumer scripts, installed hooks and skills breaks at 0.28.0. A consumer must upgrade the binary and rerun `living-docs manage install hooks` and `living-docs manage install skills` together.
 - Common commands get one word longer (`write new` for `new`).
 - About 97 files in this repository cite the current names, most of them integration tests; the change is mechanical but wide.
 

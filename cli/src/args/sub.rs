@@ -101,7 +101,7 @@ pub(crate) struct ReadArgs {
 /// names an embedded skill (e.g. `okf-knowledge-format`) it selects that
 /// skill's corpus with no topic, printing the full `SKILL.md` body; otherwise
 /// it is treated as a topic under `--skill` (default `living-docs`). This
-/// keeps `guide adr` reading as "the adr topic" while `guide
+/// keeps `read guide adr` reading as "the adr topic" while `read guide
 /// okf-knowledge-format` still reads as "that skill's overview" — see
 /// `crate::commands::guide::resolve_target` for the exact precedence.
 #[derive(Args)]

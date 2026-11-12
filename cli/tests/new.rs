@@ -102,6 +102,18 @@ fn new_maps_issue_to_the_plural_issues_directory() {
 }
 
 #[test]
+fn new_issue_plan_hint_names_the_read_records_contract_command() {
+    let docs = temp_dir("issue-plan-hint");
+
+    let output = run_new(&docs, "issue", "Plan Hint");
+
+    assert!(output.status.success());
+    let contents = fs::read_to_string(docs.join("issues/0001-plan-hint.md")).unwrap();
+    assert!(contents.contains("`read records --contract`"));
+    assert!(!contents.contains("`read --contract`"));
+}
+
+#[test]
 fn new_fills_type_status_and_an_iso8601_timestamp() {
     let docs = temp_dir("frontmatter");
 

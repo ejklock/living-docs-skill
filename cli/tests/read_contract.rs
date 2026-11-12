@@ -1,4 +1,4 @@
-//! End-to-end `read --contract`: the contract-tier body of each in-force record.
+//! End-to-end `read records --contract`: the contract-tier body of each in-force record.
 
 use std::path::Path;
 use std::process::Output;

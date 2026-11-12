@@ -1,4 +1,4 @@
-//! `read --links-to` and `read --impact` through the binary.
+//! `read records --links-to` and `read records --impact` through the binary.
 
 mod common;
 
