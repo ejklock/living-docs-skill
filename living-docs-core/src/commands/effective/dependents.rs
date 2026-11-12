@@ -17,13 +17,23 @@ pub enum Dependents {
     Impact(PathBuf),
 }
 
-/// Resolves `reference` (`TYPE/NNNN`) to a record path the way `set` does.
-pub fn resolve_target(
+/// The dependents query a `links_to` or an `impact` reference (`TYPE/NNNN`)
+/// names, resolved to a record path the way `set` resolves one. Neither gives
+/// no query; both at once, or a reference naming no record or several, is the
+/// error.
+pub fn resolve_dependents(
     store: &dyn DocStore,
     bundle: &Path,
-    reference: &str,
-) -> Result<PathBuf, String> {
-    crate::commands::reference::find_record(store, bundle, reference)
+    links_to: Option<&str>,
+    impact: Option<&str>,
+) -> Result<Option<Dependents>, String> {
+    let resolve = |reference| crate::commands::reference::find_record(store, bundle, reference);
+    match (links_to, impact) {
+        (Some(_), Some(_)) => Err("links_to and impact exclude one another".to_string()),
+        (Some(reference), None) => resolve(reference).map(|path| Some(Dependents::LinksTo(path))),
+        (None, Some(reference)) => resolve(reference).map(|path| Some(Dependents::Impact(path))),
+        (None, None) => Ok(None),
+    }
 }
 
 /// Narrows `ranked` (record indexes in reading order) to the dependents the

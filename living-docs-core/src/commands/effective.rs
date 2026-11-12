@@ -11,7 +11,7 @@
 use crate::record::{self, ExtractedRecord};
 use crate::store::DocStore;
 use crate::{doc_type, sections};
-pub use dependents::{resolve_target, Dependents};
+pub use dependents::{resolve_dependents, Dependents};
 use json::json_of;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};

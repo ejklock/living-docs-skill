@@ -3,6 +3,7 @@ use crate::test_support::MapStore;
 use std::collections::BTreeMap;
 
 mod dependents;
+mod dependents_query;
 mod lineage;
 
 fn store_of(files: &[(&str, &str)]) -> MapStore {

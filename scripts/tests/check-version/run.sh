@@ -29,17 +29,22 @@ write_frontmatter() { # write_frontmatter <file> <version-line-or-empty>
   } >"$file"
 }
 
-write_cargo() { # write_cargo <dir> <package-version> -> realistic layout: [package] first, inline deps after
-  mkdir -p "$1/cli"
-  cat >"$1/cli/Cargo.toml" <<TOML
+write_cargo() { # write_cargo <dir> <package-version> [<mcp-package-version>] -> realistic layout: [package] first, inline deps after
+  local crate version
+  for crate in cli mcp; do
+    version="$2"
+    [[ "$crate" == mcp && -n "${3:-}" ]] && version="$3"
+    mkdir -p "$1/$crate"
+    cat >"$1/$crate/Cargo.toml" <<TOML
 [package]
-name = "fixture"
-version = "$2"
+name = "fixture-$crate"
+version = "$version"
 edition = "2021"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 TOML
+  done
 }
 
 write_cargo_dep_before_package() { # write_cargo_dep_before_package <dir> <package-version> <dependency-version>
@@ -221,6 +226,20 @@ write_npm_package "$repo" "0.9.0"
 invoke "$repo"
 assert_exit    "18-exit-0"     0
 assert_out_has "18-version-ok" "Version OK"
+
+echo "case 19: mcp/Cargo.toml [package] version drifted"
+repo="$(new_repo case19)"
+write_cargo "$repo" "0.9.0" "0.0.1"
+invoke "$repo"
+assert_exit    "19-exit-1"     1
+assert_out_has "19-names-file" "MISMATCH: mcp/Cargo.toml"
+
+echo "case 20: mcp/Cargo.toml missing"
+repo="$(new_repo case20)"
+rm "$repo/mcp/Cargo.toml"
+invoke "$repo"
+assert_exit    "20-exit-1"     1
+assert_out_has "20-names-file" "mcp/Cargo.toml"
 
 echo
 if ((fail == 0)); then

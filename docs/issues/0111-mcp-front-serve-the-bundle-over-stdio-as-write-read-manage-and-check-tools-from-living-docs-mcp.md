@@ -32,6 +32,7 @@ Implements [ADR 0078](/adr/0078-an-mcp-front-serves-the-bundle-over-stdio-as-wri
 - Order: issue 0109 first, then this issue. Not taken: both in one release; the MCP front now over a flat CLI (owner, 2026-11-11).
 - Bundle root: `--docs-dir` at launch. Not taken: client Roots with a fallback; a per-call `docs_dir` (owner, 2026-11-11).
 - Tasks (SEP-2663) and `subscriptions/listen` are follow-ups with a trigger: Tasks enters with the HTTP transport, subscriptions when records become resources and a client needs to learn that a record changed mid-session. Not taken: either or both in the first slice (owner, 2026-11-11).
+- The `--links-to`/`--impact` resolution into `Dependents`, which the CLI's `read records` and the MCP `read` tool both need, lives once in core's `effective` module and both fronts call it; S1 widens to `living-docs-core/src/commands/effective/dependents.rs` and `cli/src/commands/read.rs` for it. Not taken: committing S1 with the duplicate-code gate red and tracking it apart; excluding the block in the duplicate-code gate's config (owner, 2026-11-11).
 
 ### Acceptance
 
@@ -45,6 +46,6 @@ Implements [ADR 0078](/adr/0078-an-mcp-front-serves-the-bundle-over-stdio-as-wri
 
 ### Plan
 
-- S1: a library crate serves one bundle over stdio as the write, read (records), manage and check tools, dual-era (2025-11-25 initialize and 2026-07-28 server/discover with instructions), proved by an rmcp client test | files: Cargo.toml, Cargo.lock, mcp/, scripts/check-version.sh | after: none
+- S1: a library crate serves one bundle over stdio as the write, read (records), manage and check tools, dual-era (2025-11-25 initialize and 2026-07-28 server/discover with instructions), proved by an rmcp client test; the dependents resolution both fronts share moves into core | files: Cargo.toml, Cargo.lock, mcp/, scripts/check-version.sh, scripts/tests/check-version/run.sh, living-docs-core/src/commands/effective/dependents.rs, cli/src/commands/read.rs | after: none
 - S2: living-docs mcp --docs-dir starts that server; read guide serves the skill corpus, moved where the mcp crate can reach it without depending on cli; a parity test finds each tool and its CLI path leave the same files and JSON | files: cli/src/args/, cli/src/commands/mcp.rs, cli/src/skill.rs, cli/src/commands/, mcp/, living-docs-core/src/ | after: S1, issue 0109
 - S3: the session hook teaches the read verbs and README, npm README and SKILL.md show how to add the server to a client | files: skills/living-docs/hooks/session-context.sh, skills/living-docs/SKILL.md, README.md, npm/README.md | after: S2
