@@ -109,7 +109,7 @@ pub(crate) fn owner_help() -> String {
 
 /// Help for `read guide`'s positional: how it resolves and every topic by skill.
 pub(crate) fn guide_topic_help() -> String {
-    let listing = crate::skill::list().unwrap_or_default();
+    let listing = living_docs_core::guide::list().unwrap_or_default();
     let by_skill = listing.lines().collect::<Vec<_>>().join("; ");
     format!(
         "a topic of the skill chosen by --skill (default living-docs), or the name of a skill to print its full SKILL.md. Topics by skill, as `living-docs read guide --list` prints them: {by_skill}"

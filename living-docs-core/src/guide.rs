@@ -1,7 +1,16 @@
+//! The authoring guide: the `skills/**` corpus embedded at compile time and
+//! the plain-text and minified-JSON renderers both fronts serve from it.
+
 use rust_embed::RustEmbed;
 use serde::Serialize;
 use std::borrow::Cow;
 use std::collections::BTreeSet;
+
+#[cfg(test)]
+mod tests;
+
+/// The skill a guide request names when it names none.
+pub const DEFAULT_SKILL: &str = "living-docs";
 
 /// The `skills/**` corpus embedded in the binary at compile time (ADR
 /// 0014). `folder` is resolved relative to this crate's
@@ -17,7 +26,7 @@ const CONVENTIONS_SUFFIX: &str = "-conventions";
 /// Lists every embedded skill with its sorted topic keys from `rules/` and
 /// `templates/`; a topicless skill names the command printing its SKILL.md.
 /// Err only when no skills are embedded.
-pub(crate) fn list() -> Result<String, String> {
+pub fn list() -> Result<String, String> {
     let names = skill_names();
     if names.is_empty() {
         return Err("no skills are embedded in this binary".to_owned());
@@ -37,7 +46,7 @@ fn render_skill_line(name: String) -> String {
 /// Minified-JSON counterpart of [`list`]: the same sorted, deduped skills
 /// and topics, serialized as `{"skills":[{"name","topics":[...]},...]}`.
 /// Err under the same condition as `list` (no embedded skills).
-pub(crate) fn list_json() -> Result<String, String> {
+pub fn list_json() -> Result<String, String> {
     let names = skill_names();
     if names.is_empty() {
         return Err("no skills are embedded in this binary".to_owned());
@@ -66,13 +75,13 @@ struct SkillSummary {
 
 /// Returns the embedded `<name>/SKILL.md` body. Err when `name` has no
 /// embedded `SKILL.md` asset.
-pub(crate) fn body(name: &str) -> Result<String, String> {
+pub fn body(name: &str) -> Result<String, String> {
     read_asset(&format!("{name}/SKILL.md")).map_err(|_| format!("unknown skill: {name}"))
 }
 
 /// Minified-JSON counterpart of [`body`]: `{"skill","content"}`. Err under
 /// the same condition as `body` (unknown skill).
-pub(crate) fn body_json(name: &str) -> Result<String, String> {
+pub fn body_json(name: &str) -> Result<String, String> {
     let content = body(name)?;
     to_minified_json(&SkillBodyJson {
         skill: name.to_owned(),
@@ -90,7 +99,7 @@ struct SkillBodyJson {
 /// Returns the resolved `rules/`/`templates/` file(s) for `topic` under
 /// `name`, each prefixed with a `## <relative-path>` header line. Err when
 /// the resolution set is empty (unknown skill or unknown topic).
-pub(crate) fn topic(name: &str, topic: &str) -> Result<String, String> {
+pub fn topic(name: &str, topic: &str) -> Result<String, String> {
     let paths = resolve_topic_paths(name, topic);
     if paths.is_empty() {
         return Err(format!("no topic '{topic}' found for skill '{name}'"));
@@ -109,7 +118,7 @@ fn render_topic_section(path: String) -> Result<String, String> {
 /// Minified-JSON counterpart of [`topic`]: `{"skill","topic","parts":[{"path","content"},...]}`,
 /// preserving the same resolution set and ordering (rules before templates). Err under the
 /// same condition as `topic` (empty resolution set).
-pub(crate) fn topic_json(name: &str, topic: &str) -> Result<String, String> {
+pub fn topic_json(name: &str, topic: &str) -> Result<String, String> {
     let paths = resolve_topic_paths(name, topic);
     if paths.is_empty() {
         return Err(format!("no topic '{topic}' found for skill '{name}'"));
@@ -158,11 +167,12 @@ fn read_asset(path: &str) -> Result<String, String> {
 /// `living-docs/hooks/session-context.sh`), for consumers that need the
 /// asset's bytes as-is rather than [`read_asset`]'s UTF-8-decoded form. None
 /// when `path` has no embedded asset.
-pub(crate) fn asset(path: &str) -> Option<Cow<'static, [u8]>> {
+pub fn asset(path: &str) -> Option<Cow<'static, [u8]>> {
     SkillAssets::get(path).map(|file| file.data)
 }
 
-pub(crate) fn skill_names() -> BTreeSet<String> {
+/// The names of every embedded skill, sorted.
+pub fn skill_names() -> BTreeSet<String> {
     SkillAssets::iter()
         .filter_map(|path| path.split('/').next().map(str::to_owned))
         .collect()
@@ -221,120 +231,4 @@ fn rules_path_matches_topic(path: &str, rules_prefix: &str, topic: &str) -> bool
     path.strip_prefix(rules_prefix)
         .map(|basename| normalize_topic_key(strip_md_extension(basename)) == topic)
         .unwrap_or(false)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn list_includes_every_embedded_skill_and_the_adr_topic() {
-        let output = list().expect("list succeeds with an embedded corpus");
-        assert!(output.contains("living-docs"));
-        assert!(output.contains("okf-knowledge-format"));
-        assert!(output.contains("research-artifacts"));
-        assert!(output.contains("adr"));
-    }
-
-    #[test]
-    fn body_returns_the_skill_md_contents() {
-        let output = body("living-docs").expect("living-docs/SKILL.md is embedded");
-        assert!(output.contains("# Living Docs"));
-    }
-
-    #[test]
-    fn body_errors_for_an_unknown_skill() {
-        assert!(body("no-such-skill").is_err());
-    }
-
-    #[test]
-    fn topic_adr_concatenates_the_rule_and_template() {
-        let output = topic("living-docs", "adr").expect("adr topic resolves");
-        assert!(output.contains("rules/adr-conventions.md"));
-        assert!(output.contains("templates/adr.md"));
-    }
-
-    #[test]
-    fn topic_issue_workflow_resolves_only_the_rules_file() {
-        let output = topic("living-docs", "issue-workflow").expect("issue-workflow topic resolves");
-        assert!(output.contains("rules/issue-workflow.md"));
-        assert!(!output.contains("templates/issue-workflow.md"));
-    }
-
-    #[test]
-    fn topic_errors_for_an_unknown_topic() {
-        assert!(topic("living-docs", "no-such-topic").is_err());
-    }
-
-    #[test]
-    fn topic_errors_for_an_unknown_skill() {
-        assert!(topic("no-such-skill", "adr").is_err());
-    }
-
-    #[test]
-    fn list_json_matches_list_names_and_topics() {
-        let plain = list().expect("list succeeds with an embedded corpus");
-        let output = list_json().expect("list_json succeeds with an embedded corpus");
-        let parsed: SkillListJson =
-            serde_json::from_str(&output).expect("list_json emits valid JSON");
-        let living_docs = parsed
-            .skills
-            .iter()
-            .find(|skill| skill.name == "living-docs")
-            .expect("living-docs is present in list_json");
-        assert!(living_docs.topics.contains(&"adr".to_owned()));
-        assert!(plain.contains("living-docs"));
-        assert!(!output.contains('\n'));
-    }
-
-    #[test]
-    fn body_json_matches_body_content() {
-        let plain = body("living-docs").expect("living-docs/SKILL.md is embedded");
-        let output = body_json("living-docs").expect("body_json succeeds for a known skill");
-        let parsed: SkillBodyJson =
-            serde_json::from_str(&output).expect("body_json emits valid JSON");
-        assert_eq!(parsed.skill, "living-docs");
-        assert_eq!(parsed.content, plain);
-        assert!(!output.contains('\n'));
-    }
-
-    #[test]
-    fn body_json_errors_for_an_unknown_skill() {
-        assert!(body_json("no-such-skill").is_err());
-    }
-
-    #[test]
-    fn topic_json_adr_matches_the_rule_and_template_ordering() {
-        let output = topic_json("living-docs", "adr").expect("adr topic_json resolves");
-        let parsed: SkillTopicJson =
-            serde_json::from_str(&output).expect("topic_json emits valid JSON");
-        assert_eq!(parsed.skill, "living-docs");
-        assert_eq!(parsed.topic, "adr");
-        let paths: Vec<&str> = parsed.parts.iter().map(|part| part.path.as_str()).collect();
-        assert_eq!(
-            paths,
-            vec![
-                "living-docs/rules/adr-conventions.md",
-                "living-docs/templates/adr.md"
-            ]
-        );
-        assert!(!output.contains('\n'));
-    }
-
-    #[test]
-    fn topic_json_errors_for_an_unknown_topic() {
-        assert!(topic_json("living-docs", "no-such-topic").is_err());
-    }
-
-    #[test]
-    fn asset_returns_the_raw_bytes_of_an_embedded_hook_script() {
-        let bytes =
-            asset("living-docs/hooks/session-context.sh").expect("session-context.sh is embedded");
-        assert!(bytes.starts_with(b"#!"));
-    }
-
-    #[test]
-    fn asset_returns_none_for_an_unknown_path() {
-        assert!(asset("living-docs/hooks/no-such-script.sh").is_none());
-    }
 }

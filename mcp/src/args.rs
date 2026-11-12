@@ -55,13 +55,26 @@ pub struct SupersedeArgs {
     pub new: String,
 }
 
-/// Read the bundle: `records`.
+/// Read the bundle: `records` or `guide`.
 #[derive(Deserialize, JsonSchema)]
 #[serde(tag = "operation", rename_all = "snake_case")]
 #[schemars(extend("type" = "object"))]
 pub enum ReadArgs {
     /// The in-force records: active only, supersede chains collapsed to the head.
     Records(RecordsArgs),
+    /// The authoring guide: list the skills and topics, a skill's SKILL.md, or one topic.
+    Guide(GuideArgs),
+}
+
+#[derive(Deserialize, JsonSchema)]
+pub struct GuideArgs {
+    /// The skill to read; defaults to `living-docs`.
+    pub skill: Option<String>,
+    /// One topic of the skill, such as `adr`; omitted returns the skill's SKILL.md.
+    pub topic: Option<String>,
+    /// List every skill with its topics; excludes `skill` and `topic`.
+    #[serde(default)]
+    pub list: bool,
 }
 
 #[derive(Deserialize, JsonSchema)]

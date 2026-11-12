@@ -8,6 +8,7 @@ pub mod check;
 pub mod commands;
 pub mod doc_type;
 pub mod frontmatter;
+pub mod guide;
 mod line_ending;
 pub mod paths;
 pub mod record;

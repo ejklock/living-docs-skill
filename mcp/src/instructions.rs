@@ -7,7 +7,7 @@ pub fn instructions(docs_dir: &Path) -> String {
         "This server serves one living-docs bundle: {bundle}\n\
 \n\
 Four tools, each grouping operations by an `operation` argument:\n\
-- `read` (records): the in-force view of the bundle. Filter with `topic`, or ask `links_to` / `impact` for the records that depend on one.\n\
+- `read` (records, guide): `records` is the in-force view of the bundle; filter with `topic`, or ask `links_to` / `impact` for the records that depend on one. `guide` is the authoring guide: `list` shows the skills and topics, `skill` and `topic` read one.\n\
 - `write` (new, set, supersede): the only way to create or change a record.\n\
 - `manage` (index, fmt): regenerate indexes and canonicalize frontmatter.\n\
 - `check`: the gate. It reports violations as data; run it after writing.\n\

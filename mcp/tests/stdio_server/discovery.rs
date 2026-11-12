@@ -29,7 +29,7 @@ async fn lists_the_four_tools_in_a_fixed_order_with_their_operations() {
             Value::Object((*tool.input_schema).clone())
         };
         assert_eq!(operations(&schema("write")), ["new", "set", "supersede"]);
-        assert_eq!(operations(&schema("read")), ["records"]);
+        assert_eq!(operations(&schema("read")), ["records", "guide"]);
         assert_eq!(operations(&schema("manage")), ["index", "fmt"]);
         assert!(schema("check").is_object());
     }

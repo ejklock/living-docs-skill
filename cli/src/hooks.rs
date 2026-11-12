@@ -1,10 +1,10 @@
-use crate::{output::outln, skill};
 use serde_json::{json, Value};
 use std::borrow::Cow;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::{fs, io};
+use {crate::output::outln, living_docs_core::guide};
 
 pub(crate) mod gitattributes;
 
@@ -136,7 +136,7 @@ fn resolve_scripts() -> Result<Vec<HookScript>, String> {
 }
 
 fn resolve_one(path: &'static str) -> Result<HookScript, String> {
-    let bytes = skill::asset(path).ok_or_else(|| format!("missing embedded asset: {path}"))?;
+    let bytes = guide::asset(path).ok_or_else(|| format!("missing embedded asset: {path}"))?;
     Ok(HookScript {
         basename: basename_of(path),
         bytes,

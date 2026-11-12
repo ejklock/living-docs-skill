@@ -10,7 +10,6 @@ mod commands;
 mod doc_gate;
 mod hooks;
 mod output;
-mod skill;
 mod skill_install;
 mod store;
 

@@ -1,5 +1,6 @@
 use crate::args::{
-    CheckArgs, ManageArgs, NewArgs, ReadArgs, RecordsArgs, SetArgs, SupersedeArgs, WriteArgs,
+    CheckArgs, GuideArgs, ManageArgs, NewArgs, ReadArgs, RecordsArgs, SetArgs, SupersedeArgs,
+    WriteArgs,
 };
 use crate::BundleServer;
 use fs_store::{git, FsStore};
@@ -8,6 +9,7 @@ use living_docs_core::commands::effective::{self, Dependents};
 use living_docs_core::commands::fmt::{self, Outcome as FmtOutcome, Seeds};
 use living_docs_core::commands::index::Indexed;
 use living_docs_core::commands::{index, new, set, supersede};
+use living_docs_core::guide;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{CallToolResult, ContentBlock};
 use rmcp::{tool, tool_router};
@@ -138,8 +140,30 @@ fn dependents_of(docs_dir: &Path, args: &RecordsArgs) -> Result<Option<Dependent
     )
 }
 
+fn rendered_guide(args: &GuideArgs) -> Result<String, String> {
+    if args.list {
+        if args.skill.is_some() || args.topic.is_some() {
+            return Err("list excludes skill and topic".to_string());
+        }
+        return guide::list_json();
+    }
+    let skill = args.skill.as_deref().unwrap_or(guide::DEFAULT_SKILL);
+    match args.topic.as_deref() {
+        Some(topic) => guide::topic_json(skill, topic),
+        None => guide::body_json(skill),
+    }
+}
+
+fn run_guide(args: &GuideArgs) -> Answer {
+    let rendered = rendered_guide(args)?;
+    serde_json::from_str(&rendered).map_err(|error| error.to_string())
+}
+
 fn run_read(docs_dir: &Path, args: &ReadArgs) -> Answer {
-    let ReadArgs::Records(args) = args;
+    let args = match args {
+        ReadArgs::Records(args) => args,
+        ReadArgs::Guide(args) => return run_guide(args),
+    };
     let options = effective::Options {
         topic: args.topic.clone(),
         full: args.full,
@@ -197,7 +221,7 @@ impl BundleServer {
 
     #[tool(
         name = "read",
-        description = "Read the bundle. operation `records` returns the in-force records, filtered by `topic`, or by `links_to` / `impact` for the records that depend on one."
+        description = "Read the bundle. operation `records` returns the in-force records, filtered by `topic`, or by `links_to` / `impact` for the records that depend on one; `guide` reads the authoring guide: `list` the skills and topics, or a `skill`'s SKILL.md (default living-docs), or one `topic` of it."
     )]
     pub(crate) fn read(&self, Parameters(args): Parameters<ReadArgs>) -> CallToolResult {
         shaped(run_read(&self.docs_dir, &args))

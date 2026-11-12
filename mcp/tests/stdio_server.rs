@@ -8,3 +8,5 @@ mod check_and_read;
 mod common;
 #[path = "stdio_server/discovery.rs"]
 mod discovery;
+#[path = "stdio_server/guide.rs"]
+mod guide;

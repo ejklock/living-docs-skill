@@ -13,9 +13,6 @@ mod args;
 #[path = "../src/output.rs"]
 #[allow(dead_code)]
 mod output;
-#[path = "../src/skill.rs"]
-#[allow(dead_code)]
-mod skill;
 #[path = "../src/skill_install.rs"]
 #[allow(dead_code)]
 mod skill_install;

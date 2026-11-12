@@ -4,11 +4,9 @@
 
 use crate::args::GuideArgs;
 use crate::output::{write_stdout_bytes, OutputMode};
-use crate::skill;
 use crate::store::report_failure;
+use living_docs_core::guide;
 use std::process::ExitCode;
-
-const DEFAULT_SKILL: &str = "living-docs";
 
 /// The skill and, optionally, the topic `guide` resolves to run against.
 struct Target {
@@ -32,7 +30,7 @@ fn resolve_target(args: &GuideArgs) -> Target {
         };
     }
     if let Some(candidate) = &args.topic_or_skill {
-        if skill::skill_names().contains(candidate) {
+        if guide::skill_names().contains(candidate) {
             return Target {
                 skill: candidate.clone(),
                 topic: None,
@@ -40,7 +38,7 @@ fn resolve_target(args: &GuideArgs) -> Target {
         }
     }
     Target {
-        skill: DEFAULT_SKILL.to_owned(),
+        skill: guide::DEFAULT_SKILL.to_owned(),
         topic: args.topic_or_skill.clone(),
     }
 }
@@ -49,22 +47,22 @@ pub(crate) fn run_guide(args: GuideArgs, mode: OutputMode) -> ExitCode {
     let as_json = mode.is_json();
     if args.list {
         return print_guide_result(if as_json {
-            skill::list_json()
+            guide::list_json()
         } else {
-            skill::list()
+            guide::list()
         });
     }
     let target = resolve_target(&args);
     match target.topic {
         Some(topic) => print_guide_result(if as_json {
-            skill::topic_json(&target.skill, &topic)
+            guide::topic_json(&target.skill, &topic)
         } else {
-            skill::topic(&target.skill, &topic)
+            guide::topic(&target.skill, &topic)
         }),
         None => print_guide_result(if as_json {
-            skill::body_json(&target.skill)
+            guide::body_json(&target.skill)
         } else {
-            skill::body(&target.skill)
+            guide::body(&target.skill)
         }),
     }
 }
