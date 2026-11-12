@@ -125,6 +125,53 @@ invoke "$repo"
 assert_exit    "7-exit-0"   0
 assert_out_has "7-advisory" "ADVISORY: src/big.rs shrank to 350 lines (baseline 400)"
 
+echo "case 8: repo located under .claude/worktrees/ gives the verdict of any other location"
+repo="$(new_repo .claude/worktrees/wt8)"
+write_rs_file "$repo/src/big.rs" 301
+write_baseline "$repo" "301 src/big.rs"
+invoke "$repo"
+assert_exit    "8-exit-0" 0
+assert_out_has "8-ok"     "File-size ratchet OK"
+write_rs_file "$repo/src/big.rs" 302
+invoke "$repo"
+assert_exit    "8-grew-exit-1" 1
+assert_out_has "8-grew"        "GREW: src/big.rs has 302 lines, exceeds its baseline of 301"
+
+echo "case 9: .rs file inside a nested worktree of the repo is not counted"
+repo="$(new_repo case9)"
+write_rs_file "$repo/src/lib.rs" 10
+write_rs_file "$repo/.claude/worktrees/other/src/huge.rs" 301
+invoke "$repo"
+assert_exit    "9-exit-0" 0
+assert_out_has "9-ok"     "File-size ratchet OK"
+
+echo "case 10: repo whose path holds a glob bracket still ignores its nested worktrees"
+repo="$(new_repo 'a[1]/repo')"
+write_rs_file "$repo/src/lib.rs" 10
+write_rs_file "$repo/.claude/worktrees/other/src/huge.rs" 301
+invoke "$repo"
+assert_exit    "10-exit-0" 0
+assert_out_has "10-ok"     "File-size ratchet OK"
+
+echo "case 11: repo under a target/ directory counts its own files"
+repo="$(new_repo target/repo)"
+write_rs_file "$repo/src/big.rs" 301
+write_baseline "$repo" "301 src/big.rs"
+invoke "$repo"
+assert_exit    "11-exit-0" 0
+assert_out_has "11-ok"     "File-size ratchet OK"
+
+echo "case 12: root-level target/ and .git/ are ignored, a nested src/target/ is counted"
+repo="$(new_repo case12)"
+write_rs_file "$repo/target/debug/huge.rs" 301
+write_rs_file "$repo/.git/huge.rs" 301
+invoke "$repo"
+assert_exit    "12-exit-0" 0
+write_rs_file "$repo/src/target/x.rs" 301
+invoke "$repo"
+assert_exit    "12-nested-exit-1" 1
+assert_out_has "12-nested"        "OVER LIMIT: src/target/x.rs"
+
 echo
 if ((fail == 0)); then
   echo "All check-file-size fixtures passed."

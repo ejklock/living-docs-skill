@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# check-allow-inventory.sh — enforce the shrink-only allow-inventory gate (issue 0028 R3b).
+# check-allow-inventory.sh — enforce the shrink-only allow-inventory gate.
 #
 # Every #[allow(clippy::too_many_lines)] annotation is inventoried in
 # scripts/allow-inventory-baseline.txt at the count measured when the lint was enabled. A
@@ -11,7 +11,9 @@
 # baseline entry for a file that no longer exists is stale and fails.
 #
 # .claude/worktrees/ holds other agents' parallel git worktrees; their .rs files are
-# excluded the same way target/ is (see check-file-size.sh for the same rationale).
+# excluded the same way target/ is (see check-file-size.sh for the same rationale); the scan
+# runs from the root over relative paths, so a checkout's own location (under .claude/worktrees/,
+# under a target/ directory, or a path holding a glob character) never changes the verdict.
 #
 # Usage:  check-allow-inventory.sh
 # Exit:   0 = no violations, 1 = at least one violation.
@@ -81,16 +83,14 @@ check_stale_entries() {
 }
 
 enumerate_and_check() {
-	local file rel count
-	while IFS= read -r -d '' file; do
-		rel="${file#"$root"/}"
-		count="$(count_allows "$file")"
+	local rel count
+	while IFS= read -r -d '' rel; do
+		rel="${rel#./}"
+		count="$(count_allows "$root/$rel")"
 		check_current_file "$rel" "$count"
-	done < <(find "$root" -name '*.rs' \
-		-not -path '*/target/*' \
-		-not -path '*/.git/*' \
-		-not -path '*/.claude/worktrees/*' \
-		-print0)
+	done < <(cd "$root" && find . \
+		\( -path ./.claude/worktrees -o -path ./target -o -path ./.git \) -prune -o \
+		-name '*.rs' -print0)
 }
 
 load_baseline

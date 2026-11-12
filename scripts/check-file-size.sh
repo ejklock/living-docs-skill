@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# check-file-size.sh — enforce the 300-line file-size ratchet (issue 0028, CLAUDE.md rule 5).
+# check-file-size.sh — enforce the 300-line file-size ratchet (CLAUDE.md rule 5).
 #
 # Every .rs file must stay at or under 300 lines. A file already over the limit when the
 # ratchet was introduced is grandfathered in scripts/file-size-baseline.txt at its measured
@@ -11,7 +11,10 @@
 # .claude/worktrees/ holds other agents' parallel git worktrees (separate branches, sharing
 # this repo's objects). Their .rs files are not part of this checkout's canonical tree, so
 # counting them would make the gate's outcome depend on which worktrees happen to exist at
-# run time — the opposite of deterministic. They are excluded the same way target/ is.
+# run time — the opposite of deterministic. The same holds for where the checkout itself lives:
+# its own location (under .claude/worktrees/, under a target/ directory, or a path holding a
+# glob character) never changes the verdict. The scan therefore runs from the root over relative
+# paths and prunes only the root's own .claude/worktrees, target and .git.
 #
 # Usage:  check-file-size.sh
 # Exit:   0 = no violations, 1 = at least one violation.
@@ -77,16 +80,14 @@ check_stale_entries() {
 }
 
 enumerate_and_check() {
-	local file rel lines
-	while IFS= read -r -d '' file; do
-		rel="${file#"$root"/}"
-		lines="$(wc -l <"$file" | tr -d '[:space:]')"
+	local rel lines
+	while IFS= read -r -d '' rel; do
+		rel="${rel#./}"
+		lines="$(wc -l <"$root/$rel" | tr -d '[:space:]')"
 		check_current_file "$rel" "$lines"
-	done < <(find "$root" -name '*.rs' \
-		-not -path '*/target/*' \
-		-not -path '*/.git/*' \
-		-not -path '*/.claude/worktrees/*' \
-		-print0)
+	done < <(cd "$root" && find . \
+		\( -path ./.claude/worktrees -o -path ./target -o -path ./.git \) -prune -o \
+		-name '*.rs' -print0)
 }
 
 load_baseline

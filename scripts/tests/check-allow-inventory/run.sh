@@ -122,6 +122,53 @@ invoke "$repo"
 assert_exit    "6-exit-0"   0
 assert_out_has "6-advisory" "ADVISORY: src/lib.rs shrank to 2 allow(s) (baseline 3)"
 
+echo "case 7: repo located under .claude/worktrees/ gives the verdict of any other location"
+repo="$(new_repo .claude/worktrees/wt7)"
+write_rs_file "$repo/src/lib.rs" 3
+write_baseline "$repo" "3 src/lib.rs"
+invoke "$repo"
+assert_exit    "7-exit-0" 0
+assert_out_has "7-ok"     "Allow-inventory gate OK"
+write_rs_file "$repo/src/lib.rs" 4
+invoke "$repo"
+assert_exit    "7-grew-exit-1" 1
+assert_out_has "7-grew"        "GREW: src/lib.rs has 4 allow(s), exceeds its baseline of 3"
+
+echo "case 8: allow inside a nested worktree of the repo is not counted"
+repo="$(new_repo case8)"
+write_rs_file "$repo/src/lib.rs" 0
+write_rs_file "$repo/.claude/worktrees/other/src/x.rs" 2
+invoke "$repo"
+assert_exit    "8-exit-0" 0
+assert_out_has "8-ok"     "Allow-inventory gate OK"
+
+echo "case 9: repo whose path holds a glob bracket still ignores its nested worktrees"
+repo="$(new_repo 'a[1]/repo')"
+write_rs_file "$repo/src/lib.rs" 0
+write_rs_file "$repo/.claude/worktrees/other/src/x.rs" 2
+invoke "$repo"
+assert_exit    "9-exit-0" 0
+assert_out_has "9-ok"     "Allow-inventory gate OK"
+
+echo "case 10: repo under a target/ directory counts its own files"
+repo="$(new_repo target/repo)"
+write_rs_file "$repo/src/lib.rs" 3
+write_baseline "$repo" "3 src/lib.rs"
+invoke "$repo"
+assert_exit    "10-exit-0" 0
+assert_out_has "10-ok"     "Allow-inventory gate OK"
+
+echo "case 11: root-level target/ and .git/ are ignored, a nested src/target/ is counted"
+repo="$(new_repo case11)"
+write_rs_file "$repo/target/debug/x.rs" 2
+write_rs_file "$repo/.git/x.rs" 2
+invoke "$repo"
+assert_exit    "11-exit-0" 0
+write_rs_file "$repo/src/target/x.rs" 2
+invoke "$repo"
+assert_exit    "11-nested-exit-1" 1
+assert_out_has "11-nested"        "NEW ALLOW: src/target/x.rs"
+
 echo
 if ((fail == 0)); then
   echo "All check-allow-inventory fixtures passed."

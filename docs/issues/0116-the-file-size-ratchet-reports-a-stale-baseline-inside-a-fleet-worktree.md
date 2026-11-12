@@ -20,3 +20,7 @@ timestamp: 2026-11-12T18:19:45Z
 
 - `make check` (the file-size and allow-inventory steps) gives the same verdict in a worktree under `.claude/worktrees/` as in the main checkout at the same commit.
 - A `.rs` file inside a nested `.claude/worktrees/<name>/` of the main checkout is still not counted by either script; the fixtures under `scripts/tests/check-file-size/` and `scripts/tests/check-allow-inventory/` cover both cases.
+
+### Decision
+
+- Both scripts enumerate with `find .` run from `$root` and prune `./.claude/worktrees`, `./target` and `./.git` by relative path. The reviewer of the first fix found that an absolute `"$root/.claude/worktrees/*"` pattern stops matching when the root path holds a `[` (find reads `-path` as a glob), and, as pre-existing defects in the same expression, that the unanchored `target/` and `.git/` patterns drop every file of a repository under any `/target/` directory, and that the scan walks every sibling worktree (5.17 s against 0.02 s with `-prune`). One relative, pruned expression fixes all three, so they ship here. Not taken: escaping glob characters in `$root` and tracking `target/`, `.git/` and the speed in a separate issue, which would rewrite the same line twice (session, 2026-11-12).
