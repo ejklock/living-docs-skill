@@ -24,7 +24,8 @@ The mechanical half of that discipline is owned end-to-end by the bundled
 **scaffolds records** (`write new`), **drives their lifecycle** (`write set`, `write supersede`),
 **rebuilds indexes** (`manage index`, `manage fmt`), **validates the invariants** (`check`),
 **compiles the in-force view an agent reads** (`read records`), and **serves the skill
-corpus and the enforcement hooks** (`read guide`, `manage install`, `manage uninstall`). There is no LLM
+corpus and the enforcement hooks** (`read guide`, `manage install`, `manage uninstall`); a fifth command, `mcp`, serves the same
+four to an MCP client over stdio. There is no LLM
 inside the tool: the agent writes only the judgment prose; everything mechanical is
 deterministic and reproducible.
 

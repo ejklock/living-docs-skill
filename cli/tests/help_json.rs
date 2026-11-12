@@ -7,7 +7,7 @@ use common::living_docs;
 use serde_json::Value;
 use std::process::Output;
 
-const VERBS: [&str; 4] = ["write", "read", "manage", "check"];
+const VERBS: [&str; 5] = ["write", "read", "manage", "check", "mcp"];
 
 fn run(args: &[&str]) -> Output {
     living_docs()
@@ -80,7 +80,7 @@ fn piped_root_help_is_one_json_line_naming_every_verb_and_hiding_retired_names()
 }
 
 #[test]
-fn piped_root_help_lists_the_four_verbs_without_groups() {
+fn piped_root_help_lists_every_command_without_groups() {
     let doc = json_of(&["--help"]);
 
     assert!(doc.get("groups").is_none(), "groups present: {doc}");

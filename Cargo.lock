@@ -897,6 +897,7 @@ dependencies = [
  "clap_complete",
  "fs-store",
  "living-docs-core",
+ "living-docs-mcp",
  "rust-embed",
  "serde",
  "serde_json",

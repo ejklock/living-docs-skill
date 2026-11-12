@@ -1,5 +1,5 @@
-//! `--help`/`completions` coverage: the root help lists the four verbs
-//! (`write`, `read`, `manage`, `check`) without group headings, with
+//! `--help`/`completions` coverage: the root help lists the five commands
+//! (`write`, `read`, `manage`, `check`, `mcp`) without group headings, with
 //! `effective`/`skill` absent (retired), every operation's help ends with
 //! its examples and the exit-code table, and `completions <shell>` prints a
 //! non-empty script.
@@ -32,7 +32,7 @@ fn stdout_of(output: &Output) -> String {
     String::from_utf8_lossy(&output.stdout).to_string()
 }
 
-const VERBS: [&str; 4] = ["write", "read", "manage", "check"];
+const VERBS: [&str; 5] = ["write", "read", "manage", "check", "mcp"];
 
 fn lists_as_a_command(help: &str, name: &str) -> bool {
     help.lines()
@@ -50,7 +50,7 @@ fn non_hidden_verb_names() -> BTreeSet<String> {
 }
 
 #[test]
-fn root_help_lists_the_four_verbs() {
+fn root_help_lists_every_command() {
     let output = living_docs()
         .arg("--help")
         .output()

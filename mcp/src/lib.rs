@@ -89,3 +89,17 @@ pub async fn serve_stdio(docs_dir: &Path) -> Result<(), String> {
         .map(|_| ())
         .map_err(|error: tokio::task::JoinError| error.to_string())
 }
+
+/// Runs [`serve_stdio`] to completion on a runtime built for the call, for a
+/// caller that has no async runtime of its own.
+///
+/// # Errors
+/// Returns the failure to build the runtime, to start the session or to run it
+/// to its end.
+pub fn serve_stdio_blocking(docs_dir: &Path) -> Result<(), String> {
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .map_err(|error| error.to_string())?
+        .block_on(serve_stdio(docs_dir))
+}

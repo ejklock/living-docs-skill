@@ -2,8 +2,8 @@
 //!
 //! `--help` comes from the explicit `about`/`after_help` attributes in
 //! `args/help.rs`, one short line plus a real `Examples:` block per verb,
-//! and from the help on each argument here. The root `--help` lists the four
-//! verbs (`write`, `read`, `manage`, `check`) in clap's own command listing.
+//! and from the help on each argument here. The root `--help` lists the five
+//! commands (`write`, `read`, `manage`, `check`, `mcp`) in clap's own command listing.
 //! Off a TTY the help and version print as JSON from `args/help_json.rs`.
 
 use crate::output::{outln, ColorChoice};
@@ -146,6 +146,8 @@ pub(crate) enum Command {
     },
     #[command(about = help::CHECK_ABOUT, long_about = help::check_long_about(), after_help = help::with_exit_codes(help::CHECK_EXAMPLES))]
     Check(CheckArgs),
+    #[command(about = help::MCP_ABOUT, long_about = None, after_help = help::with_exit_codes(help::MCP_EXAMPLES))]
+    Mcp,
 }
 
 #[cfg(test)]

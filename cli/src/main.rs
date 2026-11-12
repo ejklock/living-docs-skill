@@ -24,6 +24,7 @@ fn main() -> ExitCode {
         Command::Read { operation } => run_read(&cli.docs_dir, operation, mode, quiet),
         Command::Manage { operation } => run_manage(&cli.docs_dir, operation, mode, quiet),
         Command::Check(args) => run_check(&cli.docs_dir, args, mode, color, quiet),
+        Command::Mcp => commands::mcp::run_mcp(&cli.docs_dir),
     }
 }
 

@@ -85,8 +85,9 @@ fronts:
   search index, no web front and no publication path in the workspace. They return only
   as workspace fronts when a consumer needs cross-project search or an independently
   deployed surface; `grep` and `read records --topic` answer the search question until then.
-- **Four verbs, one gate (ADR 0076).** `write` (`new`, `set`, `supersede`), `read` (`records`,
-  `guide`), `manage` (`index`, `fmt`, `install`, `uninstall`, `completions`) and `check`. `check` at
+- **Four verbs, one gate, and `mcp` (ADR 0076, 0078).** `write` (`new`, `set`, `supersede`), `read` (`records`,
+  `guide`), `manage` (`index`, `fmt`, `install`, `uninstall`, `completions`) and `check`; `mcp` is the fifth
+  top-level command and serves the bundle over stdio as the same four as tools. `check` at
   commit and in CI is the only enforcement; there is no write-time hook.
 - **One authoring path.** `write new` scaffolds the numbered file with frontmatter and heading
   filled and every body section as a `{{SLOT: hint}}`; the author edits the body; an

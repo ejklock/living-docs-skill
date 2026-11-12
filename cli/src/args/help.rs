@@ -246,12 +246,20 @@ pub(crate) const COMPLETIONS_EXAMPLES: &[&str] = &[
     "living-docs manage completions zsh > \"${fpath[1]}/_living-docs\"",
 ];
 
-const EXAMPLES: [(&[&str], &[&str]); 17] = [
+pub(crate) const MCP_ABOUT: &str =
+    "Serves the bundle to an MCP client over stdio as the write, read, manage and check tools.";
+pub(crate) const MCP_EXAMPLES: &[&str] = &[
+    "living-docs mcp --docs-dir docs",
+    "claude mcp add living-docs -- living-docs mcp --docs-dir docs",
+];
+
+const EXAMPLES: [(&[&str], &[&str]); 18] = [
     (&["write"], WRITE_EXAMPLES),
     (&["write", "new"], NEW_EXAMPLES),
     (&["write", "set"], SET_EXAMPLES),
     (&["write", "supersede"], SUPERSEDE_EXAMPLES),
     (&["check"], CHECK_EXAMPLES),
+    (&["mcp"], MCP_EXAMPLES),
     (&["read"], READ_EXAMPLES),
     (&["read", "records"], RECORDS_EXAMPLES),
     (&["read", "guide"], GUIDE_EXAMPLES),
