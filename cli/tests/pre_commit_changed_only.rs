@@ -1,4 +1,4 @@
-//! The pre-commit hook's `LIVING_DOCS_CHECK_CHANGED_ONLY` opt-in (ADR 0062):
+//! The pre-commit hook's `LIVING_DOCS_CHECK_CHANGED_ONLY` opt-in:
 //! a bundle carrying legacy debt can still gate the records a commit touches.
 //! Drives the real `.githooks/pre-commit` script through `git commit`.
 
@@ -19,24 +19,31 @@ fn hook_source() -> PathBuf {
         .join(".githooks/pre-commit")
 }
 
-fn git(repo: &Path, args: &[&str]) -> Output {
+/// Runs `git` seeing only the scratch repo: no inherited environment and no
+/// system or user configuration. `PATH` holds the test binary's directory and
+/// a fixed system tail, and `vars` are the only extra variables the hook sees.
+fn git_with(repo: &Path, vars: &[(&str, &str)], args: &[&str]) -> Output {
     let binary = PathBuf::from(env!("CARGO_BIN_EXE_living-docs"));
     let bin_dir = binary.parent().expect("the test binary has a directory");
-    let path = format!(
-        "{}:{}",
-        bin_dir.display(),
-        std::env::var("PATH").unwrap_or_default()
-    );
     Command::new("git")
         .current_dir(repo)
-        .env("PATH", path)
+        .env_clear()
+        .env("HOME", repo)
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("PATH", format!("{}:/usr/bin:/bin", bin_dir.display()))
         .env("GIT_AUTHOR_NAME", "T")
         .env("GIT_AUTHOR_EMAIL", "t@example.com")
         .env("GIT_COMMITTER_NAME", "T")
         .env("GIT_COMMITTER_EMAIL", "t@example.com")
+        .envs(vars.iter().copied())
         .args(args)
         .output()
         .expect("failed to run git")
+}
+
+fn git(repo: &Path, args: &[&str]) -> Output {
+    git_with(repo, &[], args)
 }
 
 /// A git repo whose bundle carries one record with legacy debt and one clean
@@ -92,27 +99,11 @@ fn the_hook_blocks_a_commit_on_legacy_debt_by_default() {
 fn the_hook_passes_the_same_commit_under_the_changed_only_opt_in() {
     let repo = repo_with_debt("changed-only");
 
-    let output = Command::new("git")
-        .current_dir(&repo)
-        .env("LIVING_DOCS_CHECK_CHANGED_ONLY", "1")
-        .env(
-            "PATH",
-            format!(
-                "{}:{}",
-                PathBuf::from(env!("CARGO_BIN_EXE_living-docs"))
-                    .parent()
-                    .expect("the test binary has a directory")
-                    .display(),
-                std::env::var("PATH").unwrap_or_default()
-            ),
-        )
-        .env("GIT_AUTHOR_NAME", "T")
-        .env("GIT_AUTHOR_EMAIL", "t@example.com")
-        .env("GIT_COMMITTER_NAME", "T")
-        .env("GIT_COMMITTER_EMAIL", "t@example.com")
-        .args(["commit", "-m", "test: clean record"])
-        .output()
-        .expect("failed to run git commit");
+    let output = git_with(
+        &repo,
+        &[("LIVING_DOCS_CHECK_CHANGED_ONLY", "1")],
+        &["commit", "-m", "test: clean record"],
+    );
 
     assert!(
         output.status.success(),
