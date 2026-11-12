@@ -46,6 +46,49 @@ fn hook_teaches_index_repairs_an_index_after_a_merge() {
 }
 
 #[test]
+fn hook_teaches_reading_before_deciding_and_before_editing() {
+    let out = hook_output();
+    for read_form in [
+        "living-docs read records --topic <term>",
+        "read records --links-to <TYPE/NNNN>",
+        "--impact <TYPE/NNNN>",
+        "living-docs read guide <topic>",
+    ] {
+        assert!(out.contains(read_form), "{read_form}: {out}");
+    }
+}
+
+#[test]
+fn hook_names_the_index_as_what_a_hand_written_edit_breaks() {
+    let out = hook_output();
+    assert!(
+        out.contains("or a hand edit. A hand-written index fails `living-docs check` at commit."),
+        "{out}"
+    );
+}
+
+#[test]
+fn hook_exits_zero_and_stays_one_line_without_a_cli() {
+    let root = Path::new(env!("CARGO_TARGET_TMPDIR")).join("session-context-no-cli");
+    std::fs::create_dir_all(&root).expect("create scratch project");
+    let script = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join("skills/living-docs/hooks/session-context.sh");
+    let output = Command::new("/bin/bash")
+        .arg(&script)
+        .env("CLAUDE_PROJECT_DIR", &root)
+        .env("PATH", "/usr/bin:/bin")
+        .output()
+        .expect("failed to run the session-context script");
+    let out = String::from_utf8(output.stdout).expect("hook output is utf-8");
+    assert!(output.status.success());
+    assert!(out.contains("CLI not built"), "{out}");
+    assert_eq!(out.trim_end_matches('\n').lines().count(), 1, "{out}");
+    assert!(out.contains("living-docs read records --topic <term>"), "{out}");
+}
+
+#[test]
 fn hook_still_names_every_verb_it_taught_before() {
     let out = hook_output();
     for verb in [

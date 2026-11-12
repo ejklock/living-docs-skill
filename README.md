@@ -272,6 +272,50 @@ Copy `skills/living-docs/`, `skills/okf-knowledge-format/`,
 just read the `SKILL.md` files — they are plain markdown meant to be read by
 humans and agents alike.
 
+### Use it from an MCP client
+
+`living-docs mcp --docs-dir docs` serves the bundle over stdio as the write, read, manage
+and check tools. Run it from the project root, so `docs` resolves. Add it to Claude Code:
+
+```bash
+claude mcp add living-docs -- living-docs mcp --docs-dir docs
+```
+
+A client configured by an `mcpServers` JSON object (Claude Desktop, Cursor) takes:
+
+```json
+{
+  "mcpServers": {
+    "living-docs": {
+      "command": "living-docs",
+      "args": ["mcp", "--docs-dir", "docs"]
+    }
+  }
+}
+```
+
+Without a global install, run the package through npx. For Claude Code:
+
+```bash
+claude mcp add living-docs -- npx -y @ejklock/living-docs mcp --docs-dir docs
+```
+
+For an `mcpServers` JSON object, `command` holds the program alone and `args` the rest:
+
+```json
+{
+  "mcpServers": {
+    "living-docs": {
+      "command": "npx",
+      "args": ["-y", "@ejklock/living-docs", "mcp", "--docs-dir", "docs"]
+    }
+  }
+}
+```
+
+A client that does not start the server in the project root needs an absolute `--docs-dir`
+(`"args": ["mcp", "--docs-dir", "/path/to/project/docs"]`).
+
 ### Companion skills (Matt Pocock) — referenced, not bundled
 
 Living Docs *composes with* but does **not** bundle or install Matt Pocock's

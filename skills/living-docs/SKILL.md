@@ -31,6 +31,9 @@ JSON.
 
 Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs write set` / `write supersede`.
 
+- An MCP client can call the same verbs as tools: `living-docs mcp --docs-dir docs` serves them
+  over stdio (setup: `claude mcp add living-docs -- living-docs mcp --docs-dir docs`; the
+  `mcpServers` JSON and npx forms are in the README at https://github.com/ejklock/living-docs-skill).
 - The spine invariants → `living-docs read guide spine`.
 - Authoring mechanics — CLI owns every deterministic step, you write only the prose →
   `living-docs read guide procedure`.
