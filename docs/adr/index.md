@@ -50,6 +50,7 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0078 — An MCP front serves the bundle over stdio as write, read, manage and check tools from the living-docs mcp subcommand](0078-an-mcp-front-serves-the-bundle-over-stdio-as-write-read-manage-and-check-tools-from-the-living-docs-mcp-subcommand.md) - Proposed
 * [0079 — stale-proposed counts only an issue that declares it implements the ADR](0079-stale-proposed-counts-only-an-issue-that-declares-it-implements-the-adr.md) - Proposed
 * [0080 — write set section refuses to drop child headings the new text does not carry](0080-write-set-section-refuses-to-drop-child-headings-the-new-text-does-not-carry.md) - Proposed
+* [0081 — The distributed pre-commit hook is the only copy and environment variables opt it into changed-only and owner checks](0081-the-distributed-pre-commit-hook-is-the-only-copy-and-environment-variables-opt-it-into-changed-only-and-owner-checks.md) - Proposed
 
 ## Superseded
 

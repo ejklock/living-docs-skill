@@ -21,3 +21,8 @@ The distributed pre-commit hook `skills/living-docs/hooks/pre-commit` and this r
 - `LIVING_DOCS_CHECK_CHANGED_ONLY=1` narrows the verdict in a project that installed the hook with `manage install hooks`.
 - `.githooks/pre-commit` is byte-identical to the installed copy, and a test fails when they differ.
 - `se-gates check` passes with no `.githooks/**` ignore in `.jscpd.json`.
+
+### Decision
+
+- Implements [ADR 0081](/adr/0081-the-distributed-pre-commit-hook-is-the-only-copy-and-environment-variables-opt-it-into-changed-only-and-owner-checks.md).
+- A project requires owners by setting `LIVING_DOCS_REQUIRE_OWNER=1`, the same opt-in shape as `LIVING_DOCS_CHECK_CHANGED_ONLY`. Because this repository's hook then stops forcing `--require-owner`, `make check` gains `check --require-owner docs`, so CI keeps requiring owners here. An ADR fixes the hook's contract before code. Not taken: a `living-docs.requireOwner` git config per clone; always requiring owners, which breaks projects that already installed the hook; dropping the owner requirement (owner, 2026-11-12).
