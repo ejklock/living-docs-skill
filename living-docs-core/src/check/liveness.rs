@@ -5,13 +5,12 @@
 //! the ADR to an issue is history and never counts. The exit code never moves,
 //! same posture as `SIZE` and `MOVED-SOURCE`.
 
-use super::links::resolve_destination;
+use super::links::{link_starts, resolve_destination, LinkKind};
 use super::records::{frontmatter_scalar, is_reserved};
 use super::{file_name_str, kinds, Reporter};
 use crate::doc_type;
 use crate::record::strip_frontmatter;
 use crate::store::DocStore;
-use pulldown_cmark::{Event, Parser, Tag};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
@@ -98,16 +97,10 @@ fn is_terminal_issue(contents: &str) -> bool {
 fn implements_targets(file: &Path, contents: &str, bundle: &str) -> Vec<String> {
     let file_str = file.to_string_lossy();
     let body = strip_frontmatter(contents);
-    Parser::new(body)
-        .into_offset_iter()
-        .filter_map(|(event, range)| match event {
-            Event::Start(Tag::Link { dest_url, .. })
-                if follows_implements(&body[..range.start]) =>
-            {
-                resolve_destination(&file_str, &dest_url, bundle)
-            }
-            _ => None,
-        })
+    link_starts(body)
+        .into_iter()
+        .filter(|(start, kind, _)| *kind == LinkKind::Link && follows_implements(&body[..*start]))
+        .filter_map(|(_, _, dest)| resolve_destination(&file_str, &dest, bundle))
         .collect()
 }
 

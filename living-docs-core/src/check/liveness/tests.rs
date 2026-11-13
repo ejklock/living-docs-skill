@@ -75,6 +75,11 @@ fn implements_without_a_link_does_not_count() {
 }
 
 #[test]
+fn implements_followed_by_an_image_does_not_count() {
+    assert_eq!(declared("closed", "Implements ![x](/adr/0001-x.md)"), 0);
+}
+
+#[test]
 fn a_link_without_the_implements_word_does_not_count() {
     assert_eq!(
         declared("closed", "Relates to [the decision](/adr/0001-x.md)"),

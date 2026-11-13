@@ -19,3 +19,7 @@ The liveness check walks a record's markdown with its own `pulldown_cmark::Parse
 
 - `git grep -n 'Parser::new' living-docs-core/src/check` lists only `links.rs`.
 - `cargo test --workspace` passes with no test changed except those that pin the new return shape.
+
+### Decision
+
+- The scan keeps counting links only: `link_starts` reports each destination with its kind (link or image) and liveness skips images, so `Implements ![x](/adr/...)` stays uncounted as before and ADR 0079 holds. The first review found that a shared link-or-image filter made it count. Not taken: tracking that behavior change in a separate issue; treating an image as a declaration (owner, 2026-11-12).
