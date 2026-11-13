@@ -13,7 +13,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPT_SRC="$HERE/../../check-file-size.sh"
 TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"' EXIT
+trap 'chmod -R u+rwx "$TMP" 2>/dev/null; rm -rf "$TMP"' EXIT
 
 fail=0
 
@@ -66,6 +66,12 @@ assert_exit() { # assert_exit <name> <expected>
 assert_out_has() { # assert_out_has <name> <substring>
   local ok=0
   grep -qF -- "$2" <<<"$OUT" && ok=1
+  check "$1" "$ok"
+}
+
+assert_out_lacks() { # assert_out_lacks <name> <substring>
+  local ok=1
+  grep -qF -- "$2" <<<"$OUT" && ok=0
   check "$1" "$ok"
 }
 
@@ -171,6 +177,41 @@ write_rs_file "$repo/src/target/x.rs" 301
 invoke "$repo"
 assert_exit    "12-nested-exit-1" 1
 assert_out_has "12-nested"        "OVER LIMIT: src/target/x.rs"
+
+if [[ "$(id -u)" == 0 ]]; then
+  echo "skip: unreadable-directory cases (root reads a mode-000 directory)"
+else
+  echo "case 13: unreadable directory holding an over-limit file fails with the enumeration error"
+  repo="$(new_repo case13)"
+  write_rs_file "$repo/src/locked/y.rs" 301
+  chmod 000 "$repo/src/locked"
+  invoke "$repo"
+  chmod 755 "$repo/src/locked"
+  assert_exit      "13-exit-1"  1
+  assert_out_has   "13-named"   "cannot enumerate .rs files"
+  assert_out_lacks "13-no-ok"   "ratchet OK"
+
+  echo "case 14: unreadable directory holding only a small file still fails"
+  repo="$(new_repo case14)"
+  write_rs_file "$repo/src/lib.rs" 10
+  write_rs_file "$repo/src/locked/small.rs" 5
+  chmod 000 "$repo/src/locked"
+  invoke "$repo"
+  chmod 755 "$repo/src/locked"
+  assert_exit      "14-exit-1" 1
+  assert_out_has   "14-named"  "cannot enumerate .rs files"
+  assert_out_lacks "14-no-ok"  "ratchet OK"
+
+  echo "case 15: unreadable directory under the pruned target/ is not read"
+  repo="$(new_repo case15)"
+  write_rs_file "$repo/src/lib.rs" 10
+  write_rs_file "$repo/target/locked/x.rs" 5
+  chmod 000 "$repo/target/locked"
+  invoke "$repo"
+  chmod 755 "$repo/target/locked"
+  assert_exit    "15-exit-0" 0
+  assert_out_has "15-ok"     "File-size ratchet OK"
+fi
 
 echo
 if ((fail == 0)); then

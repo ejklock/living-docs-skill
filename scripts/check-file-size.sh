@@ -17,7 +17,7 @@
 # paths and prunes only the root's own .claude/worktrees, target and .git.
 #
 # Usage:  check-file-size.sh
-# Exit:   0 = no violations, 1 = at least one violation.
+# Exit:   0 = no violations, 1 = at least one violation, or find could not read part of the tree.
 
 set -euo pipefail
 
@@ -79,15 +79,24 @@ check_stale_entries() {
 	done
 }
 
+listing=""
+
 enumerate_and_check() {
 	local rel lines
+	listing="$(mktemp)"
+	trap 'rm -f "$listing"' EXIT
+	# a process substitution's exit status is ignored, so find runs to a file whose status is checked
+	if ! (cd "$root" && find . \
+		\( -path ./.claude/worktrees -o -path ./target -o -path ./.git \) -prune -o \
+		-name '*.rs' -print0) >"$listing"; then
+		echo "cannot enumerate .rs files: find failed to read part of the tree"
+		exit 1
+	fi
 	while IFS= read -r -d '' rel; do
 		rel="${rel#./}"
 		lines="$(wc -l <"$root/$rel" | tr -d '[:space:]')"
 		check_current_file "$rel" "$lines"
-	done < <(cd "$root" && find . \
-		\( -path ./.claude/worktrees -o -path ./target -o -path ./.git \) -prune -o \
-		-name '*.rs' -print0)
+	done <"$listing"
 }
 
 load_baseline

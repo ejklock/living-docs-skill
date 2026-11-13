@@ -16,7 +16,7 @@
 # under a target/ directory, or a path holding a glob character) never changes the verdict.
 #
 # Usage:  check-allow-inventory.sh
-# Exit:   0 = no violations, 1 = at least one violation.
+# Exit:   0 = no violations, 1 = at least one violation, or find could not read part of the tree.
 
 set -euo pipefail
 
@@ -82,15 +82,24 @@ check_stale_entries() {
 	done
 }
 
+listing=""
+
 enumerate_and_check() {
 	local rel count
+	listing="$(mktemp)"
+	trap 'rm -f "$listing"' EXIT
+	# a process substitution's exit status is ignored, so find runs to a file whose status is checked
+	if ! (cd "$root" && find . \
+		\( -path ./.claude/worktrees -o -path ./target -o -path ./.git \) -prune -o \
+		-name '*.rs' -print0) >"$listing"; then
+		echo "cannot enumerate .rs files: find failed to read part of the tree"
+		exit 1
+	fi
 	while IFS= read -r -d '' rel; do
 		rel="${rel#./}"
 		count="$(count_allows "$root/$rel")"
 		check_current_file "$rel" "$count"
-	done < <(cd "$root" && find . \
-		\( -path ./.claude/worktrees -o -path ./target -o -path ./.git \) -prune -o \
-		-name '*.rs' -print0)
+	done <"$listing"
 }
 
 load_baseline
