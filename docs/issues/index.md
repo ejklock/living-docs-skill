@@ -32,6 +32,8 @@ one slice per fresh context, starting from the skeleton.
 * [0116 — The file-size ratchet reports a stale baseline inside a fleet worktree](0116-the-file-size-ratchet-reports-a-stale-baseline-inside-a-fleet-worktree.md) - open
 * [0117 — The liveness declaration scan walks links with its own parser instead of link_destinations](0117-the-liveness-declaration-scan-walks-links-with-its-own-parser-instead-of-link-destinations.md) - open
 * [0118 — The size gates pass when find fails to read part of the tree](0118-the-size-gates-pass-when-find-fails-to-read-part-of-the-tree.md) - open
+* [0119 — The doc-trail gate reads a fixture path in a test as a record citation](0119-the-doc-trail-gate-reads-a-fixture-path-in-a-test-as-a-record-citation.md) - open
+* [0120 — Two parity test helpers exceed the function line cap and fail clippy](0120-two-parity-test-helpers-exceed-the-function-line-cap-and-fail-clippy.md) - open
 
 ## Closed
 

@@ -35,7 +35,7 @@ Rejected alternatives:
 
 **Easier / gained:**
 - A project that installed the hook can arm it over legacy debt and can require owners without editing it.
-- One source for the hook; a test catches the repository copy drifting from the installed one, and `.jscpd.json` loses its `.githooks/**` ignore.
+- One source for the hook; a test catches the repository copy drifting from the installed one, and `.jscpd.json` narrows its `.githooks/**` ignore to the one file `.githooks/pre-commit`, which the duplicate-code gate would otherwise report as a copy of the distributed hook.
 
 **Harder / accepted trade-offs:**
 - Owner enforcement at commit time depends on each contributor's environment; CI is where it holds for everyone.

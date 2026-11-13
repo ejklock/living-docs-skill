@@ -108,4 +108,4 @@ The dividing line is determinism: any documentation step with a single correct o
 This rule is enforced by one gate, not prose: `living-docs check` runs at commit and in CI, and a hand-written record fails there in the session that authored it. Wire it once per project with:
 
 - **`living-docs manage install hooks [--dir <path>] [--docs-dir <bundle>] [--dry-run]`** (every harness): materializes the session-teaching script, wires it into `.claude/settings.json`, and installs a `pre-commit` hook running `living-docs check <bundle>`. Remove everything it wrote with the sibling `living-docs manage uninstall hooks [--dir <path>] [--dry-run]`.
-- **Knob:** `LIVING_DOCS_BUNDLE=<dir>` (docs bundle scope).
+- **Knobs:** `LIVING_DOCS_BUNDLE=<dir>` (docs bundle scope); the installed pre-commit hook also reads `LIVING_DOCS_CHECK_CHANGED_ONLY=1` (check only the staged records, so a bundle with legacy debt can arm the hook) and `LIVING_DOCS_REQUIRE_OWNER=1` (require an owner on the records checked; off by default).

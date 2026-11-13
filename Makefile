@@ -45,6 +45,7 @@ check: version filesize allow-inventory build test-fixtures test-drift-skill tes
 	bash -n skills/living-docs-drift/tests/run.sh
 	cargo test --manifest-path cli/Cargo.toml
 	$(LIVING_DOCS_BIN) check --require-owner --plain examples/linkly/docs
+	$(LIVING_DOCS_BIN) check --require-owner --plain docs
 	$(LIVING_DOCS_BIN) check --mermaid-only
 	$(INSTALL) --dry-run
 
