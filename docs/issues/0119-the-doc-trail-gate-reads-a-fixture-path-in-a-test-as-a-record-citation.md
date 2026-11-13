@@ -19,3 +19,7 @@ The `doc-trail` check of `se-gates check` reads a record path written as a strin
 
 - `se-gates check` passes with `"docs/adr/0002-clean.md"` written as a literal in a test under `cli/tests/`.
 - A record citation in a production docblock still fails `doc-trail`.
+
+### Decision
+
+- The gate's own rule settles the false positive: [se-gates#77](https://github.com/klocktecnologia/se-gates/issues/77) asks that `doc-trail` stop judging a record path inside a string literal in a test, or gain a per-check ignore. se-gates 1.18 offers only `quality.ignore`, which drops the file from every quality check. This issue waits on that release, then restores the literals. Not taken: `quality.ignore` on the test file; keeping the `adr_path` helper and closing as won't do; moving the paths to a file under `cli/tests/fixtures/` (owner, 2026-11-13).
