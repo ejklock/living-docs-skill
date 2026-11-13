@@ -42,16 +42,7 @@ fn parse_row(row: &str) -> Case {
     let flags: Vec<&str> = cells
         .next()
         .map_or_else(Vec::new, |f| f.split(',').collect());
-    let bundle = [
-        ("canonical", Bundle::Canonical),
-        ("noncanonical", Bundle::NonCanonical),
-        ("stale", Bundle::StaleIndexes),
-        ("readonly", Bundle::ReadOnlyIndex),
-        ("nested", Bundle::Nested),
-    ]
-    .into_iter()
-    .find(|(flag, _)| flags.contains(flag))
-    .map_or(Bundle::Scaffolded, |(_, bundle)| bundle);
+    let bundle = Bundle::from_flags(&flags);
     Case {
         name: name.to_string(),
         bundle,

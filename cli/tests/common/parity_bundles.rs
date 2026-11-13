@@ -18,6 +18,22 @@ pub enum Bundle {
     Nested,
 }
 
+impl Bundle {
+    /// Picks the bundle a row's flags name, `Scaffolded` when none is named.
+    pub fn from_flags(flags: &[&str]) -> Bundle {
+        [
+            ("canonical", Bundle::Canonical),
+            ("noncanonical", Bundle::NonCanonical),
+            ("stale", Bundle::StaleIndexes),
+            ("readonly", Bundle::ReadOnlyIndex),
+            ("nested", Bundle::Nested),
+        ]
+        .into_iter()
+        .find(|(flag, _)| flags.contains(flag))
+        .map_or(Bundle::Scaffolded, |(_, bundle)| bundle)
+    }
+}
+
 /// The records every scaffolded bundle holds, one `|`-separated CLI call per row.
 const SCAFFOLD: [&str; 4] = [
     "write | new | adr | Cache strategy | --owner | o | --description | first",
@@ -56,27 +72,31 @@ pub fn make_bundle(kind: Bundle, docs: &Path, body: &Path) {
         }
         Bundle::Nested => {
             scaffold(docs, body);
-            let record = docs.join("adr/0001-cache-strategy.md");
-            let text = fs::read_to_string(&record).unwrap();
-            let nested = text.replace("## Decision\n", "### Detail\n\nkept\n\n## Decision\n");
-            assert_ne!(
-                text, nested,
-                "the fixture record must carry a Decision section"
+            rewrite_first_record(
+                docs,
+                "## Decision\n",
+                "### Detail\n\nkept\n\n## Decision\n",
+                "the fixture record must carry a Decision section",
             );
-            fs::write(record, nested).unwrap();
         }
         Bundle::NonCanonical => {
             scaffold(docs, body);
-            let record = docs.join("adr/0001-cache-strategy.md");
-            let text = fs::read_to_string(&record).unwrap();
-            let moved = text.replace(
+            rewrite_first_record(
+                docs,
                 "owner: o\nstatus: Proposed\n",
                 "status: Proposed\nowner: o\n",
+                "the fixture record must start canonical",
             );
-            assert_ne!(text, moved, "the fixture record must start canonical");
-            fs::write(record, moved).unwrap();
         }
     }
+}
+
+fn rewrite_first_record(docs: &Path, from: &str, to: &str, expectation: &str) {
+    let record = docs.join("adr/0001-cache-strategy.md");
+    let text = fs::read_to_string(&record).unwrap();
+    let rewritten = text.replace(from, to);
+    assert_ne!(text, rewritten, "{expectation}");
+    fs::write(record, rewritten).unwrap();
 }
 
 /// Makes the decision index of each bundle copy read-only or writable again,
