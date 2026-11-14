@@ -2,7 +2,7 @@
 type: Issue
 title: The size gates pass when find fails to read part of the tree
 description: Fail the file-size and allow-inventory gates when find cannot read part of the tree, instead of judging a partial file list.
-status: open
+status: closed
 timestamp: 2026-11-12T21:08:04Z
 ---
 

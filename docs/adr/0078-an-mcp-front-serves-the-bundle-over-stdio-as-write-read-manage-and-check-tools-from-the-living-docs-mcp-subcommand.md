@@ -3,7 +3,7 @@ type: ADR
 title: An MCP front serves the bundle over stdio as write, read, manage and check tools from the living-docs mcp subcommand
 description: Add a workspace crate mcp, served by living-docs mcp over stdio, exposing write, read, manage and check tools grouped as ADR 0076 groups the CLI, at parity with the CLI, dual-era on the MCP protocol, with HTTP, Tasks and subscriptions left as follow-ups.
 owner: Evaldo Klock
-status: Proposed
+status: Accepted
 timestamp: 2026-11-11T21:51:26Z
 ---
 

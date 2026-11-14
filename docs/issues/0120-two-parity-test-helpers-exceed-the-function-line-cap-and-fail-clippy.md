@@ -2,7 +2,7 @@
 type: Issue
 title: Two parity test helpers exceed the function line cap and fail clippy
 description: Shorten parse_row and make_bundle under 30 lines so clippy -D warnings passes, as CI's make cli-clippy requires.
-status: open
+status: closed
 timestamp: 2026-11-13T01:21:16Z
 ---
 

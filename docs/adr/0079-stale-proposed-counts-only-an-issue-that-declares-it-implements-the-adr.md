@@ -3,7 +3,7 @@ type: ADR
 title: stale-proposed counts only an issue that declares it implements the ADR
 description: The stale-proposed advisory counts an issue toward an ADR only when the issue body declares Implements with a link to that ADR; a link from the ADR to a closed issue is history and no longer counts.
 owner: Evaldo Klock
-status: Proposed
+status: Accepted
 timestamp: 2026-11-12T16:13:09Z
 ---
 

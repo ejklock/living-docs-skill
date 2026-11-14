@@ -2,7 +2,7 @@
 type: Issue
 title: The distributed pre-commit hook lacks the changed-only opt-in the repository hook has
 description: "Make the distributed pre-commit hook the single source: it gains the changed-only opt-in and an owner opt-in, and the repository hook becomes its installed copy."
-status: open
+status: closed
 timestamp: 2026-11-12T17:16:18Z
 ---
 

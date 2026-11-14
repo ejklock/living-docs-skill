@@ -2,7 +2,7 @@
 type: Issue
 title: The file-size ratchet reports a stale baseline inside a fleet worktree
 description: Exclude only nested worktrees from the file-size ratchet, so make check gives the same verdict in a worktree under .claude/worktrees as in the main checkout.
-status: open
+status: closed
 timestamp: 2026-11-12T18:19:45Z
 ---
 

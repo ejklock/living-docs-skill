@@ -3,7 +3,7 @@ type: ADR
 title: write set section refuses to drop child headings the new text does not carry
 description: Replacing a body section that holds child headings is refused with exit 2 unless the new text carries every child, so a section rewrite never deletes a subsection the caller did not see.
 owner: Evaldo Klock
-status: Proposed
+status: Accepted
 timestamp: 2026-11-12T16:13:09Z
 ---
 

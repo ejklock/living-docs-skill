@@ -2,7 +2,7 @@
 type: Issue
 title: Regroup the CLI under write, read and manage with check top-level, and move every surface that teaches a command
 description: Regroup the CLI under write, read and manage with check top-level, as ADR 0076 proposes, and move every surface that teaches a command in the same release.
-status: open
+status: closed
 timestamp: 2026-11-09T12:08:07Z
 ---
 

@@ -2,7 +2,7 @@
 type: Issue
 title: "MCP front: serve the bundle over stdio as write, read, manage and check tools from living-docs mcp"
 description: "Implements ADR 0078: the living-docs mcp subcommand serves one bundle over stdio as four tools at parity with the CLI, teaches the contract through server instructions, and the session hook gains the read verbs."
-status: open
+status: closed
 supersedes: 0027
 blocked_by: [0109]
 timestamp: 2026-11-11T21:51:45Z

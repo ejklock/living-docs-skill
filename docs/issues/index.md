@@ -23,17 +23,7 @@ one slice per fresh context, starting from the skeleton.
 * [0096 — reserved files such as index.md are written outside the rooted store guard](0096-reserved-files-such-as-index-md-are-written-outside-the-rooted-store-guard.md) - open
 * [0104 — check module docblock links to a run function that no longer exists](0104-check-module-docblock-links-to-a-run-function-that-no-longer-exists.md) - open
 * [0105 — check accepts the placeholder description that new writes](0105-check-accepts-the-placeholder-description-that-new-writes.md) - open
-* [0109 — Regroup the CLI under write, read and manage with check top-level, and move every surface that teaches a command](0109-regroup-the-cli-under-write-read-and-manage-with-check-top-level-and-move-every-surface-that-teaches-a-command.md) - open
-* [0111 — MCP front: serve the bundle over stdio as write, read, manage and check tools from living-docs mcp](0111-mcp-front-serve-the-bundle-over-stdio-as-write-read-manage-and-check-tools-from-living-docs-mcp.md) - open
-* [0112 — stale-proposed counts only issues that declare Implements for the ADR](0112-stale-proposed-counts-only-issues-that-declare-implements-for-the-adr.md) - open
-* [0113 — write set section refuses to drop child headings](0113-write-set-section-refuses-to-drop-child-headings.md) - open
-* [0114 — The distributed pre-commit hook lacks the changed-only opt-in the repository hook has](0114-the-distributed-pre-commit-hook-lacks-the-changed-only-opt-in-the-repository-hook-has.md) - open
-* [0115 — The changed-only pre-commit tests inherit the host's git config and environment](0115-the-changed-only-pre-commit-tests-inherit-the-host-s-git-config-and-environment.md) - open
-* [0116 — The file-size ratchet reports a stale baseline inside a fleet worktree](0116-the-file-size-ratchet-reports-a-stale-baseline-inside-a-fleet-worktree.md) - open
-* [0117 — The liveness declaration scan walks links with its own parser instead of link_destinations](0117-the-liveness-declaration-scan-walks-links-with-its-own-parser-instead-of-link-destinations.md) - open
-* [0118 — The size gates pass when find fails to read part of the tree](0118-the-size-gates-pass-when-find-fails-to-read-part-of-the-tree.md) - open
 * [0119 — The doc-trail gate reads a fixture path in a test as a record citation](0119-the-doc-trail-gate-reads-a-fixture-path-in-a-test-as-a-record-citation.md) - open
-* [0120 — Two parity test helpers exceed the function line cap and fail clippy](0120-two-parity-test-helpers-exceed-the-function-line-cap-and-fail-clippy.md) - open
 
 ## Closed
 
@@ -129,4 +119,14 @@ one slice per fresh context, starting from the skeleton.
 * [0106 — Project guide is AGENTS.md with CLAUDE.md a symlink to it](0106-project-guide-is-agents-md-with-claude-md-a-symlink-to-it.md) - closed
 * [0107 — Ship the living-docs-drift skill: anchor resolution plus a configurable LLM judge, advisory report outside the bundle](0107-ship-the-living-docs-drift-skill-anchor-resolution-plus-a-configurable-llm-judge-advisory-report-outside-the-bundle.md) - closed
 * [0108 — A skill with no topics lists as an empty line in guide, and the project guide miscounts the verbs](0108-a-skill-with-no-topics-lists-as-an-empty-line-in-guide-and-the-project-guide-miscounts-the-verbs.md) - closed
+* [0109 — Regroup the CLI under write, read and manage with check top-level, and move every surface that teaches a command](0109-regroup-the-cli-under-write-read-and-manage-with-check-top-level-and-move-every-surface-that-teaches-a-command.md) - closed
 * [0110 — Publish the npm package under @ejklock/living-docs](0110-publish-the-npm-package-under-ejklock-living-docs.md) - closed
+* [0111 — MCP front: serve the bundle over stdio as write, read, manage and check tools from living-docs mcp](0111-mcp-front-serve-the-bundle-over-stdio-as-write-read-manage-and-check-tools-from-living-docs-mcp.md) - closed
+* [0112 — stale-proposed counts only issues that declare Implements for the ADR](0112-stale-proposed-counts-only-issues-that-declare-implements-for-the-adr.md) - closed
+* [0113 — write set section refuses to drop child headings](0113-write-set-section-refuses-to-drop-child-headings.md) - closed
+* [0114 — The distributed pre-commit hook lacks the changed-only opt-in the repository hook has](0114-the-distributed-pre-commit-hook-lacks-the-changed-only-opt-in-the-repository-hook-has.md) - closed
+* [0115 — The changed-only pre-commit tests inherit the host's git config and environment](0115-the-changed-only-pre-commit-tests-inherit-the-host-s-git-config-and-environment.md) - closed
+* [0116 — The file-size ratchet reports a stale baseline inside a fleet worktree](0116-the-file-size-ratchet-reports-a-stale-baseline-inside-a-fleet-worktree.md) - closed
+* [0117 — The liveness declaration scan walks links with its own parser instead of link_destinations](0117-the-liveness-declaration-scan-walks-links-with-its-own-parser-instead-of-link-destinations.md) - closed
+* [0118 — The size gates pass when find fails to read part of the tree](0118-the-size-gates-pass-when-find-fails-to-read-part-of-the-tree.md) - closed
+* [0120 — Two parity test helpers exceed the function line cap and fail clippy](0120-two-parity-test-helpers-exceed-the-function-line-cap-and-fail-clippy.md) - closed

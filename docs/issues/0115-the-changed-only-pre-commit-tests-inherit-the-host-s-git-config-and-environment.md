@@ -2,7 +2,7 @@
 type: Issue
 title: The changed-only pre-commit tests inherit the host's git config and environment
 description: Isolate the git helper of the changed-only pre-commit tests from the host's HOME, git config and LIVING_DOCS variables, as the binary-order tests already are.
-status: open
+status: closed
 timestamp: 2026-11-12T18:19:45Z
 ---
 

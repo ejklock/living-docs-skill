@@ -3,7 +3,7 @@ type: ADR
 title: The distributed pre-commit hook is the only copy and environment variables opt it into changed-only and owner checks
 description: Keep one pre-commit hook, the distributed copy, tuned per project by LIVING_DOCS_CHECK_CHANGED_ONLY and LIVING_DOCS_REQUIRE_OWNER, with CI requiring owners on this repository's bundle.
 owner: Evaldo Klock
-status: Proposed
+status: Accepted
 timestamp: 2026-11-12T21:20:47Z
 ---
 

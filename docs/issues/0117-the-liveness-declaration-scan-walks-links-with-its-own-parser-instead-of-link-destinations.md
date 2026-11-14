@@ -2,7 +2,7 @@
 type: Issue
 title: The liveness declaration scan walks links with its own parser instead of link_destinations
 description: Give link_destinations the source range of each link so the liveness Implements scan reuses it instead of a second parser walk.
-status: open
+status: closed
 timestamp: 2026-11-12T18:49:10Z
 ---
 

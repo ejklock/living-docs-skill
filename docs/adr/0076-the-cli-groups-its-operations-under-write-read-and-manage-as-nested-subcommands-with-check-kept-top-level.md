@@ -3,7 +3,7 @@ type: ADR
 title: The CLI groups its operations under write, read and manage as nested subcommands, with check kept top-level
 description: Group the CLI's operations under write, read and manage as nested subcommands, keep check top-level, and remove the old verbs in 0.28.0 with no aliases.
 owner: Evaldo Klock
-status: Proposed
+status: Accepted
 timestamp: 2026-11-09T12:03:06Z
 ---
 

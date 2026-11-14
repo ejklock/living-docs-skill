@@ -2,7 +2,7 @@
 type: Issue
 title: write set section refuses to drop child headings
 description: "Implements ADR 0080: replacing a section with child headings the new text does not carry exits 2 and writes nothing."
-status: open
+status: closed
 timestamp: 2026-11-12T16:14:04Z
 ---
 

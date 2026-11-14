@@ -2,7 +2,7 @@
 type: Issue
 title: stale-proposed counts only issues that declare Implements for the ADR
 description: "Implements ADR 0079: the liveness check reads the Implements declaration on issue bodies instead of any link from the ADR."
-status: open
+status: closed
 timestamp: 2026-11-12T16:14:04Z
 ---
 
