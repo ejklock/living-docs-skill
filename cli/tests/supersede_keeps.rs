@@ -48,7 +48,7 @@ fn run(bundle: &Path, args: &[&str]) -> Output {
 
 fn fmt(bundle: &Path) -> Output {
     living_docs()
-        .args(["fmt", bundle.to_str().unwrap(), "--plain"])
+        .args(["manage", "fmt", bundle.to_str().unwrap(), "--plain"])
         .output()
         .expect("failed to run living-docs fmt")
 }
@@ -116,9 +116,12 @@ fn fmt_and_set_keep_a_supersedes_list_and_a_scalar_supersedes_byte_identical() {
     assert!(fmt(&bundle).status.success());
     assert_eq!(before, snapshot(&bundle, &files));
 
-    assert!(run(&bundle, &["set", "0004", "description", "changed."])
-        .status
-        .success());
+    assert!(run(
+        &bundle,
+        &["write", "set", "0004", "description", "changed."]
+    )
+    .status
+    .success());
     let list = before[0].replace("description: d.", "description: changed.");
     assert_eq!(read(&bundle, files[0]), list);
 }
@@ -129,7 +132,7 @@ fn effective_lineage_names_every_ancestor_of_a_record_that_supersedes_two() {
     supersede_ok(&bundle, "0001", "0003");
     supersede_ok(&bundle, "0002", "0003");
 
-    let stdout = stdout_of(&run(&bundle, &["read", "--plain"]));
+    let stdout = stdout_of(&run(&bundle, &["read", "records", "--plain"]));
     assert!(stdout.contains("supersedes 0001, 0002"), "got:\n{stdout}");
 }
 
@@ -138,7 +141,7 @@ fn snapshot(bundle: &Path, files: &[&str]) -> Vec<String> {
 }
 
 fn checked(bundle: &Path) -> Output {
-    assert!(run(bundle, &["index"]).status.success());
+    assert!(run(bundle, &["manage", "index"]).status.success());
     run_check(bundle)
 }
 
@@ -187,7 +190,7 @@ fn assert_check_names_the_hand_edit(bundle: &Path, key: &str, source: &str) {
         lines[0].contains(key) && lines[0].contains("by hand"),
         "{verdict}"
     );
-    assert!(!lines[0].contains("living-docs fmt"), "{verdict}");
+    assert!(!lines[0].contains("living-docs manage fmt"), "{verdict}");
 }
 
 #[test]
@@ -196,7 +199,7 @@ fn a_value_with_no_flow_form_is_refused_by_set_fmt_and_check_without_a_write() {
         let bundle = bundle_with_refused(index, source);
         let before = read(&bundle, REFUSED);
 
-        let set = run(&bundle, &["set", "0004", "description", "x"]);
+        let set = run(&bundle, &["write", "set", "0004", "description", "x"]);
         assert_eq!(set.status.code(), Some(2), "set {source}");
         assert_eq!(read(&bundle, REFUSED), before, "set {source}");
 

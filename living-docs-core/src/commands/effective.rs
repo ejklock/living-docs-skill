@@ -1,4 +1,4 @@
-//! `living-docs read` (the module keeps its original name `effective`
+//! `living-docs read records` (the module keeps its original name `effective`
 //! internally): the agent-facing read of the bundle — active records only
 //! (superseded/deprecated withheld), supersede chains collapsed to the head
 //! with a one-line lineage, grouped by kind then number. `--topic` restricts
@@ -11,7 +11,7 @@
 use crate::record::{self, ExtractedRecord};
 use crate::store::DocStore;
 use crate::{doc_type, sections};
-pub use dependents::{resolve_target, Dependents};
+pub use dependents::{resolve_dependents, Dependents};
 use json::json_of;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};

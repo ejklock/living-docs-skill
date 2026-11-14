@@ -5,32 +5,33 @@
 The dividing line is **determinism**: a step with a single correct output given its inputs is
 the CLI's job; the judgment prose (the "why") is yours to write directly in the file. Applied:
 
-- **Use the CLI verb for every mechanical step — never hand-do it:** `new` (number + frontmatter
-  + skeleton), `set <ref> <key> <value>` (set `status`/`description`/`owner`), `supersede <old>
-  <new>` (links + status on both records), `check` (the gate, must pass). `new`, `set` and
-  `supersede` leave the index of every type they touch current; `index` is the repair verb for a
+- **Use the CLI verb for every mechanical step — never hand-do it:** `write new` (number + frontmatter
+  + skeleton), `write set <ref> <key> <value>` (set `status`/`description`/`owner`), `write supersede <old>
+  <new>` (links + status on both records), `check` (the gate, must pass). `write new`, `write set` and
+  `write supersede` leave the index of every type they touch current; `manage index` is the repair verb for a
   hand-edited or merged bundle, never a step after them.
-- **One authoring path: scaffold, then edit the body.** `new` writes the numbered file with
+- **One authoring path: scaffold, then edit the body.** `write new` writes the numbered file with
   its frontmatter and title heading filled and every body section as a `{{SLOT: hint}}`
   placeholder; the hint says what belongs in the slot and vanishes with it. Replace every slot
   with prose, or delete the slot and its heading when the record has nothing to say there —
   `check` fails on any slot left behind.
-- **Prose reaches a record through a file or stdin, never through argv.** `new <type> "<title>"
+- **Prose reaches a record through a file or stdin, never through argv.** `write new <type> "<title>"
   --body PATH|-` writes the body (everything below the heading) from a file or stdin in place of
-  the slots; `set <ref> <key> --from PATH|-` reads any field value the same way; `set <ref> section
+  the slots; `write set <ref> <key> --from PATH|-` reads any field value the same way; `write set <ref> section
   "<heading>" --from PATH|-` replaces that section's text, or appends the section when the record
   lacks it. A heading is matched case-insensitively, as `check` matches a required section.
+  A section that holds child headings is replaced only by text that carries each child (same level and text); otherwise the command exits 2, names the missing children and writes nothing.
   The CLI places the text where told and writes none of it.
-- **Repair a duplicate record number with `living-docs set <path> number next`.** Two records of one type that share a number (parallel branches each ran `new`) make a reference by number ambiguous, so name the record to move by its path: `set <path> number next` (or `number NNNN`) renames the file, rewrites its heading number and every in-bundle link, and regenerates the index, on any status. A record in a `supersedes`/`superseded_by` link is refused until that link is renumbered by hand.
+- **Repair a duplicate record number with `living-docs write set <path> number next`.** Two records of one type that share a number (parallel branches each ran `write new`) make a reference by number ambiguous, so name the record to move by its path: `write set <path> number next` (or `number NNNN`) renames the file, rewrites its heading number and every in-bundle link, and regenerates the index, on any status. A record in a `supersedes`/`superseded_by` link is refused until that link is renumbered by hand.
 - **Write the body prose directly.** The CLI must never author rationale, so there is no
   paragraph-editing verb — editing the body is a normal edit, not a process error. What *is* a
   process error is hand-numbering a doc, hand-writing frontmatter, hand-maintaining an index row,
-  or hand-wiring `supersedes`/`superseded_by` when `supersede` does it deterministically. Write
+  or hand-wiring `supersedes`/`superseded_by` when `write supersede` does it deterministically. Write
   each paragraph as ONE line — never hard-wrap prose at a fixed column; the reading surface
-  soft-wraps. `living-docs fmt` unwraps hard-wrapped paragraphs (ADR 0046), so a wrapped body is
-  a `fmt` diff, not a style choice.
-- **Repair a hand-written or migrated record with `living-docs fmt`** (`fmt --check` lists what
-  it would change and writes nothing). `fmt` repairs three CLI-owned fields: it seeds a missing
+  soft-wraps. `living-docs manage fmt` unwraps hard-wrapped paragraphs (ADR 0046), so a wrapped body is
+  a `manage fmt` diff, not a style choice.
+- **Repair a hand-written or migrated record with `living-docs manage fmt`** (`manage fmt --check` lists what
+  it would change and writes nothing). `manage fmt` repairs three CLI-owned fields: it seeds a missing
   `timestamp` from the author date of the commit that added the file (the clock when the file was
   never committed), seeds a missing `owner` on a type that requires one from git `user.name`,
   then `user.email`, and rewrites the title heading to the frontmatter title (a record with no
@@ -38,7 +39,7 @@ the CLI's job; the judgment prose (the "why") is yours to write directly in the 
   other prose changes: missing sections, unfilled slots and the description stay the author's to
   write.
 - **When a deterministic frontmatter mutation has no verb yet** and you keep doing it by hand,
-  add it as a `living-docs set` key rather than normalizing the hand-edit.
+  add it as a `living-docs write set` key rather than normalizing the hand-edit.
 
 ## Setting up living docs in a new project
 
@@ -59,8 +60,8 @@ An existing codebase already embodies decisions that were never written down. Th
 
 ## Maintaining living docs (every task)
 
-1. **Before coding:** read the relevant constitution and ADRs (`living-docs read` gives the in-force view; `read --contract` adds each record's contract sections; `read --links-to` and `read --impact` list the records that link a record directly or through a chain, the check before a supersede or an edit). Decisions there are not to be re-opened casually. If a link or a search lands on a raw record whose body opens with a `SUPERSEDED` or `DEPRECATED` callout, treat it as history: follow the successor link or discard the record, never plan on it.
+1. **Before coding:** read the relevant constitution and ADRs (`living-docs read records` gives the in-force view; `read records --contract` adds each record's contract sections; `read records --links-to` and `read records --impact` list the records that link a record directly or through a chain, the check before a supersede or an edit). Decisions there are not to be re-opened casually. If a link or a search lands on a raw record whose body opens with a `SUPERSEDED` or `DEPRECATED` callout, treat it as history: follow the successor link or discard the record, never plan on it.
 2. **While working:** if you make a decision with a load-bearing rationale that is expensive to reverse, **grill it before recording it** — surface the decision, ≥2 materially-distinct alternatives, and a recommendation to the user (run the `grill-me` companion if installed, else inline), then write an ADR capturing the chosen option *and* the rejected ones. A cheap, easily-reversed choice goes in the issue's body, not a new ADR. Never record a decision the user was not asked about.
 3. **In the same change:** update every doc the structural change touches — index rows, architecture diagrams, the records that governed it. Run `living-docs check`.
-4. **After a merge,** run `living-docs check`. `install hooks` sets `<docs-dir>/**/index.md merge=union` in `.gitattributes`, so parallel branches that each added a record merge without a conflict in the type index, but the union may leave a row twice or out of order. `check` then fails naming the index and `living-docs index <type>`: run that command (never hand-edit the index or resolve it by hand) and commit the result. `check` itself never writes an index.
+4. **After a merge,** run `living-docs check`. `manage install hooks` sets `<docs-dir>/**/index.md merge=union` in `.gitattributes`, so parallel branches that each added a record merge without a conflict in the type index, but the union may leave a row twice or out of order. `check` then fails naming the index and `living-docs manage index <type>`: run that command (never hand-edit the index or resolve it by hand) and commit the result. `check` itself never writes an index.
 5. **Never** leave an index stale, an orphan file unlinked, a diagram contradicting the code, or a superseded decision silently edited.

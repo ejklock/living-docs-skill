@@ -1,4 +1,4 @@
-//! End-to-end `read --contract`: the contract-tier body of each in-force record.
+//! End-to-end `read records --contract`: the contract-tier body of each in-force record.
 
 use std::path::Path;
 use std::process::Output;
@@ -7,7 +7,7 @@ mod common;
 use common::{living_docs, stdout_of, temp_bundle, write};
 
 fn read(docs_dir: &Path, extra: &[&str]) -> Output {
-    let mut args = vec!["--docs-dir", docs_dir.to_str().unwrap(), "read"];
+    let mut args = vec!["--docs-dir", docs_dir.to_str().unwrap(), "read", "records"];
     args.extend_from_slice(extra);
     living_docs()
         .args(&args)

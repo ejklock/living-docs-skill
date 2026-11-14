@@ -44,7 +44,7 @@ fn check_canonical_frontmatter_flags_a_trailing_yaml_comment() {
 
     let violations = reporter.into_violations();
     assert_eq!(violations.len(), 1);
-    assert!(violations[0].1.contains("living-docs fmt"));
+    assert!(violations[0].1.contains("living-docs manage fmt"));
 }
 
 #[test]
@@ -136,7 +136,7 @@ fn check_canonical_frontmatter_flags_a_hand_written_bundle_root_singleton() {
 
     let violations = reporter.into_violations();
     assert_eq!(violations.len(), 1);
-    assert!(violations[0].1.contains("living-docs fmt"));
+    assert!(violations[0].1.contains("living-docs manage fmt"));
 }
 
 #[test]

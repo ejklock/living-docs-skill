@@ -11,20 +11,15 @@ fn temp_bundle(label: &str) -> common::Scratch {
 
 fn run_fmt(bundle: &Path) -> Output {
     living_docs()
-        .args(["fmt", bundle.to_str().unwrap()])
+        .args(["manage", "fmt", bundle.to_str().unwrap()])
         .output()
         .expect("failed to run living-docs fmt")
 }
 
 fn run_authoring_verb(verb: &str, docs_dir: &Path, doc_type: &str, title: &str) -> Output {
     living_docs()
-        .args([
-            "--docs-dir",
-            docs_dir.to_str().unwrap(),
-            verb,
-            doc_type,
-            title,
-        ])
+        .args(["--docs-dir", docs_dir.to_str().unwrap()])
+        .args(["write", verb, doc_type, title])
         .output()
         .unwrap_or_else(|_| panic!("failed to run living-docs {verb}"))
 }
@@ -34,7 +29,7 @@ fn run_new(docs_dir: &Path, doc_type: &str, title: &str) -> Output {
 }
 
 /// The exact retired-record callout line a Superseded fixture must open
-/// with, sourced from the same module `living-docs fmt` writes through.
+/// with, sourced from the same module `living-docs manage fmt` writes through.
 fn superseded_callout(successor: &str) -> String {
     living_docs_core::callout::expected(Some("superseded"), Some(successor))
         .expect("a superseded status always yields a callout")
@@ -52,7 +47,7 @@ fn fixture_04_quoted_and_commented_frontmatter_parses_type_and_checks_clean() {
 
     assert_eq!(output.status.code(), Some(0), "got:\n{stdout}");
     assert!(!stdout.contains("non-empty 'type'"));
-    assert!(!stdout.contains("living-docs fmt"));
+    assert!(!stdout.contains("living-docs manage fmt"));
 }
 
 /// The fixture's `type: |\n  ADR\n` block scalar proves the type-extraction
@@ -65,7 +60,7 @@ fn fixture_06_block_scalar_type_parses_and_checks_clean() {
 
     assert_eq!(output.status.code(), Some(0), "got:\n{stdout}");
     assert!(!stdout.contains("non-empty 'type'"));
-    assert!(!stdout.contains("living-docs fmt"));
+    assert!(!stdout.contains("living-docs manage fmt"));
 }
 
 #[test]
@@ -219,7 +214,7 @@ fn supersede_status_is_case_insensitive_and_a_valid_chain_is_clean() {
 
 /// ADR 0019, AC ac-s3-1: a hand-written record (here, a YAML comment on
 /// `type:` and a reordered `title:` key) fails `check` with a violation
-/// naming `living-docs fmt`, and the same record passes after `fmt` rewrites
+/// naming `living-docs manage fmt`, and the same record passes after `fmt` rewrites
 /// it — the deterministic remediation loop the check's message promises.
 #[test]
 fn hand_written_frontmatter_fails_check_and_passes_after_fmt() {
@@ -234,7 +229,7 @@ fn hand_written_frontmatter_fails_check_and_passes_after_fmt() {
     let before_stdout = stdout_of(&before);
     assert_eq!(before.status.code(), Some(1), "got:\n{before_stdout}");
     assert!(
-        before_stdout.contains("living-docs fmt"),
+        before_stdout.contains("living-docs manage fmt"),
         "got:\n{before_stdout}"
     );
 
@@ -248,7 +243,7 @@ fn hand_written_frontmatter_fails_check_and_passes_after_fmt() {
     let after = run_check(&bundle);
     let after_stdout = stdout_of(&after);
     assert!(
-        !after_stdout.contains("living-docs fmt"),
+        !after_stdout.contains("living-docs manage fmt"),
         "expected fmt to clear the canonical violation, got:\n{after_stdout}"
     );
 }
@@ -275,7 +270,7 @@ fn fresh_new_scaffold_is_a_canonical_round_trip_fixed_point_for_every_doc_type()
         let output = run_check(&docs);
         let stdout = stdout_of(&output);
         assert!(
-            !stdout.contains("living-docs fmt"),
+            !stdout.contains("living-docs manage fmt"),
             "{doc_type} scaffold is not a canonical round-trip fixed point:\n{stdout}"
         );
     }
@@ -313,5 +308,5 @@ fn hand_written_bundle_root_singleton_fails_check_with_the_fmt_remediation() {
     let stdout = stdout_of(&output);
 
     assert_eq!(output.status.code(), Some(1), "got:\n{stdout}");
-    assert!(stdout.contains("living-docs fmt"), "got:\n{stdout}");
+    assert!(stdout.contains("living-docs manage fmt"), "got:\n{stdout}");
 }

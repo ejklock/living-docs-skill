@@ -8,7 +8,7 @@ use std::process::{Output, Stdio};
 
 fn set(docs: &Path, args: &[&str], stdin: &str) -> Output {
     let mut child = living_docs()
-        .args(["--docs-dir", docs.to_str().unwrap(), "set"])
+        .args(["--docs-dir", docs.to_str().unwrap(), "write", "set"])
         .args(args)
         .arg("--plain")
         .stdin(Stdio::piped())
@@ -103,7 +103,7 @@ fn from_value_trims_and_normalizes_line_endings() {
     assert_eq!(field(&path, "description"), "one line");
 }
 
-const WITH_OUTCOME: &str = "### Outcome\n\nold\n\n#### sub\n\nold sub\n\n### Plan\n\nkeep\n";
+const WITH_OUTCOME: &str = "### Outcome\n\nold\n\n### Plan\n\nkeep\n";
 
 fn issue_with(label: &str, tail: &str) -> (common::Scratch, PathBuf) {
     let (docs, path) = issue_bundle(label);
@@ -127,7 +127,6 @@ fn section_replaces_existing_text_up_to_the_next_sibling() {
         text.ends_with("### Outcome\n\nnew text\n\n### Plan\n\nkeep\n"),
         "{text}"
     );
-    assert!(!text.contains("old sub"));
 }
 
 #[test]

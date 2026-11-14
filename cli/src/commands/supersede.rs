@@ -39,10 +39,10 @@ pub(crate) fn run_supersede(
                 output::outln!("{}", superseded.old.display());
                 output::outln!("{}", superseded.new.display());
             }
-            report_indexed("supersede", &superseded.indexed, mode, quiet)
+            report_indexed("write supersede", &superseded.indexed, mode, quiet)
         }
         Err(message) => {
-            eprintln!("living-docs supersede: {message}");
+            eprintln!("living-docs write supersede: {message}");
             ExitCode::from(2)
         }
     }

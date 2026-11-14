@@ -23,11 +23,16 @@ fn json_of(args: &[&str]) -> Value {
         .unwrap_or_else(|err| panic!("{args:?} is not JSON ({err}):\n{text}"))
 }
 
-fn command_named<'a>(doc: &'a Value, name: &str) -> &'a Value {
-    doc["commands"]
-        .as_array()
-        .and_then(|list| list.iter().find(|command| command["name"] == name))
-        .unwrap_or_else(|| panic!("no {name} command"))
+fn nested_command<'a>(doc: &'a Value, path: &[&str]) -> &'a Value {
+    let mut node = doc;
+    for name in path {
+        node = node["commands"]
+            .as_array()
+            .or_else(|| node["subcommands"].as_array())
+            .and_then(|list| list.iter().find(|command| command["name"] == *name))
+            .unwrap_or_else(|| panic!("no {name} command"));
+    }
+    node
 }
 
 fn option_named<'a>(options: &'a Value, long: &str) -> &'a Value {
@@ -51,7 +56,10 @@ fn collect_options<'a>(node: &'a Value, found: &mut Vec<&'a Value>) {
 #[test]
 fn a_flag_renders_without_value_or_default() {
     let doc = json_of(&["--help"]);
-    let check = option_named(&command_named(&doc, "fmt")["options"], "check");
+    let check = option_named(
+        &nested_command(&doc, &["manage", "fmt"])["options"],
+        "check",
+    );
 
     assert!(check["value"].is_null(), "got {check}");
     assert!(check["default"].is_null(), "got {check}");
@@ -60,7 +68,7 @@ fn a_flag_renders_without_value_or_default() {
 #[test]
 fn a_value_option_keeps_its_value_name() {
     let doc = json_of(&["--help"]);
-    let body = option_named(&command_named(&doc, "new")["options"], "body");
+    let body = option_named(&nested_command(&doc, &["write", "new"])["options"], "body");
 
     assert_eq!(body["value"], "PATH");
 }
@@ -90,7 +98,7 @@ fn no_option_without_a_value_carries_a_default() {
 
 #[test]
 fn two_token_color_always_keeps_clap_text() {
-    let output = run(&["--color", "always", "set", "--help"]);
+    let output = run(&["--color", "always", "write", "set", "--help"]);
 
     assert_eq!(output.status.code(), Some(0));
     assert!(String::from_utf8_lossy(&output.stdout).contains("Usage:"));

@@ -8,7 +8,7 @@ tags: [cli, distribution, enforcement, hooks, plugin]
 timestamp: 2026-07-29T12:43:28Z
 ---
 
-> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.
+> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.
 
 # 0023. Hooks ship through two deterministic channels: an in-repo Claude Code plugin and a living-docs hooks install verb
 

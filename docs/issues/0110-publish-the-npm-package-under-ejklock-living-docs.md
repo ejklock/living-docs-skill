@@ -8,8 +8,6 @@ timestamp: 2026-11-09T23:40:11Z
 
 ## 0110. Publish the npm package under @ejklock/living-docs
 
-## Publish the npm package under @ejklock/living-docs
-
 Implements [ADR 0077](/adr/0077-the-npm-package-is-published-under-the-scoped-name-ejklock-living-docs-because-the-unscoped-name-belongs-to-another-author.md). Answers GitHub issue #84: the unscoped `living-docs` name on npm belongs to another author, so the package from [issue 0061](/issues/0061-npm-package-living-docs-wraps-the-release-binary-and-the-release-workflow-publishes-it.md) ships under the owner's scope.
 
 ### Scope

@@ -24,7 +24,7 @@ pub fn expected(status: Option<&str>, successor: Option<&str>) -> Option<String>
         "superseded" => Some(superseded_callout(successor.unwrap_or_default())),
         "deprecated" => Some(
             "> **DEPRECATED — do not act on this record.** It has no successor. \
-             Run `living-docs read` for what is in force."
+             Run `living-docs read records` for what is in force."
                 .to_string(),
         ),
         _ => None,
@@ -35,7 +35,7 @@ fn superseded_callout(successor: &str) -> String {
     let number = number_prefix(successor);
     format!(
         "> **SUPERSEDED — do not act on this record.** Replaced by [{number}]({successor}). \
-         Run `living-docs read` for what is in force."
+         Run `living-docs read records` for what is in force."
     )
 }
 

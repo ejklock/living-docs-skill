@@ -85,7 +85,7 @@ fn guard_status(path: &Path, contents: &str, spec: &DocTypeSpec) -> Result<(), S
         return Ok(());
     }
     Err(format!(
-        "{}: status '{status}' is terminal; a closed record keeps its title — revise it with `living-docs supersede <old> <new>`",
+        "{}: status '{status}' is terminal; a closed record keeps its title — revise it with `living-docs write supersede <old> <new>`",
         path.display()
     ))
 }

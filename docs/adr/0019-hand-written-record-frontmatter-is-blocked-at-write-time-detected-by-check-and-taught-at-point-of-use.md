@@ -9,7 +9,7 @@ tags: [check, cli, enforcement, frontmatter, hooks]
 timestamp: 2026-07-23T15:44:02Z
 ---
 
-> **SUPERSEDED — do not act on this record.** Replaced by [0020](0020-hand-write-hook-is-scoped-to-cli-owned-type-directories-not-the-whole-bundle.md). Run `living-docs read` for what is in force.
+> **SUPERSEDED — do not act on this record.** Replaced by [0020](0020-hand-write-hook-is-scoped-to-cli-owned-type-directories-not-the-whole-bundle.md). Run `living-docs read records` for what is in force.
 
 # 0019. Hand-written record frontmatter is blocked at write time, detected by check, and taught at point of use
 

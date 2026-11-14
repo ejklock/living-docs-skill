@@ -14,7 +14,7 @@
 3. Declare `okf_version: "0.1"` in the bundle-root `index.md` frontmatter only.
 
 ### Check conformance
-Walk the five conformance hard rules (`guide conformance --skill okf-knowledge-format`): every non-reserved `.md` has parseable frontmatter; every block has non-empty `type`; reserved files follow §6/§7; root `index.md` is the only `index.md` with frontmatter; consumers stay permissive.
+Walk the five conformance hard rules (`read guide conformance --skill okf-knowledge-format`): every non-reserved `.md` has parseable frontmatter; every block has non-empty `type`; reserved files follow §6/§7; root `index.md` is the only `index.md` with frontmatter; consumers stay permissive.
 
 ---
 
@@ -27,4 +27,4 @@ skills/okf-knowledge-format/scripts/update-spec.sh          # default ref: main
 skills/okf-knowledge-format/scripts/update-spec.sh v0.2     # a tag/branch/commit
 ```
 
-The script overwrites `reference/SPEC.md`, rewrites `reference/SPEC.source.md` (URL, ref, retrieval time, sha256), and reports whether the content changed. **If it changed, review the diff and reconcile the conformance rules (`guide conformance --skill okf-knowledge-format`) and the field tables (`guide model --skill okf-knowledge-format`)** before committing — the topics must not drift from the vendored spec. The vendored copy is the offline source of truth; the script is the only sanctioned way to update it.
+The script overwrites `reference/SPEC.md`, rewrites `reference/SPEC.source.md` (URL, ref, retrieval time, sha256), and reports whether the content changed. **If it changed, review the diff and reconcile the conformance rules (`read guide conformance --skill okf-knowledge-format`) and the field tables (`read guide model --skill okf-knowledge-format`)** before committing — the topics must not drift from the vendored spec. The vendored copy is the offline source of truth; the script is the only sanctioned way to update it.

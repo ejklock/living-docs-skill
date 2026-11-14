@@ -13,7 +13,7 @@ flowchart LR
   I --> K[code]
 ```
 
-Orient with `living-docs read --contract`: it prints each in-force record without its detail-tier sections. Open the record's file when you need the detail.
+Orient with `living-docs read records --contract`: it prints each in-force record without its detail-tier sections. Open the record's file when you need the detail.
 
 ## The record types — one question each
 

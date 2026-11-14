@@ -17,7 +17,7 @@ pub(crate) fn run_index(docs_dir: &Path, doc_type: Option<String>, mode: OutputM
     match commands::index::write(build_store(docs_dir).as_ref(), docs_dir, doc_type) {
         Ok(written) => render(&written, mode),
         Err(message) => {
-            eprintln!("living-docs index: {message}");
+            eprintln!("living-docs manage index: {message}");
             ExitCode::from(2)
         }
     }

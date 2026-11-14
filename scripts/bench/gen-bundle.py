@@ -3,8 +3,8 @@
 Usage: gen-bundle.py <example docs dir> <output dir> <records per type>
 
 Copies the example bundle, then writes that many ADRs and issues from its
-templates; every tenth ADR is superseded by the next. Run `living-docs index`
-and `living-docs fmt` on the output before measuring, so `check` passes.
+templates; every tenth ADR is superseded by the next. Run `living-docs manage index`
+and `living-docs manage fmt` on the output before measuring, so `check` passes.
 """
 
 import re

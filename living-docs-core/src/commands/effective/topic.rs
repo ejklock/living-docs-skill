@@ -1,4 +1,4 @@
-//! Topic matching for `read --topic`: terms combine with AND, a term matches a
+//! Topic matching for `read records --topic`: terms combine with AND, a term matches a
 //! word by prefix after accent folding, and matches rank by weighted term
 //! frequency. No stemming, no substring hits.
 

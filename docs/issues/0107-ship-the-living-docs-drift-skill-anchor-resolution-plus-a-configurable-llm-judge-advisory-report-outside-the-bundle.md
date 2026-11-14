@@ -8,8 +8,6 @@ timestamp: 2026-11-09T03:17:16Z
 
 ## 0107. Ship the living-docs-drift skill: anchor resolution plus a configurable LLM judge, advisory report outside the bundle
 
-## Ship the living-docs-drift skill: anchor resolution plus a configurable LLM judge, advisory report outside the bundle
-
 Implements [ADR 0075](/adr/0075-doc-to-code-drift-is-an-advisory-skill-whose-llm-judge-runs-outside-the-binary-through-a-configurable-command.md): a new `skills/living-docs-drift/` skill whose driver script resolves each in-scope record's code anchors, asks a configurable judge command whether the code still matches the record, validates every answer and writes a dated advisory report outside the bundle. The binary changes only so `install skills` places the new skill.
 
 ### Scope

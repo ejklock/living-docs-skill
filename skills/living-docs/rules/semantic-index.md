@@ -27,16 +27,16 @@ Split when a doc passes ~200 lines or starts mixing unrelated concerns.
 
 The corpus is append-only (supersede, never rewrite): right for history, wrong as the thing an agent reads. An `index.md` lists **everything**, including superseded links and stale records, and leaves supersede-chain resolution to the reader — who then plans on whichever record they opened first.
 
-**Agents read `living-docs read`, never `index.md` directly** (ADR 0050). It compiles the in-force view: active records only (superseded/deprecated withheld), supersede chains collapsed to the head with a one-line lineage (`supersedes 0131 via 0133`), grouped **constitution and PRDs first, then ADRs, then the rest** by number, so the reader orients before drilling in.
+**Agents read `living-docs read records`, never `index.md` directly** (ADR 0050). It compiles the in-force view: active records only (superseded/deprecated withheld), supersede chains collapsed to the head with a one-line lineage (`supersedes 0131 via 0133`), grouped **constitution and PRDs first, then ADRs, then the rest** by number, so the reader orients before drilling in.
 
-- `living-docs read` — the whole active view (title + description per record).
-- `living-docs read --topic <terms>` — only records where every term starts a word in the title, description, or body (case- and accent-insensitive: `acao` finds `Ação`), ranked by hits in the title first, then the description, then the body; when nothing live matches, a stderr line says so and suggests a broader term or `grep`.
-- `living-docs read --contract` — each record's contract sections only (an issue's Scope, Decision and Acceptance; its Plan and Outcome stay out). Each type's tiers live in the registry (ADR 0064).
-- `living-docs read --full` — full record bodies instead of the one-line index entries.
+- `living-docs read records` — the whole active view (title + description per record).
+- `living-docs read records --topic <terms>` — only records where every term starts a word in the title, description, or body (case- and accent-insensitive: `acao` finds `Ação`), ranked by hits in the title first, then the description, then the body; when nothing live matches, a stderr line says so and suggests a broader term or `grep`.
+- `living-docs read records --contract` — each record's contract sections only (an issue's Scope, Decision and Acceptance; its Plan and Outcome stay out). Each type's tiers live in the registry (ADR 0064).
+- `living-docs read records --full` — full record bodies instead of the one-line index entries.
 
-`index.md` remains the generated on-disk artifact and the human/browser entry point; `read` is the agent's read surface over the same records.
+`index.md` remains the generated on-disk artifact and the human/browser entry point; `read records` is the agent's read surface over the same records.
 
-A raw record opened directly still carries its own stop signal: a body that opens with a `SUPERSEDED` or `DEPRECATED` callout is history. Follow the successor link or discard the record; never plan on it; read `living-docs read` for what is in force.
+A raw record opened directly still carries its own stop signal: a body that opens with a `SUPERSEDED` or `DEPRECATED` callout is history. Follow the successor link or discard the record; never plan on it; read `living-docs read records` for what is in force.
 
 ## Heading discipline
 

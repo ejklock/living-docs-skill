@@ -37,7 +37,7 @@ fn skills_corpus_root() -> PathBuf {
 
 fn run_skill_install(args: &[&str]) -> Output {
     living_docs()
-        .arg("install")
+        .args(["manage", "install"])
         .arg("skills")
         .args(args)
         .output()
@@ -177,7 +177,14 @@ fn install_scopes_to_the_project_relative_directory_when_project_is_given_withou
     let project = temp_dir("project-scope");
 
     let output = living_docs()
-        .args(["install", "skills", "--harness", "codex", "--project"])
+        .args([
+            "manage",
+            "install",
+            "skills",
+            "--harness",
+            "codex",
+            "--project",
+        ])
         .current_dir(&project)
         .output()
         .expect("failed to run living-docs install skills");
@@ -218,7 +225,7 @@ fn install_uses_an_overridden_home_for_the_global_destination_when_neither_proje
     let fake_home = temp_dir("fake-home");
 
     let output = living_docs()
-        .args(["install", "skills", "--harness", "pi"])
+        .args(["manage", "install", "skills", "--harness", "pi"])
         .env("HOME", &fake_home)
         .output()
         .expect("failed to run living-docs install skills");

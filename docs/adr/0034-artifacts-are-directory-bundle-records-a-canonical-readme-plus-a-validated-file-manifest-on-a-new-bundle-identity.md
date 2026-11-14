@@ -7,7 +7,7 @@ status: Deprecated
 timestamp: 2026-08-07T14:36:44Z
 ---
 
-> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.
+> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.
 
 # 0034. Artifacts are directory-bundle records on a new Bundle identity
 

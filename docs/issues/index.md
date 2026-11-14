@@ -24,6 +24,16 @@ one slice per fresh context, starting from the skeleton.
 * [0104 — check module docblock links to a run function that no longer exists](0104-check-module-docblock-links-to-a-run-function-that-no-longer-exists.md) - open
 * [0105 — check accepts the placeholder description that new writes](0105-check-accepts-the-placeholder-description-that-new-writes.md) - open
 * [0109 — Regroup the CLI under write, read and manage with check top-level, and move every surface that teaches a command](0109-regroup-the-cli-under-write-read-and-manage-with-check-top-level-and-move-every-surface-that-teaches-a-command.md) - open
+* [0111 — MCP front: serve the bundle over stdio as write, read, manage and check tools from living-docs mcp](0111-mcp-front-serve-the-bundle-over-stdio-as-write-read-manage-and-check-tools-from-living-docs-mcp.md) - open
+* [0112 — stale-proposed counts only issues that declare Implements for the ADR](0112-stale-proposed-counts-only-issues-that-declare-implements-for-the-adr.md) - open
+* [0113 — write set section refuses to drop child headings](0113-write-set-section-refuses-to-drop-child-headings.md) - open
+* [0114 — The distributed pre-commit hook lacks the changed-only opt-in the repository hook has](0114-the-distributed-pre-commit-hook-lacks-the-changed-only-opt-in-the-repository-hook-has.md) - open
+* [0115 — The changed-only pre-commit tests inherit the host's git config and environment](0115-the-changed-only-pre-commit-tests-inherit-the-host-s-git-config-and-environment.md) - open
+* [0116 — The file-size ratchet reports a stale baseline inside a fleet worktree](0116-the-file-size-ratchet-reports-a-stale-baseline-inside-a-fleet-worktree.md) - open
+* [0117 — The liveness declaration scan walks links with its own parser instead of link_destinations](0117-the-liveness-declaration-scan-walks-links-with-its-own-parser-instead-of-link-destinations.md) - open
+* [0118 — The size gates pass when find fails to read part of the tree](0118-the-size-gates-pass-when-find-fails-to-read-part-of-the-tree.md) - open
+* [0119 — The doc-trail gate reads a fixture path in a test as a record citation](0119-the-doc-trail-gate-reads-a-fixture-path-in-a-test-as-a-record-citation.md) - open
+* [0120 — Two parity test helpers exceed the function line cap and fail clippy](0120-two-parity-test-helpers-exceed-the-function-line-cap-and-fail-clippy.md) - open
 
 ## Closed
 
@@ -53,7 +63,7 @@ one slice per fresh context, starting from the skeleton.
 * [0024 — Doc-code pairing for living-docs: commit trailers, covers-based drift detection, and executable acceptance](0024-doc-code-pairing-for-living-docs-commit-trailers-covers-based-drift-detection-and-executable-acceptance.md) - closed
 * [0025 — describe and status resolve record numbers ambiguously across doc-type directories](0025-describe-and-status-resolve-record-numbers-ambiguously-across-doc-type-directories.md) - closed
 * [0026 — Corpus import: seed the knowledge graph read-model from real repos to make graph slices demoable from day one](0026-corpus-import-seed-the-knowledge-graph-read-model-from-real-repos-to-make-graph-slices-demoable-from-day-one.md) - closed
-* [0027 — MCP front: expose the ten authoring verbs as MCP tools over the .md tree](0027-mcp-front-expose-the-ten-authoring-verbs-as-mcp-tools-over-the-md-tree.md) - closed
+* [0027 — MCP front: expose the ten authoring verbs as MCP tools over the .md tree](0027-mcp-front-expose-the-ten-authoring-verbs-as-mcp-tools-over-the-md-tree.md) - Superseded by [0111](0111-mcp-front-serve-the-bundle-over-stdio-as-write-read-manage-and-check-tools-from-living-docs-mcp.md)
 * [0028 — Responsibility split: one verb per module, sibling test files, and a hard file-size ratchet enforced by a deterministic check](0028-responsibility-split-one-verb-per-module-sibling-test-files-and-a-hard-file-size-ratchet-enforced-by-a-deterministic-check.md) - closed
 * [0029 — status verb cannot set the issue lifecycle: number resolution prefers the ADR on cross-type collision and the status vocabulary is ADR-only](0029-status-verb-cannot-set-the-issue-lifecycle-number-resolution-prefers-the-adr-on-cross-type-collision-and-the-status-vocabulary-is-adr-only.md) - closed
 * [0030 — db commands can create a literal 'sqlite:' directory by treating the connection string as a filesystem path](0030-db-commands-can-create-a-literal-sqlite-directory-by-treating-the-connection-string-as-a-filesystem-path.md) - closed

@@ -4,7 +4,7 @@ use crate::store::DocStore;
 use std::path::{Path, PathBuf};
 
 /// One index that could not be written after the record it lists was
-/// already written. `doc_type` is the token `living-docs index` repairs, or
+/// already written. `doc_type` is the token `living-docs manage index` repairs, or
 /// `None` when the failing file is the bundle-root `index.md`, which no
 /// per-type `index` run can repair.
 #[derive(Debug)]
@@ -16,18 +16,18 @@ pub struct IndexFailure {
 /// The repair line a front prints after its verb prefix: the record is
 /// written, the index is not, and the named verb fixes it. A bundle-root
 /// failure asks for the root path or its directory to be fixed before
-/// `living-docs index` writes it again, since no per-type run repairs it.
+/// `living-docs manage index` writes it again, since no per-type run repairs it.
 impl std::fmt::Display for IndexFailure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.doc_type {
             Some(doc_type) => write!(
                 f,
-                "record written; index not updated ({}) — run `living-docs index {doc_type}`",
+                "record written; index not updated ({}) — run `living-docs manage index {doc_type}`",
                 self.error
             ),
             None => write!(
                 f,
-                "record written; the bundle-root index could not be written ({}) — fix that path or its directory, then run `living-docs index`",
+                "record written; the bundle-root index could not be written ({}) — fix that path or its directory, then run `living-docs manage index`",
                 self.error
             ),
         }

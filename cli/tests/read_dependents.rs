@@ -1,4 +1,4 @@
-//! `read --links-to` and `read --impact` through the binary.
+//! `read records --links-to` and `read records --impact` through the binary.
 
 mod common;
 
@@ -22,7 +22,7 @@ fn bundle(label: &str) -> common::Scratch {
 
 fn read(dir: &Path, args: &[&str]) -> Output {
     living_docs()
-        .args(["--docs-dir", dir.to_str().unwrap(), "read"])
+        .args(["--docs-dir", dir.to_str().unwrap(), "read", "records"])
         .args(args)
         .output()
         .expect("failed to run living-docs read")
@@ -118,12 +118,18 @@ fn conflicting_flags_exit_two() {
 #[test]
 fn help_lists_both_flags_with_an_example_each() {
     let output = living_docs()
-        .args(["read", "--help", "--plain"])
+        .args(["read", "records", "--help", "--plain"])
         .output()
         .unwrap();
     let help = stdout_of(&output);
     assert!(help.contains("--links-to <TYPE/NNNN>"), "{help}");
     assert!(help.contains("--impact <TYPE/NNNN>"), "{help}");
-    assert!(help.contains("living-docs read --links-to adr/"), "{help}");
-    assert!(help.contains("living-docs read --impact adr/"), "{help}");
+    assert!(
+        help.contains("living-docs read records --links-to adr/"),
+        "{help}"
+    );
+    assert!(
+        help.contains("living-docs read records --impact adr/"),
+        "{help}"
+    );
 }

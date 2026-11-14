@@ -8,7 +8,7 @@ const VENDOR_LINE: &str = "vendor/**/index.md merge=union\n";
 
 fn install_in(project: &Path, docs_dir: &str, cwd: Option<&Path>) -> Output {
     let mut command = living_docs();
-    command.args(["install", "hooks"]);
+    command.args(["manage", "install", "hooks"]);
     match cwd {
         Some(dir) => command.current_dir(dir),
         None => command.arg("--dir").arg(project),
@@ -18,7 +18,7 @@ fn install_in(project: &Path, docs_dir: &str, cwd: Option<&Path>) -> Output {
 
 fn uninstall_bundle(project: &Path, docs_dir: &str) -> Output {
     living_docs()
-        .args(["uninstall", "hooks", "--dir"])
+        .args(["manage", "uninstall", "hooks", "--dir"])
         .arg(project)
         .args(["--docs-dir", docs_dir])
         .output()
@@ -90,7 +90,14 @@ fn a_failing_hooks_step_leaves_the_attributes_file_as_it_was() {
 
 fn uninstall_with_global(project: &Path, global: &str, own: &str) -> Output {
     living_docs()
-        .args(["--docs-dir", global, "uninstall", "hooks", "--dir"])
+        .args([
+            "--docs-dir",
+            global,
+            "manage",
+            "uninstall",
+            "hooks",
+            "--dir",
+        ])
         .arg(project)
         .args(["--docs-dir", own])
         .output()
@@ -99,7 +106,7 @@ fn uninstall_with_global(project: &Path, global: &str, own: &str) -> Output {
 
 fn uninstall_dry_run(project: &Path, docs_dir: &str) -> Output {
     living_docs()
-        .args(["uninstall", "hooks", "--dry-run", "--dir"])
+        .args(["manage", "uninstall", "hooks", "--dry-run", "--dir"])
         .arg(project)
         .args(["--docs-dir", docs_dir])
         .output()
@@ -128,7 +135,7 @@ fn uninstall_with_a_non_utf8_dir_does_not_panic() {
     use std::os::unix::ffi::OsStrExt;
     let dir = std::ffi::OsStr::from_bytes(b"x\xff");
     let output = living_docs()
-        .args(["uninstall", "hooks", "--dry-run", "--dir"])
+        .args(["manage", "uninstall", "hooks", "--dry-run", "--dir"])
         .arg(dir)
         .output()
         .unwrap();

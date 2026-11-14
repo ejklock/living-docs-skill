@@ -13,6 +13,6 @@ listing plus each record's `status` / `superseded_by` frontmatter.
 
 ## Superseded
 
-_History only. Do not act on these records — run `living-docs read` for what is in force._
+_History only. Do not act on these records — run `living-docs read records` for what is in force._
 
 * [0001 — In-memory store for minted links](0001-in-memory-store.md) - Superseded by [0002](0002-sqlite-store.md)

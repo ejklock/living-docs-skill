@@ -7,19 +7,7 @@ use common::living_docs;
 use serde_json::Value;
 use std::process::Output;
 
-const VERBS: [&str; 11] = [
-    "new",
-    "set",
-    "supersede",
-    "index",
-    "fmt",
-    "check",
-    "read",
-    "guide",
-    "install",
-    "uninstall",
-    "completions",
-];
+const VERBS: [&str; 5] = ["write", "read", "manage", "check", "mcp"];
 
 fn run(args: &[&str]) -> Output {
     living_docs()
@@ -59,11 +47,16 @@ fn longs(value: &Value, key: &str) -> Vec<String> {
         .collect()
 }
 
-fn command_named<'a>(doc: &'a Value, name: &str) -> &'a Value {
-    doc["commands"]
-        .as_array()
-        .and_then(|list| list.iter().find(|command| command["name"] == name))
-        .unwrap_or_else(|| panic!("no {name} command"))
+fn nested_command<'a>(doc: &'a Value, path: &[&str]) -> &'a Value {
+    let mut node = doc;
+    for name in path {
+        node = node["commands"]
+            .as_array()
+            .or_else(|| node["subcommands"].as_array())
+            .and_then(|list| list.iter().find(|command| command["name"] == *name))
+            .unwrap_or_else(|| panic!("no {name} command"));
+    }
+    node
 }
 
 #[test]
@@ -87,44 +80,54 @@ fn piped_root_help_is_one_json_line_naming_every_verb_and_hiding_retired_names()
 }
 
 #[test]
-fn piped_root_help_groups_the_verbs_under_four_headings() {
+fn piped_root_help_lists_every_command_without_groups() {
     let doc = json_of(&["--help"]);
 
-    let groups = doc["groups"].as_array().expect("groups array");
-    let headings: Vec<&str> = groups
+    assert!(doc.get("groups").is_none(), "groups present: {doc}");
+    assert_eq!(names(&doc, "commands"), VERBS);
+}
+
+fn assert_contract(command: &Value, trail: &str) {
+    let name = format!("{trail} {}", command["name"].as_str().unwrap_or_default());
+    for field in ["about", "usage"] {
+        assert!(
+            command[field].as_str().is_some_and(|text| !text.is_empty()),
+            "{name} lacks {field}"
+        );
+    }
+    let has_examples = command["examples"]
+        .as_array()
+        .is_some_and(|list| !list.is_empty());
+    assert!(has_examples, "{name} lacks examples");
+    let codes: Vec<i64> = command["exit_codes"]
+        .as_array()
+        .unwrap_or_else(|| panic!("{name} lacks exit_codes"))
         .iter()
-        .map(|group| group["name"].as_str().unwrap_or_default())
+        .filter_map(|entry| entry["code"].as_i64())
         .collect();
-    assert_eq!(headings, ["Authoring", "Gate", "Reading", "Distribution"]);
-    assert_eq!(
-        groups[0]["commands"],
-        serde_json::json!(["new", "set", "supersede", "index", "fmt"])
-    );
+    assert_eq!(codes, [0, 1, 2], "{name} exit codes");
+    for sub in command["subcommands"].as_array().into_iter().flatten() {
+        assert_contract(sub, &name);
+    }
 }
 
 #[test]
-fn every_root_command_carries_its_full_contract() {
+fn every_operation_carries_its_full_contract() {
     let doc = json_of(&["--help"]);
 
     for command in doc["commands"].as_array().expect("commands array") {
-        let name = command["name"].as_str().unwrap_or_default();
-        for field in ["about", "usage"] {
-            assert!(
-                command[field].as_str().is_some_and(|text| !text.is_empty()),
-                "{name} lacks {field}"
-            );
-        }
-        let has_examples = command["examples"]
-            .as_array()
-            .is_some_and(|list| !list.is_empty());
-        assert!(has_examples, "{name} lacks examples");
-        let codes: Vec<i64> = command["exit_codes"]
-            .as_array()
-            .unwrap_or_else(|| panic!("{name} lacks exit_codes"))
-            .iter()
-            .filter_map(|entry| entry["code"].as_i64())
-            .collect();
-        assert_eq!(codes, [0, 1, 2], "{name} exit codes");
+        assert_contract(command, "");
+    }
+    for path in [
+        ["manage", "install", "skills"],
+        ["manage", "install", "hooks"],
+        ["manage", "uninstall", "hooks"],
+    ] {
+        let leaf = nested_command(&doc, &path);
+        assert!(
+            leaf["examples"].as_array().is_some_and(|l| !l.is_empty()),
+            "{path:?}"
+        );
     }
     assert_eq!(doc["exit_codes"].as_array().map(Vec::len), Some(3));
 }
@@ -132,7 +135,7 @@ fn every_root_command_carries_its_full_contract() {
 #[test]
 fn new_lists_its_positionals_and_options_with_the_documented_fields() {
     let doc = json_of(&["--help"]);
-    let new = command_named(&doc, "new");
+    let new = nested_command(&doc, &["write", "new"]);
 
     let type_arg = &new["args"][0];
     assert_eq!(type_arg["name"], "TYPE");
@@ -147,7 +150,7 @@ fn new_lists_its_positionals_and_options_with_the_documented_fields() {
     assert!(body["default"].is_null());
     let first_example = new["examples"][0].as_str().unwrap_or_default();
     assert!(
-        first_example.starts_with("living-docs new adr"),
+        first_example.starts_with("living-docs write new adr"),
         "{first_example}"
     );
 }
@@ -157,11 +160,14 @@ fn install_and_uninstall_carry_their_nested_subcommands() {
     let doc = json_of(&["--help"]);
 
     assert_eq!(
-        names(command_named(&doc, "install"), "subcommands"),
+        names(nested_command(&doc, &["manage", "install"]), "subcommands"),
         ["skills", "hooks"]
     );
     assert_eq!(
-        names(command_named(&doc, "uninstall"), "subcommands"),
+        names(
+            nested_command(&doc, &["manage", "uninstall"]),
+            "subcommands"
+        ),
         ["hooks"]
     );
 }
@@ -182,7 +188,7 @@ fn root_help_lists_the_global_options() {
 
 #[test]
 fn verb_help_is_that_verbs_object_plus_the_global_options() {
-    let doc = json_of(&["set", "--help"]);
+    let doc = json_of(&["write", "set", "--help"]);
 
     assert_eq!(doc["name"], "set");
     assert_eq!(names(&doc, "args"), ["REFERENCE", "KEY", "VALUE"]);
@@ -194,7 +200,7 @@ fn verb_help_is_that_verbs_object_plus_the_global_options() {
 
 #[test]
 fn nested_subcommand_help_names_its_own_options() {
-    let doc = json_of(&["install", "skills", "--help"]);
+    let doc = json_of(&["manage", "install", "skills", "--help"]);
 
     assert_eq!(doc["name"], "skills");
     let harness = doc["options"]
@@ -207,8 +213,8 @@ fn nested_subcommand_help_names_its_own_options() {
 
 #[test]
 fn short_flag_and_help_verb_also_print_json() {
-    assert_eq!(json_of(&["set", "-h"])["name"], "set");
-    assert_eq!(json_of(&["help", "set"])["name"], "set");
+    assert_eq!(json_of(&["write", "set", "-h"])["name"], "set");
+    assert_eq!(json_of(&["help", "write", "set"])["name"], "set");
 }
 
 #[test]
@@ -228,7 +234,7 @@ fn plain_flag_keeps_clap_text() {
 
 #[test]
 fn color_always_keeps_clap_text() {
-    let output = run(&["set", "--help", "--color=always"]);
+    let output = run(&["write", "set", "--help", "--color=always"]);
 
     assert!(stdout_of(&output).contains("Usage:"));
 }

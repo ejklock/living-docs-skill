@@ -11,7 +11,7 @@ use crate::store::DocStore;
 use std::path::Path;
 
 /// Reports a violation for every existing type index that differs from its
-/// regeneration, naming the index and the `living-docs index <type>` repair.
+/// regeneration, naming the index and the `living-docs manage index <type>` repair.
 /// A type with no directory, or whose directory has no `index.md`, is left to
 /// the membership checks.
 pub(crate) fn check_index_drift(store: &dyn DocStore, bundle: &Path, reporter: &mut Reporter) {
@@ -27,7 +27,7 @@ pub(crate) fn check_index_drift(store: &dyn DocStore, bundle: &Path, reporter: &
             reporter.report(
                 &index,
                 format!(
-                    "index differs from its regeneration — run `living-docs index {}`",
+                    "index differs from its regeneration — run `living-docs manage index {}`",
                     spec.token
                 ),
             );

@@ -36,7 +36,7 @@ pub(crate) fn run_install_hooks(
 ) -> ExitCode {
     let project_root = dir.unwrap_or_else(|| PathBuf::from("."));
     if let Err(message) = gitattributes::preflight(&project_root) {
-        eprintln!("living-docs install hooks: {message}");
+        eprintln!("living-docs manage install hooks: {message}");
         return ExitCode::from(2);
     }
     let code = hooks::install(&project_root, docs_dir, dry_run, quiet);
@@ -46,7 +46,7 @@ pub(crate) fn run_install_hooks(
     match add_union_attribute(&project_root, docs_dir, dry_run, quiet) {
         Ok(()) => code,
         Err(message) => {
-            eprintln!("living-docs install hooks: {message}");
+            eprintln!("living-docs manage install hooks: {message}");
             ExitCode::from(2)
         }
     }
@@ -63,7 +63,7 @@ fn add_union_attribute(
     let Some(line) = gitattributes::union_line(project_root, docs_dir) else {
         if !quiet {
             eprintln!(
-                "living-docs install hooks: skipped the merge=union line in .gitattributes: --docs-dir {} lies outside {}",
+                "living-docs manage install hooks: skipped the merge=union line in .gitattributes: --docs-dir {} lies outside {}",
                 docs_dir.display(),
                 project_root.display()
             );

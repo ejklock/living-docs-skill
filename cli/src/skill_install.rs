@@ -3,7 +3,7 @@
 //! `crate::hooks`'s embedded-asset materialization: the corpus is the only
 //! source, placement is idempotent, and `--dry-run` writes nothing.
 
-use crate::{output::outln, skill};
+use crate::output::outln;
 use clap::ValueEnum;
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
@@ -140,8 +140,8 @@ fn resolve_placements(root: &Path) -> Result<Vec<Placement>, String> {
 
 fn resolve_one(root: &Path, skill_name: &str, relative_path: &str) -> Result<Placement, String> {
     let asset_path = format!("{skill_name}/{relative_path}");
-    let bytes =
-        skill::asset(&asset_path).ok_or_else(|| format!("missing embedded asset: {asset_path}"))?;
+    let bytes = living_docs_core::guide::asset(&asset_path)
+        .ok_or_else(|| format!("missing embedded asset: {asset_path}"))?;
     Ok(Placement {
         dest: root.join(skill_name).join(relative_path),
         bytes,
@@ -166,7 +166,7 @@ fn write_one(placement: &Placement) -> io::Result<()> {
 }
 
 fn report_failure(message: &str) -> ExitCode {
-    eprintln!("living-docs install skills: {message}");
+    eprintln!("living-docs manage install skills: {message}");
     ExitCode::from(2)
 }
 

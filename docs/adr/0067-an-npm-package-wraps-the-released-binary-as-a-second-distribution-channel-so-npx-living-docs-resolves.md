@@ -8,7 +8,7 @@ superseded_by: 0077
 timestamp: 2026-10-19T13:13:52Z
 ---
 
-> **SUPERSEDED — do not act on this record.** Replaced by [0077](0077-the-npm-package-is-published-under-the-scoped-name-ejklock-living-docs-because-the-unscoped-name-belongs-to-another-author.md). Run `living-docs read` for what is in force.
+> **SUPERSEDED — do not act on this record.** Replaced by [0077](0077-the-npm-package-is-published-under-the-scoped-name-ejklock-living-docs-because-the-unscoped-name-belongs-to-another-author.md). Run `living-docs read records` for what is in force.
 
 # 0067. An npm package wraps the released binary as a second distribution channel so npx living-docs resolves
 

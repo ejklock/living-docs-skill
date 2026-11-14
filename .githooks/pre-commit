@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 #
-# pre-commit — living-docs doc-gate (ADR 0021 layer 3).
+# pre-commit — living-docs doc-gate. `living-docs manage install hooks`
+# materializes this file to <project>/.githooks/pre-commit and points
+# core.hooksPath at .githooks.
 #
 # Runs `living-docs check` over the docs bundle so a hand-written or drifted
 # record fails in the authoring session, not at CI. Fail-open when no binary
 # is resolvable (CI still gates); never bypass a real failure with --no-verify.
 #
-# LIVING_DOCS_CHECK_CHANGED_ONLY=1 narrows the verdict to the staged records
-# (ADR 0062), so a bundle carrying legacy debt can arm this hook while it pays
-# that debt down. CI still runs the full gate.
+# LIVING_DOCS_BUNDLE=<dir> sets the docs bundle (default docs).
+# LIVING_DOCS_CHECK_CHANGED_ONLY=1 narrows the verdict to the staged records,
+# so a bundle carrying legacy debt can arm this hook while it pays that debt
+# down; nothing staged in the bundle passes. CI still runs the full gate.
+# LIVING_DOCS_REQUIRE_OWNER=1 requires an owner on the records checked.
 
 set -u
 
@@ -16,18 +20,24 @@ ROOT="$(git rev-parse --show-toplevel)"
 BUNDLE="${LIVING_DOCS_BUNDLE:-docs}"
 
 resolve_bin() {
-  if command -v living-docs >/dev/null 2>&1; then
-    command -v living-docs
-  elif [ -x "$ROOT/target/release/living-docs" ]; then
+  if [ -x "$ROOT/target/release/living-docs" ]; then
     printf '%s' "$ROOT/target/release/living-docs"
+  elif command -v living-docs >/dev/null 2>&1; then
+    command -v living-docs
   fi
 }
 
 BIN="$(resolve_bin)"
 if [ -z "$BIN" ]; then
-  echo "living-docs pre-commit: no binary found (PATH or target/release) — doc-gate skipped, CI will enforce it. Build with \`make build\`." >&2
+  echo "living-docs pre-commit: no binary found (target/release or PATH) — doc-gate skipped, CI will enforce it. Build with \`make build\`." >&2
   exit 0
 fi
+
+ARGS=(check)
+if [ "${LIVING_DOCS_REQUIRE_OWNER:-0}" = "1" ]; then
+  ARGS+=(--require-owner)
+fi
+ARGS+=(--plain)
 
 if [ "${LIVING_DOCS_CHECK_CHANGED_ONLY:-0}" = "1" ]; then
   STAGED="$(git diff --cached --name-only --diff-filter=ACMR -- "$BUNDLE" | sed "s|^|$ROOT/|")"
@@ -35,7 +45,7 @@ if [ "${LIVING_DOCS_CHECK_CHANGED_ONLY:-0}" = "1" ]; then
     exit 0
   fi
   # shellcheck disable=SC2086
-  exec "$BIN" check --require-owner --plain --changed-files $STAGED -- "$ROOT/$BUNDLE"
+  exec "$BIN" "${ARGS[@]}" --changed-files $STAGED -- "$ROOT/$BUNDLE"
 fi
 
-exec "$BIN" check --require-owner --plain "$ROOT/$BUNDLE"
+exec "$BIN" "${ARGS[@]}" "$ROOT/$BUNDLE"

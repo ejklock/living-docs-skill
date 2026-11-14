@@ -159,7 +159,10 @@ fn warn_mixed_rows(store: &dyn DocStore, docs_dir: &Path, doc_type: &str) {
     for path in store.list(docs_dir).unwrap_or_default() {
         let name = path.file_name().and_then(|name| name.to_str());
         if path.parent() == Some(&type_dir) && name.is_some_and(is_row) && is_mixed(&path) {
-            eprintln!("living-docs index: {}: {MIXED_MESSAGE}", path.display());
+            eprintln!(
+                "living-docs manage index: {}: {MIXED_MESSAGE}",
+                path.display()
+            );
         }
     }
 }
@@ -267,12 +270,12 @@ fn strip_heading_number_prefix(heading: &str, number: u32) -> String {
 fn warn_missing_title(path: &Path, fallback: &str) {
     if fallback.is_empty() {
         eprintln!(
-            "living-docs index: {} has no parseable 'title' frontmatter and no H1 heading; rendering an empty title",
+            "living-docs manage index: {} has no parseable 'title' frontmatter and no H1 heading; rendering an empty title",
             path.display()
         );
     } else {
         eprintln!(
-            "living-docs index: {} has no parseable 'title' frontmatter; using its H1 heading {fallback:?}",
+            "living-docs manage index: {} has no parseable 'title' frontmatter; using its H1 heading {fallback:?}",
             path.display()
         );
     }

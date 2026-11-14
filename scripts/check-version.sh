@@ -99,6 +99,7 @@ check_cargo_package_version() { # check_cargo_package_version <file>
 }
 
 check_cargo_package_version "$root/cli/Cargo.toml"
+check_cargo_package_version "$root/mcp/Cargo.toml"
 
 # npm/package.json declares exactly one top-level "version" key (the package has no
 # dependencies), so the first match is the package version.

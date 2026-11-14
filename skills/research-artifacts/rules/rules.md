@@ -8,7 +8,7 @@
 4. **Contradictions are surfaced, not hidden.** When sources disagree, record both positions with attribution.
 5. **Indexed.** The `docs/research/index.md` pointer must match the note's filename exactly. No orphan research.
 6. **Reference, don't inline.** ADRs and PRDs *link* to the research note (bundle-relative); they don't paste the findings. The note is the single home for the evidence.
-7. **OKF format.** The note opens with YAML frontmatter carrying `type: Research` (the general roll-up carries `type: Reference`). Sources are listed under a `# References` heading. The `docs/research/index.md` listing carries no frontmatter. Prose is one line per paragraph — never hard-wrap at a fixed column; `living-docs fmt` unwraps it (living-docs ADR 0046).
+7. **OKF format.** The note opens with YAML frontmatter carrying `type: Research` (the general roll-up carries `type: Reference`). Sources are listed under a `# References` heading. The `docs/research/index.md` listing carries no frontmatter. Prose is one line per paragraph — never hard-wrap at a fixed column; `living-docs manage fmt` unwraps it (living-docs ADR 0046).
 8. **The note's `# References` is the home.** Every research note ends with a `# References` section (NBR 6023, always the link, excerpts inline where a claim rests on a quote) — the authoritative source list for that session.
 9. **The general roll-up stays in sync.** A source added to a note is added to `docs/research/references.md` in the same change. The roll-up is a derived index, not a second home — on divergence the per-note entry wins.
 

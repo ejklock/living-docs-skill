@@ -19,7 +19,7 @@ fn stderr_of(output: &Output) -> String {
 
 fn run_guide(args: &[&str]) -> Output {
     living_docs()
-        .arg("guide")
+        .args(["read", "guide"])
         .args(args)
         .output()
         .expect("failed to run living-docs guide")
@@ -64,7 +64,7 @@ fn no_args_prints_the_default_skills_full_body() {
     );
     assert!(
         stdout.contains(
-            "Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs set` / `supersede`."
+            "Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs write set` / `write supersede`."
         ),
         "got:\n{stdout}"
     );
@@ -197,7 +197,7 @@ fn kept_guide_spellings_still_work_after_the_refusals() {
 }
 
 const DRIFT_LINE: &str =
-    "living-docs-drift: no topics; living-docs guide living-docs-drift prints its SKILL.md";
+    "living-docs-drift: no topics; living-docs read guide living-docs-drift prints its SKILL.md";
 
 #[test]
 fn list_says_a_topicless_skill_has_no_topics_and_names_the_command_for_its_body() {

@@ -7,8 +7,8 @@ rule wins.
 ## What this project is
 
 `living-docs` is the deterministic layer of Living Docs authoring (see `docs/adr/0001`).
-A Rust CLI owns the mechanical, template-fillable steps (`new`, `set`, `supersede`,
-`index`, `check`, `fmt`, `read`) so the authoring model never pays tokens for them. There is **no LLM
+A Rust CLI owns the mechanical, template-fillable steps (`write new`, `write set`, `write supersede`,
+`manage index`, `check`, `manage fmt`, `read records`) so the authoring model never pays tokens for them. There is **no LLM
 inside the tool** — it is deterministic by construction.
 
 ## Hard rules
@@ -37,8 +37,8 @@ Names and structure carry intent; comments drift and lie.
 
 - Every runtime/logic change ships with tests **in the same pass**. No patch without tests.
 - Tests assert observable behavior. A test that only mirrors the implementation is a smell.
-- The fitness functions in ADR 0001 (`new` output passes `check`; `index` is idempotent;
-  `supersede` leaves both records linked and conformant) stay green.
+- The fitness functions in ADR 0001 (`write new` output passes `check`; `manage index` is idempotent;
+  `write supersede` leaves both records linked and conformant) stay green.
 
 ### 4. Determinism boundary
 
@@ -84,24 +84,24 @@ fronts:
 - **The `.md` tree in git is the only backend (ADR 0059).** There is no read-model, no
   search index, no web front and no publication path in the workspace. They return only
   as workspace fronts when a consumer needs cross-project search or an independently
-  deployed surface; `grep` and `read --topic` answer the search question until then.
-- **Ten verbs, one gate.** `new`, `set`, `supersede`, `index`, `check`, `fmt`,
-  `read`, `guide`, `install`, `uninstall`, plus the `completions` shell-completion
-  utility (ADR 0060), which is not a verb of the contract. `check` at commit and in CI is the only
-  enforcement; there is no write-time hook.
-- **One authoring path.** `new` scaffolds the numbered file with frontmatter and heading
+  deployed surface; `grep` and `read records --topic` answer the search question until then.
+- **Four verbs, one gate, and `mcp` (ADR 0076, 0078).** `write` (`new`, `set`, `supersede`), `read` (`records`,
+  `guide`), `manage` (`index`, `fmt`, `install`, `uninstall`, `completions`) and `check`; `mcp` is the fifth
+  top-level command and serves the bundle over stdio as the same four as tools. `check` at
+  commit and in CI is the only enforcement; there is no write-time hook.
+- **One authoring path.** `write new` scaffolds the numbered file with frontmatter and heading
   filled and every body section as a `{{SLOT: hint}}`; the author edits the body; an
   unfilled slot fails `check`.
 
 ## Working conventions
 
 - Every decision expensive to reverse (a verb's contract, the registry, a gate) gets an ADR
-  via `living-docs new adr "..."` **before** code. Decide, then implement. A cheap choice
+  via `living-docs write new adr "..."` **before** code. Decide, then implement. A cheap choice
   lives in the issue that carries the work.
 - `living-docs check` must pass over `docs/` — it is the doc-gate.
 - **Docs authoring is CLI-first and gate-enforced (ADR 0059).** Write ONLY the body below
   the closing `---` of a record; numbering, frontmatter, supersede links, and index rows
-  come from `living-docs new`/`set`/`supersede`/`index`/`fmt`. `.githooks/pre-commit`
+  come from `living-docs write new`/`write set`/`write supersede`/`manage index`/`manage fmt`. `.githooks/pre-commit`
   runs the doc-gate before every commit and CI runs it again; a hand-written record fails
   there.
 - Conventional Commits; ticket ID when one exists. No AI attribution in commit messages.

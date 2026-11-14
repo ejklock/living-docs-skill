@@ -42,7 +42,7 @@ fn bundle_with_first_decision(label: &str) -> (common::Scratch, std::path::PathB
 
 #[test]
 fn a_split_adr_reference_exits_2_and_shows_the_one_token_command() {
-    let out = run(&["set", "adr", "0001", "status", "Accepted"]);
+    let out = run(&["write", "set", "adr", "0001", "status", "Accepted"]);
     assert_eq!(out.status.code(), Some(2));
     assert!(
         stderr_of(&out).contains("set adr/0001 status Accepted"),
@@ -53,7 +53,7 @@ fn a_split_adr_reference_exits_2_and_shows_the_one_token_command() {
 
 #[test]
 fn a_split_issue_reference_keeps_the_number_as_given() {
-    let out = run(&["set", "issue", "12", "owner", "x"]);
+    let out = run(&["write", "set", "issue", "12", "owner", "x"]);
     assert_eq!(out.status.code(), Some(2));
     assert!(
         stderr_of(&out).contains("set issue/12 owner x"),
@@ -67,6 +67,7 @@ fn the_hint_keeps_a_docs_dir_flag_placed_before_set() {
     let out = run(&[
         "--docs-dir",
         "somewhere",
+        "write",
         "set",
         "adr",
         "0001",
@@ -75,7 +76,7 @@ fn the_hint_keeps_a_docs_dir_flag_placed_before_set() {
     ]);
     assert_eq!(out.status.code(), Some(2));
     assert!(
-        stderr_of(&out).contains("--docs-dir somewhere set adr/0001 status Accepted"),
+        stderr_of(&out).contains("--docs-dir somewhere write set adr/0001 status Accepted"),
         "{}",
         stderr_of(&out)
     );
@@ -83,21 +84,21 @@ fn the_hint_keeps_a_docs_dir_flag_placed_before_set() {
 
 #[test]
 fn an_unknown_type_token_gets_no_hint() {
-    let out = run(&["set", "glossary", "0001", "status", "Accepted"]);
+    let out = run(&["write", "set", "glossary", "0001", "status", "Accepted"]);
     assert_eq!(out.status.code(), Some(2));
     assert!(!stderr_of(&out).contains("hint"), "{}", stderr_of(&out));
 }
 
 #[test]
 fn a_non_number_second_token_gets_no_hint() {
-    let out = run(&["set", "adr", "first", "status", "Accepted"]);
+    let out = run(&["write", "set", "adr", "first", "status", "Accepted"]);
     assert_eq!(out.status.code(), Some(2));
     assert!(!stderr_of(&out).contains("hint"), "{}", stderr_of(&out));
 }
 
 #[test]
 fn another_subcommand_with_an_extra_argument_gets_no_hint() {
-    let out = run(&["supersede", "adr", "0001", "adr/0002", "extra"]);
+    let out = run(&["write", "supersede", "adr", "0001", "adr/0002", "extra"]);
     assert_eq!(out.status.code(), Some(2));
     assert!(!stderr_of(&out).contains("hint"), "{}", stderr_of(&out));
 }
@@ -112,7 +113,7 @@ fn hint_line(out: &Output) -> String {
 
 #[test]
 fn clap_error_text_precedes_the_hint() {
-    let out = run(&["set", "adr", "0001", "status", "Accepted"]);
+    let out = run(&["write", "set", "adr", "0001", "status", "Accepted"]);
     let text = stderr_of(&out);
     let error = text.find("unexpected argument 'Accepted' found");
     let hint = text.find("hint:");
@@ -121,7 +122,7 @@ fn clap_error_text_precedes_the_hint() {
 
 #[test]
 fn a_value_with_a_space_is_single_quoted_and_plain_words_stay_bare() {
-    let out = run(&["set", "issue", "0070", "owner", "Jane Doe"]);
+    let out = run(&["write", "set", "issue", "0070", "owner", "Jane Doe"]);
     assert!(
         stderr_of(&out).contains("set issue/0070 owner 'Jane Doe'"),
         "{}",
@@ -131,7 +132,7 @@ fn a_value_with_a_space_is_single_quoted_and_plain_words_stay_bare() {
 
 #[test]
 fn a_quote_in_a_value_is_escaped_for_a_posix_shell() {
-    let out = run(&["set", "issue", "0070", "owner", "it's"]);
+    let out = run(&["write", "set", "issue", "0070", "owner", "it's"]);
     assert!(
         stderr_of(&out).contains(r"set issue/0070 owner 'it'\''s'"),
         "{}",
@@ -149,6 +150,7 @@ fn the_printed_hint_runs_in_a_shell_with_the_same_effect_as_the_one_token_form()
     let split = run(&[
         "--docs-dir",
         docs.to_str().unwrap(),
+        "write",
         "set",
         "adr",
         "0001",
@@ -168,7 +170,7 @@ fn the_printed_hint_runs_in_a_shell_with_the_same_effect_as_the_one_token_form()
 
 #[test]
 fn help_requested_after_a_split_reference_prints_no_hint() {
-    let out = run(&["set", "adr", "0001", "--help"]);
+    let out = run(&["write", "set", "adr", "0001", "--help"]);
     assert_eq!(out.status.code(), Some(0));
     assert!(!stderr_of(&out).contains("hint"), "{}", stderr_of(&out));
     assert!(!String::from_utf8_lossy(&out.stdout).contains("hint:"));
@@ -176,13 +178,13 @@ fn help_requested_after_a_split_reference_prints_no_hint() {
 
 #[test]
 fn a_double_dash_before_the_verb_gets_no_hint() {
-    let out = run(&["--", "set", "adr", "0001", "status", "Accepted"]);
+    let out = run(&["--", "write", "set", "adr", "0001", "status", "Accepted"]);
     assert!(!stderr_of(&out).contains("hint"), "{}", stderr_of(&out));
 }
 
 #[test]
 fn a_split_reference_without_a_value_keeps_the_runtime_message_and_adds_the_hint() {
-    let out = run(&["set", "adr", "0001", "status"]);
+    let out = run(&["write", "set", "adr", "0001", "status"]);
     let text = stderr_of(&out);
     assert_eq!(out.status.code(), Some(2));
     assert!(
@@ -194,7 +196,15 @@ fn a_split_reference_without_a_value_keeps_the_runtime_message_and_adds_the_hint
 
 #[test]
 fn a_directory_name_token_with_a_from_conflict_gets_the_hint_with_from_kept() {
-    let out = run(&["set", "issues", "0070", "description", "--from", "f"]);
+    let out = run(&[
+        "write",
+        "set",
+        "issues",
+        "0070",
+        "description",
+        "--from",
+        "f",
+    ]);
     assert_eq!(out.status.code(), Some(2));
     assert!(
         stderr_of(&out).contains("set issues/0070 description --from f"),
@@ -205,9 +215,17 @@ fn a_directory_name_token_with_a_from_conflict_gets_the_hint_with_from_kept() {
 
 #[test]
 fn a_runtime_hint_keeps_a_docs_dir_with_a_space_quoted() {
-    let out = run(&["--docs-dir", "my docs", "set", "adr", "0001", "status"]);
+    let out = run(&[
+        "--docs-dir",
+        "my docs",
+        "write",
+        "set",
+        "adr",
+        "0001",
+        "status",
+    ]);
     assert!(
-        stderr_of(&out).contains("--docs-dir 'my docs' set adr/0001 status"),
+        stderr_of(&out).contains("--docs-dir 'my docs' write set adr/0001 status"),
         "{}",
         stderr_of(&out)
     );
@@ -215,14 +233,14 @@ fn a_runtime_hint_keeps_a_docs_dir_with_a_space_quoted() {
 
 #[test]
 fn a_bare_type_with_a_non_number_key_gets_no_hint() {
-    let out = run(&["set", "adr", "title", "x"]);
+    let out = run(&["write", "set", "adr", "title", "x"]);
     assert_eq!(out.status.code(), Some(2));
     assert!(!stderr_of(&out).contains("hint"), "{}", stderr_of(&out));
 }
 
 #[test]
 fn an_unknown_reference_word_at_runtime_gets_no_hint() {
-    let out = run(&["set", "nope", "0001", "status"]);
+    let out = run(&["write", "set", "nope", "0001", "status"]);
     assert_eq!(out.status.code(), Some(2));
     assert!(!stderr_of(&out).contains("hint"), "{}", stderr_of(&out));
 }
@@ -236,6 +254,7 @@ fn a_successful_set_prints_no_hint() {
     let out = run(&[
         "--docs-dir",
         docs.to_str().unwrap(),
+        "write",
         "set",
         "adr/0001",
         "status",
@@ -253,6 +272,7 @@ fn the_runtime_hint_run_by_a_shell_matches_the_one_token_form() {
     let split = run(&[
         "--docs-dir",
         docs.to_str().unwrap(),
+        "write",
         "set",
         "adr",
         "0001",

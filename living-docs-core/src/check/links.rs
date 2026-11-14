@@ -50,10 +50,30 @@ fn check_file_links(store: &dyn DocStore, f: &Path, bundle: &str, reporter: &mut
 /// Fenced code blocks are parsed as `CodeBlock` events, so example links shown
 /// inside them never surface here.
 pub(crate) fn link_destinations(content: &str) -> Vec<String> {
+    link_starts(content)
+        .into_iter()
+        .map(|(_, _, dest)| dest)
+        .collect()
+}
+
+/// Whether a destination came from a link or from an image.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum LinkKind {
+    Link,
+    Image,
+}
+
+/// Every `Link`/`Image` outside code as the byte offset where it starts in
+/// `content`, its kind and its destination, in document order.
+pub(crate) fn link_starts(content: &str) -> Vec<(usize, LinkKind, String)> {
     Parser::new(content)
-        .filter_map(|event| match event {
-            Event::Start(Tag::Link { dest_url, .. } | Tag::Image { dest_url, .. }) => {
-                Some(dest_url.into_string())
+        .into_offset_iter()
+        .filter_map(|(event, range)| match event {
+            Event::Start(Tag::Link { dest_url, .. }) => {
+                Some((range.start, LinkKind::Link, dest_url.into_string()))
+            }
+            Event::Start(Tag::Image { dest_url, .. }) => {
+                Some((range.start, LinkKind::Image, dest_url.into_string()))
             }
             _ => None,
         })
@@ -146,6 +166,49 @@ mod tests {
         assert!(dests.iter().all(|d| d != "./should-not-appear.md"));
         assert!(dests.contains(&"./pic.png".to_string()));
         assert_eq!(dests.iter().filter(|d| *d == "./bar.md").count(), 4);
+    }
+
+    #[test]
+    fn link_starts_report_each_link_offset_for_inline_reference_and_autolink_outside_code() {
+        let content =
+            "see [a](./a.md) and [b][r] <https://x.io>\n\n[r]: ./r.md\n\n```\n[f](./f.md)\n```\n";
+        let got = link_starts(content);
+        let expected = vec![
+            (
+                content.find("[a]").unwrap(),
+                LinkKind::Link,
+                "./a.md".to_string(),
+            ),
+            (
+                content.find("[b]").unwrap(),
+                LinkKind::Link,
+                "./r.md".to_string(),
+            ),
+            (
+                content.find("<https").unwrap(),
+                LinkKind::Link,
+                "https://x.io".to_string(),
+            ),
+        ];
+        assert_eq!(got, expected);
+    }
+
+    #[test]
+    fn link_starts_report_an_inline_image_as_an_image_at_its_bang() {
+        let content = "see ![i](./i.png) and [a](./a.md)";
+        let expected = vec![
+            (
+                content.find("![i]").unwrap(),
+                LinkKind::Image,
+                "./i.png".to_string(),
+            ),
+            (
+                content.find("[a]").unwrap(),
+                LinkKind::Link,
+                "./a.md".to_string(),
+            ),
+        ];
+        assert_eq!(link_starts(content), expected);
     }
 
     #[test]

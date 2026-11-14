@@ -8,7 +8,7 @@ tags: [leak-prevention, methodology, privacy, publishing, security]
 timestamp: 2026-07-17T23:20:00Z
 ---
 
-> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.
+> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.
 
 # 0011. Secret and PII detection stays deterministic — a curated ruleset plus Shannon entropy, never ML
 

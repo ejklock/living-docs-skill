@@ -14,7 +14,7 @@ fn adr(title: &str, heading: &str) -> String {
 
 fn fmt(bundle: &Path) {
     let output = living_docs()
-        .args(["fmt", bundle.to_str().unwrap(), "--plain"])
+        .args(["manage", "fmt", bundle.to_str().unwrap(), "--plain"])
         .output()
         .expect("failed to run living-docs fmt");
     assert!(output.status.success(), "fmt failed");
@@ -107,7 +107,7 @@ fn set_number_leaves_a_bare_digit_heading_unnumbered() {
     index_bundle(&bundle);
     let output = living_docs()
         .args(["--docs-dir", bundle.to_str().unwrap()])
-        .args(["set", "adr/0003", "number", "0007"])
+        .args(["write", "set", "adr/0003", "number", "0007"])
         .output()
         .expect("failed to run living-docs set");
     assert!(output.status.success(), "{}", stdout_of(&output));

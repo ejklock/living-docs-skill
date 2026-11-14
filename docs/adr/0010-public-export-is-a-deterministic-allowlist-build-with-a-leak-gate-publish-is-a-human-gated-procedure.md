@@ -8,7 +8,7 @@ tags: [documentation, methodology, publishing, security, visibility]
 timestamp: 2026-07-17T22:36:12Z
 ---
 
-> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.
+> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.
 
 # 0010. Public export is a deterministic allowlist build with a leak gate; publish is a human-gated procedure
 

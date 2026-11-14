@@ -8,7 +8,7 @@ tags: [authoring, database, eav, export, identity, schema]
 timestamp: 2026-07-17T14:41:11Z
 ---
 
-> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.
+> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.
 
 # 0007. db-mode authoring data model and lossless export contract
 

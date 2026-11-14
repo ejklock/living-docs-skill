@@ -66,6 +66,10 @@ fn docs_cmd(docs: &Path, args: &[&str]) -> Output {
         .unwrap()
 }
 
+fn write_cmd(docs: &Path, args: &[&str]) -> Output {
+    docs_cmd(docs, &[&["write"][..], args].concat())
+}
+
 fn stderr_of(output: &Output) -> String {
     String::from_utf8_lossy(&output.stderr).to_string()
 }
@@ -87,10 +91,8 @@ fn assert_outside_kept(fixture: &Fixture) {
 fn set_on_a_record_linked_outside_is_refused_and_the_target_kept() {
     let fixture = linked_bundle("set");
 
-    let output = docs_cmd(
-        &fixture.docs,
-        &["set", "issues/0002", "description", "changed"],
-    );
+    let args = ["set", "issues/0002", "description", "changed"];
+    let output = write_cmd(&fixture.docs, &args);
 
     assert_refused_naming(&output, &fixture.link);
     assert_outside_kept(&fixture);
@@ -100,11 +102,11 @@ fn set_on_a_record_linked_outside_is_refused_and_the_target_kept() {
 fn supersede_with_a_record_linked_outside_on_either_side_is_refused() {
     let fixture = linked_bundle("supersede");
 
-    let as_old = docs_cmd(&fixture.docs, &["supersede", "issues/0002", "issues/0001"]);
+    let as_old = write_cmd(&fixture.docs, &["supersede", "issues/0002", "issues/0001"]);
     assert_refused_naming(&as_old, &fixture.link);
     assert_outside_kept(&fixture);
 
-    let as_new = docs_cmd(&fixture.docs, &["supersede", "issues/0001", "issues/0002"]);
+    let as_new = write_cmd(&fixture.docs, &["supersede", "issues/0001", "issues/0002"]);
     assert_refused_naming(&as_new, &fixture.link);
     assert_outside_kept(&fixture);
 }
@@ -114,7 +116,7 @@ fn fmt_on_a_record_linked_outside_is_refused_and_the_target_kept() {
     let fixture = linked_bundle("fmt-record");
 
     let output = living_docs()
-        .args(["fmt", "--plain"])
+        .args(["manage", "fmt", "--plain"])
         .arg(&fixture.link)
         .output()
         .unwrap();
@@ -130,7 +132,7 @@ fn fmt_over_a_bundle_holding_a_link_outside_refuses_the_run_and_writes_nothing()
     let before = fs::read(&untidy).unwrap();
 
     let output = living_docs()
-        .args(["fmt", "--plain"])
+        .args(["manage", "fmt", "--plain"])
         .arg(&fixture.docs)
         .output()
         .unwrap();
@@ -163,7 +165,7 @@ fn set_on_a_record_linked_to_another_file_inside_the_bundle_succeeds() {
     )
     .unwrap();
 
-    let output = docs_cmd(&docs, &["set", "issues/0002", "description", "changed"]);
+    let output = write_cmd(&docs, &["set", "issues/0002", "description", "changed"]);
 
     assert!(output.status.success(), "{}", stderr_of(&output));
     let real = fs::read_to_string(docs.join("issues/0001-real.md")).unwrap();
@@ -177,10 +179,10 @@ fn every_verb_works_through_a_symlinked_docs_dir() {
     symlink(&docs, &alias).unwrap();
 
     assert!(run_new(&alias, "issue", "First").status.success());
-    let set = docs_cmd(&alias, &["set", "issues/0001", "description", "changed"]);
+    let set = write_cmd(&alias, &["set", "issues/0001", "description", "changed"]);
     assert!(set.status.success(), "{}", stderr_of(&set));
     let fmt = living_docs()
-        .args(["fmt", "--plain"])
+        .args(["manage", "fmt", "--plain"])
         .arg(&alias)
         .output()
         .unwrap();
@@ -236,7 +238,8 @@ fn check_reports_one_violation_for_a_record_linked_outside_the_bundle() {
 fn check_after_index_skipped_the_linked_record_reports_only_the_refusal() {
     let fixture = linked_bundle("check-reindexed");
     fs::remove_file(fixture.docs.join("issues/0003-untidy.md")).unwrap();
-    assert!(docs_cmd(&fixture.docs, &["index"]).status.success());
+    let indexed = docs_cmd(&fixture.docs, &["manage", "index"]);
+    assert!(indexed.status.success());
 
     let violations = assert_one_refusal(&fixture);
 
@@ -258,7 +261,7 @@ fn set_mode(fixture: &Fixture, mode: u32) {
 }
 
 fn fmt_check(docs: &Path) -> Output {
-    let args = ["fmt", "--check", "--plain"];
+    let args = ["manage", "fmt", "--check", "--plain"];
     living_docs().args(args).arg(docs).output().unwrap()
 }
 

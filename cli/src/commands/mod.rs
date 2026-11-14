@@ -6,6 +6,7 @@ pub(crate) mod fmt;
 pub(crate) mod guide;
 pub(crate) mod index;
 pub(crate) mod install;
+pub(crate) mod mcp;
 pub(crate) mod new;
 pub(crate) mod prose;
 pub(crate) mod read;

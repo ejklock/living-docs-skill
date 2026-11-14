@@ -13,7 +13,7 @@ pub(crate) const EXIT_CODES: [(u8, &str); 3] = [
     (2, "invalid usage or a missing input"),
 ];
 
-/// The frontmatter keys `set` accepts.
+/// The frontmatter keys `write set` accepts.
 const SET_KEYS: &str =
     "status, description, owner, tracker, labels, blocked_by, title, number, section";
 
@@ -64,10 +64,10 @@ fn status_vocabularies() -> String {
         .join("; ")
 }
 
-/// Help for `set`'s `KEY`: the keys and the status values per type.
+/// Help for `write set`'s `KEY`: the keys and the status values per type.
 pub(crate) fn set_key_help() -> String {
     format!(
-        "one of: {}. `status` takes the record's own type vocabulary ({}); Superseded is set only by `supersede`. `number` takes NNNN or `next` and renumbers the record with its heading, links and index; `section` takes the section heading as VALUE and its text from --from",
+        "one of: {}. `status` takes the record's own type vocabulary ({}); Superseded is set only by `write supersede`. `number` takes NNNN or `next` and renumbers the record with its heading, links and index; `section` takes the section heading as VALUE and its text from --from",
         SET_KEYS,
         status_vocabularies()
     )
@@ -107,12 +107,12 @@ pub(crate) fn owner_help() -> String {
     )
 }
 
-/// Help for `guide`'s positional: how it resolves and every topic by skill.
+/// Help for `read guide`'s positional: how it resolves and every topic by skill.
 pub(crate) fn guide_topic_help() -> String {
-    let listing = crate::skill::list().unwrap_or_default();
+    let listing = living_docs_core::guide::list().unwrap_or_default();
     let by_skill = listing.lines().collect::<Vec<_>>().join("; ");
     format!(
-        "a topic of the skill chosen by --skill (default living-docs), or the name of a skill to print its full SKILL.md. Topics by skill, as `living-docs guide --list` prints them: {by_skill}"
+        "a topic of the skill chosen by --skill (default living-docs), or the name of a skill to print its full SKILL.md. Topics by skill, as `living-docs read guide --list` prints them: {by_skill}"
     )
 }
 
@@ -130,35 +130,39 @@ pub(crate) fn check_long_about() -> String {
 pub(crate) const NEW_ABOUT: &str =
     "Scaffolds a new record with CLI-owned numbering, frontmatter, and heading.";
 pub(crate) const NEW_EXAMPLES: &[&str] = &[
-    "living-docs new adr \"Cache invalidation strategy\"",
-    "living-docs new issue \"Flaky upload test\" --owner alice@example.com",
-    "living-docs new issue \"Flaky upload test\" --body body.md",
-    "cat body.md | living-docs new issue \"Flaky upload test\" --body -",
+    "living-docs write new adr \"Cache invalidation strategy\"",
+    "living-docs write new issue \"Flaky upload test\" --owner alice@example.com",
+    "living-docs write new issue \"Flaky upload test\" --body body.md",
+    "cat body.md | living-docs write new issue \"Flaky upload test\" --body -",
 ];
 
 pub(crate) const SET_ABOUT: &str =
     "Sets one CLI-owned frontmatter field (status, description, owner, title, number; tracker, labels, blocked_by on an issue) or replaces a body section.";
 pub(crate) const SET_EXAMPLES: &[&str] = &[
-    "living-docs set 0012 status Accepted",
-    "living-docs set adr/0012 owner carol@example.com",
-    "living-docs set issues/0049-flaky-upload-test.md status closed",
-    "living-docs set adr/0012 title \"Cache invalidation is write-through\"",
-    "living-docs set issues/0055-a-title.md number next",
-    "living-docs set 0012 description --from description.txt",
-    "living-docs set issue/0049 section Outcome --from outcome.md",
-    "echo closed | living-docs set 0049 status --from -",
+    "living-docs write set 0012 status Accepted",
+    "living-docs write set adr/0012 owner carol@example.com",
+    "living-docs write set issues/0049-flaky-upload-test.md status closed",
+    "living-docs write set adr/0012 title \"Cache invalidation is write-through\"",
+    "living-docs write set issues/0055-a-title.md number next",
+    "living-docs write set 0012 description --from description.txt",
+    "living-docs write set issue/0049 section Outcome --from outcome.md",
+    "echo closed | living-docs write set 0049 status --from -",
 ];
 
 pub(crate) const SUPERSEDE_ABOUT: &str =
     "Retires an old record in favor of a new one, wiring both link directions.";
-pub(crate) const SUPERSEDE_EXAMPLES: &[&str] = &["living-docs supersede 0011 0012"];
+pub(crate) const SUPERSEDE_EXAMPLES: &[&str] = &["living-docs write supersede 0011 0012"];
 
 pub(crate) const INDEX_ABOUT: &str = "Rebuilds a doc type's index.md from the records on disk.";
-pub(crate) const INDEX_EXAMPLES: &[&str] = &["living-docs index adr", "living-docs index"];
+pub(crate) const INDEX_EXAMPLES: &[&str] =
+    &["living-docs manage index adr", "living-docs manage index"];
 
 pub(crate) const FMT_ABOUT: &str =
     "Canonicalizes a record's frontmatter, seeds a missing timestamp and required owner, aligns the title heading, or reports what's pending.";
-pub(crate) const FMT_EXAMPLES: &[&str] = &["living-docs fmt docs", "living-docs fmt --check docs"];
+pub(crate) const FMT_EXAMPLES: &[&str] = &[
+    "living-docs manage fmt docs",
+    "living-docs manage fmt --check docs",
+];
 
 pub(crate) const CHECK_ABOUT: &str = "Validates the bundle's mechanical invariants — the doc-gate.";
 pub(crate) const CHECK_EXAMPLES: &[&str] = &[
@@ -167,130 +171,114 @@ pub(crate) const CHECK_EXAMPLES: &[&str] = &[
     "living-docs check --changed-files notes/0001-x.md -- docs",
 ];
 
+pub(crate) const WRITE_ABOUT: &str = "Creates and changes records: new, set, supersede.";
+pub(crate) const WRITE_EXAMPLES: &[&str] = &[
+    "living-docs write new adr \"Cache invalidation strategy\"",
+    "living-docs write set 0012 status Accepted",
+    "living-docs write supersede 0011 0012",
+];
+
 pub(crate) const READ_ABOUT: &str =
-    "Prints the agent-facing in-force view: active records, supersede chains collapsed.";
+    "Reads the bundle and the embedded skill corpus: records, guide.";
 pub(crate) const READ_EXAMPLES: &[&str] = &[
-    "living-docs read --topic caching",
-    "living-docs read --full",
-    "living-docs read --links-to adr/0012",
-    "living-docs read --impact adr/0012 --json",
+    "living-docs read records --topic caching",
+    "living-docs read guide adr",
+];
+
+pub(crate) const MANAGE_ABOUT: &str =
+    "Maintains the bundle and its tooling: index, fmt, install, uninstall, completions.";
+pub(crate) const MANAGE_EXAMPLES: &[&str] = &[
+    "living-docs manage index adr",
+    "living-docs manage fmt docs",
+    "living-docs manage install hooks",
+];
+
+pub(crate) const RECORDS_ABOUT: &str =
+    "Prints the agent-facing in-force view: active records, supersede chains collapsed.";
+pub(crate) const RECORDS_EXAMPLES: &[&str] = &[
+    "living-docs read records --topic caching",
+    "living-docs read records --full",
+    "living-docs read records --links-to adr/0012",
+    "living-docs read records --impact adr/0012 --json",
 ];
 
 pub(crate) const GUIDE_ABOUT: &str =
     "Serves the embedded skill corpus: topics, templates, and full SKILL.md bodies.";
 pub(crate) const GUIDE_EXAMPLES: &[&str] = &[
-    "living-docs guide adr",
-    "living-docs guide --list",
-    "living-docs guide conformance --skill okf-knowledge-format",
+    "living-docs read guide adr",
+    "living-docs read guide --list",
+    "living-docs read guide conformance --skill okf-knowledge-format",
 ];
 
 pub(crate) const INSTALL_ABOUT: &str =
     "Places the embedded skill corpus or the enforcement hooks into a project.";
 pub(crate) const INSTALL_EXAMPLES: &[&str] = &[
-    "living-docs install skills --harness claude",
-    "living-docs install hooks",
+    "living-docs manage install skills --harness claude",
+    "living-docs manage install hooks",
 ];
 
-pub(crate) const UNINSTALL_ABOUT: &str = "Removes what `install hooks` placed.";
-pub(crate) const UNINSTALL_EXAMPLES: &[&str] = &["living-docs uninstall hooks"];
+pub(crate) const UNINSTALL_ABOUT: &str = "Removes what `manage install hooks` placed.";
+pub(crate) const UNINSTALL_EXAMPLES: &[&str] = &["living-docs manage uninstall hooks"];
 
 pub(crate) const INSTALL_SKILLS_ABOUT: &str =
     "Places the embedded skill directories into a harness's skills directory.";
 pub(crate) const INSTALL_SKILLS_EXAMPLES: &[&str] = &[
-    "living-docs install skills --harness claude",
-    "living-docs install skills --project",
+    "living-docs manage install skills --harness claude",
+    "living-docs manage install skills --project",
 ];
 
 pub(crate) const INSTALL_HOOKS_ABOUT: &str =
     "Writes the session-teaching hook and the pre-commit doc-gate into a project.";
 pub(crate) const INSTALL_HOOKS_EXAMPLES: &[&str] = &[
-    "living-docs install hooks",
-    "living-docs install hooks --dir ./my-project",
+    "living-docs manage install hooks",
+    "living-docs manage install hooks --dir ./my-project",
 ];
 
-pub(crate) const UNINSTALL_HOOKS_ABOUT: &str = "Removes what `install hooks` placed.";
+pub(crate) const UNINSTALL_HOOKS_ABOUT: &str = "Removes what `manage install hooks` placed.";
 pub(crate) const UNINSTALL_HOOKS_EXAMPLES: &[&str] = &[
-    "living-docs uninstall hooks",
-    "living-docs uninstall hooks --dir ./my-project",
+    "living-docs manage uninstall hooks",
+    "living-docs manage uninstall hooks --dir ./my-project",
 ];
 
 pub(crate) const COMPLETIONS_ABOUT: &str = "Prints a shell completion script.";
 pub(crate) const COMPLETIONS_EXAMPLES: &[&str] = &[
-    "living-docs completions bash > /etc/bash_completion.d/living-docs",
-    "living-docs completions zsh > \"${fpath[1]}/_living-docs\"",
+    "living-docs manage completions bash > /etc/bash_completion.d/living-docs",
+    "living-docs manage completions zsh > \"${fpath[1]}/_living-docs\"",
+];
+
+pub(crate) const MCP_ABOUT: &str =
+    "Serves the bundle to an MCP client over stdio as the write, read, manage and check tools.";
+pub(crate) const MCP_EXAMPLES: &[&str] = &[
+    "living-docs mcp --docs-dir docs",
+    "claude mcp add living-docs -- living-docs mcp --docs-dir docs",
+];
+
+const EXAMPLES: [(&[&str], &[&str]); 18] = [
+    (&["write"], WRITE_EXAMPLES),
+    (&["write", "new"], NEW_EXAMPLES),
+    (&["write", "set"], SET_EXAMPLES),
+    (&["write", "supersede"], SUPERSEDE_EXAMPLES),
+    (&["check"], CHECK_EXAMPLES),
+    (&["mcp"], MCP_EXAMPLES),
+    (&["read"], READ_EXAMPLES),
+    (&["read", "records"], RECORDS_EXAMPLES),
+    (&["read", "guide"], GUIDE_EXAMPLES),
+    (&["manage"], MANAGE_EXAMPLES),
+    (&["manage", "index"], INDEX_EXAMPLES),
+    (&["manage", "fmt"], FMT_EXAMPLES),
+    (&["manage", "install"], INSTALL_EXAMPLES),
+    (&["manage", "install", "skills"], INSTALL_SKILLS_EXAMPLES),
+    (&["manage", "install", "hooks"], INSTALL_HOOKS_EXAMPLES),
+    (&["manage", "uninstall"], UNINSTALL_EXAMPLES),
+    (&["manage", "uninstall", "hooks"], UNINSTALL_HOOKS_EXAMPLES),
+    (&["manage", "completions"], COMPLETIONS_EXAMPLES),
 ];
 
 /// The examples of the command addressed by `path` (the subcommand names
 /// below the root; empty for the root, which has none).
 pub(crate) fn examples_for(path: &[&str]) -> &'static [&'static str] {
-    match path {
-        ["new"] => NEW_EXAMPLES,
-        ["set"] => SET_EXAMPLES,
-        ["supersede"] => SUPERSEDE_EXAMPLES,
-        ["index"] => INDEX_EXAMPLES,
-        ["fmt"] => FMT_EXAMPLES,
-        ["check"] => CHECK_EXAMPLES,
-        ["read"] => READ_EXAMPLES,
-        ["guide"] => GUIDE_EXAMPLES,
-        ["install"] => INSTALL_EXAMPLES,
-        ["install", "skills"] => INSTALL_SKILLS_EXAMPLES,
-        ["install", "hooks"] => INSTALL_HOOKS_EXAMPLES,
-        ["uninstall"] => UNINSTALL_EXAMPLES,
-        ["uninstall", "hooks"] => UNINSTALL_HOOKS_EXAMPLES,
-        ["completions"] => COMPLETIONS_EXAMPLES,
-        _ => &[],
-    }
-}
-
-const GROUP_AUTHORING: [(&str, &str); 5] = [
-    ("new", NEW_ABOUT),
-    ("set", SET_ABOUT),
-    ("supersede", SUPERSEDE_ABOUT),
-    ("index", INDEX_ABOUT),
-    ("fmt", FMT_ABOUT),
-];
-const GROUP_GATE: [(&str, &str); 1] = [("check", CHECK_ABOUT)];
-const GROUP_READING: [(&str, &str); 2] = [("read", READ_ABOUT), ("guide", GUIDE_ABOUT)];
-const GROUP_DISTRIBUTION: [(&str, &str); 3] = [
-    ("install", INSTALL_ABOUT),
-    ("uninstall", UNINSTALL_ABOUT),
-    ("completions", COMPLETIONS_ABOUT),
-];
-
-const GROUPS: [(&str, &[(&str, &str)]); 4] = [
-    ("Authoring", &GROUP_AUTHORING),
-    ("Gate", &GROUP_GATE),
-    ("Reading", &GROUP_READING),
-    ("Distribution", &GROUP_DISTRIBUTION),
-];
-
-/// The verbs under each root-help heading, in display order.
-pub(crate) fn groups() -> Vec<(&'static str, Vec<&'static str>)> {
-    GROUPS
+    EXAMPLES
         .iter()
-        .map(|(heading, verbs)| (*heading, verbs.iter().map(|(name, _)| *name).collect()))
-        .collect()
-}
-
-/// clap has no built-in way to group different subcommands under different
-/// headings (`next_help_heading` groups args, not subcommands), so this
-/// builds the root `--help`'s command listing by hand, and is wired in via
-/// `Command::help_template` so `{options}`/`{after-help}` stay clap-generated
-/// and in sync with the actual flags.
-pub(crate) fn root_command_template() -> String {
-    let commands: String = GROUPS
-        .iter()
-        .map(|(heading, verbs)| render_group(heading, verbs))
-        .collect();
-    format!(
-        "{{about-with-newline}}\n{{usage-heading}} {{usage}}\n\n{commands}Options:\n{{options}}{{after-help}}"
-    )
-}
-
-fn render_group(heading: &str, verbs: &[(&str, &str)]) -> String {
-    let rows: String = verbs
-        .iter()
-        .map(|(name, about)| format!("  {name:<13}{about}\n"))
-        .collect();
-    format!("{heading}:\n{rows}\n")
+        .find(|(key, _)| *key == path)
+        .map_or(&[], |(_, examples)| *examples)
 }

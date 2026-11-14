@@ -19,10 +19,12 @@ every advisory in full, and the JSON output always carries them all. The kinds:
 
 - `SIZE` — a decision/execution body past the ~120-line target (aim ~100; research exempt).
 - `MOVED-SOURCE` — a record whose linked source path moved.
-- `LIVENESS stale-proposed` (ADR 0049) — an ADR still at its seed status (`Proposed`) whose
-  linked issue is already `closed`/`done`/`Superseded`: the work landed but the record never
-  left its birth state. Currency has a sound oracle where materiality does not, so the checkable
-  part lives in the tool; the exit code stays put.
+- `LIVENESS stale-proposed` (ADR 0049, ADR 0079) — an ADR still at its seed status (`Proposed`)
+  that an issue already `closed`/`done`/`Superseded` declares it implements: the issue body
+  holds `Implements` (any case) followed by a link to the ADR, so the work landed but the record
+  never left its birth state. A link from the ADR to an issue is history and never counts.
+  Currency has a sound oracle where materiality does not, so the checkable part lives in the
+  tool; the exit code stays put.
 
 ```bash
 living-docs check docs   # check the project's bundle; exit 1 on any violation
@@ -51,8 +53,8 @@ eyeballing them; the rest are judgement:
 - [ ] No unfilled `{{PLACEHOLDER}}` slot remains in any record.
 - [ ] Every live record carries its type's required sections as headings (issue: Scope, Acceptance; ADR: Context, Decision, Consequences; PRD: Problem / Motivation, Non-goals; constitution: Product, Scope Boundaries, Non-negotiables).
 - [ ] Superseded ADRs/PRDs carry frontmatter `status: Superseded` + `superseded_by: NNNN`; the superseding record sets `supersedes` and links back.
-- [ ] A Superseded or Deprecated record's body opens with its exact CLI-written callout above the heading, and no active record opens with one; `living-docs fmt` is the remediation.
-- [ ] Every record carries a `timestamp`, and a type that requires an owner has one; a title heading matches the frontmatter title. `living-docs fmt` repairs these three (a missing timestamp from the adding commit, a missing owner from git config, the heading from the frontmatter title) and changes no other prose; with no git identity the owner advisory stays until the owner is written by hand.
+- [ ] A Superseded or Deprecated record's body opens with its exact CLI-written callout above the heading, and no active record opens with one; `living-docs manage fmt` is the remediation.
+- [ ] Every record carries a `timestamp`, and a type that requires an owner has one; a title heading matches the frontmatter title. `living-docs manage fmt` repairs these three (a missing timestamp from the adding commit, a missing owner from git config, the heading from the frontmatter title) and changes no other prose; with no git identity the owner advisory stays until the owner is written by hand.
 - [ ] Any structural code change in the same task updated its doc, including its Mermaid diagram(s).
 - [ ] Architecture diagrams use Mermaid (in-repo text) and match the code.
 - [ ] The constitution is singular (`docs/constitution.md`) — no NNNN prefix, no index entry.

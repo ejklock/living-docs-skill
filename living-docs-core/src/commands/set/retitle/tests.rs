@@ -61,7 +61,7 @@ fn retitle_is_refused_on_a_terminal_record_and_writes_nothing() {
     let err =
         apply(&store, bundle(), Path::new(ADR_PATH), "Too late").expect_err("terminal status");
 
-    assert!(err.contains("living-docs supersede"), "got: {err}");
+    assert!(err.contains("living-docs write supersede"), "got: {err}");
     assert_eq!(store.contents(ADR_PATH), adr("Deprecated"));
 }
 
@@ -69,7 +69,7 @@ fn retitle_is_refused_on_a_terminal_record_and_writes_nothing() {
 fn retitle_is_refused_on_a_superseded_record() {
     let store = store("Superseded");
     let err = apply(&store, bundle(), Path::new(ADR_PATH), "Too late").expect_err("superseded");
-    assert!(err.contains("living-docs supersede"), "got: {err}");
+    assert!(err.contains("living-docs write supersede"), "got: {err}");
 }
 
 #[test]

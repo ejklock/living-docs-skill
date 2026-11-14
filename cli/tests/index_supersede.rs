@@ -14,7 +14,7 @@ fn temp_dir(label: &str) -> Scratch {
 }
 
 fn run_index(docs: &Path, doc_type: Option<&str>) -> Output {
-    let mut args = vec!["--docs-dir", docs.to_str().unwrap(), "index"];
+    let mut args = vec!["--docs-dir", docs.to_str().unwrap(), "manage", "index"];
     if let Some(t) = doc_type {
         args.push(t);
     }
@@ -54,21 +54,16 @@ fn copy_dir_recursive(src: &Path, dst: &Path) {
 
 fn run_supersede(docs: &Path, old: &str, new: &str) -> Output {
     living_docs()
-        .args(["--docs-dir", docs.to_str().unwrap(), "supersede", old, new])
+        .args(["--docs-dir", docs.to_str().unwrap()])
+        .args(["write", "supersede", old, new])
         .output()
         .expect("failed to run living-docs supersede")
 }
 
 fn run_status(docs: &Path, number: &str, new_status: &str) -> Output {
     living_docs()
-        .args([
-            "--docs-dir",
-            docs.to_str().unwrap(),
-            "set",
-            number,
-            "status",
-            new_status,
-        ])
+        .args(["--docs-dir", docs.to_str().unwrap()])
+        .args(["write", "set", number, "status", new_status])
         .output()
         .expect("failed to run living-docs set")
 }
@@ -526,7 +521,8 @@ fn index_renders_the_full_title_when_frontmatter_title_is_an_unquoted_scalar_wit
 
 fn run_new(docs: &Path, doc_type: &str, title: &str) -> Output {
     living_docs()
-        .args(["--docs-dir", docs.to_str().unwrap(), "new", doc_type, title])
+        .args(["--docs-dir", docs.to_str().unwrap()])
+        .args(["write", "new", doc_type, title])
         .output()
         .expect("failed to run living-docs new")
 }
@@ -640,7 +636,10 @@ fn status_rejects_superseded_and_points_to_the_supersede_command_leaving_the_fil
 
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("living-docs supersede"), "got: {stderr}");
+    assert!(
+        stderr.contains("living-docs write supersede"),
+        "got: {stderr}"
+    );
 
     let after = fs::read_to_string(docs.join("adr/0001-a-decision.md")).unwrap();
     assert_eq!(before, after, "file must be left unchanged");

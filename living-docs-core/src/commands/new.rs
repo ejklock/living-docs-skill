@@ -33,7 +33,7 @@ pub struct NewOptions<'a> {
 /// repeated verbatim in the root `--help` about text and the `living-docs`
 /// SKILL.md stub, so an agent meets the CLI-owns-the-mechanics rule at the
 /// moment it authors a record.
-pub const BODY_ONLY_INSTRUCTION: &str = "Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs set` / `supersede`.";
+pub const BODY_ONLY_INSTRUCTION: &str = "Write ONLY the body below the closing ---. Frontmatter and indexes are CLI-owned: `living-docs write set` / `write supersede`.";
 
 /// The record `new` wrote and what refreshing its type's index did.
 #[derive(Debug)]

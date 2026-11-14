@@ -1,6 +1,6 @@
-//! Integration coverage for record liveness (ADR 0049, trimmed by ADR 0057):
-//! `check` emits a `stale-proposed` advisory for a `Proposed` ADR whose linked
-//! issue is terminal, and never changes the exit code.
+//! Integration coverage for record liveness: `check` emits a `stale-proposed`
+//! advisory for a `Proposed` ADR that a terminal issue declares it implements,
+//! and never changes the exit code.
 
 use std::path::Path;
 
@@ -35,12 +35,12 @@ fn write_stale_proposed_bundle(bundle: &Path) {
     write(
         bundle,
         "issues/0001-task.md",
-        "---\ntype: Issue\ntitle: Task\ndescription: d\nstatus: closed\n---\n\n# 0001. Task\n",
+        "---\ntype: Issue\ntitle: Task\ndescription: d\nstatus: closed\n---\n\n# 0001. Task\n\nImplements [the decision](/adr/0001-proposed.md).\n",
     );
 }
 
-/// A `Proposed` ADR linking a `closed` issue prints a `stale-proposed`
-/// advisory, and the bundle still exits 0 — liveness advises, never gates.
+/// A `Proposed` ADR that a `closed` issue declares it implements prints a
+/// `stale-proposed` advisory, and the bundle still exits 0 — liveness advises, never gates.
 #[test]
 fn check_flags_stale_proposed_without_gating() {
     let bundle = liveness_bundle("stale-proposed");

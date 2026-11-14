@@ -6,13 +6,20 @@ use std::path::{Path, PathBuf};
 use std::process::Output;
 
 const BODY: &str = "### Scope\n\nOne thing.\n\n### Acceptance\n\n- It works.\n";
-const REPAIR: &str = "living-docs index issue";
+const REPAIR: &str = "living-docs manage index issue";
 
 fn new_issue(docs: &Path, title: &str) {
     let body = docs.parent().unwrap().join("body.txt");
     fs::write(&body, BODY).unwrap();
     let output = living_docs()
-        .args(["--docs-dir", docs.to_str().unwrap(), "new", "issue", title])
+        .args([
+            "--docs-dir",
+            docs.to_str().unwrap(),
+            "write",
+            "new",
+            "issue",
+            title,
+        ])
         .args(["--plain", "--body"])
         .arg(&body)
         .output()
@@ -99,7 +106,13 @@ fn indexing_repairs_a_drifted_index_so_check_passes_again() {
     let docs = indexed_bundle("repair");
     edit_index(&docs, &|text| text.replace("- open", "- done"));
     let indexed = living_docs()
-        .args(["--docs-dir", docs.to_str().unwrap(), "index", "--plain"])
+        .args([
+            "--docs-dir",
+            docs.to_str().unwrap(),
+            "manage",
+            "index",
+            "--plain",
+        ])
         .output()
         .unwrap();
     assert!(indexed.status.success());
@@ -145,7 +158,7 @@ fn this_repositorys_own_docs_report_no_drift() {
         .join("docs");
     let output = run_check(&docs);
     let report = stdout_of(&output);
-    assert!(!report.contains("living-docs index"), "{report}");
+    assert!(!report.contains("living-docs manage index"), "{report}");
     assert_eq!(output.status.code(), Some(0), "{report}");
 }
 

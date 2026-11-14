@@ -1,4 +1,4 @@
-//! `living-docs fmt` canonicalizes a concept record's frontmatter in
+//! `living-docs manage fmt` canonicalizes a concept record's frontmatter in
 //! place, seeds a missing timestamp and a missing required owner,
 //! aligns the title heading with the frontmatter title, and reconciles
 //! the retired-record callout at the top of its body to match the status

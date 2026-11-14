@@ -6,7 +6,7 @@ use std::process::{Command, Output};
 mod common;
 use common::Scratch;
 
-const HINT: &str = "living-docs install hooks";
+const HINT: &str = "living-docs manage install hooks";
 const RUNS_CHECK: &str = "#!/bin/sh\nliving-docs check docs\n";
 
 fn isolated<'a>(command: &'a mut Command, home: &Path) -> &'a mut Command {
@@ -65,7 +65,7 @@ fn hint_names_install_hooks_once_when_the_repository_has_no_pre_commit() {
 #[test]
 fn hint_is_absent_after_install_hooks_arms_the_gate() {
     let dir = repo("installed");
-    let install = living_docs(&dir, &["install", "hooks"]);
+    let install = living_docs(&dir, &["manage", "install", "hooks"]);
     assert!(install.status.success(), "{}", stderr(&install));
     let err = stderr(&living_docs(&dir, &["check", "docs"]));
     assert!(!err.contains(HINT), "stderr: {err}");

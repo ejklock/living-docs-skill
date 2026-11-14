@@ -2,7 +2,7 @@
 //! record's body must open with its exact status callout, and an active
 //! record must carry none. Reuses `crate::callout`'s `expected`/`leading`/
 //! `successor_filename` so the expected wording and successor resolution
-//! never drift from what `living-docs fmt` writes.
+//! never drift from what `living-docs manage fmt` writes.
 
 use super::records::{has_frontmatter, is_reserved};
 use super::{file_name_str, Reporter};
@@ -56,14 +56,14 @@ fn check_record_callout(
             reporter.report(
                 f,
                 format!(
-                    "status: {status} but the body does not open with its callout — run living-docs fmt (invariant 4)"
+                    "status: {status} but the body does not open with its callout — run living-docs manage fmt (invariant 4)"
                 ),
             );
         }
         None if leading.is_some() => {
             reporter.report(
                 f,
-                "active record opens with a retired callout — run living-docs fmt (invariant 4)",
+                "active record opens with a retired callout — run living-docs manage fmt (invariant 4)",
             );
         }
         _ => {}

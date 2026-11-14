@@ -40,7 +40,7 @@ fn run(bundle: &Path, args: &[&str]) -> Output {
 
 fn fmt(bundle: &Path) -> Output {
     living_docs()
-        .args(["fmt", bundle.to_str().unwrap(), "--plain"])
+        .args(["manage", "fmt", bundle.to_str().unwrap(), "--plain"])
         .output()
         .expect("failed to run living-docs fmt")
 }
@@ -53,7 +53,7 @@ fn frontmatter_line(contents: &str, key: &str) -> Option<String> {
 }
 
 fn checked(bundle: &Path) -> Output {
-    assert!(run(bundle, &["index"]).status.success());
+    assert!(run(bundle, &["manage", "index"]).status.success());
     run_check(bundle)
 }
 
@@ -138,7 +138,7 @@ fn assert_canonical_row(index: usize, value: &str, list: &str) {
     );
 
     write(&bundle, REL, &adr("D", &format!("{source}\n")));
-    let set = run(&bundle, &["set", "0004", "description", "x"]);
+    let set = run(&bundle, &["write", "set", "0004", "description", "x"]);
     assert!(set.status.success(), "{source}");
     assert_eq!(
         frontmatter_line(&read(&bundle, REL), "supersedes").as_deref(),

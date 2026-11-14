@@ -4,9 +4,9 @@
 #
 # Packaging is the CLI (ADR 0028): the release binary is the unit of
 # distribution and this script's only job is to get it onto PATH. Skill
-# placement is a CLI verb (`living-docs install skills --harness
+# placement is a CLI verb (`living-docs manage install skills --harness
 # <claude|opencode|codex|pi> [--project] [--dir]`) and enforcement is another
-# (`living-docs install hooks`) — see README.md → Installation.
+# (`living-docs manage install hooks`) — see README.md → Installation.
 #
 # Usage:
 #   ./install.sh [cli] [options]

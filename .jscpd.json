@@ -4,6 +4,7 @@
     "fn list\\(&self, root: &Path\\) -> io::Result<Vec<PathBuf>> \\{\\s*self\\.inner\\.list\\(root\\)\\s*\\}"
   ],
   "ignore": [
+    ".githooks/pre-commit",
     "cli/tests/**",
     "scripts/tests/**",
     "**/tests.rs",

@@ -24,7 +24,7 @@ fn stderr_of(output: &Output) -> String {
 
 fn run_index(docs: &Path) -> Output {
     living_docs()
-        .args(["--docs-dir", docs.to_str().unwrap(), "index"])
+        .args(["--docs-dir", docs.to_str().unwrap(), "manage", "index"])
         .output()
         .expect("failed to run living-docs index")
 }
@@ -239,7 +239,7 @@ fn hostile_root_failure_gets_its_own_repair_line_when_the_root_is_a_directory() 
     let root_index = docs.join("index.md");
     assert!(stdout.contains(type_index.to_str().unwrap()), "{stdout}");
     assert!(!stdout.contains(root_index.to_str().unwrap()), "{stdout}");
-    assert!(stderr.contains("living-docs index"), "{stderr}");
+    assert!(stderr.contains("living-docs manage index"), "{stderr}");
     assert!(!stderr.contains("index not updated"), "{stderr}");
     assert!(!stderr.contains("index adr"), "{stderr}");
 }
@@ -279,7 +279,7 @@ fn hostile_type_index_failure_keeps_its_own_repair_line() {
     let stderr = stderr_of(&output);
     assert_eq!(output.status.code(), Some(1), "{stderr}");
     assert!(stderr.contains("index not updated"), "{stderr}");
-    assert!(stderr.contains("living-docs index adr"), "{stderr}");
+    assert!(stderr.contains("living-docs manage index adr"), "{stderr}");
 }
 
 #[test]

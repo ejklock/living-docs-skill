@@ -7,7 +7,7 @@
 
 ## Superseded
 
-_History only. Do not act on these records — run `living-docs read` for what is in force._
+_History only. Do not act on these records — run `living-docs read records` for what is in force._
 
 * [0001 — Superseded choice](0001-superseded-choice.md) - Superseded by [0003](0003-accepted-choice.md)
 * [0002 — Deprecated choice](0002-deprecated-choice.md) - Deprecated (no successor)

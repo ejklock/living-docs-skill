@@ -20,7 +20,7 @@ fn assert_clean(bundle: &Path) {
 }
 
 /// The exact retired-record callout line a fixture record must open with,
-/// sourced from the same module `living-docs fmt` writes through.
+/// sourced from the same module `living-docs manage fmt` writes through.
 fn superseded_callout(successor: &str) -> String {
     living_docs_core::callout::expected(Some("superseded"), Some(successor))
         .expect("a superseded status always yields a callout")

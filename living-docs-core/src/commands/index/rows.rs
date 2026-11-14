@@ -11,7 +11,7 @@ use super::Record;
 /// retired record is history, not something to act on — `living-docs
 /// read` is the read verb for what is currently in force.
 pub(super) const RETIRED_SECTION_NOTE: &str = "_History only. Do not act on these records — run \
-     `living-docs read` for what is in force._";
+     `living-docs read records` for what is in force._";
 
 /// Renders `records` along the partition axis `doc_type`'s registry spec
 /// declares: [`IndexPartition::OpenClosed`] for work-in-progress types,

@@ -9,7 +9,7 @@ tags: [architecture, atlas, authoring, concurrency, db-mode, source-of-truth, we
 timestamp: 2026-07-20T15:09:34Z
 ---
 
-> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.
+> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.
 
 # 0016. Atlas Makes the Web a db-mode Authoring Front, Superseding Web Read-Only
 

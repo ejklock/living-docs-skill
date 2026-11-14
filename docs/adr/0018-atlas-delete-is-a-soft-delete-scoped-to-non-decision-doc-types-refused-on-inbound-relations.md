@@ -8,7 +8,7 @@ tags: [architecture, atlas, authoring, database, delete, web]
 timestamp: 2026-07-21T00:00:00Z
 ---
 
-> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.
+> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.
 
 # 0018. Atlas Delete Is a Soft-Delete, Scoped to Non-Decision Doc Types, Refused on Inbound Relations
 

@@ -2,7 +2,7 @@
 //! frontmatter block does not byte-equal the frontmatter block of its own
 //! canonical re-serialization (`crate::record::extract_record` ->
 //! `crate::record::to_canonical_markdown`) was hand-written rather than
-//! produced by a CLI verb, so it is flagged with `living-docs fmt` named as
+//! produced by a CLI verb, so it is flagged with `living-docs manage fmt` named as
 //! the remediation. Only the frontmatter block is compared — the body is out
 //! of scope (the S2 `normalize_frontmatter_gap` lesson: `extract_record`
 //! leaves a leading newline on the body that never needs reconciling for a
@@ -20,7 +20,7 @@ use crate::store::DocStore;
 use std::path::{Path, PathBuf};
 
 const NON_CANONICAL_MESSAGE: &str =
-    "non-canonical (hand-written?) frontmatter — run `living-docs fmt` or author via the CLI verbs";
+    "non-canonical (hand-written?) frontmatter — run `living-docs manage fmt` or author via the CLI verbs";
 
 const UNWRITABLE_MESSAGE: &str = "'{key}' cannot be written canonically; edit the file by hand";
 

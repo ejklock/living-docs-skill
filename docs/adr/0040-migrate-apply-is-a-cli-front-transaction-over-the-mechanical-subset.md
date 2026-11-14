@@ -7,7 +7,7 @@ status: Deprecated
 timestamp: 2026-08-14T08:40:33Z
 ---
 
-> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.
+> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.
 
 # 0040. migrate --apply is a CLI-front transaction over the mechanical subset
 

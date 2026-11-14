@@ -34,7 +34,7 @@ fn report_rewritten(applied: &commands::set::Applied) {
         output::outln!("{}", path.display());
     }
     eprintln!(
-        "living-docs set: rewrote {} in-bundle reference(s) to {previous}; references outside the bundle are not rewritten — run `grep -rn {previous} .`",
+        "living-docs write set: rewrote {} in-bundle reference(s) to {previous}; references outside the bundle are not rewritten — run `grep -rn {previous} .`",
         applied.rewritten.len()
     );
 }
@@ -59,10 +59,10 @@ fn field_change(args: &SetArgs) -> Result<Change, String> {
         (Some(value), None) => value.to_string(),
         (None, Some(spec)) => prose::read_value(spec)?,
         (Some(_), Some(_)) => {
-            return Err("give the value or --from, not both: `set <ref> <key> <value>` or `set <ref> <key> --from PATH|-`".to_string())
+            return Err("give the value or --from, not both: `write set <ref> <key> <value>` or `write set <ref> <key> --from PATH|-`".to_string())
         }
         (None, None) => {
-            return Err("set needs a value or --from: `set <ref> <key> <value>` or `set <ref> <key> --from PATH|-`".to_string())
+            return Err("write set needs a value or --from: `write set <ref> <key> <value>` or `write set <ref> <key> --from PATH|-`".to_string())
         }
     };
     Ok(Change { value, text: None })
@@ -75,10 +75,10 @@ fn section_change(args: &SetArgs) -> Result<Change, String> {
             text: Some(prose::read_body(spec)?),
         }),
         (None, _) => Err(
-            "section needs a heading: `set <ref> section \"<heading>\" --from PATH|-`".to_string(),
+            "section needs a heading: `write set <ref> section \"<heading>\" --from PATH|-`".to_string(),
         ),
         (Some(_), None) => Err(
-            "section takes its text from --from: `set <ref> section \"<heading>\" --from PATH|-`"
+            "section takes its text from --from: `write set <ref> section \"<heading>\" --from PATH|-`"
                 .to_string(),
         ),
     }
@@ -122,10 +122,10 @@ pub(crate) fn run_set(docs_dir: &Path, args: &SetArgs, mode: OutputMode, quiet: 
     match result {
         Ok((change, applied)) => {
             print_applied(&applied, args.key, &change.value, mode);
-            report_indexed("set", &applied.indexed, mode, quiet)
+            report_indexed("write set", &applied.indexed, mode, quiet)
         }
         Err(message) => {
-            eprintln!("living-docs set: {message}");
+            eprintln!("living-docs write set: {message}");
             let argv: Vec<_> = std::env::args_os().collect();
             if let Some(hint) = split_reference::hint(&argv) {
                 eprintln!("{hint}");
@@ -150,5 +150,67 @@ fn print_applied(applied: &commands::set::Applied, key: &str, value: &str, mode:
     } else {
         output::outln!("{}", applied.path.display());
         report_rewritten(applied);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn args<'a>(key: &'a str, value: Option<&'a str>, from: Option<&'a str>) -> SetArgs<'a> {
+        SetArgs {
+            reference: "0001",
+            key,
+            value,
+            from,
+        }
+    }
+
+    fn error_of(result: Result<Change, String>) -> String {
+        match result {
+            Ok(_) => panic!("expected a usage error"),
+            Err(message) => message,
+        }
+    }
+
+    fn assert_field_forms(message: &str) {
+        assert!(
+            message.contains("`write set <ref> <key> <value>`"),
+            "{message}"
+        );
+        assert!(
+            message.contains("`write set <ref> <key> --from PATH|-`"),
+            "{message}"
+        );
+    }
+
+    fn assert_section_form(message: &str) {
+        assert!(
+            message.contains("`write set <ref> section \"<heading>\" --from PATH|-`"),
+            "{message}"
+        );
+    }
+
+    #[test]
+    fn a_field_with_neither_value_nor_from_teaches_the_write_set_forms() {
+        assert_field_forms(&error_of(resolve_change(&args("status", None, None))));
+    }
+
+    #[test]
+    fn a_field_given_both_a_value_and_from_teaches_the_write_set_forms() {
+        let both = args("status", Some("x"), Some("-"));
+        assert_field_forms(&error_of(resolve_change(&both)));
+    }
+
+    #[test]
+    fn a_section_without_from_teaches_the_write_set_form() {
+        let no_from = args("section", Some("Notes"), None);
+        assert_section_form(&error_of(resolve_change(&no_from)));
+    }
+
+    #[test]
+    fn a_section_without_a_heading_teaches_the_write_set_form() {
+        let no_heading = args("section", None, Some("-"));
+        assert_section_form(&error_of(resolve_change(&no_heading)));
     }
 }

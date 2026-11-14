@@ -31,7 +31,7 @@ fn set_status_reserves_superseded_for_the_supersede_verb() {
     let store = store();
     let err = apply(&store, Path::new("/bundle"), "0001", "status", "Superseded")
         .expect_err("Superseded is set only via supersede");
-    assert!(err.contains("living-docs supersede"), "got: {err}");
+    assert!(err.contains("living-docs write supersede"), "got: {err}");
 }
 
 #[test]
@@ -42,7 +42,7 @@ fn set_status_deprecated_adds_the_deprecated_callout() {
     assert!(
         contents.contains(
             "> **DEPRECATED — do not act on this record.** It has no successor. \
-             Run `living-docs read` for what is in force.\n\n# A Decision"
+             Run `living-docs read records` for what is in force.\n\n# A Decision"
         ),
         "got: {contents}"
     );
@@ -220,4 +220,46 @@ fn set_issue_only_keys_are_refused_on_an_adr_naming_the_issue_type() {
         assert!(err.contains(key) && err.contains("Issue"), "got: {err}");
         assert_eq!(store.contents("/bundle/adr/0001-a-decision.md"), ADR);
     }
+}
+
+const NESTED: &str = "---\ntype: ADR\ntitle: A Decision\ndescription: d\nstatus: Proposed\nsupersedes:\nsuperseded_by:\n---\n\n# A Decision\n\n## Notes\n\nn\n\n### Child A\n\nx\n\n### Child B\n\ny\n";
+const NESTED_PATH: &str = "/bundle/adr/0001-a-decision.md";
+
+#[test]
+fn set_section_refuses_when_children_are_missing_and_writes_nothing() {
+    let store = MapStore::seeded(&[(NESTED_PATH, NESTED)]);
+    let err = apply_section(&store, Path::new("/bundle"), "0001", "Notes", "new\n")
+        .expect_err("children would be dropped");
+    assert!(err.contains("### Child A"), "got: {err}");
+    assert!(err.contains("### Child B"), "got: {err}");
+    assert!(err.contains("include"), "got: {err}");
+    assert_eq!(store.contents(NESTED_PATH), NESTED);
+}
+
+#[test]
+fn set_section_names_only_the_children_the_text_does_not_carry() {
+    let store = MapStore::seeded(&[(NESTED_PATH, NESTED)]);
+    let err = apply_section(
+        &store,
+        Path::new("/bundle"),
+        "0001",
+        "Notes",
+        "new\n\n### Child B\n\nz\n",
+    )
+    .expect_err("one child would be dropped");
+    assert!(err.contains("### Child A"), "got: {err}");
+    assert!(!err.contains("### Child B"), "got: {err}");
+}
+
+#[test]
+fn set_section_replaces_when_every_child_is_carried() {
+    let store = MapStore::seeded(&[(NESTED_PATH, NESTED)]);
+    let text = "new\n\n### Child A\n\na\n\n### Child B\n\nb\n";
+    apply_section(&store, Path::new("/bundle"), "0001", "Notes", text).expect("all carried");
+    let written = store.contents(NESTED_PATH);
+    assert!(
+        written.ends_with("## Notes\n\nnew\n\n### Child A\n\na\n\n### Child B\n\nb\n"),
+        "{written}"
+    );
+    assert_eq!(written.matches("### Child A").count(), 1);
 }

@@ -12,6 +12,11 @@ fn temp_dir(label: &str) -> Scratch {
 /// Runs the binary from `cwd` with the git identity pinned by environment:
 /// `identity` is a list of git config `(key, value)` pairs, empty for none.
 fn run(cwd: &Path, identity: &[(&str, &str)], args: &[&str]) -> Output {
+    run_in(cwd, "docs", identity, args)
+}
+
+/// Like `run`, with the bundle directory chosen by the caller.
+fn run_in(cwd: &Path, docs_dir: &str, identity: &[(&str, &str)], args: &[&str]) -> Output {
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_living-docs"));
     cmd.current_dir(cwd)
         .env("GIT_CONFIG_GLOBAL", "/dev/null")
@@ -22,7 +27,7 @@ fn run(cwd: &Path, identity: &[(&str, &str)], args: &[&str]) -> Output {
         cmd.env(format!("GIT_CONFIG_KEY_{i}"), key)
             .env(format!("GIT_CONFIG_VALUE_{i}"), value);
     }
-    cmd.args(["--docs-dir", "docs"])
+    cmd.args(["--docs-dir", docs_dir])
         .args(args)
         .arg("--plain")
         .output()
@@ -42,7 +47,11 @@ fn stderr_of(output: &Output) -> String {
 #[test]
 fn adr_without_owner_takes_the_git_user_name_after_description() {
     let cwd = temp_dir("name");
-    let out = run(&cwd, &[("user.name", "Ada Lovelace")], &["new", "adr", "T"]);
+    let out = run(
+        &cwd,
+        &[("user.name", "Ada Lovelace")],
+        &["write", "new", "adr", "T"],
+    );
     let record = created_record(&cwd, &out);
     let lines: Vec<&str> = record.lines().collect();
     let owner = lines
@@ -62,7 +71,7 @@ fn adr_without_owner_falls_back_to_the_git_email() {
     let out = run(
         &cwd,
         &[("user.email", "ada@example.com")],
-        &["new", "adr", "T"],
+        &["write", "new", "adr", "T"],
     );
     assert!(created_record(&cwd, &out).contains("owner: ada@example.com"));
 }
@@ -73,7 +82,7 @@ fn explicit_owner_wins_and_stays_silent() {
     let out = run(
         &cwd,
         &[("user.name", "Ada")],
-        &["new", "adr", "T", "--owner", "Bob"],
+        &["write", "new", "adr", "T", "--owner", "Bob"],
     );
     let record = created_record(&cwd, &out);
     assert!(
@@ -86,7 +95,7 @@ fn explicit_owner_wins_and_stays_silent() {
 #[test]
 fn adr_without_any_git_identity_has_no_owner_line() {
     let cwd = temp_dir("none");
-    let out = run(&cwd, &[], &["new", "adr", "T"]);
+    let out = run(&cwd, &[], &["write", "new", "adr", "T"]);
     assert!(!created_record(&cwd, &out).contains("owner:"));
     assert!(!stderr_of(&out).contains("owner seeded from git config"));
 }
@@ -97,15 +106,41 @@ fn quiet_silences_the_seeded_owner_line_but_still_seeds() {
     let out = run(
         &cwd,
         &[("user.name", "Ada")],
-        &["--quiet", "new", "adr", "T"],
+        &["--quiet", "write", "new", "adr", "T"],
     );
     assert!(created_record(&cwd, &out).contains("owner: Ada"));
     assert!(!stderr_of(&out).contains("owner seeded from git config"));
 }
 
 #[test]
+fn owner_comes_from_the_bundles_repository_not_the_working_directory() {
+    let repo = temp_dir("repo");
+    for args in [&["init", "-q"][..], &["config", "user.name", "Repo Owner"]] {
+        let status = Command::new("git")
+            .arg("-C")
+            .arg(&*repo)
+            .args(args)
+            .status();
+        assert!(status.expect("git runs").success());
+    }
+    let cwd = temp_dir("elsewhere");
+    let docs = repo.join("docs");
+    let out = run_in(
+        &cwd,
+        docs.to_str().unwrap(),
+        &[],
+        &["write", "new", "adr", "T"],
+    );
+    assert!(created_record(&cwd, &out).contains("owner: Repo Owner"));
+}
+
+#[test]
 fn issue_never_gets_an_owner_from_git() {
     let cwd = temp_dir("issue");
-    let out = run(&cwd, &[("user.name", "Ada")], &["new", "issue", "T"]);
+    let out = run(
+        &cwd,
+        &[("user.name", "Ada")],
+        &["write", "new", "issue", "T"],
+    );
     assert!(!created_record(&cwd, &out).contains("owner:"));
 }

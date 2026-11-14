@@ -15,7 +15,14 @@ fn temp_dir(label: &str) -> Scratch {
 
 fn run_new(docs: &Path, doc_type: &str, title: &str) -> Output {
     living_docs()
-        .args(["--docs-dir", docs.to_str().unwrap(), "new", doc_type, title])
+        .args([
+            "--docs-dir",
+            docs.to_str().unwrap(),
+            "write",
+            "new",
+            doc_type,
+            title,
+        ])
         .output()
         .expect("failed to run living-docs")
 }

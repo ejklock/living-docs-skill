@@ -98,11 +98,11 @@ fn crlf_adr_writes_equal_the_lf_twin_with_crlf() {
     fs::write(&section, "Added text.\n").unwrap();
     let from = section.to_str().unwrap();
     let commands: [&[&str]; 5] = [
-        &["set", "0001", "description", "a new sentence"],
-        &["set", "0001", "owner", "someone"],
-        &["set", "0001", "status", "Accepted"],
-        &["set", "0001", "title", "Renamed"],
-        &["set", "0001", "section", "Notes", "--from", from],
+        &["write", "set", "0001", "description", "a new sentence"],
+        &["write", "set", "0001", "owner", "someone"],
+        &["write", "set", "0001", "status", "Accepted"],
+        &["write", "set", "0001", "title", "Renamed"],
+        &["write", "set", "0001", "section", "Notes", "--from", from],
     ];
     for (n, args) in commands.iter().enumerate() {
         let (lf, crlf) = twin_run(&format!("adr{n}"), "adr", &ADR_FILES, args);
@@ -121,8 +121,8 @@ fn crlf_adr_writes_equal_the_lf_twin_with_crlf() {
 fn crlf_issue_writes_equal_the_lf_twin_with_crlf() {
     let files = ["issues/0001-one.md", "issues/index.md"];
     let commands: [&[&str]; 2] = [
-        &["set", "0001", "tracker", "12"],
-        &["set", "0001", "labels", "a, b"],
+        &["write", "set", "0001", "tracker", "12"],
+        &["write", "set", "0001", "labels", "a, b"],
     ];
     for (n, args) in commands.iter().enumerate() {
         let (lf, crlf) = twin_run(&format!("issue{n}"), "issue", &files, args);
@@ -139,7 +139,7 @@ fn crlf_supersede_equals_the_lf_twin_in_either_direction() {
         ["adr/0002-two.md", "adr/index.md"],
     ];
     for (n, crlf_side) in sides.iter().enumerate() {
-        let args = ["supersede", "0001", "0002"];
+        let args = ["write", "supersede", "0001", "0002"];
         let (lf, crlf) = twin_run(&format!("sup{n}"), "adr", crlf_side, &args);
         assert_twins(&lf, &crlf);
         let crlf_files = crlf.iter().filter(|(_, t)| t.contains('\r')).count();
@@ -163,7 +163,7 @@ fn without_final_newline(docs: &Path, crlf: bool) {
 
 #[test]
 fn set_adds_the_missing_final_newline_like_a_terminated_record_in_either_ending() {
-    let args = ["set", "0001", "owner", "bob"];
+    let args = ["write", "set", "0001", "owner", "bob"];
     let plain = run_prepared("eof-base", "adr", &|_| {}, &args);
     let lf = run_prepared("eof-lf", "adr", &|d| without_final_newline(d, false), &args);
     assert_eq!(lf, plain);

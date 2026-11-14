@@ -74,7 +74,11 @@ fn line(path: &Path, key: &str) -> String {
 fn refuse_description_set_over_a_folded_scalar() {
     let (docs, one, _) = two_adrs("fold-description");
     fold(&one, "description");
-    let stderr = refused(&docs, &["set", "0001", "description", "x"], &[&one]);
+    let stderr = refused(
+        &docs,
+        &["write", "set", "0001", "description", "x"],
+        &[&one],
+    );
     assert!(stderr.contains("description"), "got: {stderr}");
     assert!(stderr.contains("0001-one.md"), "got: {stderr}");
 }
@@ -83,7 +87,7 @@ fn refuse_description_set_over_a_folded_scalar() {
 fn refuse_owner_set_over_a_folded_scalar() {
     let (docs, one, _) = two_adrs("fold-owner");
     fold(&one, "owner");
-    let stderr = refused(&docs, &["set", "0001", "owner", "x@y.z"], &[&one]);
+    let stderr = refused(&docs, &["write", "set", "0001", "owner", "x@y.z"], &[&one]);
     assert!(stderr.contains("owner"), "got: {stderr}");
 }
 
@@ -91,26 +95,35 @@ fn refuse_owner_set_over_a_folded_scalar() {
 fn refuse_supersede_leaves_both_records_untouched_when_the_second_draft_fails() {
     let (docs, one, two) = two_adrs("fold-supersedes");
     fold(&two, "supersedes");
-    let stderr = refused(&docs, &["supersede", "0001", "0002"], &[&one, &two]);
+    let stderr = refused(
+        &docs,
+        &["write", "supersede", "0001", "0002"],
+        &[&one, &two],
+    );
     assert!(stderr.contains("supersedes"), "got: {stderr}");
 }
 
 #[test]
 fn refuse_leaves_ordinary_writes_accepted() {
     let (docs, one, two) = two_adrs("accepted");
-    assert!(run(&docs, &["set", "0001", "status", "Accepted"])
+    assert!(run(&docs, &["write", "set", "0001", "status", "Accepted"])
         .status
         .success());
     assert_eq!(line(&one, "status"), "Accepted");
-    assert!(run(&docs, &["set", "0001", "description", "A sentence."])
-        .status
-        .success());
+    assert!(run(
+        &docs,
+        &["write", "set", "0001", "description", "A sentence."]
+    )
+    .status
+    .success());
     assert_eq!(line(&one, "description"), "A sentence.");
-    assert!(run(&docs, &["set", "0001", "owner", "a@b.c"])
+    assert!(run(&docs, &["write", "set", "0001", "owner", "a@b.c"])
         .status
         .success());
     assert_eq!(line(&one, "owner"), "a@b.c");
-    assert!(run(&docs, &["supersede", "0001", "0002"]).status.success());
+    assert!(run(&docs, &["write", "supersede", "0001", "0002"])
+        .status
+        .success());
     assert_eq!(line(&one, "status"), "Superseded");
     assert_eq!(line(&one, "superseded_by"), "0002");
     assert_eq!(line(&two, "supersedes"), "0001");
@@ -125,25 +138,27 @@ fn refuse_leaves_titles_with_yaml_punctuation_written_as_before() {
         ("&x", "\"&x\"", "0001-x.md"),
     ] {
         let (docs, _, _) = two_adrs("titles");
-        let out = run(&docs, &["set", "0001", "title", title]);
+        let out = run(&docs, &["write", "set", "0001", "title", title]);
         assert!(out.status.success(), "{title}: {out:?}");
         assert_eq!(line(&docs.join("adr").join(file), "title"), written);
     }
 }
 
 fn fmt_check_ok(docs: &Path) -> bool {
-    run(docs, &["fmt", "--check"]).status.success()
+    run(docs, &["manage", "fmt", "--check"]).status.success()
 }
 
 #[test]
 fn comment_opener_values_are_quoted_and_stay_canonical() {
     let (docs, one, _) = two_adrs("comment-opener");
     for (key, value) in [("description", "x #y"), ("owner", "o #p")] {
-        assert!(run(&docs, &["set", "0001", key, value]).status.success());
+        assert!(run(&docs, &["write", "set", "0001", key, value])
+            .status
+            .success());
         assert_eq!(line(&one, key), format!("\"{value}\""));
         assert!(fmt_check_ok(&docs), "{key}: fmt --check failed");
     }
-    assert!(run(&docs, &["set", "0001", "description", "a#b"])
+    assert!(run(&docs, &["write", "set", "0001", "description", "a#b"])
         .status
         .success());
     assert_eq!(line(&one, "description"), "a#b");
@@ -162,7 +177,7 @@ fn refuse_supersede_of_a_record_by_itself() {
         ("adr/0001", "adr/0001"),
         ("0001", "adr/0001"),
     ] {
-        let out = run(&docs, &["supersede", old, new]);
+        let out = run(&docs, &["write", "supersede", old, new]);
         assert_eq!(out.status.code(), Some(2), "{old} {new}: {out:?}");
         let stderr = String::from_utf8_lossy(&out.stderr);
         assert!(stderr.contains("0001-one.md"), "got: {stderr}");

@@ -1,11 +1,12 @@
 //! `fmt` verb wrapper: reuses `check::check_bundle` for bundle resolution
 //! and renders `living_docs_core::commands::fmt::outcome` as colored text
-//! or JSON, with the git-derived timestamp and owner seeds it computes.
+//! or JSON, with the git-derived timestamp and owner seeds it computes. The
+//! owner is the git identity of the bundle being formatted.
 
 use crate::commands::check::{bundle_root_of, check_bundle};
-use crate::git;
 use crate::output::{self, OutputMode};
 use crate::store::build_store;
+use fs_store::git;
 use living_docs_core::commands::fmt::{self, Outcome, Seeds};
 use serde::Serialize;
 use std::path::{Path, PathBuf};
@@ -28,15 +29,16 @@ pub(crate) fn run_fmt(
     mode: OutputMode,
 ) -> ExitCode {
     let target = check_bundle(docs_dir, paths);
+    let root = store_root(&target, docs_dir);
     let seeds = Seeds {
-        owner: git::identity(),
+        owner: git::identity(&root),
         added_at: Some(git::added_at),
     };
-    let store = build_store(&store_root(&target, docs_dir));
+    let store = build_store(&root);
     match fmt::outcome(store.as_ref(), &target, check_only, &seeds) {
         Ok(outcome) => render(&outcome, mode),
         Err(message) => {
-            eprintln!("living-docs fmt: {message}");
+            eprintln!("living-docs manage fmt: {message}");
             ExitCode::from(2)
         }
     }

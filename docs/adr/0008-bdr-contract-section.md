@@ -8,7 +8,7 @@ tags: [bdr, documentation, methodology]
 timestamp: 2026-07-17T21:01:45Z
 ---
 
-> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.
+> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.
 
 # 0008. BDR carries a required Contract section (public API + agent tool schemas)
 

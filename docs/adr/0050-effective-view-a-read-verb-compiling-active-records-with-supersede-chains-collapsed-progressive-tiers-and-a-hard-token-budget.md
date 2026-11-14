@@ -7,7 +7,7 @@ status: Deprecated
 timestamp: 2026-09-11T12:08:36Z
 ---
 
-> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.
+> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.
 
 # 0050. Effective view: a read verb compiling active records with supersede chains collapsed, progressive tiers, and a hard token budget
 

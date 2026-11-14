@@ -8,7 +8,7 @@ tags: [brazil, leak-prevention, methodology, pii, privacy, publishing, security]
 timestamp: 2026-07-17T23:58:00Z
 ---
 
-> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read` for what is in force.
+> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.
 
 # 0012. Worldwide PII detection is checksum-tiered, two-stage, and deterministic
 
