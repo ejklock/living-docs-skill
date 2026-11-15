@@ -45,6 +45,27 @@ pub(crate) fn installed_path() -> Result<PathBuf, String> {
     Ok(install_dir_in(&data_home).join(FILE_NAME))
 }
 
+/// Reads the installed mermaid file at `path` as text, only when its
+/// SHA-256 equals `expected`. `Ok(None)` when no file is installed there; an
+/// unreadable, non-UTF-8 or altered file is an error, never a silent skip.
+pub(crate) fn read_verified(path: &Path, expected: &str) -> Result<Option<String>, String> {
+    let bytes = match fs::read(path) {
+        Ok(bytes) => bytes,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(format!("cannot read {}: {error}", path.display())),
+    };
+    let actual = hex_digest(&bytes);
+    if !actual.eq_ignore_ascii_case(expected) {
+        return Err(format!(
+            "the installed mermaid at {} does not match the pinned SHA-256 (expected {expected}, found {actual}); run `living-docs manage install mermaid` to replace it",
+            path.display()
+        ));
+    }
+    String::from_utf8(bytes)
+        .map(Some)
+        .map_err(|_| format!("{} is not valid UTF-8", path.display()))
+}
+
 fn hex_digest(bytes: &[u8]) -> String {
     Sha256::digest(bytes)
         .iter()

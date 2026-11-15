@@ -24,6 +24,17 @@ pub(crate) enum ManageCmd {
         #[arg(long)]
         check: bool,
     },
+    #[command(about = help::HTML_ABOUT, long_about = None, after_help = help::with_exit_codes(help::HTML_EXAMPLES))]
+    Html {
+        /// Where to write the page; default .living-docs/html/index.html
+        /// under the current directory. Parent directories are created.
+        #[arg(long, value_name = "PATH")]
+        out: Option<PathBuf>,
+        /// The mermaid.js file to inline; without it the installed copy is
+        /// used, else the pinned CDN script tag.
+        #[arg(long, value_name = "PATH")]
+        mermaid: Option<PathBuf>,
+    },
     #[command(about = help::INSTALL_ABOUT, long_about = None, after_help = help::with_exit_codes(help::INSTALL_EXAMPLES))]
     Install {
         #[command(subcommand)]

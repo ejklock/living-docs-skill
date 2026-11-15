@@ -6,6 +6,10 @@
 use living_docs_core::check::kinds;
 use living_docs_core::doc_type::{Identity, DOC_TYPES};
 
+#[path = "help/install.rs"]
+mod install;
+pub(crate) use install::*;
+
 /// The exit-code table every verb's help ends with.
 pub(crate) const EXIT_CODES: [(u8, &str); 3] = [
     (0, "success"),
@@ -164,6 +168,14 @@ pub(crate) const FMT_EXAMPLES: &[&str] = &[
     "living-docs manage fmt --check docs",
 ];
 
+pub(crate) const HTML_ABOUT: &str =
+    "Writes the bundle as one local HTML file, mermaid.js from --mermaid, the installed copy, or the pinned CDN tag.";
+pub(crate) const HTML_EXAMPLES: &[&str] = &[
+    "living-docs manage html",
+    "living-docs manage html --out site/index.html",
+    "living-docs manage html --mermaid ./mermaid.min.js",
+];
+
 pub(crate) const CHECK_ABOUT: &str = "Validates the bundle's mechanical invariants — the doc-gate.";
 pub(crate) const CHECK_EXAMPLES: &[&str] = &[
     "living-docs check docs",
@@ -186,7 +198,7 @@ pub(crate) const READ_EXAMPLES: &[&str] = &[
 ];
 
 pub(crate) const MANAGE_ABOUT: &str =
-    "Maintains the bundle and its tooling: index, fmt, install, uninstall, completions.";
+    "Maintains the bundle and its tooling: index, fmt, html, install, uninstall, completions.";
 pub(crate) const MANAGE_EXAMPLES: &[&str] = &[
     "living-docs manage index adr",
     "living-docs manage fmt docs",
@@ -210,44 +222,6 @@ pub(crate) const GUIDE_EXAMPLES: &[&str] = &[
     "living-docs read guide conformance --skill okf-knowledge-format",
 ];
 
-pub(crate) const INSTALL_ABOUT: &str =
-    "Places skills or hooks into a project; mermaid goes to the user data directory.";
-pub(crate) const INSTALL_EXAMPLES: &[&str] = &[
-    "living-docs manage install skills --harness claude",
-    "living-docs manage install hooks",
-    "living-docs manage install mermaid",
-];
-
-pub(crate) const UNINSTALL_ABOUT: &str = "Removes what `manage install hooks` placed.";
-pub(crate) const UNINSTALL_EXAMPLES: &[&str] = &["living-docs manage uninstall hooks"];
-
-pub(crate) const INSTALL_SKILLS_ABOUT: &str =
-    "Places the embedded skill directories into a harness's skills directory.";
-pub(crate) const INSTALL_SKILLS_EXAMPLES: &[&str] = &[
-    "living-docs manage install skills --harness claude",
-    "living-docs manage install skills --project",
-];
-
-pub(crate) const INSTALL_HOOKS_ABOUT: &str =
-    "Writes the session-teaching hook, the decision-prompt Stop hook and the pre-commit doc-gate into a project.";
-pub(crate) const INSTALL_HOOKS_EXAMPLES: &[&str] = &[
-    "living-docs manage install hooks",
-    "living-docs manage install hooks --dir ./my-project",
-];
-
-pub(crate) const INSTALL_MERMAID_ABOUT: &str =
-    "Downloads the pinned mermaid.js with curl, verifies its SHA-256, and places it in the user data directory.";
-pub(crate) const INSTALL_MERMAID_EXAMPLES: &[&str] = &[
-    "living-docs manage install mermaid",
-    "living-docs manage install mermaid --dry-run",
-];
-
-pub(crate) const UNINSTALL_HOOKS_ABOUT: &str = "Removes what `manage install hooks` placed.";
-pub(crate) const UNINSTALL_HOOKS_EXAMPLES: &[&str] = &[
-    "living-docs manage uninstall hooks",
-    "living-docs manage uninstall hooks --dir ./my-project",
-];
-
 pub(crate) const COMPLETIONS_ABOUT: &str = "Prints a shell completion script.";
 pub(crate) const COMPLETIONS_EXAMPLES: &[&str] = &[
     "living-docs manage completions bash > /etc/bash_completion.d/living-docs",
@@ -261,7 +235,7 @@ pub(crate) const MCP_EXAMPLES: &[&str] = &[
     "claude mcp add living-docs -- living-docs mcp --docs-dir docs",
 ];
 
-const EXAMPLES: [(&[&str], &[&str]); 19] = [
+const EXAMPLES: [(&[&str], &[&str]); 20] = [
     (&["write"], WRITE_EXAMPLES),
     (&["write", "new"], NEW_EXAMPLES),
     (&["write", "set"], SET_EXAMPLES),
@@ -274,6 +248,7 @@ const EXAMPLES: [(&[&str], &[&str]); 19] = [
     (&["manage"], MANAGE_EXAMPLES),
     (&["manage", "index"], INDEX_EXAMPLES),
     (&["manage", "fmt"], FMT_EXAMPLES),
+    (&["manage", "html"], HTML_EXAMPLES),
     (&["manage", "install"], INSTALL_EXAMPLES),
     (&["manage", "install", "skills"], INSTALL_SKILLS_EXAMPLES),
     (&["manage", "install", "hooks"], INSTALL_HOOKS_EXAMPLES),

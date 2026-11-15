@@ -116,6 +116,9 @@ fn run_manage(docs_dir: &Path, operation: ManageCmd, mode: OutputMode, quiet: bo
     match operation {
         ManageCmd::Index { doc_type } => commands::index::run_index(docs_dir, doc_type, mode),
         ManageCmd::Fmt { paths, check } => commands::fmt::run_fmt(docs_dir, paths, check, mode),
+        ManageCmd::Html { out, mermaid } => {
+            commands::html::run_html(docs_dir, out, mermaid, mode, quiet)
+        }
         ManageCmd::Install {
             action:
                 InstallCmd::Skills {
