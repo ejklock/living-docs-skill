@@ -3,9 +3,12 @@ type: ADR
 title: The decision prompt fires at most once per commit cycle
 description: Change the opt-in Stop hook's state key from the changed content to HEAD after QA showed it re-prompting on every coding turn, superseding only the trigger of ADR 0083
 owner: Evaldo Klock
-status: Accepted
+status: Superseded
+superseded_by: 0089
 timestamp: 2026-11-15T22:15:56Z
 ---
+
+> **SUPERSEDED — do not act on this record.** Replaced by [0089](0089-the-decision-reminder-is-a-non-blocking-posttooluse-nudge-once-per-commit-cycle.md). Run `living-docs read records` for what is in force.
 
 # 0087. The decision prompt fires at most once per commit cycle
 

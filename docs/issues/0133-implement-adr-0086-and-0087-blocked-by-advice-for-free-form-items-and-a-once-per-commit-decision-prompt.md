@@ -2,7 +2,7 @@
 type: Issue
 title: "Implement ADR 0086 and 0087: blocked_by advice for free-form items and a once-per-commit decision prompt"
 description: "Land the two corrections from the QA friction pass: non-numeric blocked_by items become advisories, and the decision prompt fires at most once per commit cycle"
-status: open
+status: closed
 timestamp: 2026-11-15T22:16:18Z
 ---
 

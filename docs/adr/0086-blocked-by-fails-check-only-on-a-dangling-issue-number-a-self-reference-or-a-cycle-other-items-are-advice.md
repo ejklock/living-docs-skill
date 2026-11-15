@@ -3,10 +3,13 @@ type: ADR
 title: blocked_by fails check only on a dangling issue number, a self-reference or a cycle; other items are advice
 description: "Supersede ADR 0082 after a 28-bundle QA pass: keep the certain dependency defects as violations, report non-numeric items as advisories, accept them at write time and split scalar comma lists"
 owner: Evaldo Klock
-status: Accepted
+status: Superseded
 supersedes: 0082
+superseded_by: 0088
 timestamp: 2026-11-15T22:15:41Z
 ---
+
+> **SUPERSEDED — do not act on this record.** Replaced by [0088](0088-every-blocked-by-finding-is-advice-and-none-fails-check.md). Run `living-docs read records` for what is in force.
 
 # 0086. blocked_by fails check only on a dangling issue number, a self-reference or a cycle; other items are advice
 

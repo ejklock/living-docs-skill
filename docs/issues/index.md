@@ -34,7 +34,11 @@ one slice per fresh context, starting from the skeleton.
 * [0130 — Renumbering renames the record before rewriting references, so a failed rewrite leaves the bundle half-renumbered](0130-renumbering-renames-the-record-before-rewriting-references-so-a-failed-rewrite-leaves-the-bundle-half-renumbered.md) - open
 * [0131 — The canonical writer leaves zero-padded numeric strings unquoted](0131-the-canonical-writer-leaves-zero-padded-numeric-strings-unquoted.md) - open
 * [0132 — The HTML renderer duplicates the record reader and link graph of read records](0132-the-html-renderer-duplicates-the-record-reader-and-link-graph-of-read-records.md) - open
-* [0133 — Implement ADR 0086 and 0087: blocked_by advice for free-form items and a once-per-commit decision prompt](0133-implement-adr-0086-and-0087-blocked-by-advice-for-free-form-items-and-a-once-per-commit-decision-prompt.md) - open
+* [0134 — The check rule lists only some advisory kinds](0134-the-check-rule-lists-only-some-advisory-kinds.md) - open
+* [0135 — blocked_by cannot hold an item YAML reads as another type](0135-blocked-by-cannot-hold-an-item-yaml-reads-as-another-type.md) - open
+* [0136 — A blocked_by item beyond the u64 range is refused with a message naming the wrong key](0136-a-blocked-by-item-beyond-the-u64-range-is-refused-with-a-message-naming-the-wrong-key.md) - open
+* [0137 — write set reads a value that starts with a dash as a flag](0137-write-set-reads-a-value-that-starts-with-a-dash-as-a-flag.md) - open
+* [0138 — Implement ADR 0088 and 0089: blocked_by findings as advice and the decision reminder as a non-blocking nudge](0138-implement-adr-0088-and-0089-blocked-by-findings-as-advice-and-the-decision-reminder-as-a-non-blocking-nudge.md) - open
 
 ## Closed
 
@@ -143,3 +147,4 @@ one slice per fresh context, starting from the skeleton.
 * [0120 — Two parity test helpers exceed the function line cap and fail clippy](0120-two-parity-test-helpers-exceed-the-function-line-cap-and-fail-clippy.md) - closed
 * [0125 — Implement ADR 0082: blocked_by validation in check, write-time refusal and renumber rewrite](0125-implement-adr-0082-blocked-by-validation-in-check-write-time-refusal-and-renumber-rewrite.md) - closed
 * [0127 — Implement ADR 0084 and 0085: manage html renderer, manage install mermaid and the CLI wiring](0127-implement-adr-0084-and-0085-manage-html-renderer-manage-install-mermaid-and-the-cli-wiring.md) - closed
+* [0133 — Implement ADR 0086 and 0087: blocked_by advice for free-form items and a once-per-commit decision prompt](0133-implement-adr-0086-and-0087-blocked-by-advice-for-free-form-items-and-a-once-per-commit-decision-prompt.md) - closed

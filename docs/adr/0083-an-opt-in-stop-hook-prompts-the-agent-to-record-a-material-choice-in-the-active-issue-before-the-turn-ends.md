@@ -3,9 +3,12 @@ type: ADR
 title: An opt-in Stop hook prompts the agent to record a material choice in the active issue before the turn ends
 description: Ship an inert-by-default end-of-turn decision prompt for Claude Code with a deterministic once-per-change-set trigger, pointing at the active issue's Decision section, never a gate, removed if it captures nothing
 owner: Evaldo Klock
-status: Accepted
+status: Superseded
+superseded_by: 0089
 timestamp: 2026-11-15T16:02:42Z
 ---
+
+> **SUPERSEDED — do not act on this record.** Replaced by [0089](0089-the-decision-reminder-is-a-non-blocking-posttooluse-nudge-once-per-commit-cycle.md). Run `living-docs read records` for what is in force.
 
 # 0083. An opt-in Stop hook prompts the agent to record a material choice in the active issue before the turn ends
 
