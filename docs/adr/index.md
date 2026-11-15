@@ -54,6 +54,7 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0082 — blocked_by names local issue numbers and check fails on a dangling dependency, a self-reference or a cycle](0082-blocked-by-names-local-issue-numbers-and-check-fails-on-a-dangling-dependency-a-self-reference-or-a-cycle.md) - Accepted
 * [0083 — An opt-in Stop hook prompts the agent to record a material choice in the active issue before the turn ends](0083-an-opt-in-stop-hook-prompts-the-agent-to-record-a-material-choice-in-the-active-issue-before-the-turn-ends.md) - Accepted
 * [0084 — manage html renders the bundle into one local, read-only, deterministic HTML file](0084-manage-html-renders-the-bundle-into-one-local-read-only-deterministic-html-file.md) - Accepted
+* [0085 — manage install mermaid fetches the pinned mermaid.js with curl and manage html inlines it when installed](0085-manage-install-mermaid-fetches-the-pinned-mermaid-js-with-curl-and-manage-html-inlines-it-when-installed.md) - Proposed
 
 ## Superseded
 
