@@ -9,6 +9,7 @@ pub mod commands;
 pub mod doc_type;
 pub mod frontmatter;
 pub mod guide;
+pub mod html;
 mod line_ending;
 pub mod paths;
 pub mod record;
