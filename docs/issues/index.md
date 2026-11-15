@@ -31,6 +31,7 @@ one slice per fresh context, starting from the skeleton.
 * [0125 — Implement ADR 0082: blocked_by validation in check, write-time refusal and renumber rewrite](0125-implement-adr-0082-blocked-by-validation-in-check-write-time-refusal-and-renumber-rewrite.md) - open
 * [0126 — Implement ADR 0083: the opt-in decision prompt Stop hook and its installation](0126-implement-adr-0083-the-opt-in-decision-prompt-stop-hook-and-its-installation.md) - open
 * [0127 — Implement ADR 0084 and 0085: manage html renderer, manage install mermaid and the CLI wiring](0127-implement-adr-0084-and-0085-manage-html-renderer-manage-install-mermaid-and-the-cli-wiring.md) - open
+* [0128 — A 23-digit blocked_by item is refused with a message naming the type key](0128-a-23-digit-blocked-by-item-is-refused-with-a-message-naming-the-type-key.md) - open
 
 ## Closed
 

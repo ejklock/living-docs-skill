@@ -21,6 +21,8 @@ Plan:
 ### Decision
 
 - The pass is a violation, not an advisory, with no grace window (ADR 0082, accepted as written).
+- The relent check criterion is restated: the released 0.28.0 binary already reports 132 pre-existing violations on that bundle (none about `blocked_by`), so the proof is that the new pass adds none, not that the bundle passes. Not taken: fixing the relent bundle here (another repository).
+- A test fixture that writes a dangling `blocked_by` (cli/tests/set_tracker_keys.rs) gains the issues it names rather than filtering the new finding out of its assertion.
 - The pass is called from `check_numbering` in `living-docs-core/src/check/mod.rs`, beside the duplicate-number pass, because both judge references by record number; the helper keeps `run_all_checks` within the 30-line limit.
 
 ### Acceptance
