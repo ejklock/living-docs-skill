@@ -35,6 +35,7 @@ one slice per fresh context, starting from the skeleton.
 * [0130 — Renumbering renames the record before rewriting references, so a failed rewrite leaves the bundle half-renumbered](0130-renumbering-renames-the-record-before-rewriting-references-so-a-failed-rewrite-leaves-the-bundle-half-renumbered.md) - open
 * [0131 — The canonical writer leaves zero-padded numeric strings unquoted](0131-the-canonical-writer-leaves-zero-padded-numeric-strings-unquoted.md) - open
 * [0132 — The HTML renderer duplicates the record reader and link graph of read records](0132-the-html-renderer-duplicates-the-record-reader-and-link-graph-of-read-records.md) - open
+* [0133 — Implement ADR 0086 and 0087: blocked_by advice for free-form items and a once-per-commit decision prompt](0133-implement-adr-0086-and-0087-blocked-by-advice-for-free-form-items-and-a-once-per-commit-decision-prompt.md) - open
 
 ## Closed
 
