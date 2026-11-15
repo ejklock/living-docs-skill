@@ -1,7 +1,8 @@
 use std::path::Path;
 
 /// The guidance a client receives at discovery: what the server serves, how to
-/// read before deciding, and who owns the record files.
+/// read before deciding, where a choice made mid-work is recorded, and who owns
+/// the record files.
 pub fn instructions(docs_dir: &Path) -> String {
     format!(
         "This server serves one living-docs bundle: {bundle}\n\
