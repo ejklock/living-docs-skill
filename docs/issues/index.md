@@ -26,6 +26,8 @@ one slice per fresh context, starting from the skeleton.
 * [0119 — The doc-trail gate reads a fixture path in a test as a record citation](0119-the-doc-trail-gate-reads-a-fixture-path-in-a-test-as-a-record-citation.md) - open
 * [0121 — Engineering-docs roadmap: domain language and rules, decision capture, issue waves, generated diagrams and a local HTML export](0121-engineering-docs-roadmap-domain-language-and-rules-decision-capture-issue-waves-generated-diagrams-and-a-local-html-export.md) - open
 * [0122 — Docs subagent on a cheaper model: exploration recipe now, drafting only after measured authoring cost](0122-docs-subagent-on-a-cheaper-model-exploration-recipe-now-drafting-only-after-measured-authoring-cost.md) - open
+* [0123 — MCP discovery instructions lack the mid-work decision teaching the session line gained](0123-mcp-discovery-instructions-lack-the-mid-work-decision-teaching-the-session-line-gained.md) - open
+* [0124 — session-context.sh header comment understates what the session line teaches](0124-session-context-sh-header-comment-understates-what-the-session-line-teaches.md) - open
 
 ## Closed
 
