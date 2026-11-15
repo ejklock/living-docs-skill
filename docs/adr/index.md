@@ -51,6 +51,9 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0079 — stale-proposed counts only an issue that declares it implements the ADR](0079-stale-proposed-counts-only-an-issue-that-declares-it-implements-the-adr.md) - Accepted
 * [0080 — write set section refuses to drop child headings the new text does not carry](0080-write-set-section-refuses-to-drop-child-headings-the-new-text-does-not-carry.md) - Accepted
 * [0081 — The distributed pre-commit hook is the only copy and environment variables opt it into changed-only and owner checks](0081-the-distributed-pre-commit-hook-is-the-only-copy-and-environment-variables-opt-it-into-changed-only-and-owner-checks.md) - Accepted
+* [0082 — blocked_by names local issue numbers and check fails on a dangling dependency, a self-reference or a cycle](0082-blocked-by-names-local-issue-numbers-and-check-fails-on-a-dangling-dependency-a-self-reference-or-a-cycle.md) - Proposed
+* [0083 — An opt-in Stop hook prompts the agent to record a material choice in the active issue before the turn ends](0083-an-opt-in-stop-hook-prompts-the-agent-to-record-a-material-choice-in-the-active-issue-before-the-turn-ends.md) - Proposed
+* [0084 — manage html renders the bundle into one local, read-only, deterministic HTML file](0084-manage-html-renders-the-bundle-into-one-local-read-only-deterministic-html-file.md) - Proposed
 
 ## Superseded
 
