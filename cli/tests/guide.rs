@@ -254,6 +254,9 @@ fn delegated_exploration_topic_prints_the_return_shape_and_the_limits() {
     let stdout = stdout_of(&output);
     assert_eq!(output.status.code(), Some(0), "{}", stderr_of(&output));
     for phrase in ["TYPE/NNNN", "verbatim quote", "never delegated"] {
-        assert!(stdout.contains(phrase), "missing {phrase:?}; got:\n{stdout}");
+        assert!(
+            stdout.contains(phrase),
+            "missing {phrase:?}; got:\n{stdout}"
+        );
     }
 }
