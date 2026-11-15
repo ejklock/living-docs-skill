@@ -88,7 +88,7 @@ fn run_all_checks(
     links::check_links(store, bundle, &all_md, reporter);
     records::check_supersede_chain(store, &all_md, reporter);
     supersede_links::check_supersede_links(store, bundle, &all_md, reporter);
-    check_numbering(bundle, &all_md, reporter);
+    check_numbering(store, bundle, &all_md, reporter);
     callout::check_callouts(store, &all_md, reporter);
     moved_source::check_moved_source(store, bundle, &all_md, reporter);
     records::check_owner_requirement(store, &all_md, require_owner, reporter);
@@ -106,9 +106,14 @@ fn run_all_checks(
 
 /// The invariants on record numbers and on the references that name a record
 /// by number: no number is shared, and every issue dependency resolves.
-fn check_numbering(bundle: &Path, all_md: &[PathBuf], reporter: &mut Reporter) {
+fn check_numbering(
+    store: &dyn DocStore,
+    bundle: &Path,
+    all_md: &[PathBuf],
+    reporter: &mut Reporter,
+) {
     duplicate_numbers::check_duplicate_numbers(bundle, all_md, reporter);
-    dependencies::check_dependencies(bundle, all_md, reporter);
+    dependencies::check_dependencies(store, bundle, all_md, reporter);
 }
 
 /// Runs the per-record frontmatter pass and returns `all_md` without the
