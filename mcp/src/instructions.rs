@@ -14,6 +14,8 @@ Four tools, each grouping operations by an `operation` argument:\n\
 \n\
 Before deciding anything, read what is already decided: call `read` with `topic` for the subject, and with `links_to` or `impact` on a record before you change or supersede it.\n\
 \n\
+A choice made mid-work goes into the active issue's Decision section the moment you make it: call `write` with operation `set`, the issue's reference, heading `Decision` and the whole new section text, since it replaces the section, so pass its current bullets plus the new one. Write an ADR only when a future reader would pay to rediscover the choice.\n\
+\n\
 Never write a record file directly. `write` owns numbering, frontmatter and indexes; give `new` and `set` only the prose.\n",
         bundle = docs_dir.display()
     )

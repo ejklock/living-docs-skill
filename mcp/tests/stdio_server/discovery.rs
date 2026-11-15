@@ -61,3 +61,32 @@ async fn protocol_eras_initialize_handshake_still_lists_tools() {
     assert_eq!(info.protocol_version, ProtocolVersion::V_2025_11_25);
     assert_eq!(client.list_all_tools().await.expect("tools/list").len(), 4);
 }
+
+#[tokio::test]
+async fn discovery_instructions_teach_recording_a_mid_work_choice_in_the_active_issue_decision_section(
+) {
+    let scratch = Scratch::new();
+    let client = connect(&scratch.bundle(), Era::Discover).await;
+    let instructions = client
+        .peer_info()
+        .expect("discover result retained")
+        .instructions
+        .clone()
+        .expect("instructions")
+        .to_lowercase();
+    for phrase in [
+        "active issue's decision section",
+        "operation `set`",
+        "heading `decision`",
+        "only when a future reader would pay to rediscover",
+    ] {
+        assert!(
+            instructions.contains(phrase),
+            "no {phrase} in: {instructions}"
+        );
+    }
+    assert!(
+        !instructions.contains("write an adr for every"),
+        "{instructions}"
+    );
+}
