@@ -15,7 +15,7 @@ Implements [ADR 0083](/adr/0083-an-opt-in-stop-hook-prompts-the-agent-to-record-
 Plan:
 - S1: `skills/living-docs/hooks/decision-prompt.sh` prints nothing and exits 0 unless `LIVING_DOCS_DECISION_PROMPT=1`; with it set it blocks once (Claude Code Stop hook JSON) when non-bundle paths changed, no bundle path changed and the stop-hook-active flag is false, keyed by a hash of the changed paths and contents stored under the git directory; the message names the issue number when the branch carries one | files: skills/living-docs/hooks/decision-prompt.sh (create), cli/tests/decision_prompt.rs (create) | after: none
 - S2: `manage install hooks` writes the script and wires a Stop entry in `.claude/settings.json`; `manage uninstall` removes both; the wiring lives in a new module so `cli/src/hooks.rs` (521 lines, over the 300-line ratchet) does not grow; `rules/procedure.md` documents the opt-in | files: cli/src/hooks.rs, cli/src/hooks/ (new module), cli/tests/hooks_install.rs, skills/living-docs/rules/procedure.md | after: S1
-- S3 (session): amend the constitution's enforcement line to name the opt-in prompt | files: docs/constitution.md | after: S2
+- S3 (session): amend the constitution's enforcement line to name the opt-in prompt | files: docs/constitution.md | after: S2 (done)
 - S4 (owner): run it in one consumer project and count the first 20 prompts against the kill criterion | after: S3
 
 ### Decision

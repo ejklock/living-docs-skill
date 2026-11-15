@@ -22,7 +22,7 @@ timestamp: 2026-07-16T00:00:00Z
 - The nine authoring verbs over the `.md` tree: `new`, `set`, `supersede`, `index`, `check`, `fmt`, `effective`, `skill`, `hooks`. — ADR 0001, 0057, 0059
 - The record taxonomy as one registry: ADR, issue, research, constitution, an optional PRD, and architecture views. — ADR 0026, 0057
 - The skill corpus served from the binary, with slim harness stubs. — ADR 0014, 0017
-- One gate: `living-docs check`, run by the pre-commit hook and CI, plus the session-teaching hook. — ADR 0059
+- One gate: `living-docs check`, run by the pre-commit hook and CI, plus the session-teaching hook and an opt-in end-of-turn decision prompt (`LIVING_DOCS_DECISION_PROMPT=1`) that asks for a material choice to be recorded in the active issue and never blocks a write, a commit or CI. — ADR 0059, 0083
 
 **Explicitly out of scope:**
 
