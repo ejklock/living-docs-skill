@@ -162,7 +162,7 @@ pub(crate) fn set_frontmatter_fields_expecting(
 /// reads as before, the body is unchanged (bar a trailing newline the
 /// canonical pass appends), each written key reads as its rendered line does
 /// on its own, and each `expected` key reads as given.
-fn draft_frontmatter_fields(
+pub(crate) fn draft_frontmatter_fields(
     store: &dyn DocStore,
     path: &Path,
     fields: &[(&str, String)],

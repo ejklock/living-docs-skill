@@ -290,7 +290,7 @@ fn strip_number<'a>(text: &'a str, separator: &str) -> &'a str {
     text[4..].strip_prefix(separator).unwrap_or(text)
 }
 
-mod canonical;
+pub(crate) mod canonical;
 mod tail;
 pub use canonical::to_canonical_markdown;
 pub(crate) use canonical::{format_flow_list, format_scalar, kept_tag, record_numbers};

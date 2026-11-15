@@ -34,7 +34,7 @@ fn report_rewritten(applied: &commands::set::Applied) {
         output::outln!("{}", path.display());
     }
     eprintln!(
-        "living-docs write set: rewrote {} in-bundle reference(s) to {previous}; references outside the bundle are not rewritten — run `grep -rn {previous} .`",
+        "living-docs write set: rewrote {} record(s) that point to {previous}; references outside the bundle are not rewritten — run `grep -rn {previous} .`",
         applied.rewritten.len()
     );
 }

@@ -169,7 +169,7 @@ fn flow_strings<S: AsRef<str>>(items: &[S]) -> String {
 /// Renders typed items as a flow sequence: a null as `~`, a number or boolean
 /// plain, a string through [`quote_flow`]. A nested item has no flow form and
 /// renders empty; the read-back guard refuses a record that held one.
-fn flow_values(items: &[Value]) -> String {
+pub(crate) fn flow_values(items: &[Value]) -> String {
     let render = |item: &Value| match item {
         Value::Null => "~".to_owned(),
         Value::String(text) => quote_flow(text),
