@@ -225,7 +225,7 @@ fn json_list_keeps_the_topicless_skill_with_an_empty_topic_array() {
     let stdout = stdout_of(&output);
     assert_eq!(output.status.code(), Some(0), "got:\n{stdout}");
     let expected = serde_json::json!({"skills":[
-        {"name":"living-docs","topics":["adr","architecture-diagrams","architecture-view","check","claude-hard-rules","constitution","context-index","doc-trail","issue","issue-workflow","okf-format","prd","procedure","research","semantic-index","size-targets","spine"]},
+        {"name":"living-docs","topics":["adr","architecture-diagrams","architecture-view","check","claude-hard-rules","constitution","context-index","delegated-exploration","doc-trail","issue","issue-workflow","okf-format","prd","procedure","research","semantic-index","size-targets","spine"]},
         {"name":"living-docs-drift","topics":[]},
         {"name":"okf-knowledge-format","topics":["about","concept","conformance","index","log","model","procedure"]},
         {"name":"research-artifacts","topics":["about","research-general-references","research-index","research-report","rules","structure"]}
@@ -246,4 +246,14 @@ fn help_shows_the_no_topics_line_and_the_named_command_prints_the_skill_body() {
     let body = run_guide(&["living-docs-drift", "--plain"]);
     assert_eq!(body.status.code(), Some(0), "{}", stderr_of(&body));
     assert!(stdout_of(&body).contains("# Living Docs Drift"));
+}
+
+#[test]
+fn delegated_exploration_topic_prints_the_return_shape_and_the_limits() {
+    let output = run_guide(&["delegated-exploration", "--plain"]);
+    let stdout = stdout_of(&output);
+    assert_eq!(output.status.code(), Some(0), "{}", stderr_of(&output));
+    for phrase in ["TYPE/NNNN", "verbatim quote", "never delegated"] {
+        assert!(stdout.contains(phrase), "missing {phrase:?}; got:\n{stdout}");
+    }
 }
