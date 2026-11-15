@@ -21,6 +21,7 @@ Plan:
 ### Decision
 
 - The hook ships for Claude Code only; other harnesses wait for the experiment's result (ADR 0083).
+- Uninstall restores settings as before install with an empty hook section treated as absent, as Claude Code reads it; a user's own empty section that install appended to is removed on uninstall (review of S2). Not taken: recording which sections install created.
 - The wiring of S2 is born in its own module because the file-size ratchet forbids `cli/src/hooks.rs` from growing.
 
 ### Acceptance
