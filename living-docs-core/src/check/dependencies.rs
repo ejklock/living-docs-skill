@@ -1,9 +1,9 @@
-//! Issue dependencies declared in `blocked_by`, whose items are local issue
-//! numbers: every item names an issue of the bundle, no issue waits on itself,
-//! and no issues wait on one another in a cycle.
+//! Issue dependencies declared in `blocked_by`. Only numeric items are
+//! validated: each names an issue of the bundle, no issue waits on itself,
+//! and no issues wait on one another in a cycle. Any other item is advice.
 
 use super::records::for_each_readable_record;
-use super::Reporter;
+use super::{kinds, Reporter};
 use crate::frontmatter::scalar_to_string;
 use crate::record::{extract_record, TailValue};
 use crate::store::DocStore;
@@ -24,8 +24,10 @@ struct Issue {
     items: Vec<String>,
 }
 
-/// Reports, on the issue that carries it, a `blocked_by` item that is not a
-/// number or names no issue of the bundle, and an issue that lists itself;
+/// Reports, on the issue that carries it, a numeric `blocked_by` item that
+/// names no issue of the bundle, and an issue that lists itself; advises, once
+/// per item, on an item that is not a decimal number (it never fails and never takes
+/// part in a cycle);
 /// reports one finding per cycle of issues waiting on one another, anchored
 /// on every member so a scope holding any one of them keeps it. Items compare
 /// as integers (`12` and `0012` are one issue) and a blocker in any status
@@ -79,14 +81,19 @@ fn read_issues(store: &dyn DocStore, all_md: &[PathBuf]) -> Vec<Issue> {
     issues
 }
 
-/// The `blocked_by` entries as text: a flow list, or a lone scalar read as a
-/// one-item list.
+/// The `blocked_by` entries as text: a flow list, or a scalar read as a
+/// comma-separated list.
 fn blocked_by_items(tail: &[(String, TailValue)]) -> Vec<String> {
     let Some((_, value)) = tail.iter().find(|(key, _)| key == "blocked_by") else {
         return Vec::new();
     };
     match value {
-        TailValue::Scalar(item) => vec![item.clone()],
+        TailValue::Scalar(text) => text
+            .split(',')
+            .map(str::trim)
+            .filter(|item| !item.is_empty())
+            .map(str::to_string)
+            .collect(),
         TailValue::Sequence(items) => items.clone(),
         TailValue::Typed(values) => values
             .iter()
@@ -95,27 +102,37 @@ fn blocked_by_items(tail: &[(String, TailValue)]) -> Vec<String> {
     }
 }
 
-fn item_number(item: &str) -> Option<u32> {
+/// Whether `item` is a decimal number: ASCII digits only. Such an item is
+/// validated even when it overflows the issue number range.
+fn is_decimal(item: &str) -> bool {
     let item = item.trim();
-    if item.is_empty() || !item.bytes().all(|b| b.is_ascii_digit()) {
-        return None;
+    !item.is_empty() && item.bytes().all(|b| b.is_ascii_digit())
+}
+
+/// The issue number a decimal `item` names; `None` for any other item and for
+/// a decimal beyond the integer range, which names no issue.
+fn item_number(item: &str) -> Option<u32> {
+    if is_decimal(item) {
+        item.trim().parse().ok()
+    } else {
+        None
     }
-    item.parse().ok()
 }
 
 fn check_items(issue: &Issue, paths: &Paths, reporter: &mut Reporter) {
     for item in &issue.items {
+        if !is_decimal(item) {
+            let advice =
+                format!("blocked_by: '{item}' is not an issue number, so it is not validated");
+            reporter.advise(&issue.path, kinds::BLOCKED_BY, advice);
+            continue;
+        }
         let message = match item_number(item) {
-            None => format!(
-                "blocked_by: '{item}' is not an issue number — a tracker identifier belongs in `tracker`"
-            ),
             Some(n) if Some(n) == issue.number => {
                 format!("blocked_by: {item} lists the issue itself")
             }
-            Some(n) if !paths.contains_key(&n) => {
-                format!("blocked_by: {item} names no issue of the bundle")
-            }
-            Some(_) => continue,
+            Some(n) if paths.contains_key(&n) => continue,
+            _ => format!("blocked_by: {item} names no issue of the bundle"),
         };
         reporter.report(&issue.path, message);
     }

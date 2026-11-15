@@ -54,21 +54,36 @@ fn blocked_by_accepts_decimal_numbers_trimmed_and_keeps_leading_zeros() {
 }
 
 #[test]
-fn blocked_by_refuses_a_tracker_identifier_naming_it_and_leaves_the_record() {
-    let (docs, path) = issue_bundle("tracker-id");
-    let value = format!("12, {TRACKER_ID}");
-    let stderr = assert_refused_unchanged(&docs, &path, &["0001", "blocked_by", &value]);
-    assert!(stderr.contains(TRACKER_ID), "got: {stderr}");
+fn blocked_by_accepts_text_items_beside_numbers_and_reads_back_both() {
+    let (docs, path) = issue_bundle("text-items");
+    let out = set(&docs, &["0001", "blocked_by", "ref ab-77, 12"]);
+    assert!(out.status.success(), "{out:?}");
+    assert_eq!(
+        lines_of(&path, "blocked_by"),
+        ["blocked_by: [ref ab-77, 12]"]
+    );
 }
 
 #[test]
-fn blocked_by_refuses_signs_fractions_and_non_ascii_digits() {
+fn blocked_by_accepts_a_tracker_identifier_a_sign_and_non_ascii_digits() {
     let (docs, path) = issue_bundle("non-decimal");
-    for value in ["-3", "1.5", "+4", "\u{661}\u{662}"] {
+    for value in [TRACKER_ID, "-3", "\u{661}\u{662}"] {
         let list = format!("12, {value}");
-        let stderr = assert_refused_unchanged(&docs, &path, &["0001", "blocked_by", &list]);
-        assert!(stderr.contains(value), "{value}: {stderr}");
+        let out = set(&docs, &["0001", "blocked_by", &list]);
+        assert!(out.status.success(), "{value}: {out:?}");
+        let lines = lines_of(&path, "blocked_by");
+        assert!(
+            lines.len() == 1 && lines[0].contains(value),
+            "{value}: {lines:?}"
+        );
     }
+}
+
+#[test]
+fn blocked_by_still_refuses_brackets_and_leaves_the_record() {
+    let (docs, path) = issue_bundle("brackets");
+    let stderr = assert_refused_unchanged(&docs, &path, &["0001", "blocked_by", "12, [x]"]);
+    assert!(stderr.contains("brackets"), "got: {stderr}");
 }
 
 #[test]
@@ -78,4 +93,48 @@ fn labels_still_accept_a_tracker_identifier() {
     assert!(set(&docs, &["0001", "labels", &value]).status.success());
     let expected = format!("labels: [a, {TRACKER_ID}]");
     assert_eq!(lines_of(&path, "labels"), [expected]);
+}
+
+#[test]
+fn blocked_by_refuses_an_item_the_record_would_read_back_as_another_value_naming_it() {
+    let (docs, path) = issue_bundle("rewritten");
+    for value in ["+4", "1.5", "true"] {
+        let list = format!("12, {value}");
+        let stderr = assert_refused_unchanged(&docs, &path, &["0001", "blocked_by", &list]);
+        assert!(
+            stderr.contains(&format!("'{value}' would read back")),
+            "{value}: {stderr}"
+        );
+    }
+}
+
+#[test]
+fn blocked_by_accepts_text_beside_a_number_after_the_early_item_check() {
+    let (docs, _) = issue_bundle("adr-and-number");
+    let out = set(&docs, &["0001", "blocked_by", "see the design note, 12"]);
+    assert!(out.status.success(), "{out:?}");
+}
+
+#[test]
+fn blocked_by_accepts_items_the_record_quotes_and_keeps_them_as_text() {
+    let (docs, path) = issue_bundle("quoted-items");
+    let out = set(&docs, &["0001", "blocked_by", "#21, 12"]);
+    assert!(out.status.success(), "{out:?}");
+    assert_eq!(lines_of(&path, "blocked_by"), ["blocked_by: [\"#21\", 12]"]);
+    let out = set(&docs, &["0001", "blocked_by", "12, -0"]);
+    assert!(out.status.success(), "{out:?}");
+    assert_eq!(lines_of(&path, "blocked_by"), ["blocked_by: [12, \"-0\"]"]);
+}
+
+#[test]
+fn blocked_by_refuses_null_hex_and_exponent_items_naming_them() {
+    let (docs, path) = issue_bundle("other-types");
+    for value in ["null", "0x10", "1e3"] {
+        let list = format!("12, {value}");
+        let stderr = assert_refused_unchanged(&docs, &path, &["0001", "blocked_by", &list]);
+        assert!(
+            stderr.contains(&format!("'{value}' would read back")),
+            "{value}: {stderr}"
+        );
+    }
 }

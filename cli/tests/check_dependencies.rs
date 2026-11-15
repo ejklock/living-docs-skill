@@ -1,6 +1,8 @@
 mod common;
 
-use common::{index_bundle, living_docs, run_check, stdout_of, temp_bundle, write};
+use common::{
+    index_bundle, living_docs, run_check, run_check_advisories, stdout_of, temp_bundle, write,
+};
 use std::path::Path;
 use std::process::Output;
 
@@ -82,13 +84,58 @@ fn an_item_naming_no_issue_fails_naming_the_file_and_the_item() {
 }
 
 #[test]
-fn an_item_that_is_not_a_number_fails_naming_the_item() {
-    let bundle = bundle_of("tracker", &[issue("0001", "[see-nine]")]);
+fn items_that_are_not_numbers_are_advised_one_each_and_never_fail() {
+    let bundle = bundle_of("advice", &[issue("0001", "[ref ab-77, \"#21\"]")]);
+    let output = run_check_advisories(&bundle);
+    let text = stdout_of(&output);
+    assert_eq!(output.status.code(), Some(0), "{text}");
+    assert!(text.to_lowercase().contains("blocked-by"), "{text}");
+    assert!(text.contains("ref ab-77") && text.contains("#21"), "{text}");
+    assert_eq!(findings(&run_check(&bundle)).len(), 0, "{text}");
+}
+
+#[test]
+fn a_non_numeric_item_never_takes_part_in_a_cycle() {
+    let bundle = bundle_of(
+        "advice-no-cycle",
+        &[issue("0001", "[2, ref ab-2]"), issue("0002", "[ref ab-1]")],
+    );
+    let output = run_check(&bundle);
+    assert_eq!(output.status.code(), Some(0), "{}", stdout_of(&output));
+}
+
+#[test]
+fn a_scalar_comma_list_resolves_each_number_like_a_flow_list() {
+    let bundle = bundle_of(
+        "scalar-list",
+        &[
+            issue("0045", "[]"),
+            issue("0047", "[]"),
+            issue("0048", "0045, 0047"),
+            issue("0049", "45"),
+        ],
+    );
+    let output = run_check_advisories(&bundle);
+    let text = stdout_of(&output);
+    assert_eq!(output.status.code(), Some(0), "{text}");
+    assert!(!text.to_lowercase().contains("blocked-by"), "{text}");
+}
+
+#[test]
+fn a_scalar_comma_list_naming_a_missing_number_fails() {
+    let bundle = bundle_of(
+        "scalar-missing",
+        &[issue("0045", "[]"), issue("0048", "0045, 0099")],
+    );
     let output = run_check(&bundle);
     let lines = findings(&output);
     assert_eq!(output.status.code(), Some(1), "{}", stdout_of(&output));
     assert_eq!(lines.len(), 1, "{}", stdout_of(&output));
-    assert!(lines[0].contains("see-nine"), "{}", lines[0]);
+    assert!(
+        lines[0].contains("0099") && !lines[0].contains("0045"),
+        "{}",
+        lines[0]
+    );
 }
 
 #[test]

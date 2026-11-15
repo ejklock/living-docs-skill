@@ -13,6 +13,7 @@ pub const OWNER: &str = "owner";
 pub const HEADING: &str = "heading";
 pub const LIVENESS: &str = "liveness";
 pub const MOVED_SOURCE: &str = "moved-source";
+pub const BLOCKED_BY: &str = "blocked-by";
 
 /// Every kind an advisory can carry, in a stable order.
 pub const ALL: &[Kind] = &[
@@ -35,6 +36,10 @@ pub const ALL: &[Kind] = &[
     Kind {
         name: MOVED_SOURCE,
         meaning: "a record depends on a record whose status moved since it was written",
+    },
+    Kind {
+        name: BLOCKED_BY,
+        meaning: "a blocked_by item is not an issue number, so it is not validated",
     },
 ];
 

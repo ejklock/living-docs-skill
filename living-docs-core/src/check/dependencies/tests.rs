@@ -11,6 +11,12 @@ fn issue_at(number: &str, blocked_by: &str) -> (String, String) {
 }
 
 fn run(records: &[(String, String)]) -> Vec<(String, String)> {
+    run_both(records).0
+}
+
+type Findings = Vec<(String, String)>;
+
+fn run_both(records: &[(String, String)]) -> (Findings, Findings) {
     let seed: Vec<(&str, &str)> = records
         .iter()
         .map(|(path, text)| (path.as_str(), text.as_str()))
@@ -18,11 +24,17 @@ fn run(records: &[(String, String)]) -> Vec<(String, String)> {
     let (store, all_md) = MapStore::seeded(&seed);
     let mut reporter = Reporter::new();
     check_dependencies(&store, Path::new("/bundle"), &all_md, &mut reporter);
-    reporter
+    let violations = reporter
         .violations
         .into_iter()
         .map(|v| (v.file, v.message))
-        .collect()
+        .collect();
+    let advice = reporter
+        .advisories
+        .into_iter()
+        .map(|a| (a.file, a.message))
+        .collect();
+    (violations, advice)
 }
 
 #[test]
@@ -36,17 +48,35 @@ fn a_quoted_zero_padded_item_names_the_same_issue_as_its_bare_number() {
 }
 
 #[test]
-fn a_text_item_is_reported_with_the_item_and_the_issue_file() {
-    let found = run(&[issue_at("0001", "[\"see-nine\"]")]);
+fn a_text_item_is_advised_with_the_item_and_the_issue_file_and_not_reported() {
+    let (violations, advice) = run_both(&[issue_at("0001", "[\"see-nine\"]")]);
+    assert!(violations.is_empty(), "{violations:?}");
+    assert_eq!(advice.len(), 1, "{advice:?}");
+    assert_eq!(advice[0].0, "/bundle/issues/0001-work.md");
+    assert!(advice[0].1.contains("'see-nine'"), "{}", advice[0].1);
+}
+
+#[test]
+fn a_scalar_comma_list_reads_as_several_items() {
+    let found = run(&[issue_at("0001", "[]"), issue_at("0002", "0001, 0003")]);
     assert_eq!(found.len(), 1, "{found:?}");
-    assert_eq!(found[0].0, "/bundle/issues/0001-work.md");
-    assert!(found[0].1.contains("'see-nine'"), "{}", found[0].1);
+    assert!(
+        found[0].1.contains("0003") && !found[0].1.contains("0001"),
+        "{}",
+        found[0].1
+    );
 }
 
 #[test]
 fn an_item_beyond_the_integer_range_names_no_issue() {
-    let found = run(&[issue_at("0001", "[99999999999]")]);
-    assert_eq!(found.len(), 1, "{found:?}");
+    let (violations, advice) = run_both(&[issue_at("0001", "[99999999999]")]);
+    assert_eq!(violations.len(), 1, "{violations:?}");
+    assert!(
+        violations[0].1.contains("names no issue"),
+        "{}",
+        violations[0].1
+    );
+    assert!(advice.is_empty(), "{advice:?}");
 }
 
 #[test]

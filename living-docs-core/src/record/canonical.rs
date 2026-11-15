@@ -231,7 +231,7 @@ fn quoted(value: &str) -> String {
     format!("\"{escaped}\"")
 }
 
-fn needs_quoting(value: &str) -> bool {
+pub(crate) fn needs_quoting(value: &str) -> bool {
     value.is_empty()
         || value.starts_with(|c: char| YAML_INDICATOR_PREFIXES.contains(c))
         || value.contains(": ")
