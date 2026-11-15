@@ -2,7 +2,7 @@
 type: Issue
 title: "Implement ADR 0082: blocked_by validation in check, write-time refusal and renumber rewrite"
 description: "Land ADR 0082 in three disjoint slices: the dependency check pass, the write-time refusal of non-number items, and the renumber rewrite of dependents"
-status: open
+status: closed
 timestamp: 2026-11-15T17:33:57Z
 ---
 

@@ -21,6 +21,7 @@ Plan:
 ### Decision
 
 - S2 and S3 both edit `cli/src/args/sub.rs`, so S3 waits for S2.
+- The renderer escapes through `pulldown_cmark_escape` as a direct dependency rather than a local helper; it adds no package to Cargo.lock (review of slice S1). Not taken: the hand-written escape.
 - The core renderer takes the mermaid source as data and never reads the network or the data directory; the CLI resolves the source.
 
 ### Acceptance

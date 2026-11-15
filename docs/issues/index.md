@@ -28,13 +28,13 @@ one slice per fresh context, starting from the skeleton.
 * [0122 — Docs subagent on a cheaper model: exploration recipe now, drafting only after measured authoring cost](0122-docs-subagent-on-a-cheaper-model-exploration-recipe-now-drafting-only-after-measured-authoring-cost.md) - open
 * [0123 — MCP discovery instructions lack the mid-work decision teaching the session line gained](0123-mcp-discovery-instructions-lack-the-mid-work-decision-teaching-the-session-line-gained.md) - open
 * [0124 — session-context.sh header comment understates what the session line teaches](0124-session-context-sh-header-comment-understates-what-the-session-line-teaches.md) - open
-* [0125 — Implement ADR 0082: blocked_by validation in check, write-time refusal and renumber rewrite](0125-implement-adr-0082-blocked-by-validation-in-check-write-time-refusal-and-renumber-rewrite.md) - open
 * [0126 — Implement ADR 0083: the opt-in decision prompt Stop hook and its installation](0126-implement-adr-0083-the-opt-in-decision-prompt-stop-hook-and-its-installation.md) - open
 * [0127 — Implement ADR 0084 and 0085: manage html renderer, manage install mermaid and the CLI wiring](0127-implement-adr-0084-and-0085-manage-html-renderer-manage-install-mermaid-and-the-cli-wiring.md) - open
 * [0128 — A 23-digit blocked_by item is refused with a message naming the type key](0128-a-23-digit-blocked-by-item-is-refused-with-a-message-naming-the-type-key.md) - open
 * [0129 — manage install mermaid has no end-to-end test of its success path](0129-manage-install-mermaid-has-no-end-to-end-test-of-its-success-path.md) - open
 * [0130 — Renumbering renames the record before rewriting references, so a failed rewrite leaves the bundle half-renumbered](0130-renumbering-renames-the-record-before-rewriting-references-so-a-failed-rewrite-leaves-the-bundle-half-renumbered.md) - open
 * [0131 — The canonical writer leaves zero-padded numeric strings unquoted](0131-the-canonical-writer-leaves-zero-padded-numeric-strings-unquoted.md) - open
+* [0132 — The HTML renderer duplicates the record reader and link graph of read records](0132-the-html-renderer-duplicates-the-record-reader-and-link-graph-of-read-records.md) - open
 
 ## Closed
 
@@ -141,3 +141,4 @@ one slice per fresh context, starting from the skeleton.
 * [0117 — The liveness declaration scan walks links with its own parser instead of link_destinations](0117-the-liveness-declaration-scan-walks-links-with-its-own-parser-instead-of-link-destinations.md) - closed
 * [0118 — The size gates pass when find fails to read part of the tree](0118-the-size-gates-pass-when-find-fails-to-read-part-of-the-tree.md) - closed
 * [0120 — Two parity test helpers exceed the function line cap and fail clippy](0120-two-parity-test-helpers-exceed-the-function-line-cap-and-fail-clippy.md) - closed
+* [0125 — Implement ADR 0082: blocked_by validation in check, write-time refusal and renumber rewrite](0125-implement-adr-0082-blocked-by-validation-in-check-write-time-refusal-and-renumber-rewrite.md) - closed
