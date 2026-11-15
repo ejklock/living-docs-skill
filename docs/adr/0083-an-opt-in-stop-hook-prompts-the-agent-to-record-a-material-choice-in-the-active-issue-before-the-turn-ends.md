@@ -3,7 +3,7 @@ type: ADR
 title: An opt-in Stop hook prompts the agent to record a material choice in the active issue before the turn ends
 description: Ship an inert-by-default end-of-turn decision prompt for Claude Code with a deterministic once-per-change-set trigger, pointing at the active issue's Decision section, never a gate, removed if it captures nothing
 owner: Evaldo Klock
-status: Proposed
+status: Accepted
 timestamp: 2026-11-15T16:02:42Z
 ---
 

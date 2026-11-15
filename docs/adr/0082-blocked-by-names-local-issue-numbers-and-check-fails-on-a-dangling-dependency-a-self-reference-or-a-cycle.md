@@ -3,7 +3,7 @@ type: ADR
 title: blocked_by names local issue numbers and check fails on a dangling dependency, a self-reference or a cycle
 description: Fix the referent of the issue blocked_by key as local issue numbers, refuse non-numbers at write time, fail check on a dependency graph that cannot be honored, and keep it intact across renumbering
 owner: Evaldo Klock
-status: Proposed
+status: Accepted
 timestamp: 2026-11-15T16:01:28Z
 ---
 
