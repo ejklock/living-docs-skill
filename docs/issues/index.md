@@ -24,6 +24,8 @@ one slice per fresh context, starting from the skeleton.
 * [0104 — check module docblock links to a run function that no longer exists](0104-check-module-docblock-links-to-a-run-function-that-no-longer-exists.md) - open
 * [0105 — check accepts the placeholder description that new writes](0105-check-accepts-the-placeholder-description-that-new-writes.md) - open
 * [0119 — The doc-trail gate reads a fixture path in a test as a record citation](0119-the-doc-trail-gate-reads-a-fixture-path-in-a-test-as-a-record-citation.md) - open
+* [0121 — Engineering-docs roadmap: domain language and rules, decision capture, issue waves, generated diagrams and a local HTML export](0121-engineering-docs-roadmap-domain-language-and-rules-decision-capture-issue-waves-generated-diagrams-and-a-local-html-export.md) - open
+* [0122 — Docs subagent on a cheaper model: exploration recipe now, drafting only after measured authoring cost](0122-docs-subagent-on-a-cheaper-model-exploration-recipe-now-drafting-only-after-measured-authoring-cost.md) - open
 
 ## Closed
 

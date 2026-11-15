@@ -1,0 +1,43 @@
+---
+type: Issue
+title: "Engineering-docs roadmap: domain language and rules, decision capture, issue waves, generated diagrams and a local HTML export"
+description: Umbrella issue carrying the owner's decisions and the slice plan from the 2026-11-15 research and advisor review
+status: open
+timestamp: 2026-11-15T14:47:04Z
+---
+
+## 0121. Engineering-docs roadmap: domain language and rules, decision capture, issue waves, generated diagrams and a local HTML export
+
+### Scope
+
+Bring five engineering-documentation capabilities into living-docs without repeating the inflation ADR 0057 removed or the periphery cost ADR 0059 cut: a home for ubiquitous language and business rules outside the issue, enforced capture of decisions made mid-development, validated issue dependencies and waves, code-derived architecture diagrams, and a local HTML view of the bundle.
+
+The evidence is four research reports and one advisor review run on 2026-11-15 (living architecture and UML; business rules, ubiquitous language and waves; documentation in AI-assisted engineering; HTML docs site). They are recorded in [research 0005](/research/0005-engineering-documentation-in-ai-assisted-development-living-architecture-domain-language-and-rules-decision-capture-issue-waves-and-a-local-html-view.md).
+
+The layers (terms → rules → decisions → work → structure) are a map of homes, never a pipeline: a change touches only the layers it changes. Three lifecycles: living (domain, views, constitution), append-only (ADR, research), work (issue).
+
+Plan:
+- S0: trial with no code: one hand-written context file with Terms and Rules in a consumer bundle; a few open issues link it instead of restating rules | files: consumer bundle | after: none
+- S1: research record carrying the evidence of the four reports | files: docs/research | after: none (done: research 0005)
+- S2: ADR for a `domain` Named type that supersedes ADR 0027 whole, retires `templates/context-index.md`, amends the constitution's taxonomy and states the anti-pairing rule | after: S0, S1
+- S3: session-line sentence: a material choice made mid-work goes into the active issue's Decision | after: none
+- S4: ADR for an opt-in Stop hook (env opt-in per ADR 0081) whose trigger is deterministic and which points at the active issue's Decision, never at a new record; amends the constitution's enforcement scope | after: S1
+- S5: ADR for `blocked_by` as local record numbers and a check violation for a missing referent, a self-reference and a cycle | after: S1
+- S6: skill recipe for generated diagram fences kept fresh by a CI regenerate-and-diff, and a note on research 0004 that its graph source is Deprecated | after: S1
+- S7: ADR plus constitution amendment for a deterministic single-file HTML export under `manage`, read locally by the owner, never published | after: S1
+
+### Decision
+
+- Rules home: trial with a hand-kept context file, then a `domain` type. Not taken: `domain` type at once; a PRD section; the issue stays the home.
+- Decision capture: opt-in Stop hook, measured as an experiment. Not taken: session line only; a `Decision:` commit trailer (a second gate that invites a reflexive `none`); governance globs in check (Deprecated ADR 0032 again).
+- `blocked_by` referent: local record numbers. Not taken: tracker numbers (check cannot resolve them offline); free text (today, unvalidated).
+- HTML reader: the owner, locally, as a single-file static export. Not taken: wait for a reader (advisor's recommendation); a client or PM (reopens the leak question of Deprecated ADR 0010); a `serve` verb.
+- Wave grouping: the existing `labels` convention; a derived `--waves` layering waits. Not taken: a `wave` key; an epic record type.
+- Diagram oracle: the project's own extractor in a skill recipe plus CI. Not taken now: an in-binary graph snapshot with a region-equality check and a reflexion advisory, which waits for a consumer true positive.
+- Rejected: BR-ID grammar, rule-to-test orphan report (the traceability pass ADR 0057 removed), Vale emitter, `use-case` view kind (fails `check --mermaid-only`), file-overlap key.
+
+### Acceptance
+
+- Each ADR S2, S4, S5 and S7 is Accepted before its code starts.
+- `Cargo.lock` stays at 235 packages through S2 to S6.
+- Measures recorded after each slice ships: domain entries per merged issue stay below one; share of Stop-hook prompts that end in a record edit (the hook is removed if none are true captures); share of issues linking a domain record instead of restating rules; CI diagram-diff failures that were real drift; violations found on the first `blocked_by` run over the relent bundle.
