@@ -32,6 +32,9 @@ one slice per fresh context, starting from the skeleton.
 * [0126 — Implement ADR 0083: the opt-in decision prompt Stop hook and its installation](0126-implement-adr-0083-the-opt-in-decision-prompt-stop-hook-and-its-installation.md) - open
 * [0127 — Implement ADR 0084 and 0085: manage html renderer, manage install mermaid and the CLI wiring](0127-implement-adr-0084-and-0085-manage-html-renderer-manage-install-mermaid-and-the-cli-wiring.md) - open
 * [0128 — A 23-digit blocked_by item is refused with a message naming the type key](0128-a-23-digit-blocked-by-item-is-refused-with-a-message-naming-the-type-key.md) - open
+* [0129 — manage install mermaid has no end-to-end test of its success path](0129-manage-install-mermaid-has-no-end-to-end-test-of-its-success-path.md) - open
+* [0130 — Renumbering renames the record before rewriting references, so a failed rewrite leaves the bundle half-renumbered](0130-renumbering-renames-the-record-before-rewriting-references-so-a-failed-rewrite-leaves-the-bundle-half-renumbered.md) - open
+* [0131 — The canonical writer leaves zero-padded numeric strings unquoted](0131-the-canonical-writer-leaves-zero-padded-numeric-strings-unquoted.md) - open
 
 ## Closed
 
