@@ -29,7 +29,6 @@ one slice per fresh context, starting from the skeleton.
 * [0123 — MCP discovery instructions lack the mid-work decision teaching the session line gained](0123-mcp-discovery-instructions-lack-the-mid-work-decision-teaching-the-session-line-gained.md) - open
 * [0124 — session-context.sh header comment understates what the session line teaches](0124-session-context-sh-header-comment-understates-what-the-session-line-teaches.md) - open
 * [0126 — Implement ADR 0083: the opt-in decision prompt Stop hook and its installation](0126-implement-adr-0083-the-opt-in-decision-prompt-stop-hook-and-its-installation.md) - open
-* [0127 — Implement ADR 0084 and 0085: manage html renderer, manage install mermaid and the CLI wiring](0127-implement-adr-0084-and-0085-manage-html-renderer-manage-install-mermaid-and-the-cli-wiring.md) - open
 * [0128 — A 23-digit blocked_by item is refused with a message naming the type key](0128-a-23-digit-blocked-by-item-is-refused-with-a-message-naming-the-type-key.md) - open
 * [0129 — manage install mermaid has no end-to-end test of its success path](0129-manage-install-mermaid-has-no-end-to-end-test-of-its-success-path.md) - open
 * [0130 — Renumbering renames the record before rewriting references, so a failed rewrite leaves the bundle half-renumbered](0130-renumbering-renames-the-record-before-rewriting-references-so-a-failed-rewrite-leaves-the-bundle-half-renumbered.md) - open
@@ -143,3 +142,4 @@ one slice per fresh context, starting from the skeleton.
 * [0118 — The size gates pass when find fails to read part of the tree](0118-the-size-gates-pass-when-find-fails-to-read-part-of-the-tree.md) - closed
 * [0120 — Two parity test helpers exceed the function line cap and fail clippy](0120-two-parity-test-helpers-exceed-the-function-line-cap-and-fail-clippy.md) - closed
 * [0125 — Implement ADR 0082: blocked_by validation in check, write-time refusal and renumber rewrite](0125-implement-adr-0082-blocked-by-validation-in-check-write-time-refusal-and-renumber-rewrite.md) - closed
+* [0127 — Implement ADR 0084 and 0085: manage html renderer, manage install mermaid and the CLI wiring](0127-implement-adr-0084-and-0085-manage-html-renderer-manage-install-mermaid-and-the-cli-wiring.md) - closed
