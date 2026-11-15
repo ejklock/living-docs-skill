@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 #
-# decision-prompt.sh — opt-in Stop hook that asks the agent, once per distinct
-# set of code changes, to record a material choice in the active issue's
+# decision-prompt.sh — opt-in Stop hook that asks the agent, once per commit
+# cycle, to record a material choice in the active issue's
 # Decision section. Never a gate: it always exits 0 and never writes in the tree.
 #
 # Inert unless LIVING_DOCS_DECISION_PROMPT=1. LIVING_DOCS_BUNDLE=<dir> sets the
 # docs bundle (default docs). It blocks only when paths outside the bundle
 # changed, no path inside the bundle changed, no Stop hook already continued
-# this turn, and the changed paths with their content hashes differ from the
-# last set it prompted for (kept under the git directory). Every fact comes
-# from git, so no jq and no sha tool are needed.
+# this turn, and it has not already prompted for the current HEAD (kept under
+# the git directory; a repository without commits uses a fixed marker). Every
+# fact comes from git, so no jq and no sha tool are needed.
 
 set -u
 
@@ -31,7 +31,7 @@ GITDIR="$(git -C "$DIR" rev-parse --absolute-git-dir 2>/dev/null)" || exit 0
 BUNDLE="${LIVING_DOCS_BUNDLE:-docs}"
 BUNDLE="${BUNDLE%/}"
 
-SNAPSHOT=""
+CHANGED=0
 while IFS= read -r -d '' entry; do
   code="${entry:0:2}"
   path="${entry:3}"
@@ -39,17 +39,12 @@ while IFS= read -r -d '' entry; do
   case "$code" in R* | C* | *R | *C) read -r -d '' origin ;; esac
   case "$path" in "$BUNDLE"/*) exit 0 ;; esac
   case "$origin" in "$BUNDLE"/*) exit 0 ;; esac
-  if [ -f "$ROOT/$path" ]; then
-    hash="$(git -C "$ROOT" hash-object -- "$path" 2>/dev/null)"
-  else
-    hash="absent"
-  fi
-  SNAPSHOT+="$path $hash"$'\n'
+  CHANGED=1
 done < <(git -C "$ROOT" status --porcelain -z -uall 2>/dev/null)
 
-[ -n "$SNAPSHOT" ] || exit 0
+[ "$CHANGED" = "1" ] || exit 0
 
-KEY="$(printf '%s' "$SNAPSHOT" | git hash-object --stdin 2>/dev/null)" || exit 0
+KEY="$(git -C "$ROOT" rev-parse -q --verify HEAD 2>/dev/null)" || KEY="no-commits"
 STATE="$GITDIR/living-docs-decision-prompt"
 [ "$(cat "$STATE" 2>/dev/null)" = "$KEY" ] && exit 0
 printf '%s\n' "$KEY" >"$STATE" 2>/dev/null || exit 0

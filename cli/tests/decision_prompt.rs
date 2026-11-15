@@ -1,4 +1,4 @@
-//! The opt-in Stop hook blocks once per distinct set of code changes, stays
+//! The opt-in Stop hook blocks once per commit cycle, stays
 //! silent unless the project opts in, and keeps its state under the git directory.
 
 use std::io::Write;
@@ -141,10 +141,42 @@ fn hook_stays_silent_for_the_same_change_set_a_second_time() {
 }
 
 #[test]
-fn hook_blocks_again_after_a_further_edit_to_a_changed_file() {
+fn hook_stays_silent_after_further_edits_and_new_files_on_the_same_head() {
     let dir = repo("again", "main");
     edit_code(&dir, "fn b() {}\n");
     assert!(run(&dir).contains("block"));
+    edit_code(&dir, "fn c() {}\n");
+    assert_eq!(run(&dir), "");
+    std::fs::write(dir.join("extra.rs"), "fn e() {}\n").expect("new file");
+    assert_eq!(run(&dir), "");
+}
+
+/// A commit starts a new cycle: the next code edit prompts once, then stays silent.
+#[test]
+fn hook_blocks_once_more_after_a_commit_then_edit() {
+    let dir = repo("cycle", "main");
+    edit_code(&dir, "fn b() {}\n");
+    assert!(run(&dir).contains("block"));
+    git(&dir, &["commit", "-q", "-am", "work"]);
+    assert_eq!(run(&dir), "");
+    edit_code(&dir, "fn c() {}\n");
+    assert!(run(&dir).contains("block"));
+    edit_code(&dir, "fn d() {}\n");
+    assert_eq!(run(&dir), "");
+}
+
+#[test]
+fn hook_prompts_once_in_a_repository_without_commits_until_its_first_commit() {
+    let dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join("decision-prompt-nocommit");
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("create repo");
+    git(&dir, &["init", "-q", "-b", "main"]);
+    edit_code(&dir, "fn a() {}\n");
+    assert!(run(&dir).contains("block"));
+    edit_code(&dir, "fn b() {}\n");
+    assert_eq!(run(&dir), "");
+    git(&dir, &["add", "."]);
+    git(&dir, &["commit", "-q", "-m", "first"]);
     edit_code(&dir, "fn c() {}\n");
     assert!(run(&dir).contains("block"));
 }
