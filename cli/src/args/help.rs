@@ -211,10 +211,11 @@ pub(crate) const GUIDE_EXAMPLES: &[&str] = &[
 ];
 
 pub(crate) const INSTALL_ABOUT: &str =
-    "Places the embedded skill corpus or the enforcement hooks into a project.";
+    "Places skills or hooks into a project; mermaid goes to the user data directory.";
 pub(crate) const INSTALL_EXAMPLES: &[&str] = &[
     "living-docs manage install skills --harness claude",
     "living-docs manage install hooks",
+    "living-docs manage install mermaid",
 ];
 
 pub(crate) const UNINSTALL_ABOUT: &str = "Removes what `manage install hooks` placed.";
@@ -232,6 +233,13 @@ pub(crate) const INSTALL_HOOKS_ABOUT: &str =
 pub(crate) const INSTALL_HOOKS_EXAMPLES: &[&str] = &[
     "living-docs manage install hooks",
     "living-docs manage install hooks --dir ./my-project",
+];
+
+pub(crate) const INSTALL_MERMAID_ABOUT: &str =
+    "Downloads the pinned mermaid.js with curl, verifies its SHA-256, and places it in the user data directory.";
+pub(crate) const INSTALL_MERMAID_EXAMPLES: &[&str] = &[
+    "living-docs manage install mermaid",
+    "living-docs manage install mermaid --dry-run",
 ];
 
 pub(crate) const UNINSTALL_HOOKS_ABOUT: &str = "Removes what `manage install hooks` placed.";
@@ -253,7 +261,7 @@ pub(crate) const MCP_EXAMPLES: &[&str] = &[
     "claude mcp add living-docs -- living-docs mcp --docs-dir docs",
 ];
 
-const EXAMPLES: [(&[&str], &[&str]); 18] = [
+const EXAMPLES: [(&[&str], &[&str]); 19] = [
     (&["write"], WRITE_EXAMPLES),
     (&["write", "new"], NEW_EXAMPLES),
     (&["write", "set"], SET_EXAMPLES),
@@ -269,6 +277,7 @@ const EXAMPLES: [(&[&str], &[&str]); 18] = [
     (&["manage", "install"], INSTALL_EXAMPLES),
     (&["manage", "install", "skills"], INSTALL_SKILLS_EXAMPLES),
     (&["manage", "install", "hooks"], INSTALL_HOOKS_EXAMPLES),
+    (&["manage", "install", "mermaid"], INSTALL_MERMAID_EXAMPLES),
     (&["manage", "uninstall"], UNINSTALL_EXAMPLES),
     (&["manage", "uninstall", "hooks"], UNINSTALL_HOOKS_EXAMPLES),
     (&["manage", "completions"], COMPLETIONS_EXAMPLES),

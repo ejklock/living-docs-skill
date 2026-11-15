@@ -16,6 +16,7 @@ living-docs-core = { path = "../living-docs-core" }
 living-docs-mcp = { path = "../mcp" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = "0.11"
 
 [dev-dependencies]
 rust-embed = "8"

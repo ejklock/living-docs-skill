@@ -161,7 +161,7 @@ fn install_and_uninstall_carry_their_nested_subcommands() {
 
     assert_eq!(
         names(nested_command(&doc, &["manage", "install"]), "subcommands"),
-        ["skills", "hooks"]
+        ["skills", "hooks", "mermaid"]
     );
     assert_eq!(
         names(

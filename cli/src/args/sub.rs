@@ -167,6 +167,20 @@ pub(crate) enum InstallCmd {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Downloads the pinned `mermaid.js` with `curl`, verifies its SHA-256,
+    /// and places it under `$XDG_DATA_HOME/living-docs/mermaid/<version>/`
+    /// (`$HOME/.local/share` when `XDG_DATA_HOME` is unset, empty or
+    /// relative). A download whose hash differs places nothing.
+    #[command(
+        about = help::INSTALL_MERMAID_ABOUT,
+        long_about = None,
+        after_help = help::with_exit_codes(help::INSTALL_MERMAID_EXAMPLES)
+    )]
+    Mermaid {
+        /// Print the URL and destination without downloading or writing.
+        #[arg(long)]
+        dry_run: bool,
+    },
 }
 
 #[derive(Subcommand)]
