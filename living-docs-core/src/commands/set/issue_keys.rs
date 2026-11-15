@@ -1,6 +1,7 @@
 use super::resolve_spec;
 use crate::record::{format_flow_list, format_scalar, TailValue};
 use crate::store::DocStore;
+use serde_yaml::Value;
 use std::path::Path;
 
 /// The one doc type whose records carry the keys this module writes.
@@ -56,5 +57,34 @@ fn list_value(key: &str, value: &str) -> Result<(String, TailValue), String> {
         .filter(|item| !item.is_empty())
         .map(str::to_string)
         .collect();
-    Ok((format_flow_list(&items), TailValue::Sequence(items)))
+    let intended = if key == "blocked_by" {
+        issue_numbers(key, &items)?
+    } else {
+        TailValue::Sequence(items.clone())
+    };
+    Ok((format_flow_list(&items), intended))
+}
+
+/// Refuses any `blocked_by` item that is not a decimal issue number (ASCII
+/// digits only), naming it. A number the record reads as a YAML number (such
+/// as `12`) is expected back typed; one it reads as text (`0012`) as text.
+fn issue_numbers(key: &str, items: &[String]) -> Result<TailValue, String> {
+    if let Some(bad) = items
+        .iter()
+        .find(|item| !item.bytes().all(|b| b.is_ascii_digit()))
+    {
+        return Err(format!(
+            "'{key}' items must be decimal issue numbers; '{bad}' is not (a tracker identifier goes in 'tracker')"
+        ));
+    }
+    let read = |item: &String| match serde_yaml::from_str::<Value>(item) {
+        Ok(number @ Value::Number(_)) => number,
+        _ => Value::String(item.clone()),
+    };
+    let typed: Vec<Value> = items.iter().map(read).collect();
+    if typed.iter().any(Value::is_number) {
+        Ok(TailValue::Typed(typed))
+    } else {
+        Ok(TailValue::Sequence(items.to_vec()))
+    }
 }
