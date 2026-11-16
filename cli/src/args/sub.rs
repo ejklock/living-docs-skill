@@ -149,8 +149,10 @@ pub(crate) enum InstallCmd {
     /// Writes the session-teaching and decision-prompt hooks into
     /// `<dir>/.living-docs/hooks/` at mode 0755, materializes the pre-commit doc-gate to
     /// `<dir>/.githooks/pre-commit` (pointing `core.hooksPath` at it), and
-    /// wires the `SessionStart` and `Stop` hooks into `<dir>/.claude/settings.json`,
-    /// idempotently — re-running replaces the living-docs entries by
+    /// wires the `SessionStart` hook and the opt-in, non-blocking decision
+    /// reminder (`PostToolUse`, matcher `Edit|Write`, a nudge after code edits
+    /// once per commit cycle) into `<dir>/.claude/settings.json`, removing a
+    /// `Stop` entry an earlier install wrote, idempotently — re-running replaces the living-docs entries by
     /// identity rather than appending. The generated commands pin the
     /// resolved `--docs-dir` bundle as a `LIVING_DOCS_BUNDLE=` prefix.
     /// `--dry-run` reports the same plan without writing anything.

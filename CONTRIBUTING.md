@@ -50,7 +50,9 @@ distribution, and every skill/hook placement is a `living-docs` CLI verb —
 `skills/living-docs/hooks/` is the **single source of truth** for the
 enforcement scripts (`session-context.sh`, `decision-prompt.sh`, `pre-commit`):
 `living-docs manage install hooks` materializes them from the embedded corpus
-(ADR 0023). Edit them there — never in a materialized copy under a consumer
+(ADR 0023); it wires `decision-prompt.sh` as an opt-in, non-blocking
+`PostToolUse` nudge (matcher `Edit|Write`) after code edits, once per commit cycle.
+Edit them there — never in a materialized copy under a consumer
 project's `.living-docs/hooks/`.
 
 Each `SKILL.md` is a slim, self-bootstrapping stub: a trigger plus a task->topic

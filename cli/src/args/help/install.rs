@@ -19,7 +19,7 @@ pub(crate) const INSTALL_SKILLS_EXAMPLES: &[&str] = &[
 ];
 
 pub(crate) const INSTALL_HOOKS_ABOUT: &str =
-    "Writes the session-teaching hook, the decision-prompt Stop hook and the pre-commit doc-gate into a project.";
+    "Writes the session-teaching hook, the opt-in, non-blocking decision-prompt nudge (a PostToolUse hook after code edits, once per commit cycle) and the pre-commit doc-gate into a project.";
 pub(crate) const INSTALL_HOOKS_EXAMPLES: &[&str] = &[
     "living-docs manage install hooks",
     "living-docs manage install hooks --dir ./my-project",

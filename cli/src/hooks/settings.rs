@@ -74,3 +74,35 @@ pub(super) fn write_settings(path: &Path, settings: &Value) -> io::Result<()> {
     rendered.push('\n');
     fs::write(path, rendered)
 }
+
+pub(super) fn strip_section_entries(settings: &mut Value, section: &str, marker: &str) -> bool {
+    let Some(array) = settings
+        .get_mut("hooks")
+        .and_then(|hooks| hooks.get_mut(section))
+        .and_then(Value::as_array_mut)
+    else {
+        return false;
+    };
+    let before = array.len();
+    array.retain(|entry| !is_living_docs_entry(entry, marker));
+    let changed = array.len() != before;
+    if changed && array.is_empty() {
+        drop_emptied_section(settings, section);
+    }
+    changed
+}
+
+/// Removes a section left empty by the strip, and the `hooks` object when
+/// that was its last section, so an uninstall leaves no scaffolding behind.
+fn drop_emptied_section(settings: &mut Value, section: &str) {
+    let Some(hooks) = settings.get_mut("hooks").and_then(Value::as_object_mut) else {
+        return;
+    };
+    hooks.remove(section);
+    if hooks.is_empty() {
+        settings
+            .as_object_mut()
+            .expect("settings value is validated as an object before this call")
+            .remove("hooks");
+    }
+}

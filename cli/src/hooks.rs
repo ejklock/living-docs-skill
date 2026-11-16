@@ -9,7 +9,10 @@ use {crate::output::outln, living_docs_core::guide};
 pub(crate) mod gitattributes;
 mod settings;
 
-use settings::{ensure_hooks_section, is_living_docs_entry, load_settings, write_settings};
+use settings::{
+    ensure_hooks_section, is_living_docs_entry, load_settings, strip_section_entries,
+    write_settings,
+};
 
 const HOOK_ASSET_PATHS: [&str; 2] = [
     "living-docs/hooks/session-context.sh",
@@ -26,7 +29,10 @@ const SETTINGS_REL_PATH: &str = ".claude/settings.json";
 /// still carried the write-gate entry is left clean.
 const LEGACY_PRE_TOOL_USE_SECTION: &str = "PreToolUse";
 const SESSION_START_SECTION: &str = "SessionStart";
-const STOP_SECTION: &str = "Stop";
+const POST_TOOL_USE_SECTION: &str = "PostToolUse";
+/// Stripped on install and uninstall: an earlier release put the decision
+/// reminder here.
+const LEGACY_STOP_SECTION: &str = "Stop";
 
 struct HookScript {
     basename: &'static str,
@@ -42,8 +48,10 @@ struct HookEntrySpec {
 /// Materializes the session-teaching and decision-prompt hook scripts into
 /// `<project_root>/.living-docs/hooks/` at mode 0755, materializes the pre-commit doc-gate to
 /// `<project_root>/.githooks/pre-commit` and points `core.hooksPath` at it,
-/// then wires the `SessionStart` and the inert opt-in `Stop` hooks into
-/// `<project_root>/.claude/settings.json` idempotently, replacing any prior living-docs entry by identity. The
+/// then wires the `SessionStart` and the opt-in, non-blocking `PostToolUse`
+/// (`Edit|Write`) hooks into `<project_root>/.claude/settings.json`
+/// idempotently, replacing any prior living-docs entry by identity and
+/// dropping a living-docs `Stop` entry an earlier install wrote. The
 /// bundle pinned into each generated command's `LIVING_DOCS_BUNDLE=` is
 /// `docs_dir`, required to already exist; `dry_run` reports the same plan
 /// and changes nothing. A missing asset, absent `docs_dir`, or unparseable
@@ -169,7 +177,7 @@ fn announce_dry_run_pre_commit() {
 
 fn announce_dry_run_wiring(settings_path: &Path, bundle: &str) {
     outln!(
-        "[dry-run] would wire SessionStart and Stop in {} (LIVING_DOCS_BUNDLE={bundle})",
+        "[dry-run] would wire SessionStart and PostToolUse in {} (LIVING_DOCS_BUNDLE={bundle})",
         settings_path.display()
     );
 }
@@ -225,8 +233,8 @@ fn hook_entry_specs() -> [HookEntrySpec; 2] {
         },
         HookEntrySpec {
             script_basename: basename_of(HOOK_ASSET_PATHS[1]),
-            section: STOP_SECTION,
-            matcher: None,
+            section: POST_TOOL_USE_SECTION,
+            matcher: Some("Edit|Write"),
         },
     ]
 }
@@ -249,6 +257,7 @@ fn build_entry(spec: &HookEntrySpec, bundle: &str) -> Value {
 
 fn apply_hook_entries(settings: &mut Value, bundle: &str) {
     let marker = living_docs_hook_marker();
+    strip_section_entries(settings, LEGACY_STOP_SECTION, &marker);
     for spec in hook_entry_specs() {
         let entry = build_entry(&spec, bundle);
         let section = ensure_hooks_section(settings, spec.section);
@@ -290,43 +299,16 @@ fn plan_settings_removal(settings_path: &Path) -> Result<Option<Value>, String> 
 /// section that install appended to is dropped once its entries are removed.
 fn strip_hook_entries(settings: &mut Value) -> bool {
     let marker = living_docs_hook_marker();
-    let pre_tool_use_changed =
-        strip_section_entries(settings, LEGACY_PRE_TOOL_USE_SECTION, &marker);
-    let session_start_changed = strip_section_entries(settings, SESSION_START_SECTION, &marker);
-    let stop_changed = strip_section_entries(settings, STOP_SECTION, &marker);
-    pre_tool_use_changed || session_start_changed || stop_changed
-}
-
-fn strip_section_entries(settings: &mut Value, section: &str, marker: &str) -> bool {
-    let Some(array) = settings
-        .get_mut("hooks")
-        .and_then(|hooks| hooks.get_mut(section))
-        .and_then(Value::as_array_mut)
-    else {
-        return false;
-    };
-    let before = array.len();
-    array.retain(|entry| !is_living_docs_entry(entry, marker));
-    let changed = array.len() != before;
-    if changed && array.is_empty() {
-        drop_emptied_section(settings, section);
+    let mut changed = false;
+    for section in [
+        LEGACY_PRE_TOOL_USE_SECTION,
+        SESSION_START_SECTION,
+        LEGACY_STOP_SECTION,
+        POST_TOOL_USE_SECTION,
+    ] {
+        changed |= strip_section_entries(settings, section, &marker);
     }
     changed
-}
-
-/// Removes a section left empty by the strip, and the `hooks` object when
-/// that was its last section, so an uninstall leaves no scaffolding behind.
-fn drop_emptied_section(settings: &mut Value, section: &str) {
-    let Some(hooks) = settings.get_mut("hooks").and_then(Value::as_object_mut) else {
-        return;
-    };
-    hooks.remove(section);
-    if hooks.is_empty() {
-        settings
-            .as_object_mut()
-            .expect("settings value is validated as an object before this call")
-            .remove("hooks");
-    }
 }
 
 fn remove_artifacts(paths: &[PathBuf]) -> io::Result<()> {
