@@ -5,7 +5,7 @@
 ### Author a concept
 1. Copy `templates/concept.md`. Set a non-empty, descriptive `type` (hard rule 2).
 2. Fill recommended fields (`title`, `description`, and `resource` if it maps to a real asset). Add `tags`/`timestamp` if useful.
-3. Write the body in structural markdown; use `# Schema`/`# Examples` where they fit. Cross-link with bundle-relative `/…` paths.
+3. Write the body in structural markdown; use `# Schema`/`# Examples` where they fit. Cross-link with paths relative to the linking file (`./sibling.md`, `../type/other.md`), which also resolve on GitHub.
 4. Add a `# References` section for any externally-sourced claim.
 
 ### Maintain a directory

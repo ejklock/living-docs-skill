@@ -4,11 +4,11 @@
 
 **One file per research session — never a per-research subfolder.** Each session is a single OKF `Research` concept at `docs/research/NNNN-<slug>.md` — a **sequential number leads the filename** (zero-padded, never reused, same scheme as ADRs/issues) and the **date lives in the frontmatter `timestamp`** (required), not in the filename. The file carries: question, query angles, findings (each with a confidence level and sources), contradictions, analysis, recommendations, and a trailing `# References` section (OKF §8) — **the home for that session's sources** (full NBR 6023 entries, always the link, key excerpts inline where a claim rests on a quote). See `templates/research-report.md`.
 
-The top-level `docs/research/index.md` (OKF reserved listing) indexes every note with a one-line summary pointing to its file (`templates/research-index.md`). Cross-links are bundle-relative (`/research/NNNN-<slug>.md`).
+The top-level `docs/research/index.md` (OKF reserved listing) indexes every note with a one-line summary pointing to its file (`templates/research-index.md`). Cross-links are relative to the linking file (`NNNN-<slug>.md` between notes, `../research/NNNN-<slug>.md` from other types).
 
 ### The general references roll-up
 
-`docs/research/references.md` is a **cross-research bibliography roll-up** (`type: Reference`): the alphabetical union of every source cited across all notes, one NBR 6023 entry per source (always the link), each annotated with the note(s) that cite it (bundle-relative links). It is a **derived navigation index** — the answer to "where have we cited this before?" — **not a second home for the citation data**: on any divergence the per-note `# References` entry wins. Grown append-style — a note that adds a source not already listed adds it here in the same change. See `templates/research-general-references.md`.
+`docs/research/references.md` is a **cross-research bibliography roll-up** (`type: Reference`): the alphabetical union of every source cited across all notes, one NBR 6023 entry per source (always the link), each annotated with the note(s) that cite it (relative links). It is a **derived navigation index** — the answer to "where have we cited this before?" — **not a second home for the citation data**: on any divergence the per-note `# References` entry wins. Grown append-style — a note that adds a source not already listed adds it here in the same change. See `templates/research-general-references.md`.
 
 ---
 

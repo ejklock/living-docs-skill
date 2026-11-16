@@ -52,7 +52,7 @@ All diagrams in documentation must be Mermaid. Existing ASCII diagrams are conve
 
 ### 3. Semantic doc groups with OKF index files
 
-Every directory of documentation is a semantic group and must contain an `index.md` (the OKF reserved listing — no frontmatter, except the bundle-root `docs/index.md`, which declares `okf_version: "0.1"`). Every concept document opens with OKF frontmatter carrying a non-empty `type`; `status` and supersession live in frontmatter, never a body line. Every new document is linked from its group's `index.md` with bundle-relative (`/…`) links, and new groups are linked from the root docs index. No orphan documents. See the `okf-knowledge-format` skill.
+Every directory of documentation is a semantic group and must contain an `index.md` (the OKF reserved listing — no frontmatter, except the bundle-root `docs/index.md`, which declares `okf_version: "0.1"`). Every concept document opens with OKF frontmatter carrying a non-empty `type`; `status` and supersession live in frontmatter, never a body line. Every new document is linked from its group's `index.md` with links relative to the linking file (`./…`, `../…`; a link starting at the bundle root 404s on GitHub when the bundle sits under `docs/`), and new groups are linked from the root docs index. No orphan documents. See the `okf-knowledge-format` skill.
 
 ### 4. The record types
 
