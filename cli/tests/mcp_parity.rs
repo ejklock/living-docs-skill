@@ -5,6 +5,7 @@
 mod common;
 
 use common::parity::{assert_parity, parse};
+use serde_json::json;
 
 const WRITE: &[&str] = &[
     r#"write new adr | write new adr Queue-choice --owner alice --description Pick-a-queue --body {body} | write | {"operation":"new","type":"adr","title":"Queue-choice","owner":"alice","description":"Pick-a-queue","body":"{body}"}"#,
@@ -79,4 +80,66 @@ fn manage_operations_match_the_cli() {
 #[test]
 fn check_operations_match_the_cli() {
     assert_parity(&parse(CHECK));
+}
+
+fn write_retired_bundle(docs: &std::path::Path) {
+    common::retired_bundle::write_bundle(docs);
+    common::retired_bundle::write_linkers(docs);
+}
+
+fn cli_records(docs: &std::path::Path, flags: &[&str]) -> serde_json::Value {
+    let mut command = common::living_docs();
+    command.args(["--docs-dir", docs.to_str().unwrap()]);
+    command.args(["read", "records", "--json"]);
+    command.args(flags);
+    serde_json::from_slice(&command.output().unwrap().stdout).unwrap()
+}
+
+#[test]
+fn read_records_all_matches_the_cli_on_retired_records() {
+    let cli_docs = common::temp_bundle("mcp-parity", "retired-cli");
+    let mcp_docs = common::temp_bundle("mcp-parity", "retired-mcp");
+    write_retired_bundle(&cli_docs);
+    write_retired_bundle(&mcp_docs);
+    let mut session = common::mcp_session::Session::start(&mcp_docs);
+    session.initialize();
+
+    for (id, (arguments, flags, (listed, withheld))) in (2u64..).zip(retired_cases()) {
+        let cli = cli_records(&cli_docs, &flags);
+        let mcp = session.call(id, "read", &arguments)["structuredContent"].clone();
+        assert_eq!(cli, mcp, "{arguments}");
+        let count = cli["records"].as_array().unwrap().len();
+        assert_eq!((count, cli["withheld"].as_u64()), (listed, Some(withheld)));
+    }
+}
+
+type RetiredCase = (serde_json::Value, Vec<&'static str>, (usize, u64));
+
+/// Each MCP call with the CLI flags that mean the same, and the listed and
+/// withheld counts the retired bundle yields for it.
+fn retired_cases() -> Vec<RetiredCase> {
+    let links = "adr/0001";
+    vec![
+        (json!({"operation": "records"}), vec![], (6, 6)),
+        (
+            json!({"operation": "records", "all": false}),
+            vec![],
+            (6, 6),
+        ),
+        (
+            json!({"operation": "records", "all": true}),
+            vec!["--all"],
+            (12, 0),
+        ),
+        (
+            json!({"operation": "records", "links_to": links}),
+            vec!["--links-to", links],
+            (1, 6),
+        ),
+        (
+            json!({"operation": "records", "links_to": links, "all": true}),
+            vec!["--links-to", links, "--all"],
+            (2, 0),
+        ),
+    ]
 }

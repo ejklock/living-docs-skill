@@ -27,7 +27,7 @@ Split when a doc passes ~200 lines or starts mixing unrelated concerns.
 
 The corpus is append-only (supersede, never rewrite): right for history, wrong as the thing an agent reads. An `index.md` lists **everything**, including superseded links and stale records, and leaves supersede-chain resolution to the reader — who then plans on whichever record they opened first.
 
-**Agents read `living-docs read records`, never `index.md` directly** (ADR 0050). It compiles the in-force view: active records only (superseded/deprecated withheld), supersede chains collapsed to the head with a one-line lineage (`supersedes 0131 via 0133`), grouped **constitution and PRDs first, then ADRs, then the rest** by number, so the reader orients before drilling in.
+**Agents read `living-docs read records`, never `index.md` directly** (ADR 0050). It compiles the in-force view: active records only (superseded, deprecated, closed and done records withheld; `--all` includes them), supersede chains collapsed to the head with a one-line lineage (`supersedes 0131 via 0133`), grouped **constitution and PRDs first, then ADRs, then the rest** by number, so the reader orients before drilling in.
 
 - `living-docs read records` — the whole active view (title + description per record).
 - `living-docs read records --topic <terms>` — only records where every term starts a word in the title, description, or body (case- and accent-insensitive: `acao` finds `Ação`), ranked by hits in the title first, then the description, then the body; when nothing live matches, a stderr line says so and suggests a broader term or `grep`.

@@ -31,7 +31,7 @@ fn withheld_line(withheld: usize) -> String {
         return String::new();
     }
     format!(
-        "_Withheld {withheld} retired record(s) (superseded or deprecated): history only, never act on them._\n\n"
+        "_Withheld {withheld} retired record(s) (superseded, deprecated, closed or done): history only, never act on them._\n\n"
     )
 }
 

@@ -83,6 +83,10 @@ pub(crate) struct ReadArgs {
     /// Plan and Outcome): what was agreed, not the working material.
     #[arg(long, conflicts_with = "full")]
     pub(crate) contract: bool,
+    /// Include the retired records (superseded, deprecated, closed, done)
+    /// the view withholds by default, `--links-to` and `--impact` included.
+    #[arg(long)]
+    pub(crate) all: bool,
     /// Print only the live records whose body links the named record
     /// (`TYPE/NNNN`), directly, in the usual order. Run it before editing
     /// or superseding a record.
