@@ -19,7 +19,7 @@ The cost showed in a downstream bundle (issue 0079): of 366 records, `read` prin
 
 We will withhold from `read` every record `DocTypeSpec::is_retired` reports, so a closed or done issue leaves the default view, the `--topic`, `--contract` and `--full` views, and counts in `withheld`. Supersede-chain collapsing stays as it is.
 
-We will add `read records --all`, which includes the retired records in any of those views. `--links-to` and `--impact` keep their own rule.
+We will add `read records --all`, which includes the retired records in any of those views. `--links-to` and `--impact` follow the same rule: by default they list only the records `read` would show, so a closed issue that links the queried record is withheld, and `--all` lists it. This replaces the narrower set [ADR 0074](0074-read-links-to-and-impact-answer-who-depends-on-a-record-from-a-link-graph-built-in-memory-per-run.md) names (no Superseded or Deprecated record) with the plain `read` set it is tied to.
 
 Rejected: withholding without a flag. It is simpler, but a reader looking for a closed issue's decision would have to leave the CLI and open the file.
 

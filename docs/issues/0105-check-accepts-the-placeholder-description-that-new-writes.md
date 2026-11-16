@@ -21,3 +21,8 @@ timestamp: 2026-10-27T13:00:11Z
 
 - A record whose `description` is still the placeholder fails `check`, or `new` no longer writes one. The deciding cases each have a test: a placeholder, a filled description, and a description that only quotes the placeholder text.
 - `living-docs check` passes over `docs/`.
+
+### Plan
+
+- S1: `check` reports a description equal to a doc-type template placeholder, with a `write set` fix every type accepts, and rules/check.md says so | files: living-docs-core/src/check/placeholder.rs, cli/tests/check_placeholder_description.rs, skills/living-docs/rules/check.md, cli/tests fixtures | after: none
+- S2: the other guides that describe what `write new` leaves to fill and what `check` enforces name the placeholder description: skills/living-docs/rules/procedure.md :13-17, skills/living-docs/rules/doc-trail.md :43, README.md :112 | files: skills/living-docs/rules/procedure.md, skills/living-docs/rules/doc-trail.md, README.md | after: S1

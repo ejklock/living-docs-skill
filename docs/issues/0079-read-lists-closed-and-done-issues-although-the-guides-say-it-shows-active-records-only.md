@@ -31,3 +31,5 @@ Contradicts `skills/living-docs/SKILL.md` line 59 and `skills/living-docs/rules/
 ### Decision
 
 The owner chose to withhold every record `DocTypeSpec::is_retired` reports from `read`, closed and done issues included, with `read records --all` to bring them back, as [ADR 0083](../adr/0083-read-withholds-every-retired-record-closed-and-done-issues-included-and-read-all-brings-them-back.md) records. The flag is named `--all`. Not taken: withholding with no flag; keeping the view and rewording the guides.
+
+The owner chose that `--links-to` and `--impact` withhold retired records like plain `read`, and that `--all` lists them there too, so one model holds: retired records hidden unless `--all`. Not taken: accepting the narrower view with no escape; keeping the old superseded-or-deprecated rule for those two queries only.
