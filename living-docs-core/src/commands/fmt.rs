@@ -19,6 +19,7 @@ use crate::check::is_retired_record;
 use crate::commands::set::retitle::number_prefix;
 use crate::commands::supersede::guard::{refusal_message, unwritable_key};
 use crate::frontmatter::read_scalar_from_str as frontmatter_scalar;
+use crate::frontmatter::{has_unparseable_frontmatter, UNPARSEABLE_MESSAGE};
 use crate::line_ending::{refuse_mixed, LineEndingStore};
 use crate::record::{extract_record, to_canonical_markdown, ExtractedRecord};
 use crate::store::{is_refusal, DocStore};
@@ -63,14 +64,18 @@ pub fn outcome(
     }
 }
 
-/// One message per record whose canonical form would not read back as the
-/// record does; such a record is never rewritten and is not listed as
+/// One message per record `fmt` refuses: one whose frontmatter does not parse
+/// as a YAML mapping, or whose canonical form would not read back as the
+/// record does. Such a record is never rewritten and is not listed as
 /// pending, and the run as a whole fails after the other records are handled.
 fn refusals(store: &dyn DocStore, paths: &[PathBuf], seeds: &Seeds) -> Vec<String> {
     paths
         .iter()
         .filter(|path| !is_reserved_file(path))
         .filter_map(|path| {
+            if is_unparseable(store, path) {
+                return Some(format!("{}: {UNPARSEABLE_MESSAGE}", path.display()));
+            }
             let (contents, canonical) = drafted(store, path, seeds)?;
             let key = unwritable_key(&contents, &canonical)?;
             Some(refusal_message(path, &key))
@@ -167,8 +172,9 @@ fn canonicalize_record(store: &dyn DocStore, path: &Path, seeds: &Seeds) -> bool
 
 /// Returns the repaired canonical re-serialization of `path` when it differs
 /// from the current contents and reads back as the record does. Returns `None`
-/// when `path` cannot be read, carries no frontmatter, is already canonical,
-/// or is refused by the read-back guard.
+/// when `path` cannot be read, carries no frontmatter, carries frontmatter
+/// that does not parse as a YAML mapping, is already canonical, or is refused
+/// by the read-back guard.
 fn canonical_form_if_pending(store: &dyn DocStore, path: &Path, seeds: &Seeds) -> Option<String> {
     let (contents, canonical) = drafted(store, path, seeds)?;
     if canonical == contents || unwritable_key(&contents, &canonical).is_some() {
@@ -179,11 +185,11 @@ fn canonical_form_if_pending(store: &dyn DocStore, path: &Path, seeds: &Seeds) -
 }
 
 /// Reads `path` and returns its contents with the repaired canonical
-/// re-serialization. `None` when `path` cannot be read or carries no
-/// frontmatter.
+/// re-serialization. `None` when `path` cannot be read, carries no
+/// frontmatter, or carries frontmatter that does not parse as a YAML mapping.
 fn drafted(store: &dyn DocStore, path: &Path, seeds: &Seeds) -> Option<(String, String)> {
     let contents = store.read(path).ok()?;
-    if !has_frontmatter(&contents) {
+    if !has_frontmatter(&contents) || has_unparseable_frontmatter(&contents) {
         return None;
     }
     let normalized = callout::normalize_frontmatter_gap(&contents);
@@ -209,6 +215,14 @@ fn reconciled_body(store: &dyn DocStore, path: &Path, record: &ExtractedRecord) 
         .map(|superseded_by| callout::successor_filename(store, path, superseded_by));
     let expected = callout::expected(record.status.as_deref(), successor.as_deref());
     callout::reconcile_body(&record.body, expected.as_deref())
+}
+
+/// Whether `path` is readable and carries a frontmatter block that does not
+/// parse as a YAML mapping, which `fmt` refuses rather than rewrites.
+fn is_unparseable(store: &dyn DocStore, path: &Path) -> bool {
+    store
+        .read(path)
+        .is_ok_and(|contents| has_unparseable_frontmatter(&contents))
 }
 
 fn has_frontmatter(contents: &str) -> bool {

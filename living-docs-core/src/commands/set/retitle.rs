@@ -5,7 +5,8 @@
 
 use super::resolve_spec;
 use crate::commands::supersede::set_frontmatter_fields;
-use crate::doc_type::{DocTypeSpec, Identity};
+use crate::doc_type::{spec_for_frontmatter, DocTypeSpec, Identity};
+use crate::frontmatter::read_scalar_from_str;
 use crate::paths::slugify;
 use crate::record::{extract_record, format_scalar};
 use crate::store::DocStore;
@@ -164,15 +165,40 @@ pub(crate) fn replace_title_heading(
 
 /// The record's own title heading: the first heading outside a fenced block
 /// opening with `number`, else the first exact level-1 heading without a
-/// number, else none.
+/// number that is not a section the record's type declares or `References`,
+/// else none.
 fn title_heading_index(lines: &[String], number: Option<&str>) -> Option<usize> {
     number
         .and_then(|number| heading_index(lines, |line| heading_number(line) == Some(number)))
         .or_else(|| {
+            let sections = declared_sections(lines);
             heading_index(lines, |line| {
-                line.starts_with("# ") && heading_number(line).is_none()
+                line.starts_with("# ")
+                    && heading_number(line).is_none()
+                    && !is_declared_section(&sections, &text_of(line.trim_end()))
             })
         })
+}
+
+/// Whether `text` names one of `sections`, ignoring ASCII case as `check`
+/// does when it looks for a required section.
+fn is_declared_section(sections: &[&str], text: &str) -> bool {
+    sections
+        .iter()
+        .any(|section| section.eq_ignore_ascii_case(text))
+}
+
+/// The section names a level-1 heading cannot be the title under: the ones
+/// the record's `type:` declares in the registry, plus `References`, which
+/// any type may carry. An unknown or missing type declares none.
+fn declared_sections(lines: &[String]) -> Vec<&'static str> {
+    let spec = read_scalar_from_str(&lines.concat(), "type")
+        .and_then(|doc_type| spec_for_frontmatter(&doc_type));
+    spec.into_iter()
+        .flat_map(|spec| spec.sections)
+        .map(|section| section.name)
+        .chain(["References"])
+        .collect()
 }
 
 fn retitle_line(lines: Vec<String>, index: usize, title: &str) -> String {

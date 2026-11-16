@@ -97,3 +97,134 @@ fn is_boundary_line_ignores_an_unrelated_table_row() {
     assert!(!is_boundary_line("| Some | Other | Row |"));
     assert!(!is_boundary_line("Just prose, not a table at all."));
 }
+
+struct DiskStore {
+    files: std::collections::BTreeMap<std::path::PathBuf, String>,
+}
+
+impl DocStore for DiskStore {
+    fn list(&self, root: &Path) -> std::io::Result<Vec<std::path::PathBuf>> {
+        Ok(self
+            .files
+            .keys()
+            .filter(|path| path.starts_with(root))
+            .cloned()
+            .collect())
+    }
+
+    fn read(&self, path: &Path) -> std::io::Result<String> {
+        self.files
+            .get(path)
+            .cloned()
+            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "not found"))
+    }
+
+    fn write(&self, _path: &Path, _contents: &str) -> std::io::Result<()> {
+        Ok(())
+    }
+
+    fn rename(&self, _from: &Path, _to: &Path) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+/// Runs `index` twice over a one-record bundle whose index starts as
+/// `hand_index`, returning the first and second regenerated contents.
+fn migrate_twice(name: &str, doc_type: &str, hand_index: &str) -> (String, String) {
+    let root = std::env::temp_dir().join(format!("ld-index-{name}-{}", std::process::id()));
+    let type_dir = root.join(doc_type);
+    std::fs::create_dir_all(&type_dir).expect("create scratch type dir");
+    let index_path = type_dir.join("index.md");
+    std::fs::write(&index_path, hand_index).expect("write hand index");
+    let mut files = std::collections::BTreeMap::new();
+    files.insert(
+        type_dir.join("0001-foo.md"),
+        "---\ntitle: Foo\nstatus: Draft\n---\n# Foo\n".to_string(),
+    );
+    let store = DiskStore { files };
+    let (_, first) = compute(&store, &root, doc_type).expect("first index run");
+    std::fs::write(&index_path, &first).expect("write first run");
+    let (_, second) = compute(&store, &root, doc_type).expect("second index run");
+    let _ = std::fs::remove_dir_all(&root);
+    (first, second)
+}
+
+#[test]
+fn table_header_with_any_first_cell_migrates_with_its_rows() {
+    let hand = "# ADRs\n\n| ADR | Decision |\n|---|---|\n| [0001](x.md) | y |\n";
+    let (first, second) = migrate_twice("table-header", "adr", hand);
+    assert!(!first.contains("| ADR |"), "{first}");
+    assert!(first.starts_with("# ADRs\n\n## Active"), "{first}");
+    assert_eq!(first, second);
+}
+
+#[test]
+fn table_header_legend_above_a_listing_survives_byte_for_byte() {
+    let legend = "# PRDs\n\n| Status | Meaning |\n|---|---|\n| Open | live |\n\n";
+    let hand = format!("{legend}* [0001 — Foo](0001-foo.md) - Draft\n");
+    let (first, second) = migrate_twice("table-legend", "prd", &hand);
+    assert!(first.starts_with(legend), "{first}");
+    assert_eq!(first.matches("0001-foo.md").count(), 1);
+    assert_eq!(first, second);
+}
+
+#[test]
+fn table_header_without_a_separator_stays_preamble() {
+    let existing = "| ADR | Decision |\n| [0001](x.md) | y |\n| [0002](z.md) | w |\n";
+    assert_eq!(find_boundary_offset(existing), existing.find("| [0001]"));
+}
+
+#[test]
+fn prose_above_a_separator_row_is_never_the_table_header() {
+    let existing = "Intro prose\n|---|---|\n| [0001](x.md) | y |\n";
+    assert_eq!(find_boundary_offset(existing), existing.find("| [0001]"));
+}
+
+#[test]
+fn a_row_of_empty_cells_is_not_a_separator_row() {
+    let existing = "| A | B |\n| | |\n| [0001](x.md) | y |\n";
+    assert_eq!(find_boundary_offset(existing), existing.find("| [0001]"));
+}
+
+#[test]
+fn table_header_with_a_separator_and_no_row_stays_preamble() {
+    let existing = "| ADR | Decision |\n|---|---|\n\n## Active\n";
+    let heading = existing.find("## ").unwrap();
+    assert_eq!(find_boundary_offset(existing), Some(heading));
+    assert_eq!(
+        find_boundary_offset("| ADR | Decision |\n|---|---|\n"),
+        None
+    );
+}
+
+#[test]
+fn dash_bullet_hand_list_is_replaced_not_duplicated() {
+    let hand = "# Research\n\nIntro text.\n\n- [Foo](0001-foo.md) - hand summary\n";
+    let (first, second) = migrate_twice("dash-bullet", "research", hand);
+    assert!(
+        first.starts_with("# Research\n\nIntro text.\n\n"),
+        "{first}"
+    );
+    assert!(!first.contains("hand summary"), "{first}");
+    assert_eq!(first.matches("0001-foo.md").count(), 1);
+    assert_eq!(first, second);
+}
+
+#[test]
+fn dash_bullet_with_a_dot_slash_destination_is_a_boundary() {
+    let existing = "Intro.\n- [Foo](./0001-foo.md) - s\n";
+    assert_eq!(find_boundary_offset(existing), Some(7));
+    assert!(is_boundary_line("- [Foo](0001-foo.md) - s"));
+}
+
+#[test]
+fn dash_bullet_to_a_non_record_destination_stays_preamble() {
+    assert!(!is_boundary_line("- [Guide](../guide.md)"));
+    assert!(!is_boundary_line("- [Guide](guide.md)"));
+    assert!(!is_boundary_line("- [Notes](2024notes.md)"));
+    assert!(!is_boundary_line("- [Adr](../adr/0001-x.md)"));
+    let existing = "# R\n\n- [Guide](../guide.md)\n\n* [0001 — Foo](0001-foo.md) - Draft\n";
+    let offset = find_boundary_offset(existing).unwrap();
+    assert!(existing[..offset].contains("../guide.md"));
+    assert!(is_boundary_line("* [anything](x.md)"));
+}

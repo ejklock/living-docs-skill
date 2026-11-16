@@ -27,6 +27,7 @@ mod report;
 mod sections;
 mod size;
 mod supersede_links;
+mod unparseable_frontmatter;
 
 use crate::doc_type::{self, Identity};
 use crate::line_ending::LineEndingStore;

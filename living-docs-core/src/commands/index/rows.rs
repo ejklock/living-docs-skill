@@ -117,7 +117,27 @@ pub(super) fn render_row(record: &Record, all: &[Record]) -> String {
     } = record;
     let rendered_status =
         retirement_suffix(status, superseded_by.as_deref(), all).unwrap_or_else(|| status.clone());
+    let title = single_line(title);
     format!("* [{number:04} — {title}]({filename}) - {rendered_status}")
+}
+
+/// The title with each run of line-break characters (LF, CR, CRLF, any
+/// mix) collapsed to one space, so a row never spans two lines. A title
+/// without a line break comes back unchanged.
+pub(super) fn single_line(title: &str) -> String {
+    let mut line = String::with_capacity(title.len());
+    let mut after_break = false;
+    for ch in title.chars() {
+        let is_break = matches!(ch, '\n' | '\r');
+        if is_break && !after_break {
+            line.push(' ');
+        }
+        if !is_break {
+            line.push(ch);
+        }
+        after_break = is_break;
+    }
+    line
 }
 
 /// The rendered suffix for a Superseded or Deprecated row, naming the

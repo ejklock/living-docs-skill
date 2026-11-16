@@ -3,6 +3,7 @@ use crate::commands::next::numeric_prefix as numbered_prefix;
 use crate::doc_type::{self, Identity};
 use crate::frontmatter;
 use crate::line_ending::{ending_of, Ending, LineEndingStore, MIXED_MESSAGE};
+use crate::record::{fallback_title, first_heading};
 use crate::store::DocStore;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -218,7 +219,7 @@ fn record_from_path(store: &dyn DocStore, path: &Path) -> Option<Record> {
     let filename = path.file_name()?.to_str()?.to_string();
     let number = numbered_prefix(&filename)?;
     let contents = store.read(path).ok()?;
-    let title = title_for_record(&contents, path, number);
+    let title = title_for_record(&contents, path);
     let status = frontmatter::read_scalar_from_str(&contents, "status").unwrap_or_default();
     let superseded_by = frontmatter::read_scalar_from_str(&contents, "superseded_by");
     Some(Record {
@@ -231,54 +232,19 @@ fn record_from_path(store: &dyn DocStore, path: &Path) -> Option<Record> {
 }
 
 /// The record's rendered title: its frontmatter `title:` when present and
-/// parseable, otherwise its first `# ` H1 heading with a leading numbering
-/// prefix stripped. A stderr warning names `path`
-/// whenever the fallback fires; the title stays empty (still warned) only
-/// when the H1 is also absent.
-fn title_for_record(contents: &str, path: &Path, number: u32) -> String {
+/// parseable, otherwise the title [`fallback_title`] derives, the same one
+/// `read` shows. A stderr warning names `path` and that title whenever the
+/// fallback fires.
+fn title_for_record(contents: &str, path: &Path) -> String {
     if let Some(title) = frontmatter::read_scalar_from_str(contents, "title") {
         return title;
     }
-    let fallback = first_heading(contents)
-        .map(|heading| strip_heading_number_prefix(&heading, number))
-        .unwrap_or_default();
-    warn_missing_title(path, &fallback);
+    let fallback = fallback_title(path, contents);
+    eprintln!(
+        "living-docs manage index: {} has no parseable 'title' frontmatter; using {fallback:?}",
+        path.display()
+    );
     fallback
-}
-
-fn first_heading(contents: &str) -> Option<String> {
-    contents
-        .lines()
-        .find_map(|line| line.strip_prefix("# ").map(|title| title.trim().to_owned()))
-}
-
-/// Strips a leading `ADR NNNN — `, `NNNN. `, or `NNNN — ` numbering prefix
-/// (`NNNN` being `number` zero-padded to four digits) from `heading`, in
-/// that order, leaving it untouched when none matches.
-fn strip_heading_number_prefix(heading: &str, number: u32) -> String {
-    let padded = format!("{number:04}");
-    [
-        format!("ADR {padded} — "),
-        format!("{padded}. "),
-        format!("{padded} — "),
-    ]
-    .into_iter()
-    .find_map(|prefix| heading.strip_prefix(prefix.as_str()).map(str::to_owned))
-    .unwrap_or_else(|| heading.to_owned())
-}
-
-fn warn_missing_title(path: &Path, fallback: &str) {
-    if fallback.is_empty() {
-        eprintln!(
-            "living-docs manage index: {} has no parseable 'title' frontmatter and no H1 heading; rendering an empty title",
-            path.display()
-        );
-    } else {
-        eprintln!(
-            "living-docs manage index: {} has no parseable 'title' frontmatter; using its H1 heading {fallback:?}",
-            path.display()
-        );
-    }
 }
 
 #[cfg(test)]

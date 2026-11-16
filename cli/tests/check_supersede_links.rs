@@ -179,3 +179,57 @@ fn a_record_path_reports_its_own_violation_and_json_carries_it() {
         .unwrap()
         .contains("0001-d.md"));
 }
+
+#[test]
+fn a_bare_number_spelling_names_a_zero_padded_record() {
+    let bundle = bundle_of(
+        "bare-spelling",
+        &[adr("0001", ""), adr("0003", "supersedes: 1\n")],
+    );
+    let output = run_check(&bundle);
+    let lines = link_lines(&output);
+    assert_eq!(output.status.code(), Some(1), "{}", stdout_of(&output));
+    assert_eq!(lines.len(), 1, "{}", stdout_of(&output));
+    assert!(lines[0].contains("0001-d.md"), "{}", lines[0]);
+}
+
+#[test]
+fn a_shared_number_is_left_to_the_duplicate_number_check() {
+    let (_, answering) = adr("0001", "superseded_by: 0003\n");
+    let bundle = bundle_of(
+        "shared-number",
+        &[
+            adr("0001", ""),
+            ("adr/0001-e.md".into(), answering),
+            adr("0003", "supersedes: 0001\n"),
+        ],
+    );
+    let output = run_check(&bundle);
+    assert_eq!(output.status.code(), Some(1), "{}", stdout_of(&output));
+    assert!(link_lines(&output).is_empty(), "{}", stdout_of(&output));
+    assert!(
+        stdout_of(&output).contains("records share the number 0001"),
+        "{}",
+        stdout_of(&output)
+    );
+}
+
+#[test]
+fn a_violation_reports_bundle_relative_paths_exactly() {
+    let bundle = bundle_of(
+        "path",
+        &[adr("0001", ""), adr("0003", "supersedes: 0001\n")],
+    );
+    let json = living_docs()
+        .args(["check", bundle.to_str().unwrap(), "--json"])
+        .output()
+        .unwrap();
+    let report: serde_json::Value = serde_json::from_slice(&json.stdout).unwrap();
+    let violations = report["violations"].as_array().unwrap();
+    assert_eq!(violations.len(), 1, "{report}");
+    assert_eq!(
+        violations[0]["message"],
+        "supersedes: 0001 names adr/0001-d.md, which does not name adr/0003-d.md in superseded_by",
+        "{report}"
+    );
+}

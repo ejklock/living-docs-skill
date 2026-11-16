@@ -28,8 +28,8 @@ the CLI's job; the judgment prose (the "why") is yours to write directly in the 
   process error is hand-numbering a doc, hand-writing frontmatter, hand-maintaining an index row,
   or hand-wiring `supersedes`/`superseded_by` when `write supersede` does it deterministically. Write
   each paragraph as ONE line — never hard-wrap prose at a fixed column; the reading surface
-  soft-wraps. `living-docs manage fmt` unwraps hard-wrapped paragraphs (ADR 0046), so a wrapped body is
-  a `manage fmt` diff, not a style choice.
+  soft-wraps. `living-docs manage fmt` repairs only CLI-owned fields and never reflows prose, so
+  keeping paragraphs on one line is the author's job (ADR 0071).
 - **Repair a hand-written or migrated record with `living-docs manage fmt`** (`manage fmt --check` lists what
   it would change and writes nothing). `manage fmt` repairs three CLI-owned fields: it seeds a missing
   `timestamp` from the author date of the commit that added the file (the clock when the file was

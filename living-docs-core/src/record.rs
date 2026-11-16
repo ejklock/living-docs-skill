@@ -1,17 +1,8 @@
-//! Canonical record model, shared by every backend and front (ADR 0019
-//! slice S1): frontmatter/body extraction ([`extract_record`]) and its
-//! inverse, canonical serialization ([`to_canonical_markdown`]). Moved here
-//! verbatim from `db-store` so a future non-db-store backend can reuse the
-//! same model without depending on `db-store` (ADR 0004, issue 0002 slice
-//! S2b; supersedes/superseded_by/tags parsing ADR 0005 issue 0005 slice
-//! 0005-B; dual typed identity + EAV frontmatter tail ADR 0007 issue 0006
-//! slice 0006-A; identity sourced from the record's path rather than
-//! frontmatter, issue 0006 slice 0006-C1; canonical serializer issue 0006
-//! slice 0006-B). Every function here takes already-read file contents or an
-//! already-assembled [`ExtractedRecord`]; none touches the filesystem or a
-//! database. `db_store::record`/`db_store::serialize` re-export this
-//! module's public items so `db_store::sync::sync_project` and
-//! `db_store::DbDocStore::read` keep resolving unchanged.
+//! Canonical record model, shared by every backend and front:
+//! frontmatter/body extraction ([`extract_record`]) and its inverse,
+//! canonical serialization ([`to_canonical_markdown`]). Every function here
+//! takes already-read file contents or an already-assembled
+//! [`ExtractedRecord`]; none touches the filesystem or a database.
 //!
 //! [`ExtractedRecord`] and the [`NUMBER_IDENTITY_KIND`]/
 //! [`CONCEPT_IDENTITY_KIND`] constants are shared between [`extract_record`]
@@ -50,29 +41,23 @@ const TYPED_FRONTMATTER_KEYS: [&str; 10] = [
 ];
 
 /// The fields extracted from a doc record's raw contents, ready to insert
-/// into the `records` table. `identity_kind` is derived from `doc_type`
-/// (ADR 0007 decision 2): a numbered type (adr/prd/issue) carries
-/// `number` — the record's path's filename `NNNN` prefix — with
-/// `concept_id` left `None`; every other type carries `concept_id` — the
-/// record's path with a trailing `.md` removed — with `number` left `None`
-/// (issue 0006 slice 0006-C1: identity is sourced from the path, never from
-/// a `number:`/`concept_id:` frontmatter key — real OKF docs carry neither).
-/// `supersedes`/`superseded_by` carry the raw `NNNN` frontmatter value
-/// (unresolved to a record id — that
-/// resolution happens against a project's other records in
-/// `db_store::sync::sync_project`); `tags` is the frontmatter's `tags`
-/// sequence, empty when absent. `status` is the frontmatter `status:`
-/// value, `None` when the key is absent (issue 0045, ADR 0015, S1).
+/// into the `records` table. `identity_kind` is derived from `doc_type`: a
+/// numbered type (adr/prd/issue) carries `number` — the record's path's
+/// filename `NNNN` prefix — with `concept_id` left `None`; every other type
+/// carries `concept_id` — the record's path with a trailing `.md` removed —
+/// with `number` left `None`. Identity is sourced from the path, never from
+/// a `number:`/`concept_id:` frontmatter key. `supersedes`/`superseded_by`
+/// carry the raw `NNNN` frontmatter value (unresolved to a record id);
+/// `tags` is the frontmatter's `tags` sequence, empty when absent. `status`
+/// is the frontmatter `status:` value, `None` when the key is absent.
 /// `frontmatter_tail` is every remaining frontmatter key with no typed
 /// column (plus a `supersedes` list that is not all record numbers and a
 /// `tags` list holding a number or boolean item, which keep their item
 /// types), in source encounter order, ready to insert into
 /// `frontmatter_fields` with the index as `ordinal`. Each entry's
 /// [`TailValue`] carries either a single scalar or an ordered sequence of
-/// scalars (ADR 0007's EAV tail extended for list-valued keys like
-/// `labels:`/`blocked_by:`, ADR 0019 slice S3b) — a nested mapping or a
-/// sequence element that is itself non-scalar stays outside the contract,
-/// exactly as a non-scalar value already did before this extension.
+/// scalars; a nested mapping or a non-scalar sequence element stays outside
+/// the contract.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExtractedRecord {
     pub doc_type: String,
@@ -124,8 +109,7 @@ pub fn extract_record(path: &Path, contents: &str) -> ExtractedRecord {
     let (number, concept_id, identity_kind) = extract_identity(path, &doc_type);
     let description = frontmatter_scalar(frontmatter.as_ref(), "description").unwrap_or_default();
     let title = frontmatter_scalar(frontmatter.as_ref(), "title")
-        .or_else(|| first_heading(&body))
-        .unwrap_or_else(|| filename_stem(path));
+        .unwrap_or_else(|| fallback_title(path, contents));
     let supersedes = frontmatter_scalar_or_list(frontmatter.as_ref(), "supersedes");
     let superseded_by = frontmatter_scalar(frontmatter.as_ref(), "superseded_by");
     let tags = frontmatter_sequence(frontmatter.as_ref(), "tags");
@@ -254,21 +238,38 @@ pub(crate) fn strip_frontmatter(contents: &str) -> &str {
     after_fence.strip_prefix('\n').unwrap_or(after_fence)
 }
 
-/// The text of the first level-1 heading outside a fenced code block, with a
-/// leading `NNNN. ` number removed.
-fn first_heading(body: &str) -> Option<String> {
+/// The title of a record with no frontmatter `title:`: its first level-1
+/// heading outside a fenced block with a leading `ADR NNNN — `, `NNNN. ` or
+/// `NNNN — ` removed, else the filename stem without its `NNNN-` prefix; the
+/// stem also stands in for a heading empty once its number is removed.
+/// `contents` is the whole file: the frontmatter is stripped here, once.
+pub(crate) fn fallback_title(path: &Path, contents: &str) -> String {
+    first_heading(strip_frontmatter(contents))
+        .map(|heading| strip_heading_number(&heading).to_owned())
+        .filter(|title| !title.is_empty())
+        .unwrap_or_else(|| filename_stem(path))
+}
+
+/// The trimmed text of the first level-1 heading outside a fenced code block.
+pub(crate) fn first_heading(body: &str) -> Option<String> {
     let mut fenced = false;
     for line in body.lines() {
         let trimmed = line.trim_start();
         if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
             fenced = !fenced;
-        } else if !fenced {
-            if let Some(title) = line.strip_prefix("# ") {
-                return Some(strip_number(title.trim(), ". ").to_owned());
-            }
+        } else if let Some(title) = line.strip_prefix("# ").filter(|_| !fenced) {
+            return Some(title.trim().to_owned());
         }
     }
     None
+}
+
+fn strip_heading_number(heading: &str) -> &str {
+    let adr = heading.strip_prefix("ADR ").unwrap_or_default();
+    [(adr, " — "), (heading, ". "), (heading, " — ")]
+        .into_iter()
+        .find_map(|(text, separator)| strip_number(text, separator))
+        .unwrap_or(heading)
 }
 
 /// The filename stem with a leading `NNNN-` removed.
@@ -277,17 +278,16 @@ fn filename_stem(path: &Path) -> String {
         .file_stem()
         .and_then(|stem| stem.to_str())
         .unwrap_or_default();
-    strip_number(stem, "-").to_owned()
+    strip_number(stem, "-").unwrap_or(stem).to_owned()
 }
 
-/// `text` without a leading four-digit number followed by `separator`;
-/// unchanged when that prefix is absent.
-fn strip_number<'a>(text: &'a str, separator: &str) -> &'a str {
+/// `text` after a leading four-digit number and `separator` (empty when the
+/// separator's trailing space is missing); `None` without that prefix.
+fn strip_number<'a>(text: &'a str, separator: &str) -> Option<&'a str> {
     let digits = text.bytes().take_while(u8::is_ascii_digit).count();
-    if digits != 4 {
-        return text;
-    }
-    text[4..].strip_prefix(separator).unwrap_or(text)
+    let rest = text.get(4..).filter(|_| digits == 4)?;
+    rest.strip_prefix(separator)
+        .or_else(|| (rest == separator.trim_end()).then_some(""))
 }
 
 mod canonical;

@@ -147,3 +147,30 @@ fn is_active_status_treats_draft_accepted_and_implemented_as_active() {
     assert!(is_active_status("Implemented"));
     assert!(is_active_status("Proposed"));
 }
+
+#[test]
+fn a_title_holding_any_line_break_renders_on_one_line() {
+    let titles = [
+        "one\ntwo",
+        "one\r\ntwo",
+        "one\rtwo",
+        "one\n\ntwo",
+        "one\r\n\r\ntwo",
+        "one\n\r\ntwo",
+    ];
+    for title in titles {
+        assert_eq!(
+            render_row(&record(1, title, "open", "0001-one.md"), &[]),
+            "* [0001 — one two](0001-one.md) - open",
+            "{title:?}"
+        );
+    }
+}
+
+#[test]
+fn a_title_without_a_line_break_renders_unchanged() {
+    assert_eq!(
+        render_row(&record(1, "a  b — c", "open", "0001-a.md"), &[]),
+        "* [0001 — a  b — c](0001-a.md) - open"
+    );
+}
