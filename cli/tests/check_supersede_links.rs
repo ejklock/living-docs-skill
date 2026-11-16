@@ -233,3 +233,52 @@ fn a_violation_reports_bundle_relative_paths_exactly() {
         "{report}"
     );
 }
+
+#[test]
+fn a_mixed_supersedes_list_judges_its_record_number_entries() {
+    let bundle = bundle_of(
+        "mixed-unanswered",
+        &[adr("0001", ""), adr("0003", "supersedes: [0001, abc]\n")],
+    );
+    let output = run_check(&bundle);
+    let lines = link_lines(&output);
+    assert_eq!(output.status.code(), Some(1), "{}", stdout_of(&output));
+    assert_eq!(lines.len(), 1, "{}", stdout_of(&output));
+    assert!(lines[0].contains("0003-d.md"), "{}", lines[0]);
+    assert!(lines[0].contains("0001-d.md"), "{}", lines[0]);
+}
+
+#[test]
+fn a_mixed_supersedes_list_counts_as_naming_the_target_back() {
+    let bundle = bundle_of(
+        "mixed-answered",
+        &[
+            adr("0001", "superseded_by: 0003\n"),
+            adr("0003", "supersedes: [0001, abc]\n"),
+        ],
+    );
+    assert!(link_lines(&run_check(&bundle)).is_empty());
+}
+
+#[test]
+fn a_supersedes_list_with_no_record_number_is_not_judged() {
+    let bundle = bundle_of(
+        "no-number",
+        &[adr("0001", ""), adr("0003", "supersedes: [abc]\n")],
+    );
+    assert!(link_lines(&run_check(&bundle)).is_empty());
+}
+
+#[test]
+fn a_quoted_number_in_a_mixed_list_is_judged_like_a_bare_one() {
+    let bundle = bundle_of(
+        "mixed-quoted",
+        &[
+            adr("0001", ""),
+            adr("0003", "supersedes: [\"0001\", abc]\n"),
+        ],
+    );
+    let lines = link_lines(&run_check(&bundle));
+    assert_eq!(lines.len(), 1, "{lines:?}");
+    assert!(lines[0].contains("0001-d.md"), "{}", lines[0]);
+}

@@ -147,8 +147,8 @@ fn checked(bundle: &Path) -> Output {
 
 /// Records whose list value has no flow form, with the key that names it.
 const UNWRITABLE: [(&str, &str); 3] = [
-    ("supersedes: [0001, [0002]]", "supersedes"),
-    ("supersedes: [0001, {a: 1}]", "supersedes"),
+    ("supersedes: [abc, [0002]]", "supersedes"),
+    ("supersedes: [abc, {a: 1}]", "supersedes"),
     ("tags: [a, [b]]", "tags"),
 ];
 
