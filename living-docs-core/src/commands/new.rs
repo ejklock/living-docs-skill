@@ -128,6 +128,7 @@ fn numbered_prefix_of(path: &Path) -> Option<u32> {
 /// allocates nothing and resolves straight to `docs_dir.join(file)` — no
 /// number, no slug. Everything after this call (the clobber guard, the
 /// frontmatter fill) is identity-blind, so only the path itself differs.
+/// A numbered or named type refuses a title that slugifies to nothing.
 fn target_path_for(
     store: &dyn DocStore,
     docs_dir: &Path,
@@ -140,13 +141,25 @@ fn target_path_for(
                 next_number_from_store(store, docs_dir, dir_name).map_err(|e| e.to_string())?;
             Ok(docs_dir
                 .join(dir_name)
-                .join(format!("{number:04}-{}.md", paths::slugify(title))))
+                .join(format!("{number:04}-{}.md", slug_of(title)?)))
         }
         Identity::Singleton { file } => Ok(docs_dir.join(file)),
         Identity::Named { dir: dir_name } => Ok(docs_dir
             .join(dir_name)
-            .join(format!("{}.md", paths::slugify(title)))),
+            .join(format!("{}.md", slug_of(title)?))),
     }
+}
+
+/// `title`'s slug, or the error `set title` gives a title with no
+/// alphanumerics, which would leave the file with an empty name.
+fn slug_of(title: &str) -> Result<String, String> {
+    let slug = paths::slugify(title);
+    if slug.is_empty() {
+        return Err(format!(
+            "'{title}' has no slug; a title needs alphanumerics"
+        ));
+    }
+    Ok(slug)
 }
 
 /// Plans `new`'s target path and filled content, timestamped now, without
