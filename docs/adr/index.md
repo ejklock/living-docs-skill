@@ -52,6 +52,9 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0080 — write set section refuses to drop child headings the new text does not carry](0080-write-set-section-refuses-to-drop-child-headings-the-new-text-does-not-carry.md) - Accepted
 * [0081 — The distributed pre-commit hook is the only copy and environment variables opt it into changed-only and owner checks](0081-the-distributed-pre-commit-hook-is-the-only-copy-and-environment-variables-opt-it-into-changed-only-and-owner-checks.md) - Accepted
 * [0082 — Reserved files are read and written through the rooted store port, so the bundle guard covers index.md and log.md](0082-reserved-files-are-read-and-written-through-the-rooted-store-port-so-the-bundle-guard-covers-index-md-and-log-md.md) - Proposed
+* [0083 — read withholds every retired record, closed and done issues included, and read --all brings them back](0083-read-withholds-every-retired-record-closed-and-done-issues-included-and-read-all-brings-them-back.md) - Proposed
+* [0084 — In-bundle links are written relative to the linking file, and check advises on a slash-rooted link](0084-in-bundle-links-are-written-relative-to-the-linking-file-and-check-advises-on-a-slash-rooted-link.md) - Proposed
+* [0085 — check fails a record whose description is still its template placeholder](0085-check-fails-a-record-whose-description-is-still-its-template-placeholder.md) - Proposed
 
 ## Superseded
 

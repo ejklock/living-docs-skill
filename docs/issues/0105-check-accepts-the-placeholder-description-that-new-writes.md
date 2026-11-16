@@ -14,7 +14,7 @@ timestamp: 2026-10-27T13:00:11Z
 
 ### Decision
 
-- To decide in this issue: either `check` treats the placeholder description as unfilled, as it does a body slot, or `new` leaves the key out until `set` writes it.
+- The owner chose that `check` reports a description equal to a doc-type template placeholder as an unfilled-slot violation, while `new` keeps writing the placeholder, as [ADR 0085](../adr/0085-check-fails-a-record-whose-description-is-still-its-template-placeholder.md) records. Not taken: `new` leaving the key out until `set` writes it; keeping it as it is.
 - Fill the description of every record that still carries the placeholder in the same change, so the bundle stays green.
 
 ### Acceptance

@@ -29,3 +29,7 @@ Pick one canonical style, make the CLI write it, make the guides say it, and hav
 - `check` emits an advisory, not a violation, for an in-bundle link in the other style, and a test proves it fires.
 - A bundle with mixed styles still passes `check` (exit 0).
 - `living-docs check docs` stays OK.
+
+### Decision
+
+The owner chose the relative link style as canonical: the guides and slot hints say so, the CLI writes only it, and `check` emits an advisory, not a violation, for an in-bundle `/` link, as [ADR 0084](../adr/0084-in-bundle-links-are-written-relative-to-the-linking-file-and-check-advises-on-a-slash-rooted-link.md) records. Rewriting this repository's own `/` links is follow-up work. Not taken: the `/` style as canonical; accepting both with no advisory.

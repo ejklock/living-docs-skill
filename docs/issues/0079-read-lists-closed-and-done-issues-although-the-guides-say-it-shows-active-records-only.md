@@ -27,3 +27,7 @@ Contradicts `skills/living-docs/SKILL.md` line 59 and `skills/living-docs/rules/
 - `read` with the include-retired flag lists the closed issue.
 - The `read` wording in SKILL.md and semantic-index.md matches: closed and done issues are withheld.
 - `living-docs check docs` stays OK.
+
+### Decision
+
+The owner chose to withhold every record `DocTypeSpec::is_retired` reports from `read`, closed and done issues included, with `read records --all` to bring them back, as [ADR 0083](../adr/0083-read-withholds-every-retired-record-closed-and-done-issues-included-and-read-all-brings-them-back.md) records. The flag is named `--all`. Not taken: withholding with no flag; keeping the view and rewording the guides.
