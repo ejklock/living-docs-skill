@@ -14,7 +14,8 @@ timestamp: 2026-11-15T22:43:00Z
 
 ### Decision
 
-- Open: quote such items in the canonical writer so they round-trip as strings, or keep refusing them because no observed bundle uses them.
+- Quote such items in the canonical writer so they round-trip as strings: `write set` accepts `+4`, writes `"+4"`, and `check` advises on it as a non-numeric item (owner, 2026-11-16). Not taken: keep refusing them because no observed bundle uses them; defer.
+- Delivered together with issue 0131, which needs the same quoting rule.
 
 ### Acceptance
 

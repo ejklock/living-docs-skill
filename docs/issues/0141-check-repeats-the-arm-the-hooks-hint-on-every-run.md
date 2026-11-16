@@ -14,7 +14,7 @@ The QA walkthrough of 2026-11-16 showed `living-docs check` printing "no pre-com
 
 ### Decision
 
-- Open: print the hint only with `--advisories` or once per session/day, or keep it as is.
+- Print the arm-the-hooks hint only under `check --advisories`; a plain `check` stays silent about it. Deterministic, with no state written outside the bundle (owner, 2026-11-16). Not taken: once per day (needs a timestamp stored outside the bundle); keep it on every run.
 
 ### Acceptance
 

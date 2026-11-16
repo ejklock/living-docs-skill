@@ -52,6 +52,6 @@ Rejected alternatives:
 **Implementation impact:** `cli/src/args/sub.rs` (the `mermaid` install target and the `--mermaid` flag), a new `cli/src/commands/` module for the install target, the `manage html` renderer's mermaid source lookup, `cli/tests/`.
 
 **Verification criteria:**
-- With a stub `curl` on PATH serving the pinned bytes, `manage install mermaid` writes the file under `$XDG_DATA_HOME`; serving altered bytes exits non-zero and leaves no file; no `curl` on PATH exits non-zero naming it; `--dry-run` writes nothing.
+- With a stub `curl` on PATH serving bytes whose hash matches the expected one, the download-and-verify path writes the file at the destination; serving altered bytes exits non-zero and leaves no file; no `curl` on PATH exits non-zero naming it; `--dry-run` writes nothing. Placement is proved at unit level, where the test supplies its own expected hash; the binary's success line is not run end to end, because only the pinned 5.5 MB release matches the pinned hash and a test-only hash seam was rejected (issue 0129).
 - `manage html` inlines `--mermaid PATH` when given, the installed copy when present and intact, and otherwise emits the pinned URL with its integrity attribute; a tampered installed copy is refused, not inlined.
 - `Cargo.lock` gains no package.

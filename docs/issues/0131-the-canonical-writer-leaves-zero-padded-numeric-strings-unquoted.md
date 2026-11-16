@@ -14,7 +14,8 @@ The canonical frontmatter writer (`living-docs-core/src/record/canonical.rs` ›
 
 ### Decision
 
-- Open: quote digit-only strings with a leading zero in flow lists, or keep the current output because only YAML 1.2 readers consume the bundle.
+- Quote, in the canonical writer, every plain scalar a YAML 1.1 or 1.2 reader would read as another type, a digit-only string with a leading zero such as `0005` included, so the bundle round-trips through any reader (owner, 2026-11-16). Not taken: keep the plain output because only YAML 1.2 readers consume the bundle.
+- Delivered together with issue 0135, which needs the same quoting rule.
 
 ### Acceptance
 

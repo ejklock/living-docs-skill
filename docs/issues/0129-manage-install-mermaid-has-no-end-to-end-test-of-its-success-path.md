@@ -2,7 +2,7 @@
 type: Issue
 title: manage install mermaid has no end-to-end test of its success path
 description: ADR 0091 asks for a stub curl serving the pinned bytes to prove the installed file lands under XDG_DATA_HOME; only a unit test with a made-up body and hash covers placement
-status: open
+status: closed
 timestamp: 2026-11-15T18:19:13Z
 ---
 
@@ -14,8 +14,12 @@ The Verification of ADR 0091 asks for a test where a stub `curl` serves the pinn
 
 ### Decision
 
-- Open: choose between a test-only seam for the expected hash, a cached copy of the pinned file used only in CI, or accepting the unit-level proof and amending the ADR's Verification wording.
+- Accept the unit-level proof: `cli/src/mermaid_asset/tests.rs` › `matching_bytes_are_placed_at_the_destination` runs the download-and-verify path through a stub `curl` and proves placement, and `cli/tests/install_mermaid.rs` proves every failure branch and `--dry-run` through the binary. Only the binary's success line is unexercised, because the expected hash is the pinned release's and the pinned bytes are 5.5 MB. ADR 0091's Verification now says so (owner, 2026-11-16). Not taken: a test-only seam for the expected hash (an injection point that exists only for a test); defer.
 
 ### Acceptance
 
 - Either the success branch of `manage install mermaid` is exercised by a test, or ADR 0091's Verification states the unit-level proof as sufficient, with the reason.
+
+### Outcome
+
+- Closed without code: the Decision accepts the unit-level proof and ADR 0091's Verification now states it, with the reason.
