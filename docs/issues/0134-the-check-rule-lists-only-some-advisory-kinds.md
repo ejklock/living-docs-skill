@@ -2,7 +2,7 @@
 type: Issue
 title: The check rule lists only some advisory kinds
 description: skills/living-docs/rules/check.md lists SIZE, MOVED-SOURCE and LIVENESS but not OWNER or HEADING, which check also emits
-status: open
+status: closed
 timestamp: 2026-11-15T22:42:58Z
 ---
 
@@ -19,3 +19,7 @@ timestamp: 2026-11-15T22:42:58Z
 ### Acceptance
 
 - check.md names every advisory kind `check --help` lists, and a test fails when a kind is added without its line.
+
+### Outcome
+
+- `skills/living-docs/rules/check.md` lists every kind in `kinds::ALL` with its backticked label (the LIVENESS line was reworded), and `cli/tests/check_rule_kinds.rs` fails when a kind has no line.

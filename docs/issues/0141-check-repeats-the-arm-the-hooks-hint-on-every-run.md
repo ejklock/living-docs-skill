@@ -2,7 +2,7 @@
 type: Issue
 title: check repeats the arm-the-hooks hint on every run
 description: living-docs check prints the no pre-commit doc-gate is armed hint on every invocation in a repository without hooks, adding noise to each read of the result
-status: open
+status: closed
 timestamp: 2026-11-16T04:48:58Z
 ---
 
@@ -19,3 +19,7 @@ The QA walkthrough of 2026-11-16 showed `living-docs check` printing "no pre-com
 ### Acceptance
 
 - The chosen rule is implemented and tested; a repeated `check` in a hook-less project does not repeat the hint on every run.
+
+### Outcome
+
+- The arm-the-hooks hint prints only under `check --advisories` (also with `--json`); the flag's help says so. Proof: `cli/tests/check_hook_hint.rs` › `hooks_hint_only_with_advisories` and its help test.

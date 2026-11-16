@@ -2,7 +2,7 @@
 type: Issue
 title: The check summary repeats a file's number once per advisory
 description: The plain advisory summary lists the same record number once per advisory instead of once per file
-status: open
+status: closed
 timestamp: 2026-11-16T04:07:59Z
 ---
 
@@ -19,3 +19,7 @@ The plain `check` summary lists an advisory kind's files by number once per advi
 ### Acceptance
 
 - The same fixture prints "4 BLOCKED-BY advisories: 0001, 0005" (or the file order the renderer uses), and a test proves it; `--advisories` output is unchanged.
+
+### Outcome
+
+- The plain summary lists each record once per advisory kind, keeping the count; the overflow counts distinct records (`cli/src/commands/check/render.rs`). Proof: `cli/tests/check_advisory_summary.rs`.
