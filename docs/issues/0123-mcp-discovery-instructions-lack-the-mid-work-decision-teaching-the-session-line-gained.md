@@ -2,7 +2,7 @@
 type: Issue
 title: MCP discovery instructions lack the mid-work decision teaching the session line gained
 description: Restore the parity ADR 0078 promises between the MCP instructions and the session-context line
-status: open
+status: closed
 timestamp: 2026-11-15T16:24:30Z
 ---
 
@@ -20,3 +20,7 @@ timestamp: 2026-11-15T16:24:30Z
 
 - The discovery instructions teach recording a mid-work choice in the active issue's Decision section and the materiality test for an ADR; a test in the mcp crate asserts both.
 - `cargo test --workspace` and `make check` stay green.
+
+### Outcome
+
+- The MCP discovery instructions teach recording a material mid-work choice in the active issue's Decision through `write` with operation `set`, and the ADR materiality test. Proof: `mcp/tests/stdio_server/discovery.rs`.

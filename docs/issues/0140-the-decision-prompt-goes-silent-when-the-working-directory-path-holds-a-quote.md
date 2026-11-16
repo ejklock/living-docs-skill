@@ -2,7 +2,7 @@
 type: Issue
 title: The decision prompt goes silent when the working directory path holds a quote
 description: The cwd pattern stops at an escaped quote, so git -C fails and the hook never nudges
-status: open
+status: closed
 timestamp: 2026-11-16T04:11:55Z
 ---
 
@@ -19,3 +19,7 @@ The decision-prompt hook reads the payload's `cwd` with the pattern `"cwd"[[:spa
 ### Acceptance
 
 - With a cwd that holds a quote, a code Edit nudges once and a bundle Edit stays silent; a test proves it.
+
+### Outcome
+
+- The decision-prompt hook reads `cwd` and `file_path` through one escape-aware reader, so a working directory holding a quote or backslash still nudges. Proof: `cli/tests/decision_prompt_cwd.rs`, which starts the hook outside the repository so only the payload cwd can reach it.
