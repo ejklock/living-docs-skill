@@ -217,3 +217,59 @@ fn relative_paths_show_the_bundle_relative_form_for_absolute_and_relative_bundle
         assert!(text.contains("  adr/0001-a.md"), "{text}");
     }
 }
+
+fn issue_record(number: &str, blocked_by: &str) -> String {
+    format!(
+        "---\ntype: Issue\ntitle: Work {number}\ndescription: A record\nowner: Someone\nstatus: Open\nblocked_by: {blocked_by}\ntimestamp: 2026-01-01T00:00:00Z\n---\n\n# {number}. Work {number}\n\n### Scope\n\nOne thing.\n\n### Acceptance\n\n- It works.\n"
+    )
+}
+
+fn issue_bundle(label: &str, issues: &[(String, String)]) -> common::Scratch {
+    let bundle = common::temp_bundle("digest-issues", label);
+    for (number, blocked_by) in issues {
+        write(
+            &bundle,
+            &format!("issues/{number}-work.md"),
+            &issue_record(number, blocked_by),
+        );
+    }
+    write(&bundle, "index.md", "# Docs\n\n* [issues](issues/)\n");
+    common::index_bundle(&bundle);
+    bundle
+}
+
+#[test]
+fn summary_lists_each_file_once() {
+    let bundle = issue_bundle(
+        "once",
+        &[
+            (
+                "0001".to_owned(),
+                "[ref a-1, ref a-2, ref a-3, 5]".to_owned(),
+            ),
+            ("0005".to_owned(), "[1, ref a-4]".to_owned()),
+        ],
+    );
+
+    let text = stdout_of(&run_check(&bundle));
+
+    assert!(
+        text.contains("5 BLOCKED-BY advisories: 0001, 0005\n"),
+        "{text}"
+    );
+}
+
+#[test]
+fn summary_overflow_counts_distinct_files() {
+    let issues: Vec<(String, String)> = (1..=7)
+        .map(|n| (format!("000{n}"), "[ref a-1, ref a-2]".to_owned()))
+        .collect();
+    let bundle = issue_bundle("overflow", &issues);
+
+    let text = stdout_of(&run_check(&bundle));
+
+    assert!(
+        text.contains("14 BLOCKED-BY advisories: 0001, 0002, 0003, 0004, 0005 (+2)"),
+        "{text}"
+    );
+}

@@ -110,3 +110,18 @@ fn hook_still_names_every_verb_it_taught_before() {
         assert!(out.contains(verb), "{verb}: {out}");
     }
 }
+
+#[test]
+fn hook_teaches_recording_a_mid_work_choice_in_the_active_issues_decision_section() {
+    let out = hook_output();
+    for phrase in [
+        "A choice made mid-work goes into the active issue's Decision section the moment you make it (`living-docs write set issue/NNNN section Decision --from -` replaces the whole section, so pass its current bullets plus the new one); write an ADR only when a future reader would pay to rediscover the choice.",
+        "active issue's Decision section",
+        "section Decision --from -",
+        "only when a future reader would pay to rediscover",
+    ] {
+        assert!(out.contains(phrase), "{phrase}: {out}");
+    }
+    assert!(!out.contains("set <NNNN>"), "{out}");
+    assert_eq!(out.trim_end_matches('\n').lines().count(), 1, "{out}");
+}

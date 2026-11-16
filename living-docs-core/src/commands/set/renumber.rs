@@ -7,9 +7,12 @@
 use super::resolve_spec;
 use super::retitle::{number_prefix, relocate, replace_heading_number, Retitled};
 use crate::commands::next::{next_number_from_store, numeric_prefix};
+use crate::commands::supersede::draft_frontmatter_fields;
 use crate::doc_type::Identity;
-use crate::record::extract_record;
+use crate::record::canonical::flow_values;
+use crate::record::{extract_record, TailValue};
 use crate::store::DocStore;
+use serde_yaml::Value;
 use std::path::{Path, PathBuf};
 
 pub(crate) fn apply(
@@ -28,10 +31,12 @@ pub(crate) fn apply(
     let new = choose_number(store, docs_dir, dir, value)?;
     let target = target_path(path, &old, &new)?;
 
-    if let Some(updated) = replace_heading_number(&contents, &old, &new) {
-        store.write(path, &updated).map_err(|e| e.to_string())?;
-    }
-    let rewritten = relocate(store, docs_dir, path, &target)?;
+    let plan = match spec.frontmatter {
+        "Issue" => plan_blocked_by(store, docs_dir, (path, dir), (&old, &new))?,
+        _ => Vec::new(),
+    };
+    let own = replace_heading_number(&contents, &old, &new).unwrap_or(contents);
+    let rewritten = relocate(store, docs_dir, (path, &target), (&own, &plan))?;
     Ok(Retitled {
         path: target,
         rewritten,
@@ -168,4 +173,73 @@ fn own_link_error(path: &Path, field: &str) -> String {
         "{} carries {field}; the supersede link must be renumbered by hand for now",
         path.display()
     )
+}
+
+/// The `blocked_by` rewrite of every other issue of the bundle that lists
+/// `old`, each rewritten item a bare decimal and every other item kept with
+/// its type. Every rewrite is drafted, and so proven writable, before any
+/// file changes; an issue that does not list `old` is left out.
+fn plan_blocked_by(
+    store: &dyn DocStore,
+    docs_dir: &Path,
+    (moved, dir): (&Path, &str),
+    (old, new): (&str, &str),
+) -> Result<Vec<(PathBuf, String)>, String> {
+    let (Ok(old), Ok(new)) = (old.parse::<u32>(), new.parse::<u32>()) else {
+        return Ok(Vec::new());
+    };
+    let mut plan = Vec::new();
+    for other in same_type_records(store, docs_dir, dir)? {
+        if other == moved {
+            continue;
+        }
+        let text = store.read(&other).map_err(|e| e.to_string())?;
+        let Some(items) = repointed_items(&other, &text, (old, new)) else {
+            continue;
+        };
+        let rendered = flow_values(&items);
+        let field = [("blocked_by", rendered.clone())];
+        draft_frontmatter_fields(store, &other, &field, &[])?;
+        plan.push((other, rendered));
+    }
+    Ok(plan)
+}
+
+/// The `blocked_by` items of the record with each item naming `old` replaced
+/// by `new`; `None` when the record lists no `old`.
+fn repointed_items(path: &Path, text: &str, (old, new): (u32, u32)) -> Option<Vec<Value>> {
+    let record = extract_record(path, text);
+    let (_, value) = record
+        .frontmatter_tail
+        .iter()
+        .find(|(k, _)| k == "blocked_by")?;
+    let items = blocked_items(value);
+    if !items.iter().any(|item| names_number(item, old)) {
+        return None;
+    }
+    let repointed = items
+        .into_iter()
+        .map(|item| match names_number(&item, old) {
+            true => Value::Number(new.into()),
+            false => item,
+        });
+    Some(repointed.collect())
+}
+
+/// Whether the item is the number `number`, written as a number or as text.
+fn names_number(item: &Value, number: u32) -> bool {
+    match item {
+        Value::Number(n) => n.as_u64() == Some(u64::from(number)),
+        Value::String(text) => text.trim().parse::<u32>() == Ok(number),
+        _ => false,
+    }
+}
+
+/// The items of a `blocked_by` value, each with the type it was written with.
+fn blocked_items(value: &TailValue) -> Vec<Value> {
+    match value {
+        TailValue::Scalar(item) => vec![Value::String(item.clone())],
+        TailValue::Sequence(items) => items.iter().cloned().map(Value::String).collect(),
+        TailValue::Typed(items) => items.clone(),
+    }
 }

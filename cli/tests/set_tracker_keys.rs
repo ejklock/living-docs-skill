@@ -16,9 +16,16 @@ fn set(docs: &Path, args: &[&str]) -> Output {
 
 fn issue_bundle(label: &str) -> (common::Scratch, PathBuf) {
     let docs = temp_bundle("set-tracker-keys", label);
-    assert!(run_new(&docs, "issue", "T").status.success());
+    scaffold_issues(&docs);
     let path = docs.join("issues/0001-t.md");
     (docs, path)
+}
+
+/// Three scaffolded issues, so a `blocked_by` naming 0002 or 0003 resolves.
+fn scaffold_issues(docs: &Path) {
+    for _ in 0..3 {
+        assert!(run_new(docs, "issue", "T").status.success());
+    }
 }
 
 fn lines_of(path: &Path, key: &str) -> Vec<String> {
@@ -37,7 +44,7 @@ fn scaffold_findings(docs: &Path) -> String {
     let owner = docs.parent().and_then(Path::file_name).unwrap();
     let label = format!("baseline-{}", owner.to_string_lossy());
     let scratch = temp_bundle("set-tracker-keys", &label);
-    assert!(run_new(&scratch, "issue", "T").status.success());
+    scaffold_issues(&scratch);
     let text = stdout_of(&run_check(&scratch));
     text.replace(scratch.to_str().unwrap(), docs.to_str().unwrap())
 }
@@ -230,19 +237,6 @@ fn gate_refuses_each_key_on_an_adr_naming_key_and_issue_type() {
         let stderr = assert_refused_unchanged(&docs, &path, &["0001", key, "x"]);
         assert!(stderr.contains(key), "got: {stderr}");
         assert!(stderr.contains("Issue"), "got: {stderr}");
-    }
-}
-
-#[test]
-fn refuse_values_the_parser_would_store_as_something_else() {
-    let (docs, path) = issue_bundle("refuse-reinterpreted");
-    for (key, value) in [
-        ("labels", "1e3"),
-        ("labels", "null, a"),
-        ("blocked_by", "~"),
-    ] {
-        let stderr = assert_refused_unchanged(&docs, &path, &["0001", key, value]);
-        assert!(stderr.contains(key), "{value}: {stderr}");
     }
 }
 

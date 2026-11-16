@@ -4,6 +4,7 @@ pub(crate) mod check;
 pub(crate) mod completions;
 pub(crate) mod fmt;
 pub(crate) mod guide;
+pub(crate) mod html;
 pub(crate) mod index;
 pub(crate) mod install;
 pub(crate) mod mcp;

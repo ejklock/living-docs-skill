@@ -58,7 +58,7 @@ fn stderr(out: &Output) -> String {
 #[test]
 fn hint_names_install_hooks_once_when_the_repository_has_no_pre_commit() {
     let dir = repo("none");
-    let err = stderr(&living_docs(&dir, &["check", "docs"]));
+    let err = stderr(&living_docs(&dir, &["check", "--advisories", "docs"]));
     assert_eq!(err.matches(HINT).count(), 1, "stderr: {err}");
 }
 
@@ -67,7 +67,7 @@ fn hint_is_absent_after_install_hooks_arms_the_gate() {
     let dir = repo("installed");
     let install = living_docs(&dir, &["manage", "install", "hooks"]);
     assert!(install.status.success(), "{}", stderr(&install));
-    let err = stderr(&living_docs(&dir, &["check", "docs"]));
+    let err = stderr(&living_docs(&dir, &["check", "--advisories", "docs"]));
     assert!(!err.contains(HINT), "stderr: {err}");
 }
 
@@ -75,7 +75,7 @@ fn hint_is_absent_after_install_hooks_arms_the_gate() {
 fn hint_is_absent_when_the_default_hooks_directory_runs_check() {
     let dir = repo("default-hook");
     write_pre_commit(&dir, RUNS_CHECK);
-    let err = stderr(&living_docs(&dir, &["check", "docs"]));
+    let err = stderr(&living_docs(&dir, &["check", "--advisories", "docs"]));
     assert!(!err.contains(HINT), "stderr: {err}");
 }
 
@@ -83,7 +83,7 @@ fn hint_is_absent_when_the_default_hooks_directory_runs_check() {
 fn hint_appears_when_the_pre_commit_does_not_run_living_docs() {
     let dir = repo("foreign-hook");
     write_pre_commit(&dir, "#!/bin/sh\nexit 0\n");
-    let err = stderr(&living_docs(&dir, &["check", "docs"]));
+    let err = stderr(&living_docs(&dir, &["check", "--advisories", "docs"]));
     assert!(err.contains(HINT), "stderr: {err}");
 }
 
@@ -95,14 +95,14 @@ fn hint_follows_the_repository_holding_the_bundle_not_the_working_directory() {
     let gated_docs = gated.join("docs");
     let err = stderr(&living_docs(
         &ungated,
-        &["check", gated_docs.to_str().unwrap()],
+        &["check", "--advisories", gated_docs.to_str().unwrap()],
     ));
     assert!(!err.contains(HINT), "stderr: {err}");
 
     let ungated_docs = ungated.join("docs");
     let err = stderr(&living_docs(
         &gated,
-        &["check", ungated_docs.to_str().unwrap()],
+        &["check", "--advisories", ungated_docs.to_str().unwrap()],
     ));
     assert!(err.contains(HINT), "stderr: {err}");
 }
@@ -114,9 +114,12 @@ fn hint_is_absent_when_the_bundle_is_nested_below_the_repository_root() {
     let nested = dir.join("sub/docs");
     fs::create_dir_all(&nested).unwrap();
     fs::write(nested.join("index.md"), "# Documents\n").unwrap();
-    let err = stderr(&living_docs(&dir, &["check", "sub/docs"]));
+    let err = stderr(&living_docs(&dir, &["check", "--advisories", "sub/docs"]));
     assert!(!err.contains(HINT), "stderr: {err}");
-    let err = stderr(&living_docs(&dir.join("sub"), &["check", "docs"]));
+    let err = stderr(&living_docs(
+        &dir.join("sub"),
+        &["check", "--advisories", "docs"],
+    ));
     assert!(!err.contains(HINT), "stderr: {err}");
 }
 
@@ -132,32 +135,65 @@ fn hint_is_absent_when_a_relative_hooks_path_holds_the_gate() {
         .status()
         .unwrap();
     assert!(status.success());
-    let err = stderr(&living_docs(&dir.join("docs"), &["check", "."]));
+    let err = stderr(&living_docs(
+        &dir.join("docs"),
+        &["check", "--advisories", "."],
+    ));
     assert!(!err.contains(HINT), "stderr: {err}");
 }
 
 #[test]
 fn hint_is_absent_outside_a_git_repository() {
     let dir = temp_dir("no-git");
-    let err = stderr(&living_docs(&dir, &["check", "docs"]));
+    let err = stderr(&living_docs(&dir, &["check", "--advisories", "docs"]));
     assert!(!err.contains(HINT), "stderr: {err}");
     assert!(!err.to_lowercase().contains("fatal"), "stderr: {err}");
 }
 
 #[test]
+fn hooks_hint_only_with_advisories() {
+    let bare = repo("only-with-advisories");
+    let plain = stderr(&living_docs(&bare, &["check", "docs"]));
+    assert!(!plain.contains(HINT), "stderr: {plain}");
+    let listed = stderr(&living_docs(&bare, &["check", "--advisories", "docs"]));
+    assert_eq!(listed.matches(HINT).count(), 1, "stderr: {listed}");
+
+    let armed = repo("only-with-advisories-armed");
+    write_pre_commit(&armed, RUNS_CHECK);
+    for args in [
+        &["check", "docs"][..],
+        &["check", "--advisories", "docs"][..],
+    ] {
+        let err = stderr(&living_docs(&armed, args));
+        assert!(!err.contains(HINT), "stderr: {err}");
+    }
+}
+
+#[test]
+fn hooks_hint_only_with_advisories_is_stated_in_the_help() {
+    let dir = temp_dir("help");
+    let help =
+        String::from_utf8_lossy(&living_docs(&dir, &["check", "--help"]).stdout).into_owned();
+    assert!(help.contains("arm-the-hooks hint"), "help: {help}");
+}
+
+#[test]
 fn contract_quiet_silences_the_hint() {
     let dir = repo("quiet");
-    let err = stderr(&living_docs(&dir, &["--quiet", "check", "docs"]));
+    let err = stderr(&living_docs(
+        &dir,
+        &["--quiet", "check", "--advisories", "docs"],
+    ));
     assert!(!err.contains(HINT), "stderr: {err}");
 }
 
 #[test]
 fn contract_passing_bundle_keeps_stdout_and_exit_zero_with_and_without_a_gate() {
     let dir = repo("json-pass");
-    let bare = living_docs(&dir, &["check", "--json", "docs"]);
+    let bare = living_docs(&dir, &["check", "--json", "--advisories", "docs"]);
     assert!(stderr(&bare).contains(HINT));
     write_pre_commit(&dir, RUNS_CHECK);
-    let armed = living_docs(&dir, &["check", "--json", "docs"]);
+    let armed = living_docs(&dir, &["check", "--json", "--advisories", "docs"]);
     assert!(!stderr(&armed).contains(HINT));
     assert_eq!(bare.stdout, armed.stdout);
     assert_eq!(bare.status.code(), Some(0));
@@ -168,9 +204,9 @@ fn contract_passing_bundle_keeps_stdout_and_exit_zero_with_and_without_a_gate() 
 fn contract_failing_bundle_keeps_stdout_and_exit_one_with_and_without_a_gate() {
     let dir = repo("json-fail");
     fs::write(dir.join("docs/broken.md"), "no frontmatter here\n").unwrap();
-    let bare = living_docs(&dir, &["check", "--json", "docs"]);
+    let bare = living_docs(&dir, &["check", "--json", "--advisories", "docs"]);
     write_pre_commit(&dir, RUNS_CHECK);
-    let armed = living_docs(&dir, &["check", "--json", "docs"]);
+    let armed = living_docs(&dir, &["check", "--json", "--advisories", "docs"]);
     assert_eq!(bare.status.code(), Some(1));
     assert_eq!(armed.status.code(), Some(1));
     assert_eq!(bare.stdout, armed.stdout);

@@ -119,6 +119,16 @@ mod read_back {
     }
 
     #[test]
+    fn a_draft_whose_frontmatter_does_not_parse_blames_the_written_key_not_type() {
+        let store = MapStore::seeded(&[(PATH, RECORD)]);
+        let err = write(&store, &[("tracker", "[unclosed".to_string())], &[])
+            .expect_err("an open flow list leaves no parseable frontmatter");
+        assert!(err.contains("'tracker'"), "got: {err}");
+        assert!(!err.contains("'type'"), "got: {err}");
+        assert_eq!(store.contents(PATH), RECORD);
+    }
+
+    #[test]
     fn a_draft_that_ends_the_frontmatter_early_changes_the_body_and_is_refused() {
         let store = MapStore::seeded(&[(PATH, RECORD)]);
         let err = write(&store, &[("tracker", "x\n---\ninjected".to_string())], &[])

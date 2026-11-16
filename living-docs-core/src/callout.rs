@@ -6,6 +6,7 @@
 //! shares, so the exact wording never drifts between them.
 
 use crate::commands::supersede::guard::{refusal_message, unwritable_key};
+use crate::paths::link_destination;
 use crate::record::{extract_record, to_canonical_markdown};
 use crate::store::DocStore;
 use std::path::{Path, PathBuf};
@@ -33,8 +34,9 @@ pub fn expected(status: Option<&str>, successor: Option<&str>) -> Option<String>
 
 fn superseded_callout(successor: &str) -> String {
     let number = number_prefix(successor);
+    let destination = link_destination(successor);
     format!(
-        "> **SUPERSEDED — do not act on this record.** Replaced by [{number}]({successor}). \
+        "> **SUPERSEDED — do not act on this record.** Replaced by [{number}]({destination}). \
          Run `living-docs read records` for what is in force."
     )
 }
@@ -146,13 +148,15 @@ pub(crate) fn normalize_frontmatter_gap(contents: &str) -> String {
     format!("{}\n{tail}", &contents[..fence_end])
 }
 
-/// Reads the record at `path`, computes the callout its status calls for,
-/// and rewrites the file through [`to_canonical_markdown`] only when the
-/// reconciled body differs from what is already there. Returns whether it
-/// wrote.
-pub fn reconcile(store: &dyn DocStore, path: &Path) -> Result<bool, String> {
-    let contents = store.read(path).map_err(|error| error.to_string())?;
-    let contents = normalize_frontmatter_gap(&contents);
+/// The canonical text of the record at `path` once its callout is reconciled
+/// with its status, drafted from `contents` without writing; `None` when the
+/// callout is already right. The successor link resolves through `store`.
+pub fn draft_reconciled(
+    store: &dyn DocStore,
+    path: &Path,
+    contents: &str,
+) -> Result<Option<String>, String> {
+    let contents = normalize_frontmatter_gap(contents);
     let mut record = extract_record(path, &contents);
 
     let successor = record
@@ -163,7 +167,7 @@ pub fn reconcile(store: &dyn DocStore, path: &Path) -> Result<bool, String> {
     let reconciled = reconcile_body(&record.body, expected_line.as_deref());
 
     if reconciled == record.body {
-        return Ok(false);
+        return Ok(None);
     }
 
     record.body = reconciled;
@@ -171,6 +175,18 @@ pub fn reconcile(store: &dyn DocStore, path: &Path) -> Result<bool, String> {
     if let Some(key) = unwritable_key(&contents, &canonical) {
         return Err(refusal_message(path, &key));
     }
+    Ok(Some(canonical))
+}
+
+/// Reads the record at `path`, computes the callout its status calls for,
+/// and rewrites the file through [`to_canonical_markdown`] only when the
+/// reconciled body differs from what is already there. Returns whether it
+/// wrote.
+pub fn reconcile(store: &dyn DocStore, path: &Path) -> Result<bool, String> {
+    let contents = store.read(path).map_err(|error| error.to_string())?;
+    let Some(canonical) = draft_reconciled(store, path, &contents)? else {
+        return Ok(false);
+    };
     store
         .write(path, &canonical)
         .map_err(|error| error.to_string())?;

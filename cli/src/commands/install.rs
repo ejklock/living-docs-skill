@@ -1,8 +1,10 @@
-//! `install skills`/`install hooks` verb wrappers (ADR 0060, folding the
-//! retired `skill install` and `hooks install` verbs): delegate to
-//! `crate::skill_install` and `crate::hooks` respectively.
+//! `install skills`/`install hooks`/`install mermaid` verb wrappers: skills
+//! and hooks delegate to `crate::skill_install` and `crate::hooks` and write
+//! into a project; mermaid delegates to `crate::mermaid_asset` and writes
+//! into the user data directory, never the project.
 
 use crate::hooks::{self, gitattributes};
+use crate::mermaid_asset;
 use crate::output::outln;
 use crate::skill_install::{self, Harness};
 use std::path::{Path, PathBuf};
@@ -15,6 +17,41 @@ pub(crate) fn run_install_skills(
     dry_run: bool,
 ) -> ExitCode {
     skill_install::install(harness, project, dir, dry_run)
+}
+
+/// Places the pinned mermaid file in the user data directory: downloads it
+/// with `curl` and keeps it only when its SHA-256 is the pinned one. Under
+/// `dry_run` it prints the URL and destination and touches nothing.
+pub(crate) fn run_install_mermaid(dry_run: bool) -> ExitCode {
+    let dest = match mermaid_asset::installed_path() {
+        Ok(dest) => dest,
+        Err(message) => return mermaid_failure(&message),
+    };
+    if dry_run {
+        outln!(
+            "would download {} to {}",
+            mermaid_asset::URL,
+            dest.display()
+        );
+        return ExitCode::SUCCESS;
+    }
+    match mermaid_asset::download_verified(
+        Path::new("curl"),
+        mermaid_asset::URL,
+        mermaid_asset::SHA256,
+        &dest,
+    ) {
+        Ok(()) => {
+            outln!("mermaid {} -> {}", mermaid_asset::VERSION, dest.display());
+            ExitCode::SUCCESS
+        }
+        Err(message) => mermaid_failure(&message),
+    }
+}
+
+fn mermaid_failure(message: &str) -> ExitCode {
+    eprintln!("living-docs manage install mermaid: {message}");
+    ExitCode::from(2)
 }
 
 /// Defaults `--dir` to the current directory when omitted, matching every

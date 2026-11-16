@@ -8,6 +8,10 @@ one slice per fresh context, starting from the skeleton.
 ## Open
 
 * [0121 — read --all does not show which listed records are retired](0121-read-all-does-not-show-which-listed-records-are-retired.md) - open
+* [0122 — Docs subagent on a cheaper model: exploration recipe now, drafting only after measured authoring cost](0122-docs-subagent-on-a-cheaper-model-exploration-recipe-now-drafting-only-after-measured-authoring-cost.md) - open
+* [0126 — Implement ADR 0093: the opt-in decision prompt Stop hook and its installation](0126-implement-adr-0083-the-opt-in-decision-prompt-stop-hook-and-its-installation.md) - open
+* [0132 — The HTML renderer duplicates the record reader and link graph of read records](0132-the-html-renderer-duplicates-the-record-reader-and-link-graph-of-read-records.md) - open
+* [0144 — Engineering-docs roadmap: domain language and rules, decision capture, issue waves, generated diagrams and a local HTML export](0144-engineering-docs-roadmap-domain-language-and-rules-decision-capture-issue-waves-generated-diagrams-and-a-local-html-export.md) - open
 
 ## Closed
 
@@ -131,3 +135,26 @@ one slice per fresh context, starting from the skeleton.
 * [0118 — The size gates pass when find fails to read part of the tree](0118-the-size-gates-pass-when-find-fails-to-read-part-of-the-tree.md) - closed
 * [0119 — The doc-trail gate reads a fixture path in a test as a record citation](0119-the-doc-trail-gate-reads-a-fixture-path-in-a-test-as-a-record-citation.md) - closed
 * [0120 — Two parity test helpers exceed the function line cap and fail clippy](0120-two-parity-test-helpers-exceed-the-function-line-cap-and-fail-clippy.md) - closed
+* [0123 — MCP discovery instructions lack the mid-work decision teaching the session line gained](0123-mcp-discovery-instructions-lack-the-mid-work-decision-teaching-the-session-line-gained.md) - closed
+* [0124 — session-context.sh header comment understates what the session line teaches](0124-session-context-sh-header-comment-understates-what-the-session-line-teaches.md) - closed
+* [0125 — Implement ADR 0092: blocked_by validation in check, write-time refusal and renumber rewrite](0125-implement-adr-0082-blocked-by-validation-in-check-write-time-refusal-and-renumber-rewrite.md) - closed
+* [0127 — Implement ADR 0090 and 0091: manage html renderer, manage install mermaid and the CLI wiring](0127-implement-adr-0084-and-0085-manage-html-renderer-manage-install-mermaid-and-the-cli-wiring.md) - closed
+* [0128 — A 23-digit blocked_by item is refused with a message naming the type key](0128-a-23-digit-blocked-by-item-is-refused-with-a-message-naming-the-type-key.md) - closed
+* [0129 — manage install mermaid has no end-to-end test of its success path](0129-manage-install-mermaid-has-no-end-to-end-test-of-its-success-path.md) - closed
+* [0130 — Renumbering renames the record before rewriting references, so a failed rewrite leaves the bundle half-renumbered](0130-renumbering-renames-the-record-before-rewriting-references-so-a-failed-rewrite-leaves-the-bundle-half-renumbered.md) - closed
+* [0131 — The canonical writer leaves zero-padded numeric strings unquoted](0131-the-canonical-writer-leaves-zero-padded-numeric-strings-unquoted.md) - closed
+* [0133 — Implement ADR 0086 and 0087: blocked_by advice for free-form items and a once-per-commit decision prompt](0133-implement-adr-0086-and-0087-blocked-by-advice-for-free-form-items-and-a-once-per-commit-decision-prompt.md) - closed
+* [0134 — The check rule lists only some advisory kinds](0134-the-check-rule-lists-only-some-advisory-kinds.md) - closed
+* [0135 — blocked_by cannot hold an item YAML reads as another type](0135-blocked-by-cannot-hold-an-item-yaml-reads-as-another-type.md) - closed
+* [0136 — A blocked_by item beyond the u64 range is refused with a message naming the wrong key](0136-a-blocked-by-item-beyond-the-u64-range-is-refused-with-a-message-naming-the-wrong-key.md) - closed
+* [0137 — write set reads a value that starts with a dash as a flag](0137-write-set-reads-a-value-that-starts-with-a-dash-as-a-flag.md) - closed
+* [0138 — Implement ADR 0088 and 0089: blocked_by findings as advice and the decision reminder as a non-blocking nudge](0138-implement-adr-0088-and-0089-blocked-by-findings-as-advice-and-the-decision-reminder-as-a-non-blocking-nudge.md) - closed
+* [0139 — The check summary repeats a file's number once per advisory](0139-the-check-summary-repeats-a-file-s-number-once-per-advisory.md) - closed
+* [0140 — The decision prompt goes silent when the working directory path holds a quote](0140-the-decision-prompt-goes-silent-when-the-working-directory-path-holds-a-quote.md) - closed
+* [0141 — check repeats the arm-the-hooks hint on every run](0141-check-repeats-the-arm-the-hooks-hint-on-every-run.md) - closed
+* [0142 — The pre-commit gate prints the bundle's absolute path](0142-the-pre-commit-gate-prints-the-bundle-s-absolute-path.md) - closed
+* [0143 — The HTML page keeps empty group headings under a filter and repeats a view's title](0143-the-html-page-keeps-empty-group-headings-under-a-filter-and-repeats-a-view-s-title.md) - closed
+* [0145 — A failing callout reconcile after a renumber leaves the bundle renamed](0145-a-failing-callout-reconcile-after-a-renumber-leaves-the-bundle-renamed.md) - closed
+* [0146 — The changed-only pre-commit drops staged files whose names hold a space](0146-the-changed-only-pre-commit-drops-staged-files-whose-names-hold-a-space.md) - closed
+* [0147 — write set refuses a purely numeric label](0147-write-set-refuses-a-purely-numeric-label.md) - closed
+* [0148 — manage index writes a link to a filename with a space that check cannot resolve](0148-manage-index-writes-a-link-to-a-filename-with-a-space-that-check-cannot-resolve.md) - closed

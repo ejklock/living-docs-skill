@@ -4,6 +4,7 @@
 //! names a retired record's successor when one is known.
 
 use crate::doc_type::{self, IndexPartition};
+use crate::paths::link_destination;
 
 use super::Record;
 
@@ -118,7 +119,8 @@ pub(super) fn render_row(record: &Record, all: &[Record]) -> String {
     let rendered_status =
         retirement_suffix(status, superseded_by.as_deref(), all).unwrap_or_else(|| status.clone());
     let title = single_line(title);
-    format!("* [{number:04} — {title}]({filename}) - {rendered_status}")
+    let destination = link_destination(filename);
+    format!("* [{number:04} — {title}]({destination}) - {rendered_status}")
 }
 
 /// The title with each run of line-break characters (LF, CR, CRLF, any
@@ -157,7 +159,7 @@ fn superseded_suffix(superseded_by: Option<&str>, all: &[Record]) -> String {
     };
     let padded = padded_number(raw);
     match successor_filename(raw, all) {
-        Some(filename) => format!("Superseded by [{padded}]({filename})"),
+        Some(filename) => format!("Superseded by [{padded}]({})", link_destination(&filename)),
         None => format!("Superseded by {padded}"),
     }
 }

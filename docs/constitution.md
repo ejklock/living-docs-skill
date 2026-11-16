@@ -22,12 +22,13 @@ timestamp: 2026-07-16T00:00:00Z
 - The nine authoring verbs over the `.md` tree: `new`, `set`, `supersede`, `index`, `check`, `fmt`, `effective`, `skill`, `hooks`. — ADR 0001, 0057, 0059
 - The record taxonomy as one registry: ADR, issue, research, constitution, an optional PRD, and architecture views. — ADR 0026, 0057
 - The skill corpus served from the binary, with slim harness stubs. — ADR 0014, 0017
-- One gate: `living-docs check`, run by the pre-commit hook and CI, plus the session-teaching hook. — ADR 0059
+- A local, read-only, single-file HTML render of the bundle (`manage html`), with mermaid.js installed on demand and verified by hash (`manage install mermaid`); never served and never published. — ADR 0090, 0091
+- One gate: `living-docs check`, run by the pre-commit hook and CI, plus the session-teaching hook and an opt-in decision nudge (`LIVING_DOCS_DECISION_PROMPT=1`): after a code edit it adds, at most once per commit cycle, a reminder to record a material choice in the active issue, and never blocks a turn, a write, a commit or CI. — ADR 0059, 0089
 
 **Explicitly out of scope:**
 
 - **Any LLM inside the tool** — the tool is the deterministic layer only. (ADR 0001)
-- **A database read-model, full-text search, a web or browser authoring front, multi-project catalogs, public export and its leak gate, and a write-time hook** — cut by ADR 0059. They return only as workspace fronts (ADR 0033) when a consumer needs cross-project search or an independently deployed surface; until then, `grep` and `effective --topic` answer the search question.
+- **A database read-model, full-text search, a web server or browser authoring front, multi-project catalogs, public export or publication of the HTML render and its leak gate, and a write-time hook** — cut by ADR 0059. They return only as workspace fronts (ADR 0033) when a consumer needs cross-project search or an independently deployed surface; until then, `grep` and `effective --topic` answer the search question.
 - **The cheaper-render split** (rendering doc prose with a cheaper model) — deferred and evidence-gated. (ADR 0001 follow-up)
 
 ## Record Model

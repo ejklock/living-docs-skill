@@ -9,6 +9,7 @@ mod args;
 mod commands;
 mod doc_gate;
 mod hooks;
+mod mermaid_asset;
 mod output;
 mod skill_install;
 mod store;
@@ -115,6 +116,9 @@ fn run_manage(docs_dir: &Path, operation: ManageCmd, mode: OutputMode, quiet: bo
     match operation {
         ManageCmd::Index { doc_type } => commands::index::run_index(docs_dir, doc_type, mode),
         ManageCmd::Fmt { paths, check } => commands::fmt::run_fmt(docs_dir, paths, check, mode),
+        ManageCmd::Html { out, mermaid } => {
+            commands::html::run_html(docs_dir, out, mermaid, mode, quiet)
+        }
         ManageCmd::Install {
             action:
                 InstallCmd::Skills {
@@ -127,6 +131,9 @@ fn run_manage(docs_dir: &Path, operation: ManageCmd, mode: OutputMode, quiet: bo
         ManageCmd::Install {
             action: InstallCmd::Hooks { dir, dry_run },
         } => commands::install::run_install_hooks(dir, dry_run, docs_dir, quiet),
+        ManageCmd::Install {
+            action: InstallCmd::Mermaid { dry_run },
+        } => commands::install::run_install_mermaid(dry_run),
         ManageCmd::Uninstall {
             action: UninstallCmd::Hooks { dir, dry_run },
         } => commands::uninstall::run_uninstall_hooks(dir, dry_run, docs_dir),

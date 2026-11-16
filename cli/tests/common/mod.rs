@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+pub mod decision_prompt;
 pub mod mcp_session;
 pub mod parity;
 pub mod parity_bundles;

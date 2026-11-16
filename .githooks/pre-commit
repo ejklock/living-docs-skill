@@ -18,6 +18,7 @@ set -u
 
 ROOT="$(git rev-parse --show-toplevel)"
 BUNDLE="${LIVING_DOCS_BUNDLE:-docs}"
+cd "$ROOT" || exit 1
 
 resolve_bin() {
   if [ -x "$ROOT/target/release/living-docs" ]; then
@@ -40,12 +41,14 @@ fi
 ARGS+=(--plain)
 
 if [ "${LIVING_DOCS_CHECK_CHANGED_ONLY:-0}" = "1" ]; then
-  STAGED="$(git diff --cached --name-only --diff-filter=ACMR -- "$BUNDLE" | sed "s|^|$ROOT/|")"
-  if [ -z "$STAGED" ]; then
+  STAGED=()
+  while IFS= read -r -d "" path; do
+    STAGED+=("--changed-files=$path")
+  done < <(git diff --cached --name-only -z --diff-filter=ACMR -- "$BUNDLE")
+  if [ "${#STAGED[@]}" -eq 0 ]; then
     exit 0
   fi
-  # shellcheck disable=SC2086
-  exec "$BIN" "${ARGS[@]}" --changed-files $STAGED -- "$ROOT/$BUNDLE"
+  exec "$BIN" "${ARGS[@]}" "${STAGED[@]}" -- "$BUNDLE"
 fi
 
-exec "$BIN" "${ARGS[@]}" "$ROOT/$BUNDLE"
+exec "$BIN" "${ARGS[@]}" "$BUNDLE"

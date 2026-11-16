@@ -51,7 +51,9 @@ pub(crate) struct CheckArgs {
     #[arg(long, num_args = 1.., value_name = "PATH")]
     pub(crate) changed_files: Vec<PathBuf>,
     /// Lists every advisory after the per-kind summary instead of the
-    /// summary alone; the JSON output is unaffected.
+    /// summary alone, and prints the arm-the-hooks hint on stderr when no
+    /// pre-commit doc-gate is armed (also in JSON mode); the JSON output
+    /// itself is unaffected.
     #[arg(long)]
     pub(crate) advisories: bool,
 }
@@ -150,11 +152,13 @@ pub(crate) enum InstallCmd {
         #[arg(long)]
         dry_run: bool,
     },
-    /// Writes the session-teaching hook into `<dir>/.living-docs/hooks/`
-    /// at mode 0755, materializes the pre-commit doc-gate to
+    /// Writes the session-teaching and decision-prompt hooks into
+    /// `<dir>/.living-docs/hooks/` at mode 0755, materializes the pre-commit doc-gate to
     /// `<dir>/.githooks/pre-commit` (pointing `core.hooksPath` at it), and
-    /// wires the `SessionStart` hook into `<dir>/.claude/settings.json`,
-    /// idempotently — re-running replaces the living-docs entries by
+    /// wires the `SessionStart` hook and the opt-in, non-blocking decision
+    /// reminder (`PostToolUse`, matcher `Edit|Write`, a nudge after code edits
+    /// once per commit cycle) into `<dir>/.claude/settings.json`, removing a
+    /// `Stop` entry an earlier install wrote, idempotently — re-running replaces the living-docs entries by
     /// identity rather than appending. The generated commands pin the
     /// resolved `--docs-dir` bundle as a `LIVING_DOCS_BUNDLE=` prefix.
     /// `--dry-run` reports the same plan without writing anything.
@@ -168,6 +172,20 @@ pub(crate) enum InstallCmd {
         #[arg(long)]
         dir: Option<PathBuf>,
         /// Report the plan without writing any file or directory.
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Downloads the pinned `mermaid.js` with `curl`, verifies its SHA-256,
+    /// and places it under `$XDG_DATA_HOME/living-docs/mermaid/<version>/`
+    /// (`$HOME/.local/share` when `XDG_DATA_HOME` is unset, empty or
+    /// relative). A download whose hash differs places nothing.
+    #[command(
+        about = help::INSTALL_MERMAID_ABOUT,
+        long_about = None,
+        after_help = help::with_exit_codes(help::INSTALL_MERMAID_EXAMPLES)
+    )]
+    Mermaid {
+        /// Print the URL and destination without downloading or writing.
         #[arg(long)]
         dry_run: bool,
     },

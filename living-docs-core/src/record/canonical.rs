@@ -145,11 +145,14 @@ fn is_special_tail_key(key: &str) -> bool {
     [TRACKER_KEY, TIMESTAMP_KEY, SUPERSEDES_KEY, TAGS_KEY].contains(&key)
 }
 
-/// Renders `items` as a flow sequence (`[a, b]`), each quoted only when
-/// [`needs_quoting`] says so.
+/// Renders `items` as a flow sequence (`[a, b]`), each quoted when the
+/// `needs_quoting` rules say so or its plain form, read back in a flow
+/// sequence, would give different text (`+4`, `1e3`, `null`, a number beyond
+/// `u64`); an item such as `true` or `1.5` that reads back as the same text
+/// stays plain.
 pub(crate) fn format_flow_list<S: AsRef<str>>(items: &[S]) -> String {
     let render = |item: &str| {
-        if needs_quoting(item) {
+        if needs_quoting(item) || !reads_back_as_flow_text(item) {
             quoted(item)
         } else {
             item.to_owned()
@@ -159,9 +162,45 @@ pub(crate) fn format_flow_list<S: AsRef<str>>(items: &[S]) -> String {
     format!("[{}]", items.join(", "))
 }
 
+fn reads_back_as_flow_text(value: &str) -> bool {
+    match serde_yaml::from_str::<Value>(&format!("[{value}]")) {
+        Ok(Value::Sequence(items)) => {
+            items.first().and_then(scalar_to_string).as_deref() == Some(value)
+        }
+        _ => false,
+    }
+}
+
+/// Renders `items` as a flow sequence whose every non-integer item reads back
+/// as that exact string, so a number, boolean or null look-alike is quoted.
+pub(crate) fn format_strict_flow_list<S: AsRef<str>>(items: &[S]) -> String {
+    let items: Vec<String> = items.iter().map(|i| quote_item(i.as_ref())).collect();
+    format!("[{}]", items.join(", "))
+}
+
+fn quote_item(item: &str) -> String {
+    if is_plain_integer(item) {
+        item.to_owned()
+    } else {
+        quote_flow(item)
+    }
+}
+
+/// Whether `value` is ASCII digits only and reads back as the integer it
+/// spells (so `12` and `0`, but not `0005` or a number beyond `u64`).
+pub(crate) fn is_plain_integer(value: &str) -> bool {
+    !value.is_empty()
+        && value.bytes().all(|b| b.is_ascii_digit())
+        && matches!(
+            serde_yaml::from_str::<Value>(value),
+            Ok(Value::Number(n)) if n.is_u64() && n.to_string() == value
+        )
+}
+
 /// Renders string `items` as a flow sequence whose every item reads back as
-/// that string, each quoted by [`quote_flow`].
-fn flow_strings<S: AsRef<str>>(items: &[S]) -> String {
+/// that string, each quoted by [`quote_flow`]; unlike [`format_strict_flow_list`]
+/// an integer is quoted too (`["12"]`), so a numeric label stays text.
+pub(crate) fn flow_strings<S: AsRef<str>>(items: &[S]) -> String {
     let items: Vec<String> = items.iter().map(|i| quote_flow(i.as_ref())).collect();
     format!("[{}]", items.join(", "))
 }
@@ -169,7 +208,7 @@ fn flow_strings<S: AsRef<str>>(items: &[S]) -> String {
 /// Renders typed items as a flow sequence: a null as `~`, a number or boolean
 /// plain, a string through [`quote_flow`]. A nested item has no flow form and
 /// renders empty; the read-back guard refuses a record that held one.
-fn flow_values(items: &[Value]) -> String {
+pub(crate) fn flow_values(items: &[Value]) -> String {
     let render = |item: &Value| match item {
         Value::Null => "~".to_owned(),
         Value::String(text) => quote_flow(text),
@@ -204,10 +243,11 @@ const YAML_INDICATOR_PREFIXES: &str = "!&*-?|>%@`\"'#,[]{}";
 /// scalar (with `\`, `"`, line feed and carriage return escaped) when a
 /// plain scalar would be ambiguous — empty, starting with a YAML indicator
 /// character, containing `": "` or a ` #` comment opener, ending in `:`, or carrying surrounding whitespace.
-/// A value whose plain form the reader would return as a different string (a
-/// null, or a number such as `1.50` that reads as `1.5`) is quoted too.
+/// A value whose plain form the reader would return as different text (a
+/// null, a number such as `+4` or `1.50`) is quoted too; one that reads back
+/// as the same text, such as `true` or `1.5`, stays plain.
 pub(crate) fn format_scalar(value: &str) -> String {
-    if needs_quoting(value) || !reads_back_as_block_scalar(value) {
+    if needs_quoting(value) || !reads_back_as_text(value) {
         quoted(value)
     } else {
         value.to_owned()
@@ -215,8 +255,8 @@ pub(crate) fn format_scalar(value: &str) -> String {
 }
 
 /// Whether `value` written plain as a block-mapping value reads back, through
-/// the reader's string form, as the same string.
-fn reads_back_as_block_scalar(value: &str) -> bool {
+/// the reader's string form, as the same text.
+fn reads_back_as_text(value: &str) -> bool {
     match serde_yaml::from_str::<Value>(&format!("k: {value}")) {
         Ok(Value::Mapping(map)) => {
             map.get("k").and_then(scalar_to_string).as_deref() == Some(value)
@@ -231,7 +271,7 @@ fn quoted(value: &str) -> String {
     format!("\"{escaped}\"")
 }
 
-fn needs_quoting(value: &str) -> bool {
+pub(crate) fn needs_quoting(value: &str) -> bool {
     value.is_empty()
         || value.starts_with(|c: char| YAML_INDICATOR_PREFIXES.contains(c))
         || value.contains(": ")

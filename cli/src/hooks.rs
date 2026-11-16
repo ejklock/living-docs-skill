@@ -7,8 +7,17 @@ use std::{fs, io};
 use {crate::output::outln, living_docs_core::guide};
 
 pub(crate) mod gitattributes;
+mod settings;
 
-const HOOK_ASSET_PATHS: [&str; 1] = ["living-docs/hooks/session-context.sh"];
+use settings::{
+    ensure_hooks_section, is_living_docs_entry, load_settings, strip_section_entries,
+    write_settings,
+};
+
+const HOOK_ASSET_PATHS: [&str; 2] = [
+    "living-docs/hooks/session-context.sh",
+    "living-docs/hooks/decision-prompt.sh",
+];
 const PRE_COMMIT_ASSET_PATH: &str = "living-docs/hooks/pre-commit";
 const GIT_HOOKS_DEST_SUBDIR: &str = ".githooks";
 const GIT_HOOKS_PATH_VALUE: &str = ".githooks";
@@ -20,6 +29,10 @@ const SETTINGS_REL_PATH: &str = ".claude/settings.json";
 /// still carried the write-gate entry is left clean.
 const LEGACY_PRE_TOOL_USE_SECTION: &str = "PreToolUse";
 const SESSION_START_SECTION: &str = "SessionStart";
+const POST_TOOL_USE_SECTION: &str = "PostToolUse";
+/// Stripped on install and uninstall: an earlier release put the decision
+/// reminder here.
+const LEGACY_STOP_SECTION: &str = "Stop";
 
 struct HookScript {
     basename: &'static str,
@@ -32,11 +45,13 @@ struct HookEntrySpec {
     matcher: Option<&'static str>,
 }
 
-/// Materializes the session-teaching hook into `<project_root>/.living-docs/hooks/`
-/// at mode 0755, materializes the pre-commit doc-gate to
+/// Materializes the session-teaching and decision-prompt hook scripts into
+/// `<project_root>/.living-docs/hooks/` at mode 0755, materializes the pre-commit doc-gate to
 /// `<project_root>/.githooks/pre-commit` and points `core.hooksPath` at it,
-/// then wires the `SessionStart` hook into `<project_root>/.claude/settings.json`
-/// idempotently, replacing any prior living-docs entry by identity. The
+/// then wires the `SessionStart` and the opt-in, non-blocking `PostToolUse`
+/// (`Edit|Write`) hooks into `<project_root>/.claude/settings.json`
+/// idempotently, replacing any prior living-docs entry by identity and
+/// dropping a living-docs `Stop` entry an earlier install wrote. The
 /// bundle pinned into each generated command's `LIVING_DOCS_BUNDLE=` is
 /// `docs_dir`, required to already exist; `dry_run` reports the same plan
 /// and changes nothing. A missing asset, absent `docs_dir`, or unparseable
@@ -90,7 +105,7 @@ pub(crate) fn install(
 }
 
 /// Removes the artifacts [`install`] wrote — the `.living-docs/hooks/`
-/// script, `.githooks/pre-commit`, and the living-docs entries in
+/// scripts, `.githooks/pre-commit`, and the living-docs entries in
 /// `<project_root>/.claude/settings.json` — leaving unrelated entries,
 /// unrelated top-level keys, and `core.hooksPath` untouched. A project
 /// carrying none of these artifacts is a clean no-op: exit 0, nothing
@@ -162,7 +177,7 @@ fn announce_dry_run_pre_commit() {
 
 fn announce_dry_run_wiring(settings_path: &Path, bundle: &str) {
     outln!(
-        "[dry-run] would wire {} (LIVING_DOCS_BUNDLE={bundle})",
+        "[dry-run] would wire SessionStart and PostToolUse in {} (LIVING_DOCS_BUNDLE={bundle})",
         settings_path.display()
     );
 }
@@ -209,12 +224,19 @@ fn warn_hooks_path(quiet: bool, detail: &str) {
     crate::output::note(quiet, &message);
 }
 
-fn hook_entry_specs() -> [HookEntrySpec; 1] {
-    [HookEntrySpec {
-        script_basename: basename_of(HOOK_ASSET_PATHS[0]),
-        section: SESSION_START_SECTION,
-        matcher: None,
-    }]
+fn hook_entry_specs() -> [HookEntrySpec; 2] {
+    [
+        HookEntrySpec {
+            script_basename: basename_of(HOOK_ASSET_PATHS[0]),
+            section: SESSION_START_SECTION,
+            matcher: None,
+        },
+        HookEntrySpec {
+            script_basename: basename_of(HOOK_ASSET_PATHS[1]),
+            section: POST_TOOL_USE_SECTION,
+            matcher: Some("Edit|Write"),
+        },
+    ]
 }
 
 fn living_docs_hook_marker() -> String {
@@ -235,79 +257,13 @@ fn build_entry(spec: &HookEntrySpec, bundle: &str) -> Value {
 
 fn apply_hook_entries(settings: &mut Value, bundle: &str) {
     let marker = living_docs_hook_marker();
+    strip_section_entries(settings, LEGACY_STOP_SECTION, &marker);
     for spec in hook_entry_specs() {
         let entry = build_entry(&spec, bundle);
         let section = ensure_hooks_section(settings, spec.section);
         section.retain(|existing| !is_living_docs_entry(existing, &marker));
         section.push(entry);
     }
-}
-
-fn load_settings(path: &Path) -> Result<Value, String> {
-    if !path.exists() {
-        return Ok(json!({}));
-    }
-    let raw = fs::read_to_string(path)
-        .map_err(|err| format!("failed to read {}: {err}", path.display()))?;
-    let value: Value = serde_json::from_str(&raw)
-        .map_err(|err| format!("{} is not valid JSON: {err}", path.display()))?;
-    if !value.is_object() {
-        return Err(format!("{} does not contain a JSON object", path.display()));
-    }
-    Ok(value)
-}
-
-fn ensure_hooks_section<'a>(settings: &'a mut Value, section: &str) -> &'a mut Vec<Value> {
-    let hooks = ensure_child_object(settings, "hooks");
-    ensure_child_array(hooks, section)
-}
-
-fn ensure_child_object<'a>(value: &'a mut Value, key: &str) -> &'a mut Value {
-    let object = value
-        .as_object_mut()
-        .expect("settings value is validated as an object before this call");
-    let child = object.entry(key).or_insert_with(|| json!({}));
-    if !child.is_object() {
-        *child = json!({});
-    }
-    object.get_mut(key).expect("key was just inserted")
-}
-
-fn ensure_child_array<'a>(value: &'a mut Value, key: &str) -> &'a mut Vec<Value> {
-    let object = value
-        .as_object_mut()
-        .expect("settings value is validated as an object before this call");
-    let child = object.entry(key).or_insert_with(|| json!([]));
-    if !child.is_array() {
-        *child = json!([]);
-    }
-    object
-        .get_mut(key)
-        .and_then(Value::as_array_mut)
-        .expect("key was just normalized to an array")
-}
-
-fn is_living_docs_entry(entry: &Value, marker: &str) -> bool {
-    entry
-        .get("hooks")
-        .and_then(Value::as_array)
-        .is_some_and(|hooks| hooks.iter().any(|hook| hook_command_contains(hook, marker)))
-}
-
-fn hook_command_contains(hook: &Value, marker: &str) -> bool {
-    hook.get("command")
-        .and_then(Value::as_str)
-        .is_some_and(|command| command.contains(marker))
-}
-
-fn write_settings(path: &Path, settings: &Value) -> io::Result<()> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)?;
-    }
-    let mut rendered = serde_json::to_string_pretty(settings)
-        .expect("a settings value built from string literals always serializes");
-    rendered.push('\n');
-    fs::write(path, rendered)
 }
 
 fn removable_artifacts(project_root: &Path) -> Vec<PathBuf> {
@@ -335,32 +291,24 @@ fn plan_settings_removal(settings_path: &Path) -> Result<Option<Value>, String> 
         return Ok(None);
     }
     let mut settings = load_settings(settings_path)?;
-    if strip_hook_entries(&mut settings) {
-        Ok(Some(settings))
-    } else {
-        Ok(None)
-    }
+    Ok(strip_hook_entries(&mut settings).then_some(settings))
 }
 
+/// Settings are restored as before install, with an empty hook section
+/// treated as absent, the way Claude Code reads it: a user's own empty
+/// section that install appended to is dropped once its entries are removed.
 fn strip_hook_entries(settings: &mut Value) -> bool {
     let marker = living_docs_hook_marker();
-    let pre_tool_use_changed =
-        strip_section_entries(settings, LEGACY_PRE_TOOL_USE_SECTION, &marker);
-    let session_start_changed = strip_section_entries(settings, SESSION_START_SECTION, &marker);
-    pre_tool_use_changed || session_start_changed
-}
-
-fn strip_section_entries(settings: &mut Value, section: &str, marker: &str) -> bool {
-    let Some(array) = settings
-        .get_mut("hooks")
-        .and_then(|hooks| hooks.get_mut(section))
-        .and_then(Value::as_array_mut)
-    else {
-        return false;
-    };
-    let before = array.len();
-    array.retain(|entry| !is_living_docs_entry(entry, marker));
-    array.len() != before
+    let mut changed = false;
+    for section in [
+        LEGACY_PRE_TOOL_USE_SECTION,
+        SESSION_START_SECTION,
+        LEGACY_STOP_SECTION,
+        POST_TOOL_USE_SECTION,
+    ] {
+        changed |= strip_section_entries(settings, section, &marker);
+    }
+    changed
 }
 
 fn remove_artifacts(paths: &[PathBuf]) -> io::Result<()> {
@@ -398,7 +346,7 @@ mod tests {
     fn resolve_scripts_finds_the_session_teaching_asset() {
         let scripts = resolve_scripts().expect("the hook script is embedded");
         let basenames: Vec<&str> = scripts.iter().map(|script| script.basename).collect();
-        assert_eq!(basenames, vec!["session-context.sh"]);
+        assert_eq!(basenames, vec!["session-context.sh", "decision-prompt.sh"]);
         assert!(scripts.iter().all(|script| !script.bytes.is_empty()));
     }
 

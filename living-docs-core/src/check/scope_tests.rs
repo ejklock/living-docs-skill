@@ -21,6 +21,7 @@ fn report() -> Report {
             file: "docs/adr/0002-dirty.md".to_string(),
             kind: "size".to_string(),
             message: "SIZE body too long".to_string(),
+            anchors: Vec::new(),
         }],
         ok: false,
     }
@@ -58,6 +59,22 @@ fn a_relative_scope_path_matches_an_absolute_report_path() {
     let scoped = absolute.scoped_to(&[PathBuf::from("docs/adr/0002-dirty.md")]);
 
     assert_eq!(scoped.violations.len(), 1, "got: {:?}", scoped.violations);
+}
+
+#[test]
+fn a_group_advisory_is_kept_when_any_member_is_in_scope() {
+    let mut full = report();
+    full.advisories.push(Advisory {
+        file: "notes/0001-a.md".to_string(),
+        kind: "blocked-by".to_string(),
+        message: "cycle".to_string(),
+        anchors: vec!["notes/0001-a.md".to_string(), "notes/0002-b.md".to_string()],
+    });
+
+    let scoped = full.scoped_to(&[PathBuf::from("notes/0002-b.md")]);
+
+    assert_eq!(scoped.advisories.len(), 1, "{:?}", scoped.advisories);
+    assert_eq!(scoped.advisories[0].message, "cycle");
 }
 
 #[test]

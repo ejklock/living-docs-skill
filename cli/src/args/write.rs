@@ -18,7 +18,9 @@ pub(crate) enum WriteCmd {
         reference: String,
         #[arg(help = help::set_key_help())]
         key: String,
-        /// The new value; for the `section` key, the section heading.
+        /// The new value; for the `section` key, the section heading. A value
+        /// may start with a dash (`-3`).
+        #[arg(allow_hyphen_values = true)]
         value: Option<String>,
         /// Reads the value, or for `section` the text under the heading, from
         /// this file or from standard input for `-`. `section` replaces the
