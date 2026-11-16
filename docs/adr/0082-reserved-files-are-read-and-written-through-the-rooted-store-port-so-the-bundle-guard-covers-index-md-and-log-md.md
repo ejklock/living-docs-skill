@@ -21,7 +21,7 @@ We will route every read and write of a reserved file's content (`index.md`, `lo
 
 The `DocStore` trait keeps its four signatures. Its contract widens from a doc record to any file of the bundle: `read`, `write` and `rename` act on a record or a reserved file, and the refusal rule of ADR 0073 applies to both. `list` keeps its meaning; which listed files are records stays the core's judgment. The port docblocks say so, and the docblocks that justify `std::fs` by the removed db-store go away.
 
-A verb that rewrites an index whose path the store refuses exits 2 naming the path, and leaves the outside file's bytes unchanged. `check` reports such an index as one violation naming the path, the same way it reports a refused record.
+A refused index is never written, and the outside file's bytes stay unchanged. `manage index` exits 2 naming the path. `write new`, `write set` and `write supersede` keep their existing contract for an index failure: the record is written inside the bundle, the refused index is named on stderr, and the verb exits 1. `check` reports such an index as one violation naming the path, the same way it reports a refused record.
 
 Existence and kind probes (`is_dir`, a metadata check for a regular file) stay in the core: they read no content and write nothing.
 
