@@ -90,3 +90,28 @@ async fn discovery_instructions_teach_recording_a_mid_work_choice_in_the_active_
         "{instructions}"
     );
 }
+
+#[tokio::test]
+async fn instructions_teach_recording_a_mid_work_decision_and_the_adr_materiality_test() {
+    let scratch = Scratch::new();
+    let client = connect(&scratch.bundle(), Era::Discover).await;
+    let instructions = client
+        .peer_info()
+        .expect("discover result retained")
+        .instructions
+        .clone()
+        .expect("instructions")
+        .to_lowercase();
+    for phrase in [
+        "material choice",
+        "decision section",
+        "through `write` with operation `set`",
+        "expensive to reverse",
+        "adr",
+    ] {
+        assert!(
+            instructions.contains(phrase),
+            "no {phrase} in: {instructions}"
+        );
+    }
+}

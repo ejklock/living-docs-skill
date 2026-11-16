@@ -27,7 +27,7 @@ every advisory in full, and the JSON output always carries them all. The kinds:
 - `LINK-STYLE` — a link or image written `/`-rooted (`/adr/0007-x.md`); the advisory names the
   relative form to write instead (`../adr/0007-x.md`). It fires whether or not the target exists
   and never moves the exit code.
-- `LIVENESS stale-proposed` (ADR 0049, ADR 0079) — an ADR still at its seed status (`Proposed`)
+- `LIVENESS` (`stale-proposed`, ADR 0049, ADR 0079) — an ADR still at its seed status (`Proposed`)
   that an issue already `closed`/`done`/`Superseded` declares it implements: the issue body
   holds `Implements` (any case) followed by a link to the ADR, so the work landed but the record
   never left its birth state. A link from the ADR to an issue is history and never counts.

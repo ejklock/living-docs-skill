@@ -8,7 +8,7 @@ use common::{living_docs, run_new, Scratch};
 use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Output;
+use std::process::{Command, Output};
 
 const PINNED_URL: &str = "https://cdn.jsdelivr.net/npm/mermaid@12.3.0/dist/mermaid.min.js";
 
@@ -266,4 +266,34 @@ fn the_docs_bundle_is_never_written_to() {
     project.html(&["--out", "docs-copy.html"]);
 
     assert_eq!(snapshot(&project.dir().join("docs")), before);
+}
+
+const FILTER_CHECK: &str = "const h=require('fs').readFileSync(process.argv[1],'utf8');\
+const s=h.match(/<script>(document[\\s\\S]*?)<\\/script>/)[1];\
+const a=[{textContent:'Cache',hidden:false},{textContent:'Flaky',hidden:false}];\
+const grp=c=>({hidden:false,querySelector:q=>{if(q!=='article.record:not([hidden])')throw new Error(q);return c.find(x=>!x.hidden)||null}});\
+const g=[grp([a[0]]),grp([a[1]]),grp(a)];let fire;\
+global.document={getElementById:()=>({addEventListener:(_,f)=>fire=f}),querySelectorAll:q=>q.startsWith('article')?a:g};\
+eval(s);const seen=[];\
+for(const v of ['flaky','']){fire({target:{value:v}});seen.push(g.map(x=>x.hidden));}\
+console.log(JSON.stringify(seen));";
+
+#[test]
+fn the_page_filter_hides_a_group_without_visible_records_and_restores_it() {
+    let project = Project::new();
+    project.html(&[]);
+    let args = ["-e", FILTER_CHECK];
+    let Ok(run) = Command::new("node")
+        .args(args)
+        .arg(project.default_output())
+        .output()
+    else {
+        eprintln!("SKIPPED: node cannot start, so the filter behavior was not executed");
+        return;
+    };
+    assert!(run.status.success(), "{}", stderr_of(&run));
+    assert_eq!(
+        stdout_of(&run).trim(),
+        "[[true,false,false],[false,false,false]]"
+    );
 }

@@ -35,7 +35,9 @@ pub(crate) fn run_check(
     } else {
         render::render_text(&report, color, verbosity.list_advisories);
     }
-    note_missing_doc_gate(&bundle, verbosity.quiet);
+    if verbosity.list_advisories {
+        note_missing_doc_gate(&bundle, verbosity.quiet);
+    }
     if report.ok {
         ExitCode::SUCCESS
     } else {
@@ -56,8 +58,8 @@ fn exit_bundle_root_not_found(bundle: &Path) -> ExitCode {
 }
 
 /// Suggests `manage install hooks` on stderr when the repository holding `bundle`
-/// has no pre-commit doc-gate; silent outside a git repository and under
-/// `--quiet`.
+/// has no pre-commit doc-gate; `run_check` asks only under `--advisories`.
+/// Silent outside a git repository and under `--quiet`.
 fn note_missing_doc_gate(bundle: &Path, quiet: bool) {
     if crate::doc_gate::doc_gate_armed(bundle) == Some(false) {
         output::note(

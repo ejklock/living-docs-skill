@@ -1,6 +1,6 @@
 use super::resolve_spec;
-use crate::record::canonical::needs_quoting;
-use crate::record::{format_flow_list, format_scalar, TailValue};
+use crate::record::canonical::{format_strict_flow_list, is_plain_integer};
+use crate::record::{format_scalar, TailValue};
 use crate::store::DocStore;
 use serde_yaml::Value;
 use std::path::Path;
@@ -58,9 +58,8 @@ fn list_value(key: &str, value: &str) -> Result<(String, TailValue), String> {
         .filter(|item| !item.is_empty())
         .map(str::to_string)
         .collect();
-    let rendered = format_flow_list(&items);
+    let rendered = format_strict_flow_list(&items);
     let intended = if key == "blocked_by" {
-        refuse_unreadable(key, &items)?;
         typed_items(&items)
     } else {
         TailValue::Sequence(items)
@@ -68,14 +67,13 @@ fn list_value(key: &str, value: &str) -> Result<(String, TailValue), String> {
     Ok((rendered, intended))
 }
 
-/// Types the `blocked_by` items for the read-back check: a decimal number
-/// (ASCII digits only) the record reads as a YAML number (such as `12`) is
-/// expected back typed, any other item (`0012`, `ref ab-77`, `-3`, `#21`) as
-/// the text given. Items the writer leaves plain and YAML would read as
-/// another value are refused beforehand by `refuse_unreadable`.
+/// Types the `blocked_by` items for the read-back check: an integer the
+/// writer leaves plain (such as `12`) is expected back as a number, any other
+/// item (`0012`, `ref ab-77`, `-3`, `+4`, `true`) as the text given, which the
+/// writer quotes whenever its plain form would read as another type.
 fn typed_items(items: &[String]) -> TailValue {
     let read = |item: &String| match serde_yaml::from_str::<Value>(item) {
-        Ok(number @ Value::Number(_)) if item.bytes().all(|b| b.is_ascii_digit()) => number,
+        Ok(number @ Value::Number(_)) if is_plain_integer(item) => number,
         _ => Value::String(item.clone()),
     };
     let typed: Vec<Value> = items.iter().map(read).collect();
@@ -83,29 +81,5 @@ fn typed_items(items: &[String]) -> TailValue {
         TailValue::Typed(typed)
     } else {
         TailValue::Sequence(items.to_vec())
-    }
-}
-
-/// Refuses the first item the writer leaves plain that YAML reads as another
-/// type than the text given (a boolean, null, or a number that is not a plain
-/// integer: `+4`, `1.5`, `0x10`, `1e3`). An item the writer quotes (`#21`,
-/// `-0`) reads back as its text and is never refused; nor is a signed integer
-/// such as `-3`.
-fn refuse_unreadable(key: &str, items: &[String]) -> Result<(), String> {
-    let changes = |item: &&String| {
-        if needs_quoting(item) {
-            return false;
-        }
-        match serde_yaml::from_str::<Value>(item) {
-            Ok(Value::Null | Value::Bool(_)) => true,
-            Ok(Value::Number(n)) => !((n.is_i64() || n.is_u64()) && n.to_string() == **item),
-            _ => false,
-        }
-    };
-    match items.iter().find(changes) {
-        Some(item) => Err(format!(
-            "'{key}': '{item}' would read back as a different value; quote-free YAML cannot hold it, so write it in the issue body or as plain text"
-        )),
-        None => Ok(()),
     }
 }

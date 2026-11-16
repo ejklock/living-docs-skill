@@ -18,14 +18,14 @@ const HOOKS: [&str; 2] = [
 fn hook_source(relative: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
-        .expect("the cli crate sits under the workspace root")
+        .unwrap()
         .join(relative)
 }
 
 /// Writes an executable that appends `name` to the file `$STAND_IN_MARKER`
 /// names, so the marker path never passes through shell quoting.
 fn stand_in(path: &Path, name: &str, exit: i32, mode: u32) {
-    fs::create_dir_all(path.parent().expect("a stand-in has a directory")).unwrap();
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
     let body = format!("#!/bin/sh\necho {name} >> \"$STAND_IN_MARKER\"\nexit {exit}\n");
     fs::write(path, body).unwrap();
     fs::set_permissions(path, fs::Permissions::from_mode(mode)).unwrap();
@@ -44,6 +44,16 @@ struct Run {
 /// A `git` command that sees only the scratch directory: no inherited
 /// environment, no system or user configuration, and the stand-in `PATH`.
 fn isolated_git(repo: &Path, root: &Path, args: &[&str]) -> Output {
+    isolated_git_with(repo, root, &[], args)
+}
+
+/// [`isolated_git`] with extra environment variables set for the command.
+fn isolated_git_with(
+    repo: &Path,
+    root: &Path,
+    extra_env: &[(&str, &Path)],
+    args: &[&str],
+) -> Output {
     Command::new("git")
         .current_dir(repo)
         .env_clear()
@@ -59,9 +69,10 @@ fn isolated_git(repo: &Path, root: &Path, args: &[&str]) -> Output {
         .env("GIT_AUTHOR_EMAIL", "t@example.com")
         .env("GIT_COMMITTER_NAME", "T")
         .env("GIT_COMMITTER_EMAIL", "t@example.com")
+        .envs(extra_env.iter().copied())
         .args(args)
         .output()
-        .expect("failed to run git")
+        .unwrap()
 }
 
 fn commit_with(hook: &str, setup: &Setup) -> Run {
@@ -159,4 +170,67 @@ fn the_chosen_binary_exit_status_is_the_hook_verdict() {
         assert_eq!(run.ran, "repo", "{hook}");
         assert!(!run.output.status.success(), "{hook} let a failure through");
     });
+}
+
+/// Initialises `repo` with a `docs` bundle and the distributed hook, and puts
+/// the real binary on the `PATH` the commit will see.
+fn arm_real_binary_hook(repo: &Path, root: &Path) {
+    fs::create_dir_all(root.join("bin")).unwrap();
+    std::os::unix::fs::symlink(
+        env!("CARGO_BIN_EXE_living-docs"),
+        root.join("bin/living-docs"),
+    )
+    .unwrap();
+    fs::create_dir_all(repo.join("docs")).unwrap();
+    fs::create_dir_all(repo.join("sub")).unwrap();
+    fs::write(repo.join("docs/index.md"), "# Documents\n").unwrap();
+    isolated_git(repo, root, &["init", "-q"]);
+    let installed = repo.join(".git/hooks/pre-commit");
+    fs::copy(hook_source(HOOKS[1]), &installed).unwrap();
+    fs::set_permissions(&installed, fs::Permissions::from_mode(0o755)).unwrap();
+}
+
+/// Commits in a scratch repository through the installed hook with the real
+/// binary on `PATH`, from `cwd` below the repository root, and returns
+/// everything the commit printed. `bundle` sets `LIVING_DOCS_BUNDLE`.
+fn commit_printing(cwd: &str, bundle: Option<&Path>) -> String {
+    let scratch = common::Scratch::with_subdir("pre-commit-header", "repo");
+    let repo: &Path = &scratch;
+    let root = scratch.root();
+    arm_real_binary_hook(repo, root);
+    let extra: Vec<(&str, &Path)> = bundle
+        .map(|path| ("LIVING_DOCS_BUNDLE", path))
+        .into_iter()
+        .collect();
+    let output = isolated_git_with(
+        &repo.join(cwd),
+        root,
+        &extra,
+        &["commit", "-q", "--allow-empty", "-m", "x"],
+    );
+    format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    )
+}
+
+#[test]
+fn pre_commit_prints_a_relative_bundle_path() {
+    for cwd in [".", "sub"] {
+        let printed = commit_printing(cwd, None);
+        assert!(
+            printed.lines().any(|line| line.ends_with("bundle: docs")),
+            "from {cwd}: {printed}"
+        );
+    }
+}
+
+#[test]
+fn pre_commit_keeps_the_path_of_a_bundle_outside_the_repository() {
+    let outside = common::Scratch::new("pre-commit-outside-bundle");
+    fs::write(outside.join("index.md"), "# Documents\n").unwrap();
+    let printed = commit_printing(".", Some(&outside));
+    let expected = format!("bundle: {}", outside.display());
+    assert!(printed.contains(&expected), "{printed}");
 }

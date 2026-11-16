@@ -7,7 +7,7 @@
 use super::resolve_spec;
 use super::retitle::{number_prefix, relocate, replace_heading_number, Retitled};
 use crate::commands::next::{next_number_from_store, numeric_prefix};
-use crate::commands::supersede::{draft_frontmatter_fields, set_frontmatter_fields};
+use crate::commands::supersede::draft_frontmatter_fields;
 use crate::doc_type::Identity;
 use crate::record::canonical::flow_values;
 use crate::record::{extract_record, TailValue};
@@ -35,11 +35,8 @@ pub(crate) fn apply(
         "Issue" => plan_blocked_by(store, docs_dir, (path, dir), (&old, &new))?,
         _ => Vec::new(),
     };
-    if let Some(updated) = replace_heading_number(&contents, &old, &new) {
-        store.write(path, &updated).map_err(|e| e.to_string())?;
-    }
-    let mut rewritten = relocate(store, docs_dir, path, &target)?;
-    write_blocked_by(store, plan, &mut rewritten)?;
+    let own = replace_heading_number(&contents, &old, &new).unwrap_or(contents);
+    let rewritten = relocate(store, docs_dir, (path, &target), (&own, &plan))?;
     Ok(Retitled {
         path: target,
         rewritten,
@@ -206,21 +203,6 @@ fn plan_blocked_by(
         plan.push((other, rendered));
     }
     Ok(plan)
-}
-
-/// Writes each planned `blocked_by` and adds the issue to `rewritten`.
-fn write_blocked_by(
-    store: &dyn DocStore,
-    plan: Vec<(PathBuf, String)>,
-    rewritten: &mut Vec<PathBuf>,
-) -> Result<(), String> {
-    for (other, rendered) in plan {
-        set_frontmatter_fields(store, &other, &[("blocked_by", rendered)])?;
-        if !rewritten.contains(&other) {
-            rewritten.push(other);
-        }
-    }
-    Ok(())
 }
 
 /// The `blocked_by` items of the record with each item naming `old` replaced

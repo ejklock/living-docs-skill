@@ -20,15 +20,19 @@ set -u
 INPUT="$(cat 2>/dev/null || true)"
 TOOL_RE='"tool_name"[[:space:]]*:[[:space:]]*"(Edit|Write|MultiEdit)"'
 [[ "$INPUT" =~ $TOOL_RE ]] || exit 0
-FILE_RE='"file_path"[[:space:]]*:[[:space:]]*"(([^"\\]|\\.)+)"'
-[[ "$INPUT" =~ $FILE_RE ]] || exit 0
-FILE="${BASH_REMATCH[1]}"
-FILE="${FILE//\\\"/\"}"
-FILE="${FILE//\\\\/\\}"
+json_string() {
+  local re='"'"$1"'"[[:space:]]*:[[:space:]]*"(([^"\\]|\\.)+)"'
+  [[ "$INPUT" =~ $re ]] || return 1
+  JSON_VALUE="${BASH_REMATCH[1]}"
+  JSON_VALUE="${JSON_VALUE//\\\"/\"}"
+  JSON_VALUE="${JSON_VALUE//\\\\/\\}"
+}
+
+json_string file_path || exit 0
+FILE="$JSON_VALUE"
 
 DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
-CWD_RE='"cwd"[[:space:]]*:[[:space:]]*"([^"]+)"'
-[[ "$INPUT" =~ $CWD_RE ]] && DIR="${BASH_REMATCH[1]}"
+json_string cwd && DIR="$JSON_VALUE"
 
 ROOT="$(git -C "$DIR" rev-parse --show-toplevel 2>/dev/null)" || exit 0
 GITDIR="$(git -C "$DIR" rev-parse --absolute-git-dir 2>/dev/null)" || exit 0

@@ -53,31 +53,42 @@ fn relative_to_bundle(report: &Report, file: &str) -> String {
         .map_or_else(|_| file.to_owned(), |rel| rel.display().to_string())
 }
 
+/// One advisory kind's findings: how many there are and the distinct records
+/// they fall on, in the order the records first appear.
+#[derive(Default)]
+struct KindGroup {
+    advisories: usize,
+    records: Vec<String>,
+}
+
 /// One line per advisory kind, the largest group first and ties by kind name.
 fn summary_lines(advisories: &[Advisory]) -> Vec<String> {
-    let mut groups: BTreeMap<&str, Vec<String>> = BTreeMap::new();
+    let mut groups: BTreeMap<&str, KindGroup> = BTreeMap::new();
     for advisory in advisories {
-        groups
-            .entry(advisory.kind.as_str())
-            .or_default()
-            .push(record_label(&advisory.file));
+        let group = groups.entry(advisory.kind.as_str()).or_default();
+        group.advisories += 1;
+        let label = record_label(&advisory.file);
+        if !group.records.contains(&label) {
+            group.records.push(label);
+        }
     }
     let mut groups: Vec<_> = groups.into_iter().collect();
-    groups.sort_by_key(|(_, labels)| std::cmp::Reverse(labels.len()));
+    groups.sort_by_key(|(_, group)| std::cmp::Reverse(group.advisories));
     groups
         .into_iter()
-        .map(|(kind, labels)| summary_line(kind, &labels))
+        .map(|(kind, group)| summary_line(kind, &group))
         .collect()
 }
 
-fn summary_line(kind: &str, labels: &[String]) -> String {
-    let noun = if labels.len() == 1 {
+fn summary_line(kind: &str, group: &KindGroup) -> String {
+    let noun = if group.advisories == 1 {
         "advisory"
     } else {
         "advisories"
     };
-    let named = labels[..labels.len().min(NAMED_RECORDS)].join(", ");
-    let rest = labels.len().saturating_sub(NAMED_RECORDS);
+    let records = &group.records;
+    let named = records[..records.len().min(NAMED_RECORDS)].join(", ");
+    let rest = records.len().saturating_sub(NAMED_RECORDS);
     let overflow = if rest > 0 {
         format!(" (+{rest})")
     } else {
@@ -85,7 +96,7 @@ fn summary_line(kind: &str, labels: &[String]) -> String {
     };
     format!(
         "  {} {} {noun}: {named}{overflow}",
-        labels.len(),
+        group.advisories,
         kind.to_uppercase()
     )
 }

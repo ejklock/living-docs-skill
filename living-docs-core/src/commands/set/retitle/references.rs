@@ -1,5 +1,6 @@
-//! The in-bundle references a retitle repoints after it renames a record's
-//! file, and the rule that decides which mentions are the renamed file's.
+//! The in-bundle references a retitle or renumbering repoints when it renames
+//! a record's file: drafted in full, and the rule that decides which
+//! mentions are the renamed file's.
 
 use crate::check::links::resolve_destination;
 use crate::store::DocStore;
@@ -30,43 +31,67 @@ fn rewritten_contents(
     }
 }
 
-/// Rewrites every bundle record that names the old filename, the renamed
-/// record's own body included, so no link is broken by the rename. When no
-/// other bundle file shares the old basename, every whole-name mention is
-/// rewritten — prose naming the file as well as link destinations. When
-/// another file does (a view and a root file both called `constitution.md`),
-/// only a markdown link whose destination resolves, by the rule `check`
-/// applies to links, to the renamed file is repointed, and a bare prose
-/// mention is left alone as ambiguous.
-pub(super) fn rewrite_references(
+/// The bundle's records as they will be named once the rename is done, in
+/// path order, and whether another record already carries the old basename.
+fn listed_after_rename(
     store: &dyn DocStore,
     docs_dir: &Path,
-    old_path: &Path,
-    new_path: &Path,
-) -> Result<Vec<PathBuf>, String> {
+    (old_path, new_path): (&Path, &Path),
+    old_name: &str,
+) -> Result<(Vec<PathBuf>, bool), String> {
+    let mut listed = store.list(docs_dir).map_err(|e| e.to_string())?;
+    let shared = listed
+        .iter()
+        .any(|p| p != new_path && p != old_path && file_name(p).as_deref() == Some(old_name));
+    listed.retain(|p| p != new_path);
+    for path in &mut listed {
+        if path == old_path {
+            *path = new_path.to_path_buf();
+        }
+    }
+    listed.sort();
+    Ok((listed, shared))
+}
+
+/// Drafts the rewrite of every bundle record that names the old filename,
+/// the renamed record's own body included, so no link is broken by the
+/// rename; nothing is written. `own` is the renamed record's body as it will
+/// be written, and the record is keyed by `new_path`. When no other bundle
+/// file shares the old basename, every whole-name mention is rewritten —
+/// prose naming the file as well as link destinations. When another file does
+/// (a view and a root file both called `constitution.md`), only a markdown
+/// link whose destination resolves, by the rule `check` applies to links, to
+/// the renamed file is repointed, and a bare prose mention is left alone as
+/// ambiguous. Returns each changed record with its new contents, in bundle
+/// order.
+pub(super) fn plan_references(
+    store: &dyn DocStore,
+    docs_dir: &Path,
+    (old_path, new_path): (&Path, &Path),
+    own: &str,
+) -> Result<Vec<(PathBuf, String)>, String> {
     let (Some(old_name), Some(new_name)) = (file_name(old_path), file_name(new_path)) else {
         return Ok(Vec::new());
     };
-    let listed = store.list(docs_dir).map_err(|e| e.to_string())?;
-    let shared = listed
-        .iter()
-        .any(|p| p != new_path && p != old_path && file_name(p).as_deref() == Some(&old_name));
+    let (listed, shared) = listed_after_rename(store, docs_dir, (old_path, new_path), &old_name)?;
     let bundle = docs_dir.to_string_lossy();
     let old_resolved = old_path.strip_prefix(docs_dir).ok().and_then(|relative| {
         resolve_destination("", &format!("/{}", relative.to_string_lossy()), &bundle)
     });
     let names = (old_name, new_name);
-    let mut rewritten = Vec::new();
+    let mut plan = Vec::new();
     for path in listed {
-        let contents = store.read(&path).map_err(|e| e.to_string())?;
+        let contents = match path == new_path {
+            true => own.to_owned(),
+            false => store.read(&path).map_err(|e| e.to_string())?,
+        };
         let updated =
             rewritten_contents(&path, &contents, &bundle, &names, (&old_resolved, shared));
         if updated != contents {
-            store.write(&path, &updated).map_err(|e| e.to_string())?;
-            rewritten.push(path);
+            plan.push((path, updated));
         }
     }
-    Ok(rewritten)
+    Ok(plan)
 }
 
 /// Repoints each link destination in `contents` that resolves to the renamed

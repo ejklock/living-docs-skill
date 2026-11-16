@@ -3,9 +3,9 @@
 # session-context.sh — SessionStart hook for the living-docs authoring contract
 # (deterministic point-of-use teaching).
 #
-# Emits one context line teaching the authoring contract, where a mid-work choice
-# is recorded (the active issue's Decision section) and reading before deciding,
-# with the resolved CLI binary, so every session receives it at t=0.
+# Emits one context line stating the authoring contract plus the
+# read-before-deciding and decision-recording rules, with the resolved CLI
+# binary, so every session receives it at t=0.
 # Also points core.hooksPath at .githooks/ when the repo ships one, arming the
 # pre-commit doc-gate. Always exits 0.
 

@@ -43,10 +43,11 @@ pub fn render(store: &dyn DocStore, bundle: &Path, mermaid: &MermaidSource) -> S
             rec.record.doc_type.as_str(),
             rec.record.status.as_deref().unwrap_or(""),
         );
-        main.push_str(&headings(last, group));
+        main.push_str(&headings(last, Some(group)));
         last = Some(group);
         main.push_str(&page::card(&graph.card(index)));
     }
+    main.push_str(&headings(last, None));
     page::document(mermaid, &main)
 }
 
@@ -90,7 +91,7 @@ impl Graph {
             meta: meta_of(rec),
             description: rec.record.description.clone(),
             successor: successor(&self.recs, index).map(|next| reference(&self.recs[next])),
-            body_html: markdown::to_html(&rec.record.body, &resolve),
+            body_html: markdown::to_html(&rec.record.body, &rec.record.title, &resolve),
             backlinks: self.inbound[index]
                 .iter()
                 .map(|&n| reference(&self.recs[n]))
@@ -99,16 +100,35 @@ impl Graph {
     }
 }
 
-/// The type and status headings opening the group `now` after `last`.
-fn headings(last: Option<(&str, &str)>, now: (&str, &str)) -> String {
+/// The group sections closing and opening between `last` and `now` (`None`
+/// at the end of the page). A type section wraps its status sections and each
+/// wraps its records, so the filter can hide a heading with its emptied group.
+fn headings(last: Option<(&str, &str)>, now: Option<(&str, &str)>) -> String {
+    let type_changes = type_of(last) != type_of(now);
+    let status_changes = type_changes || !same_group(last, now.unwrap_or_default());
     let mut out = String::new();
-    if last.map(|(doc_type, _)| doc_type) != Some(now.0) {
-        out.push_str(&page::heading(2, now.0));
+    if let Some((_, status)) = last {
+        if status_changes && !status.is_empty() {
+            out.push_str(page::GROUP_CLOSE);
+        }
+        if type_changes {
+            out.push_str(page::GROUP_CLOSE);
+        }
     }
-    if !same_group(last, now) && !now.1.is_empty() {
-        out.push_str(&page::heading(3, now.1));
+    let Some((doc_type, status)) = now else {
+        return out;
+    };
+    if type_changes {
+        out.push_str(&page::group_open(2, doc_type));
+    }
+    if status_changes && !status.is_empty() {
+        out.push_str(&page::group_open(3, status));
     }
     out
+}
+
+fn type_of<'a>(group: Option<(&'a str, &str)>) -> Option<&'a str> {
+    group.map(|(doc_type, _)| doc_type)
 }
 
 fn same_group(last: Option<(&str, &str)>, now: (&str, &str)) -> bool {

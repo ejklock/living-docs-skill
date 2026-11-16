@@ -4,13 +4,13 @@
 //! type, or `Superseded`, is refused — its title is history.
 
 use super::resolve_spec;
-use crate::commands::supersede::set_frontmatter_fields;
+use crate::commands::supersede::{draft_frontmatter_fields, set_frontmatter_fields};
 use crate::doc_type::{spec_for_frontmatter, DocTypeSpec, Identity};
 use crate::frontmatter::read_scalar_from_str;
 use crate::paths::slugify;
 use crate::record::{extract_record, format_scalar};
 use crate::store::DocStore;
-use references::rewrite_references;
+pub(super) use relocate::relocate;
 use std::path::{Path, PathBuf};
 
 /// What a retitle did: where the record now lives, and which other bundle
@@ -35,34 +35,29 @@ pub(crate) fn apply(
         refuse_collision(store, docs_dir, target)?;
     }
 
-    set_frontmatter_fields(store, path, &[("title", format_scalar(title))])?;
-    rewrite_heading(store, path, title)?;
-
+    let own = draft_retitled(store, path, title)?;
     let Some(target) = target else {
+        set_frontmatter_fields(store, path, &[("title", format_scalar(title))])?;
+        rewrite_heading(store, path, title)?;
         return Ok(Retitled {
             path: path.to_path_buf(),
             rewritten: Vec::new(),
         });
     };
-    let rewritten = relocate(store, docs_dir, path, &target)?;
+    let rewritten = relocate(store, docs_dir, (path, &target), (&own, &[]))?;
     Ok(Retitled {
         path: target,
         rewritten,
     })
 }
 
-/// Moves a record's file to `target` and repoints every bundle record that
-/// names the old filename, the moved record's own body included; the one
-/// rename path a retitle and a renumbering share. Returns the records it
-/// rewrote.
-pub(super) fn relocate(
-    store: &dyn DocStore,
-    docs_dir: &Path,
-    path: &Path,
-    target: &Path,
-) -> Result<Vec<PathBuf>, String> {
-    store.rename(path, target).map_err(|e| e.to_string())?;
-    rewrite_references(store, docs_dir, path, target)
+/// The record's body with the new `title` in its frontmatter and its title
+/// heading, drafted without writing.
+fn draft_retitled(store: &dyn DocStore, path: &Path, title: &str) -> Result<String, String> {
+    let fields = [("title", format_scalar(title))];
+    let drafted = draft_frontmatter_fields(store, path, &fields, &[])?;
+    let number = number_prefix(path).ok();
+    Ok(replace_title_heading(&drafted, number.as_deref(), title).unwrap_or(drafted))
 }
 
 /// The record's own title heading with its `NNNN.` prefix changed from `old`
@@ -281,6 +276,13 @@ fn heading_number(heading: &str) -> Option<&str> {
 }
 
 mod references;
+mod relocate;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod atomic_tests;
+
+#[cfg(test)]
+mod rollback_tests;

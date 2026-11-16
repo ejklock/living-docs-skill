@@ -17,13 +17,14 @@ pub(super) fn escape(text: &str) -> String {
     }
 }
 
-/// Renders `body`; `resolve` maps a link destination to the fragment id of
+/// Renders `body` without a leading heading that repeats `title`, which the
+/// card already shows; `resolve` maps a link destination to the fragment id of
 /// the bundle record it names, if any.
-pub(super) fn to_html(body: &str, resolve: &dyn Fn(&str) -> Option<String>) -> String {
+pub(super) fn to_html(body: &str, title: &str, resolve: &dyn Fn(&str) -> Option<String>) -> String {
     let options = Options::ENABLE_TABLES | Options::ENABLE_STRIKETHROUGH;
     let mut in_diagram = false;
     let mut events = Vec::new();
-    for event in Parser::new_ext(body, options) {
+    for event in without_repeated_title(Parser::new_ext(body, options).collect(), title) {
         match event {
             Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(info))) if is_mermaid(&info) => {
                 in_diagram = true;
@@ -39,6 +40,30 @@ pub(super) fn to_html(body: &str, resolve: &dyn Fn(&str) -> Option<String>) -> S
     let mut out = String::new();
     push_html(&mut out, events.into_iter());
     out
+}
+
+/// `events` minus a first heading whose text equals `title`.
+fn without_repeated_title<'a>(mut events: Vec<Event<'a>>, title: &str) -> Vec<Event<'a>> {
+    if !matches!(events.first(), Some(Event::Start(Tag::Heading { .. }))) {
+        return events;
+    }
+    let Some(end) = events
+        .iter()
+        .position(|event| matches!(event, Event::End(TagEnd::Heading(_))))
+    else {
+        return events;
+    };
+    let text: String = events[1..end]
+        .iter()
+        .filter_map(|event| match event {
+            Event::Text(part) | Event::Code(part) => Some(part.as_ref()),
+            _ => None,
+        })
+        .collect();
+    if text.trim() == title.trim() {
+        events.drain(..=end);
+    }
+    events
 }
 
 fn neutralise<'a>(event: Event<'a>, resolve: &dyn Fn(&str) -> Option<String>) -> Option<Event<'a>> {

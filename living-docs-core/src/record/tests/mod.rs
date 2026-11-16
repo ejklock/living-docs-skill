@@ -3,6 +3,7 @@ use super::*;
 mod canonical;
 mod extract;
 mod owner;
+mod quoting;
 mod title;
 
 /// Builds a scalar `frontmatter_tail` entry from a key and value.

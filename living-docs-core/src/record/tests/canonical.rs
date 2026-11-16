@@ -198,8 +198,8 @@ fn format_scalar_quotes_an_inner_line_break_and_escapes_it() {
 }
 
 #[test]
-fn format_flow_list_keeps_its_items_plain_when_no_character_rule_applies() {
-    assert_eq!(format_flow_list(&["1.50", "a b"]), "[1.50, a b]");
+fn format_flow_list_keeps_a_plain_reading_item_unquoted() {
+    assert_eq!(format_flow_list(&["a#b", "a b"]), "[a#b, a b]");
 }
 
 #[test]

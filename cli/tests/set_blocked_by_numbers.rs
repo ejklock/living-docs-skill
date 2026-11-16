@@ -96,16 +96,66 @@ fn labels_still_accept_a_tracker_identifier() {
 }
 
 #[test]
-fn blocked_by_refuses_an_item_the_record_would_read_back_as_another_value_naming_it() {
-    let (docs, path) = issue_bundle("rewritten");
-    for value in ["+4", "1.5", "true"] {
-        let list = format!("12, {value}");
-        let stderr = assert_refused_unchanged(&docs, &path, &["0001", "blocked_by", &list]);
+fn blocked_by_accepts_a_type_ambiguous_item() {
+    for value in ["+4", "true", "1e3", "null", "0x10", "1.5"] {
+        let docs = temp_bundle("set-blocked-by-numbers", &format!("ambiguous-{value}"));
+        let path = docs.join("issues/0001-work.md");
+        let record = "---\ntype: Issue\ntitle: Work\ndescription: A record\nowner: Someone\nstatus: Open\ntimestamp: 2026-01-01T00:00:00Z\n---\n\n# 0001. Work\n\n### Scope\n\nOne thing.\n\n### Acceptance\n\n- It works.\n";
+        common::write(&docs, "issues/0001-work.md", record);
+        common::write(&docs, "index.md", "# Docs\n\n* [issues](issues/)\n");
+        common::index_bundle(&docs);
+        let list = format!("{value}, 12");
+        let out = set(&docs, &["0001", "blocked_by", &list]);
+        assert!(out.status.success(), "{value}: {out:?}");
+        let expected = format!("blocked_by: [\"{value}\", 12]");
+        assert_eq!(lines_of(&path, "blocked_by"), [expected], "{value}");
+        let check = common::run_check_advisories(&docs);
+        assert_eq!(check.status.code(), Some(0), "{value}: {check:?}");
+        let stdout = common::stdout_of(&check);
         assert!(
-            stderr.contains(&format!("'{value}' would read back")),
-            "{value}: {stderr}"
+            stdout.contains("BLOCKED-BY") && stdout.contains(value),
+            "{value}: {stdout}"
         );
     }
+}
+
+#[test]
+fn blocked_by_round_trips_an_unreadable_number_quoted() {
+    let (docs, path) = issue_bundle("beyond-u64");
+    for value in ["12345678901234567890123", "18446744073709551616"] {
+        let out = set(&docs, &["0001", "blocked_by", value]);
+        assert!(out.status.success(), "{value}: {out:?}");
+        let expected = format!("blocked_by: [\"{value}\"]");
+        assert_eq!(lines_of(&path, "blocked_by"), [expected], "{value}");
+    }
+    let out = set(&docs, &["0001", "blocked_by", "18446744073709551615"]);
+    assert!(out.status.success(), "{out:?}");
+    assert_eq!(
+        lines_of(&path, "blocked_by"),
+        ["blocked_by: [18446744073709551615]"]
+    );
+}
+
+#[test]
+fn blocked_by_value_starting_with_a_dash() {
+    let (docs, path) = issue_bundle("dash");
+    let bundle = docs.to_str().unwrap();
+    let run = |args: &[&str]| {
+        living_docs()
+            .args(["--docs-dir", bundle, "write", "set", "0001", "blocked_by"])
+            .args(args)
+            .output()
+            .unwrap()
+    };
+    let out = run(&["-3, 12", "--plain"]);
+    assert!(out.status.success(), "{out:?}");
+    assert_eq!(lines_of(&path, "blocked_by"), ["blocked_by: [\"-3\", 12]"]);
+    let out = run(&["-3", "--plain"]);
+    assert!(out.status.success(), "{out:?}");
+    assert_eq!(lines_of(&path, "blocked_by"), ["blocked_by: [\"-3\"]"]);
+    let out = run(&["--plain", "--", "--plain"]);
+    assert!(out.status.success(), "{out:?}");
+    assert_eq!(lines_of(&path, "blocked_by"), ["blocked_by: [\"--plain\"]"]);
 }
 
 #[test]
@@ -126,15 +176,3 @@ fn blocked_by_accepts_items_the_record_quotes_and_keeps_them_as_text() {
     assert_eq!(lines_of(&path, "blocked_by"), ["blocked_by: [12, \"-0\"]"]);
 }
 
-#[test]
-fn blocked_by_refuses_null_hex_and_exponent_items_naming_them() {
-    let (docs, path) = issue_bundle("other-types");
-    for value in ["null", "0x10", "1e3"] {
-        let list = format!("12, {value}");
-        let stderr = assert_refused_unchanged(&docs, &path, &["0001", "blocked_by", &list]);
-        assert!(
-            stderr.contains(&format!("'{value}' would read back")),
-            "{value}: {stderr}"
-        );
-    }
-}

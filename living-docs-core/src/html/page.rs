@@ -10,14 +10,17 @@ const PINNED_MERMAID: &str = "<script src=\"https://cdn.jsdelivr.net/npm/mermaid
 const STYLE: &str =
     "body{font:16px/1.5 system-ui,sans-serif;max-width:60rem;margin:0 auto;padding:1rem}\
 article{border:1px solid #ccc;border-radius:6px;padding:.5rem 1rem;margin:1rem 0}\
-article[hidden]{display:none}\
+article[hidden],section[hidden]{display:none}\
 .meta{color:#555;font-size:.85rem}\
 pre{overflow:auto;background:#f5f5f5;padding:.5rem}\
 pre.mermaid{background:none}\
 table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:.2rem .5rem}\
 #filter{width:100%;padding:.5rem;font-size:1rem}";
 
-const FILTER_SCRIPT: &str = "<script>document.getElementById('filter').addEventListener('input',function(e){var q=e.target.value.toLowerCase();document.querySelectorAll('article.record').forEach(function(a){a.hidden=q!==''&&a.textContent.toLowerCase().indexOf(q)<0;});});</script>";
+const FILTER_SCRIPT: &str = "<script>document.getElementById('filter').addEventListener('input',function(e){var q=e.target.value.toLowerCase();document.querySelectorAll('article.record').forEach(function(a){a.hidden=q!==''&&a.textContent.toLowerCase().indexOf(q)<0;});document.querySelectorAll('section.group').forEach(function(g){g.hidden=!g.querySelector('article.record:not([hidden])');});});</script>";
+
+/// Closes a section opened by `group_open`.
+pub(super) const GROUP_CLOSE: &str = "</section>\n";
 
 const MERMAID_START: &str =
     "<script>if(window.mermaid){mermaid.initialize({startOnLoad:true});}</script>";
@@ -52,9 +55,13 @@ fn mermaid_script(mermaid: &MermaidSource) -> String {
     }
 }
 
-/// A group heading of the given level.
-pub(super) fn heading(level: u8, text: &str) -> String {
-    format!("<h{level}>{}</h{level}>\n", escape(text))
+/// Opens a group section holding a heading of the given level; the caller
+/// closes it with `GROUP_CLOSE` after the group's records.
+pub(super) fn group_open(level: u8, text: &str) -> String {
+    format!(
+        "<section class=\"group\">\n<h{level}>{}</h{level}>\n",
+        escape(text)
+    )
 }
 
 pub(super) fn card(card: &Card) -> String {

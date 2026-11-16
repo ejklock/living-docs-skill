@@ -51,7 +51,9 @@ pub(crate) struct CheckArgs {
     #[arg(long, num_args = 1.., value_name = "PATH")]
     pub(crate) changed_files: Vec<PathBuf>,
     /// Lists every advisory after the per-kind summary instead of the
-    /// summary alone; the JSON output is unaffected.
+    /// summary alone, and prints the arm-the-hooks hint on stderr when no
+    /// pre-commit doc-gate is armed (also in JSON mode); the JSON output
+    /// itself is unaffected.
     #[arg(long)]
     pub(crate) advisories: bool,
 }

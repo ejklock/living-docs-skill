@@ -241,15 +241,17 @@ fn gate_refuses_each_key_on_an_adr_naming_key_and_issue_type() {
 }
 
 #[test]
-fn refuse_values_the_parser_would_store_as_something_else() {
-    let (docs, path) = issue_bundle("refuse-reinterpreted");
-    for (key, value) in [
-        ("labels", "1e3"),
-        ("labels", "null, a"),
-        ("blocked_by", "~"),
+fn items_the_parser_would_store_as_something_else_are_written_quoted() {
+    let (docs, path) = issue_bundle("quote-reinterpreted");
+    for (key, value, line) in [
+        ("labels", "1e3", "labels: [\"1e3\"]"),
+        ("labels", "null, a", "labels: [\"null\", a]"),
+        ("labels", "true, 1.5, x", "labels: [\"true\", \"1.5\", x]"),
+        ("labels", "false, 2.5, .inf", "labels: [\"false\", \"2.5\", \".inf\"]"),
+        ("blocked_by", "~", "blocked_by: [\"~\"]"),
     ] {
-        let stderr = assert_refused_unchanged(&docs, &path, &["0001", key, value]);
-        assert!(stderr.contains(key), "{value}: {stderr}");
+        assert!(set(&docs, &["0001", key, value]).status.success(), "{value}");
+        assert_eq!(lines_of(&path, key), [line], "{value}");
     }
 }
 

@@ -269,3 +269,31 @@ fn an_inline_source_cannot_end_or_double_escape_its_script_element() {
     assert!(!inlined.contains("<\\!--"), "{inlined}");
     assert!(html[end..].ends_with("</body>\n</html>\n"), "{html}");
 }
+
+#[test]
+fn view_card_shows_its_title_once() {
+    let front = "type: Architecture View\ntitle: Context Map\ndescription: d\nkind: context";
+    let same = file("architecture/a.md", front, "# Context Map\n\nintro");
+    let other = adr("0002", "Other", "Accepted", "", "# Different\n\nintro");
+    let numbered = adr("0001", "Alpha", "Accepted", "", "# 0001. Alpha\n\ntext");
+    let files = [same, other, numbered];
+    let html = page(&files);
+    assert_eq!(html.matches("Context Map").count(), 1, "{html}");
+    assert!(html.contains("<h5>Different</h5>"), "{html}");
+    assert!(html.contains("<h5>0001. Alpha</h5>"), "{html}");
+    assert_eq!(html, page(&files));
+}
+
+#[test]
+fn filter_hides_empty_group_headings() {
+    let html = page(&[
+        adr("0001", "A", "Accepted", "", "b"),
+        adr("0002", "B", "Proposed", "", "b"),
+    ]);
+    let open = "<section class=\"group\">\n";
+    assert_eq!(html.matches(&format!("{open}<h2>")).count(), 1, "{html}");
+    assert_eq!(html.matches(&format!("{open}<h3>")).count(), 2, "{html}");
+    assert_eq!(html.matches("</section>").count(), 3, "{html}");
+    assert!(html.contains("</article>\n</section>\n</section>\n</main>"));
+    assert!(html.contains("section.group"), "{html}");
+}

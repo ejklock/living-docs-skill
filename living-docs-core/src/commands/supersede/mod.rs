@@ -1,7 +1,7 @@
 use crate::callout;
 use crate::commands::index::{refresh_for_records, Indexed};
 use crate::commands::reference::resolve_reference;
-use crate::frontmatter::frontmatter_block;
+use crate::frontmatter::{frontmatter_block, parse_frontmatter};
 use crate::line_ending::{refuse_mixed, LineEndingStore};
 use crate::record::{
     extract_record, format_flow_list, format_scalar, to_canonical_markdown, TailValue,
@@ -177,17 +177,33 @@ pub(crate) fn draft_frontmatter_fields(
         })
         .ok_or_else(missing)?;
     if let Some(key) = unread_key(path, &contents, &updated, fields, expected) {
-        let written: Vec<&str> = fields.iter().map(|(k, _)| *k).collect();
-        return Err(format!(
-            "{}: '{}' cannot be written without changing how '{key}' reads in the record's frontmatter; edit the file by hand",
-            path.display(),
-            written.join("', '")
-        ));
+        return Err(unread_message(path, &updated, fields, &key));
     }
     let canonical = canonicalize_frontmatter(path, &updated).ok_or_else(missing)?;
     match unwritable_key(&updated, &canonical) {
         Some(key) => Err(refusal_message(path, &key)),
         None => Ok(canonical),
+    }
+}
+
+/// The refusal for a draft that does not read back as intended: it names the
+/// written keys and, when the draft's frontmatter still parses, the key whose
+/// reading changed. A draft that no longer parses has no single key to blame,
+/// so only the written keys are named.
+fn unread_message(path: &Path, draft: &str, fields: &[(&str, String)], key: &str) -> String {
+    let written: Vec<&str> = fields.iter().map(|(k, _)| *k).collect();
+    let written = written.join("', '");
+    let parses = frontmatter_block(draft).and_then(parse_frontmatter).is_some();
+    if parses {
+        format!(
+            "{}: '{written}' cannot be written without changing how '{key}' reads in the record's frontmatter; edit the file by hand",
+            path.display()
+        )
+    } else {
+        format!(
+            "{}: '{written}' cannot be written: the frontmatter would no longer parse as a YAML mapping; edit the file by hand",
+            path.display()
+        )
     }
 }
 

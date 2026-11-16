@@ -2,7 +2,7 @@
 type: Issue
 title: Renumbering renames the record before rewriting references, so a failed rewrite leaves the bundle half-renumbered
 description: relocate renames the file and then rewrites in-bundle references; a write that fails afterwards leaves a renamed file, partly rewritten references and a stale index
-status: open
+status: closed
 timestamp: 2026-11-15T18:19:13Z
 ---
 
@@ -19,3 +19,8 @@ timestamp: 2026-11-15T18:19:13Z
 ### Acceptance
 
 - A renumber or retitle whose reference rewrite would fail exits non-zero with every file byte-identical and no index drift; a test proves it.
+
+### Outcome
+
+- A renumber or retitle drafts every reference rewrite and every dependent `blocked_by` rewrite before touching disk; a draft failure exits non-zero with the bundle byte-identical. A write or rename that fails during the apply phase is undone from a journal, newest first, and when the undo itself fails the error names the files left changed (`living-docs-core/src/commands/set/retitle/relocate.rs`). Proof: `retitle/atomic_tests.rs` and `retitle/rollback_tests.rs`, red before the change on "bundle changed"; `cargo test --workspace` green.
+- Tracked separately: a failing `callout::reconcile` after a completed rename (issue opened 2026-11-16).
