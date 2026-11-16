@@ -112,7 +112,12 @@ impl DocStore for DiskStore {
             .collect())
     }
 
+    /// Records come from `files`; an `index.md` is served from disk, where the
+    /// scratch bundle keeps the hand-written one the run migrates.
     fn read(&self, path: &Path) -> std::io::Result<String> {
+        if path.file_name().is_some_and(|name| name == "index.md") {
+            return std::fs::read_to_string(path);
+        }
         self.files
             .get(path)
             .cloned()

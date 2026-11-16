@@ -3,9 +3,19 @@
 //! `strip_fences`/`links_in`/`resolve_link`/`normpath` from `lint-docs.sh`.
 
 use super::{file_name_str, is_bundle_singleton, records, Reporter};
+use crate::store::{is_refusal, DocStore};
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::fs;
 use std::path::{Path, PathBuf};
+
+/// What a directory's `index.md` lists, as the store lets `check` see it.
+enum Listing {
+    /// The directory has no index file.
+    Missing,
+    /// The store refused the index: it is reported once, by the record
+    /// pass, so its records are not also called orphans.
+    Refused,
+    Targets(HashSet<String>),
+}
 
 /// Every non-reserved concept file must be linked from its own directory's
 /// `index.md`. A registry [`crate::doc_type::Identity::Singleton`] file at
@@ -13,11 +23,12 @@ use std::path::{Path, PathBuf};
 /// bundle's own root of trace, and has no directory index to be listed in.
 /// Each directory index is read and parsed once, however many records share it.
 pub(crate) fn check_directory_membership(
+    store: &dyn DocStore,
     bundle: &Path,
     all_md: &[PathBuf],
     reporter: &mut Reporter,
 ) {
-    let mut listings: HashMap<PathBuf, Option<HashSet<String>>> = HashMap::new();
+    let mut listings: HashMap<PathBuf, Listing> = HashMap::new();
     for f in all_md {
         if records::is_reserved(&file_name_str(f)) || is_bundle_singleton(bundle, f) {
             continue;
@@ -25,64 +36,67 @@ pub(crate) fn check_directory_membership(
         let dir = f.parent().unwrap_or_else(|| Path::new("."));
         let listed = listings
             .entry(dir.to_path_buf())
-            .or_insert_with(|| listed_targets(bundle, &dir.join("index.md")));
-        report_if_unindexed(dir, listed.as_ref(), f, reporter);
+            .or_insert_with(|| listed_targets(store, bundle, &dir.join("index.md")));
+        report_if_unindexed(dir, listed, f, reporter);
     }
 }
 
-fn report_if_unindexed(
-    dir: &Path,
-    listed: Option<&HashSet<String>>,
-    f: &Path,
-    reporter: &mut Reporter,
-) {
+fn report_if_unindexed(dir: &Path, listed: &Listing, f: &Path, reporter: &mut Reporter) {
     match listed {
-        None => reporter.report(
+        Listing::Refused => {}
+        Listing::Missing => reporter.report(
             f,
             format!(
                 "no index.md in its directory ({}) — orphan (invariant 3)",
                 dir.display()
             ),
         ),
-        Some(targets) if !targets.contains(&normpath(&f.to_string_lossy())) => reporter.report(
-            f,
-            format!(
-                "not listed in {} — orphan (invariant 3)",
-                dir.join("index.md").display()
+        Listing::Targets(targets) if !targets.contains(&normpath(&f.to_string_lossy())) => reporter
+            .report(
+                f,
+                format!(
+                    "not listed in {} — orphan (invariant 3)",
+                    dir.join("index.md").display()
+                ),
             ),
-        ),
-        Some(_) => {}
+        Listing::Targets(_) => {}
     }
 }
 
-/// The resolved target of every link in `dir_index`, or `None` when the
-/// directory has no index file.
-fn listed_targets(bundle: &Path, dir_index: &Path) -> Option<HashSet<String>> {
+/// The resolved target of every link in `dir_index`, read through `store`;
+/// [`Listing::Missing`] when the directory has no index file and
+/// [`Listing::Refused`] when the store refuses it.
+fn listed_targets(store: &dyn DocStore, bundle: &Path, dir_index: &Path) -> Listing {
     if !dir_index.is_file() {
-        return None;
+        return Listing::Missing;
     }
     let bundle_str = bundle.to_string_lossy();
     let dir_index_str = dir_index.to_string_lossy();
-    Some(
-        links_in(dir_index)
-            .into_iter()
-            .filter_map(|tgt| resolve_link(&dir_index_str, &tgt, &bundle_str))
-            .collect(),
-    )
+    match links_in(store, dir_index) {
+        None => Listing::Refused,
+        Some(links) => Listing::Targets(
+            links
+                .into_iter()
+                .filter_map(|tgt| resolve_link(&dir_index_str, &tgt, &bundle_str))
+                .collect(),
+        ),
+    }
 }
 
 /// Every directory `index.md` must be reachable from the bundle-root `index.md`
-/// via BFS over index→index (and index→dir) links.
+/// via BFS over index→index (and index→dir) links. A root index the store
+/// refuses skips the pass: the record pass already reports it once.
 pub(crate) fn check_reachability(
+    store: &dyn DocStore,
     bundle: &Path,
     root_index: &Path,
     all_md: &[PathBuf],
     reporter: &mut Reporter,
 ) {
-    if !root_index.is_file() {
+    if !root_index.is_file() || links_in(store, root_index).is_none() {
         return;
     }
-    let reached = reachable_index_set(bundle, root_index);
+    let reached = reachable_index_set(store, bundle, root_index);
     for idx in all_md.iter().filter(|f| file_name_str(f) == "index.md") {
         let n = normpath(&idx.to_string_lossy());
         if !reached.contains(&n) {
@@ -97,7 +111,11 @@ pub(crate) fn check_reachability(
     }
 }
 
-pub(crate) fn reachable_index_set(bundle: &Path, root_index: &Path) -> HashSet<String> {
+pub(crate) fn reachable_index_set(
+    store: &dyn DocStore,
+    bundle: &Path,
+    root_index: &Path,
+) -> HashSet<String> {
     let bundle_str = bundle.to_string_lossy().to_string();
     let root = normpath(&root_index.to_string_lossy());
 
@@ -110,7 +128,7 @@ pub(crate) fn reachable_index_set(bundle: &Path, root_index: &Path) -> HashSet<S
         if !Path::new(&cur).is_file() {
             continue;
         }
-        for target in reachable_targets_from(&cur, &bundle_str) {
+        for target in reachable_targets_from(store, &cur, &bundle_str) {
             if reached.insert(target.clone()) {
                 queue.push_back(target);
             }
@@ -119,8 +137,9 @@ pub(crate) fn reachable_index_set(bundle: &Path, root_index: &Path) -> HashSet<S
     reached
 }
 
-fn reachable_targets_from(cur: &str, bundle_str: &str) -> Vec<String> {
-    links_in(Path::new(cur))
+fn reachable_targets_from(store: &dyn DocStore, cur: &str, bundle_str: &str) -> Vec<String> {
+    links_in(store, Path::new(cur))
+        .unwrap_or_default()
         .into_iter()
         .filter_map(|tgt| resolve_link(cur, &tgt, bundle_str))
         .map(|resolved| {
@@ -233,17 +252,15 @@ fn strip_fences(content: &str) -> String {
 /// `path`, fenced code blocks excluded. Reference-style `[x][ref]` links are
 /// not extracted (link *validity* — S5 — will use a real markdown parser).
 ///
-/// Reads `path` straight from the filesystem rather than through
-/// `DocStore::read`: `path` here is always an `index.md` (a directory index
-/// or the bundle root), and `index.md`/`log.md` are excluded from the
-/// record domain by design (`db_store::record::is_reserved`) — no backend
-/// ever stores their content, so this traversal has no port to read them
-/// through.
-fn links_in(path: &Path) -> Vec<String> {
-    let Ok(content) = fs::read_to_string(path) else {
-        return Vec::new();
-    };
-    extract_paren_targets(&strip_fences(&content))
+/// Reads `path`, always an `index.md` (a directory index or the bundle root),
+/// through `store`, so one the store refuses is `None` and is never traversed;
+/// any other read failure yields no links.
+fn links_in(store: &dyn DocStore, path: &Path) -> Option<Vec<String>> {
+    match store.read(path) {
+        Ok(content) => Some(extract_paren_targets(&strip_fences(&content))),
+        Err(error) if is_refusal(&error) => None,
+        Err(_) => Some(Vec::new()),
+    }
 }
 
 fn extract_paren_targets(text: &str) -> Vec<String> {

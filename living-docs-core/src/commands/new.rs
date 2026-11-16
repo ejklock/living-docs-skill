@@ -54,7 +54,7 @@ pub fn write(
 ) -> Result<Created, String> {
     let path = scaffold(store, docs_dir, doc_type, title, opts, &now_iso8601()?)?;
     let mut indexed = refresh_for_records(store, docs_dir, &[path.as_path()]);
-    reach_from_root(docs_dir, doc_type, &mut indexed);
+    reach_from_root(store, docs_dir, doc_type, &mut indexed);
     Ok(Created { path, indexed })
 }
 
@@ -63,7 +63,7 @@ pub fn write(
 /// aborting. A singleton has no type index, so it only gets a link-less root
 /// when none exists. A root written here is not listed in `indexed.written`,
 /// which names only the record's own type index.
-fn reach_from_root(docs_dir: &Path, doc_type: &str, indexed: &mut Indexed) {
+fn reach_from_root(store: &dyn DocStore, docs_dir: &Path, doc_type: &str, indexed: &mut Indexed) {
     let Some(spec) = doc_type::spec_for(doc_type) else {
         return;
     };
@@ -74,7 +74,7 @@ fn reach_from_root(docs_dir: &Path, doc_type: &str, indexed: &mut Indexed) {
     } else {
         NoTypeIndex::WriteNothing
     };
-    if let Err(error) = ensure_root_index(docs_dir, touched, no_type_index) {
+    if let Err(error) = ensure_root_index(store, docs_dir, touched, no_type_index) {
         indexed.failures.push(IndexFailure {
             doc_type: None,
             error,

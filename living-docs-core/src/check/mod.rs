@@ -82,8 +82,8 @@ fn run_all_checks(
     }
     let doc_count = all_md.len();
     let all_md = judge_records(store, all_md, &root_index, reporter);
-    graph::check_directory_membership(bundle, &all_md, reporter);
-    graph::check_reachability(bundle, &root_index, &all_md, reporter);
+    graph::check_directory_membership(raw, bundle, &all_md, reporter);
+    graph::check_reachability(raw, bundle, &root_index, &all_md, reporter);
     index_drift::check_index_drift(raw, bundle, reporter);
     links::check_links(store, bundle, &all_md, reporter);
     records::check_supersede_chain(store, &all_md, reporter);
