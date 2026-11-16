@@ -174,3 +174,25 @@ fn a_title_without_a_line_break_renders_unchanged() {
         "* [0001 — a  b — c](0001-a.md) - open"
     );
 }
+
+#[test]
+fn render_row_writes_a_filename_with_a_space_in_angle_form() {
+    let record = record(1, "A", "Accepted", "0001-a b.md");
+    assert_eq!(
+        render_row(&record, &[]),
+        "* [0001 — A](<0001-a b.md>) - Accepted"
+    );
+}
+
+#[test]
+fn render_row_writes_a_spaced_successor_link_in_angle_form() {
+    let old = retired_record(1, "Old", "Superseded", "0001-old.md", Some("0002"));
+    let all = [
+        retired_record(1, "Old", "Superseded", "0001-old.md", Some("0002")),
+        record(2, "New", "Accepted", "0002-n w.md"),
+    ];
+    assert_eq!(
+        render_row(&old, &all),
+        "* [0001 — Old](0001-old.md) - Superseded by [0002](<0002-n w.md>)"
+    );
+}

@@ -2,7 +2,7 @@
 type: Issue
 title: manage index writes a link to a filename with a space that check cannot resolve
 description: Write a generated link to a filename with a space in angle brackets so check resolves it
-status: open
+status: closed
 timestamp: 2026-11-16T21:56:07Z
 ---
 
@@ -19,3 +19,8 @@ timestamp: 2026-11-16T21:56:07Z
 ### Acceptance
 
 - `manage index` over a record named with a space writes a link `check` resolves, and `check` passes; existing indexes without spaces keep their bytes; a test proves both.
+
+### Outcome
+
+- Every generated link to a record whose filename holds whitespace is written as `<filename>` through `paths::link_destination`: index rows, "Superseded by" links, named-view rows and the SUPERSEDED callout. A name without whitespace keeps its exact bytes. Every check pass, `read records --links-to`/`--impact` and `manage html` resolve the angle form (reviewed end to end, a tab included). Proof: `cli/tests/index_spaced_filename.rs` and `commands/index/rows/tests.rs`, red without the change; `cargo test --workspace` (1686 passed).
+- Not handled: parentheses or angle brackets in a filename (the helper wraps on whitespace only); `write new` slugifies names, so no author reaches it today.

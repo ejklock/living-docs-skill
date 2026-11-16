@@ -6,6 +6,7 @@
 //! shares, so the exact wording never drifts between them.
 
 use crate::commands::supersede::guard::{refusal_message, unwritable_key};
+use crate::paths::link_destination;
 use crate::record::{extract_record, to_canonical_markdown};
 use crate::store::DocStore;
 use std::path::{Path, PathBuf};
@@ -33,8 +34,9 @@ pub fn expected(status: Option<&str>, successor: Option<&str>) -> Option<String>
 
 fn superseded_callout(successor: &str) -> String {
     let number = number_prefix(successor);
+    let destination = link_destination(successor);
     format!(
-        "> **SUPERSEDED — do not act on this record.** Replaced by [{number}]({successor}). \
+        "> **SUPERSEDED — do not act on this record.** Replaced by [{number}]({destination}). \
          Run `living-docs read records` for what is in force."
     )
 }

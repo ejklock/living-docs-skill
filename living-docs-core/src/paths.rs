@@ -25,6 +25,18 @@ pub fn frontmatter_type_for(token: &str) -> Option<&'static str> {
     Some(doc_type::spec_for(token)?.frontmatter)
 }
 
+/// A markdown link destination for a bundle filename: the name itself, or
+/// the CommonMark angle-bracket form when it holds whitespace, which a bare
+/// destination cannot carry. Only whitespace triggers the wrap; parentheses
+/// and angle brackets are not handled.
+pub fn link_destination(filename: &str) -> String {
+    if filename.chars().any(char::is_whitespace) {
+        format!("<{filename}>")
+    } else {
+        filename.to_string()
+    }
+}
+
 /// Folds accented Latin letters to their ASCII base: canonical decomposition
 /// drops the combining marks, and letters that do not decompose (`ß`, `ø`,
 /// `æ`…) map through a small table. Other characters pass through unchanged.
@@ -182,5 +194,15 @@ mod tests {
     fn slugify_maps_letters_that_do_not_decompose() {
         assert_eq!(slugify("Straße"), "strasse");
         assert_eq!(slugify("Søren Ølsen"), "soren-olsen");
+    }
+
+    #[test]
+    fn link_destination_leaves_a_plain_filename_bare() {
+        assert_eq!(link_destination("0001-a-b.md"), "0001-a-b.md");
+    }
+
+    #[test]
+    fn link_destination_wraps_a_filename_holding_a_space() {
+        assert_eq!(link_destination("0001-a b.md"), "<0001-a b.md>");
     }
 }

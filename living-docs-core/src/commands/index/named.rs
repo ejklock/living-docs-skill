@@ -7,6 +7,7 @@ use super::first_heading;
 use super::rows::single_line;
 use crate::doc_type::VIEW_KIND_ORDER;
 use crate::frontmatter;
+use crate::paths::link_destination;
 use crate::store::DocStore;
 use std::path::Path;
 
@@ -74,10 +75,11 @@ fn view_title(contents: &str, filename: &str) -> String {
 
 fn render_row(view: &View) -> String {
     let title = single_line(&view.title);
+    let destination = link_destination(&view.filename);
     if view.kind.is_empty() {
-        return format!("* [{title}]({})", view.filename);
+        return format!("* [{title}]({destination})");
     }
-    format!("* [{title}]({}) - {}", view.filename, view.kind)
+    format!("* [{title}]({destination}) - {}", view.kind)
 }
 
 #[cfg(test)]
