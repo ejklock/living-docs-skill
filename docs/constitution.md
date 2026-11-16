@@ -23,7 +23,7 @@ timestamp: 2026-07-16T00:00:00Z
 - The record taxonomy as one registry: ADR, issue, research, constitution, an optional PRD, and architecture views. — ADR 0026, 0057
 - The skill corpus served from the binary, with slim harness stubs. — ADR 0014, 0017
 - A local, read-only, single-file HTML render of the bundle (`manage html`), with mermaid.js installed on demand and verified by hash (`manage install mermaid`); never served and never published. — ADR 0084, 0085
-- One gate: `living-docs check`, run by the pre-commit hook and CI, plus the session-teaching hook and an opt-in end-of-turn decision prompt (`LIVING_DOCS_DECISION_PROMPT=1`) that asks for a material choice to be recorded in the active issue and never blocks a write, a commit or CI. — ADR 0059, 0083
+- One gate: `living-docs check`, run by the pre-commit hook and CI, plus the session-teaching hook and an opt-in decision nudge (`LIVING_DOCS_DECISION_PROMPT=1`): after a code edit it adds, at most once per commit cycle, a reminder to record a material choice in the active issue, and never blocks a turn, a write, a commit or CI. — ADR 0059, 0089
 
 **Explicitly out of scope:**
 

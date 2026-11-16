@@ -16,12 +16,14 @@ Plan:
 - S1: every `blocked_by` finding (dangling number, self-reference, cycle, non-numeric item) is a `blocked-by` advisory and never fails `check`; rules updated | files: living-docs-core/src/check/dependencies.rs, living-docs-core/src/check/dependencies/tests.rs, cli/tests/check_dependencies.rs, cli/tests/set_tracker_keys.rs, skills/living-docs/rules/issue-workflow.md, skills/living-docs/rules/check.md | after: none
 - S2: decision-prompt.sh reads the PostToolUse payload (tool_name Edit or Write, the edited file path) and prints a PostToolUse additionalContext JSON at most once per HEAD, never a decision; opt-in and bundle rules unchanged | files: skills/living-docs/hooks/decision-prompt.sh, cli/tests/decision_prompt.rs | after: none
 - S3: manage install hooks wires a PostToolUse entry with matcher Edit|Write instead of Stop and removes an earlier Stop entry; uninstall removes both; help, sub.rs docs, CONTRIBUTING.md and procedure.md describe the nudge | files: cli/src/hooks.rs, cli/src/hooks/settings.rs, cli/tests/hooks_install_stop.rs, cli/src/args/help.rs, cli/src/args/sub.rs, CONTRIBUTING.md, skills/living-docs/rules/procedure.md | after: none
-- S4 (session): the constitution's gate line names a non-blocking nudge | files: docs/constitution.md | after: S2, S3
+- S4 (session): the constitution's gate line names a non-blocking nudge | files: docs/constitution.md | after: S2, S3 (done)
 - Combined proof: rerun the 28-bundle comparison (no added violation) and replay a scripted session (one nudge per commit cycle, nothing blocked).
 
 ### Decision
 
 - The three code slices touch disjoint files and run in parallel.
+- An edit of a path outside the repository root (e.g. /etc/hosts, ~/.claude/settings.json) produces no nudge; paths are compared by their real, symlink-resolved location (review of S2). Not taken: nudging for any path outside the bundle.
+- Blocked_by cycle advice is anchored on every member through a new Advisory anchors field, serde-skipped so check --json is unchanged (review of S1). Not taken: anchoring on the first member only, one advisory per member.
 
 ### Acceptance
 
