@@ -19,6 +19,9 @@ every advisory in full, and the JSON output always carries them all. The kinds:
 
 - `SIZE` — a decision/execution body past the ~120-line target (aim ~100; research exempt).
 - `MOVED-SOURCE` — a record whose linked source path moved.
+- `LINK-STYLE` — a link or image written `/`-rooted (`/adr/0007-x.md`); the advisory names the
+  relative form to write instead (`../adr/0007-x.md`). It fires whether or not the target exists
+  and never moves the exit code.
 - `LIVENESS stale-proposed` (ADR 0049, ADR 0079) — an ADR still at its seed status (`Proposed`)
   that an issue already `closed`/`done`/`Superseded` declares it implements: the issue body
   holds `Implements` (any case) followed by a link to the ADR, so the work landed but the record
@@ -47,7 +50,7 @@ supersede, and placeholder items are enforced by `living-docs check` — run it 
 eyeballing them; the rest are judgement:
 
 - [ ] Every concept doc opens with OKF frontmatter carrying a non-empty `type`; `status` is in frontmatter, not a body line.
-- [ ] Directory listings are `index.md` with no frontmatter (except the bundle-root `docs/index.md` → `okf_version`); cross-links are bundle-relative (`/…`).
+- [ ] Directory listings are `index.md` with no frontmatter (except the bundle-root `docs/index.md` → `okf_version`); cross-links are relative to the linking file (`../adr/0007-x.md`), never `/`-rooted.
 - [ ] Every new doc is linked from its directory `index.md` **and** the bundle-root `docs/index.md`.
 - [ ] No concept appears in two files (cross-reference instead).
 - [ ] No unfilled `{{PLACEHOLDER}}` slot remains in any record, and no `description` is still its template's placeholder sentence.

@@ -102,7 +102,7 @@ fn strip_anchor(raw_dest: &str) -> &str {
     }
 }
 
-fn is_external(target: &str) -> bool {
+pub(crate) fn is_external(target: &str) -> bool {
     target.contains("://") || target.starts_with("mailto:") || target.starts_with("tel:")
 }
 
