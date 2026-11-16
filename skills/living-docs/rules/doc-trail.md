@@ -40,7 +40,7 @@ Agents learn boundaries from counterexamples better than from definitions. Each 
 | A deferred decision ("Needs an ADR") | issue | decide in the issue now, or open the ADR now |
 | A source-less claim about the industry | ADR Context | research, or delete |
 | A cheap, easily-reversed choice given its own ADR | ADR | the issue's body |
-| An unfilled `{{PLACEHOLDER}}` | any record | fill it, or remove the slot (`check` fails on it) |
+| An unfilled `{{PLACEHOLDER}}` or a placeholder `description` | any record | fill it, or remove the slot; set the description with `write set <TYPE/NNNN> description --from -` (`check` fails on both) |
 
 ## Document map
 

@@ -15,15 +15,15 @@ timestamp: 2026-08-03T13:53:21Z
 ## Doc-code pairing for living-docs: commit trailers, covers-based drift detection, and executable acceptance
 
 > **CLOSED OBSOLETE 2026-09-22.** All three layers below rest on premises
-> [ADR 0059](/adr/0059-cut-living-docs-to-the-authoring-core-remove-the-database-read-model-web-front-public-export-migrate-json-authoring-and-the-write-gate-hook.md)
+> [ADR 0059](../adr/0059-cut-living-docs-to-the-authoring-core-remove-the-database-read-model-web-front-public-export-migrate-json-authoring-and-the-write-gate-hook.md)
 > removed. Layers 2 (covers-glob drift) and 3 (executable acceptance) need a
 > persistent projection to hold the hash pairs and the per-criterion results;
 > the db-store read-model that would hold them was deleted, and
-> [ADR 0031](/adr/0031-the-knowledge-graph-is-a-typed-bi-temporal-edge-set-in-the-existing-relational-store.md),
+> [ADR 0031](../adr/0031-the-knowledge-graph-is-a-typed-bi-temporal-edge-set-in-the-existing-relational-store.md),
 > which specified that substrate, is Deprecated with no successor. Layer 1
 > (commit trailers) asks for three new verbs — `commits`, `verify`,
 > `reconcile` — against the ten-verb contract of
-> [ADR 0060](/adr/0060-the-cli-surface-is-a-contract-ten-intention-named-verbs-one-output-mode-per-stream-documented-exit-codes-and-help-written-for-an-agent.md).
+> [ADR 0060](../adr/0060-the-cli-surface-is-a-contract-ten-intention-named-verbs-one-output-mode-per-stream-documented-exit-codes-and-help-written-for-an-agent.md).
 > Doc-code lineage re-enters, if it does, as a fresh record written from the
 > post-0059 constraint: the `.md` tree in git, ten verbs, no read-model. The
 > only slice that shipped from this issue was the artifact file manifest

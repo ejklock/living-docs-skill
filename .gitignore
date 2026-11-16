@@ -17,5 +17,8 @@
 mutants.out/
 mutants.out.old/
 
+# Agent worktrees created by Claude Code — per session, never committed
+.claude/worktrees/
+
 # deep-research working stores — scratch, never committed; live under ~/.cache/deep-research/
 .research-runs/

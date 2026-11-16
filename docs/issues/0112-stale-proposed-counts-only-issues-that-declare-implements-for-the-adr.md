@@ -8,7 +8,7 @@ timestamp: 2026-11-12T16:14:04Z
 
 ## 0112. stale-proposed counts only issues that declare Implements for the ADR
 
-Implements [ADR 0079](/adr/0079-stale-proposed-counts-only-an-issue-that-declares-it-implements-the-adr.md): `stale-proposed` counts an issue toward a Proposed ADR only when the issue's body declares `Implements` followed by a link to that ADR, so a historical citation of a closed issue in an ADR no longer reads as stale.
+Implements [ADR 0079](../adr/0079-stale-proposed-counts-only-an-issue-that-declares-it-implements-the-adr.md): `stale-proposed` counts an issue toward a Proposed ADR only when the issue's body declares `Implements` followed by a link to that ADR, so a historical citation of a closed issue in an ADR no longer reads as stale.
 
 ### Scope
 

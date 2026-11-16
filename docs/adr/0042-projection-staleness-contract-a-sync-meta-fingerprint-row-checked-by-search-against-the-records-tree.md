@@ -23,7 +23,7 @@ timestamp: 2026-08-27T19:07:17Z
      research artifact or PRD/issue that motivates it, bundle-relative:
      [research](/research/NNNN-<slug>.md), [PRD](/prd/NNNN-<slug>.md). -->
 
-The db-store projection is rebuilt only by an explicit `db sync` (ADR 0003, ADR 0004). Nothing tells `search` or the web front that the projection is behind the `.md` records. An agent that consumes a stale search result acts on it with confidence. [Issue 0034](/issues/0034-projection-freshness-sla-search-and-web-warn-or-refuse-on-a-stale-db-store-projection.md) demands a staleness signal keyed to the last SUCCESSFUL sync, so a silently stalled sync reads as stale even when no record changed.
+The db-store projection is rebuilt only by an explicit `db sync` (ADR 0003, ADR 0004). Nothing tells `search` or the web front that the projection is behind the `.md` records. An agent that consumes a stale search result acts on it with confidence. [Issue 0034](../issues/0034-projection-freshness-sla-search-and-web-warn-or-refuse-on-a-stale-db-store-projection.md) demands a staleness signal keyed to the last SUCCESSFUL sync, so a silently stalled sync reads as stale even when no record changed.
 
 Constraints: the check must be deterministic and cheap (it runs on every `search`); it must work for both engines (SQLite/FTS5 and ParadeDB); it applies only when the fs tree is the authoritative backend — in db-mode authoring the projection IS canonical and staleness does not apply.
 

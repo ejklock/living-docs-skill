@@ -8,7 +8,7 @@ timestamp: 2026-10-24T10:17:28Z
 
 ## 0065. Implement fmt's repair of timestamp, owner and title heading
 
-Implements [ADR 0071](/adr/0071-fmt-repairs-a-record-s-cli-owned-fields-it-seeds-a-missing-timestamp-and-owner-and-aligns-the-title-heading-leaving-all-other-prose-byte-identical.md).
+Implements [ADR 0071](../adr/0071-fmt-repairs-a-record-s-cli-owned-fields-it-seeds-a-missing-timestamp-and-owner-and-aligns-the-title-heading-leaving-all-other-prose-byte-identical.md).
 
 ### Scope
 

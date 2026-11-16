@@ -15,8 +15,8 @@ timestamp: <ISO 8601 datetime>
      Append-grown: a note that cites a source not already listed adds it here in the SAME
      change (research-artifacts rule 9). Format per
      skills/living-docs/rules/citation-conventions.md (ABNT NBR 6023, always the link).
-     Alphabetical by first element. Each entry trails with `— cited in:` + bundle-relative
-     links to the session(s) that use it. -->
+     Alphabetical by first element. Each entry trails with `— cited in:` + relative
+     sibling links to the citing note, e.g. `NNNN-slug.md`, for the session(s) that use it. -->
 
 SURNAME, First name. **Title**: subtitle. City: Publisher, year. Available at: <URL>. Accessed on: YYYY-MM-DD.
-— cited in: [date-slug](/research/date-slug.md)
+— cited in: [NNNN-slug](NNNN-slug.md)

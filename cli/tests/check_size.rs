@@ -118,3 +118,44 @@ fn the_size_targets_skill_topic_is_served_from_the_embedded_corpus() {
     assert!(stdout.contains("120"), "got: {stdout}");
     assert!(stdout.contains("Advisory, never a gate"), "got: {stdout}");
 }
+
+fn view_with_body_lines(bundle: &Path, body_lines: usize) {
+    let output = living_docs()
+        .args(["--docs-dir", bundle.to_str().unwrap()])
+        .args(["write", "new", "view", "Rings", "--kind", "component"])
+        .args(["--description", "Shows the rings."])
+        .output()
+        .expect("failed to run living-docs write new");
+    assert!(output.status.success(), "write new view failed");
+    let path = bundle.join("architecture/rings.md");
+    let scaffold = std::fs::read_to_string(&path).unwrap();
+    let frontmatter_end = scaffold.match_indices("---\n").nth(1).unwrap().0 + 4;
+    let body = (0..body_lines)
+        .map(|i| format!("line {i}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    std::fs::write(&path, format!("{}{body}\n", &scaffold[..frontmatter_end])).unwrap();
+}
+
+#[test]
+fn an_architecture_view_over_the_target_gets_a_size_advisory_naming_its_file() {
+    let bundle = temp_bundle("view-over");
+    write(&bundle, "index.md", "# Docs\n");
+    view_with_body_lines(&bundle, 121);
+    common::index_bundle(&bundle);
+
+    let output = run_check_advisories(&bundle);
+
+    let stdout = stdout_of(&output);
+    assert!(stdout.contains("SIZE"), "got: {stdout}");
+    assert!(stdout.contains("rings.md"), "got: {stdout}");
+}
+
+#[test]
+fn an_architecture_view_at_the_target_gets_no_size_note() {
+    let bundle = temp_bundle("view-at");
+    write(&bundle, "index.md", "# Docs\n");
+    view_with_body_lines(&bundle, 120);
+
+    assert_no_size_note(&bundle);
+}

@@ -14,7 +14,7 @@ timestamp: 2026-08-07T14:38:11Z
 
 ## Bundle identity variant plus the artifact registry row and new
 
-Implements [ADR 0034](/adr/0034-artifacts-are-directory-bundle-records-a-canonical-readme-plus-a-validated-file-manifest-on-a-new-bundle-identity.md). First slice: teach the domain and `new` about a directory-bundle record, so an artifact can be created at all.
+Implements [ADR 0034](../adr/0034-artifacts-are-directory-bundle-records-a-canonical-readme-plus-a-validated-file-manifest-on-a-new-bundle-identity.md). First slice: teach the domain and `new` about a directory-bundle record, so an artifact can be created at all.
 
 `Identity` has two variants, both modeling a record that is a single file. This slice adds `Bundle { dir }` for a record that IS a directory holding a canonical `README.md`, and registers the `artifact` doc type on it.
 

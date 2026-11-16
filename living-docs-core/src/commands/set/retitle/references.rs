@@ -81,9 +81,9 @@ fn repoint_links(contents: &str, at: (&str, &str, &str), names: (&str, &str)) ->
             continue;
         }
         let raw = &contents[span.clone()];
-        let (target, anchor) = raw.split_at(raw.find('#').unwrap_or(raw.len()));
+        let (target, suffix) = raw.split_at(raw.find(['?', '#']).unwrap_or(raw.len()));
         if let Some(stem) = target.strip_suffix(old) {
-            edits.push((span, format!("{stem}{new}{anchor}")));
+            edits.push((span, format!("{stem}{new}{suffix}")));
         }
     }
     edits.sort_by_key(|(span, _)| std::cmp::Reverse(span.start));

@@ -179,3 +179,106 @@ fn a_record_path_reports_its_own_violation_and_json_carries_it() {
         .unwrap()
         .contains("0001-d.md"));
 }
+
+#[test]
+fn a_bare_number_spelling_names_a_zero_padded_record() {
+    let bundle = bundle_of(
+        "bare-spelling",
+        &[adr("0001", ""), adr("0003", "supersedes: 1\n")],
+    );
+    let output = run_check(&bundle);
+    let lines = link_lines(&output);
+    assert_eq!(output.status.code(), Some(1), "{}", stdout_of(&output));
+    assert_eq!(lines.len(), 1, "{}", stdout_of(&output));
+    assert!(lines[0].contains("0001-d.md"), "{}", lines[0]);
+}
+
+#[test]
+fn a_shared_number_is_left_to_the_duplicate_number_check() {
+    let (_, answering) = adr("0001", "superseded_by: 0003\n");
+    let bundle = bundle_of(
+        "shared-number",
+        &[
+            adr("0001", ""),
+            ("adr/0001-e.md".into(), answering),
+            adr("0003", "supersedes: 0001\n"),
+        ],
+    );
+    let output = run_check(&bundle);
+    assert_eq!(output.status.code(), Some(1), "{}", stdout_of(&output));
+    assert!(link_lines(&output).is_empty(), "{}", stdout_of(&output));
+    assert!(
+        stdout_of(&output).contains("records share the number 0001"),
+        "{}",
+        stdout_of(&output)
+    );
+}
+
+#[test]
+fn a_violation_reports_bundle_relative_paths_exactly() {
+    let bundle = bundle_of(
+        "path",
+        &[adr("0001", ""), adr("0003", "supersedes: 0001\n")],
+    );
+    let json = living_docs()
+        .args(["check", bundle.to_str().unwrap(), "--json"])
+        .output()
+        .unwrap();
+    let report: serde_json::Value = serde_json::from_slice(&json.stdout).unwrap();
+    let violations = report["violations"].as_array().unwrap();
+    assert_eq!(violations.len(), 1, "{report}");
+    assert_eq!(
+        violations[0]["message"],
+        "supersedes: 0001 names adr/0001-d.md, which does not name adr/0003-d.md in superseded_by",
+        "{report}"
+    );
+}
+
+#[test]
+fn a_mixed_supersedes_list_judges_its_record_number_entries() {
+    let bundle = bundle_of(
+        "mixed-unanswered",
+        &[adr("0001", ""), adr("0003", "supersedes: [0001, abc]\n")],
+    );
+    let output = run_check(&bundle);
+    let lines = link_lines(&output);
+    assert_eq!(output.status.code(), Some(1), "{}", stdout_of(&output));
+    assert_eq!(lines.len(), 1, "{}", stdout_of(&output));
+    assert!(lines[0].contains("0003-d.md"), "{}", lines[0]);
+    assert!(lines[0].contains("0001-d.md"), "{}", lines[0]);
+}
+
+#[test]
+fn a_mixed_supersedes_list_counts_as_naming_the_target_back() {
+    let bundle = bundle_of(
+        "mixed-answered",
+        &[
+            adr("0001", "superseded_by: 0003\n"),
+            adr("0003", "supersedes: [0001, abc]\n"),
+        ],
+    );
+    assert!(link_lines(&run_check(&bundle)).is_empty());
+}
+
+#[test]
+fn a_supersedes_list_with_no_record_number_is_not_judged() {
+    let bundle = bundle_of(
+        "no-number",
+        &[adr("0001", ""), adr("0003", "supersedes: [abc]\n")],
+    );
+    assert!(link_lines(&run_check(&bundle)).is_empty());
+}
+
+#[test]
+fn a_quoted_number_in_a_mixed_list_is_judged_like_a_bare_one() {
+    let bundle = bundle_of(
+        "mixed-quoted",
+        &[
+            adr("0001", ""),
+            adr("0003", "supersedes: [\"0001\", abc]\n"),
+        ],
+    );
+    let lines = link_lines(&run_check(&bundle));
+    assert_eq!(lines.len(), 1, "{lines:?}");
+    assert!(lines[0].contains("0001-d.md"), "{}", lines[0]);
+}

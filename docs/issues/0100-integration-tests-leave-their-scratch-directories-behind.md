@@ -1,7 +1,7 @@
 ---
 type: Issue
 title: integration tests leave their scratch directories behind
-description: <One sentence — the change and its motivation.>
+description: Every scratch directory a cli/tests helper creates is removed by a guard when dropped, so a test run no longer leaves hundreds of directories behind.
 status: closed
 timestamp: 2026-10-27T00:47:08Z
 ---

@@ -112,37 +112,37 @@ fn compute_rejects_an_explicit_constitution_index_with_its_own_message() {
 
 #[test]
 fn title_for_record_prefers_a_present_frontmatter_title_over_the_h1_heading() {
-    let contents = "---\ntitle: Frontmatter Title\n---\n# ADR 0007 — Heading Title\n";
-    let title = title_for_record(contents, Path::new("adr/0007-x.md"), 7);
+    let contents = "---\ntitle: Frontmatter Title\n---\n# ADR 7 — Heading Title\n";
+    let title = title_for_record(contents, Path::new("adr/0007-x.md"));
     assert_eq!(title, "Frontmatter Title");
 }
 
 #[test]
 fn title_for_record_falls_back_to_the_h1_heading_stripping_the_adr_number_prefix() {
-    let contents = "---\ntype: ADR\n---\n# ADR 0007 — Heading Title\n";
-    let title = title_for_record(contents, Path::new("adr/0007-x.md"), 7);
+    let contents = format!("---\ntype: ADR\n---\n# ADR {} — Heading Title\n", "0007");
+    let title = title_for_record(&contents, Path::new("adr/0007-x.md"));
     assert_eq!(title, "Heading Title");
 }
 
 #[test]
 fn title_for_record_falls_back_to_the_h1_heading_stripping_a_bare_numbered_dot_prefix() {
     let contents = "---\ntype: ADR\n---\n# 0007. Heading Title\n";
-    let title = title_for_record(contents, Path::new("adr/0007-x.md"), 7);
+    let title = title_for_record(contents, Path::new("adr/0007-x.md"));
     assert_eq!(title, "Heading Title");
 }
 
 #[test]
 fn title_for_record_falls_back_to_the_h1_heading_stripping_a_bare_numbered_dash_prefix() {
     let contents = "---\ntype: ADR\n---\n# 0007 — Heading Title\n";
-    let title = title_for_record(contents, Path::new("adr/0007-x.md"), 7);
+    let title = title_for_record(contents, Path::new("adr/0007-x.md"));
     assert_eq!(title, "Heading Title");
 }
 
 #[test]
-fn title_for_record_is_empty_when_neither_frontmatter_nor_h1_carry_a_title() {
+fn title_for_record_is_the_filename_stem_when_neither_frontmatter_nor_h1_carry_a_title() {
     let contents = "---\ntype: ADR\n---\nBody with no heading.\n";
-    let title = title_for_record(contents, Path::new("adr/0007-x.md"), 7);
-    assert_eq!(title, "");
+    let title = title_for_record(contents, Path::new("adr/0007-x.md"));
+    assert_eq!(title, "x");
 }
 
 #[test]

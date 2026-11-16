@@ -14,7 +14,7 @@ timestamp: 2026-07-29T12:43:28Z
 
 ## Context
 
-[ADR 0021](/adr/0021-enforcement-layers-ship-with-the-repo-write-gate-hook-session-teaching-and-pre-commit-doc-gate.md)
+[ADR 0021](0021-enforcement-layers-ship-with-the-repo-write-gate-hook-session-teaching-and-pre-commit-doc-gate.md)
 made *this* repository self-enforcing: `block-docs-handwrite.sh` and `session-context.sh`
 live in `skills/living-docs/hooks/`, `.claude/settings.json` wires them, and
 `.githooks/pre-commit` runs the doc-gate. It closed the gap for contributors to the bundle
@@ -33,7 +33,7 @@ Copying the scripts is not sufficient on its own. The wiring committed here is
 `"$CLAUDE_PROJECT_DIR"/skills/living-docs/hooks/block-docs-handwrite.sh` — a path that
 resolves only inside a checkout of this bundle. Any distribution has to relocate the scripts
 *and* rewrite the command that points at them, which is exactly the class of mechanical,
-single-correct-output work that [ADR 0001](/adr/0001-living-docs-cli.md) assigns to the CLI
+single-correct-output work that [ADR 0001](0001-living-docs-cli.md) assigns to the CLI
 rather than to a shell installer merging JSON with `jq`.
 
 Two properties of the existing implementation bound the solution and keep it small. The

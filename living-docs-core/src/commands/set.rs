@@ -3,6 +3,7 @@ use crate::commands::index::{refresh_for_records, Indexed};
 use crate::commands::reference::find_settable_record;
 use crate::commands::supersede::set_frontmatter_fields_expecting;
 use crate::doc_type::{self, DocTypeSpec, Identity};
+use crate::frontmatter::{has_unparseable_frontmatter, UNPARSEABLE_MESSAGE};
 use crate::line_ending::{refuse_mixed, LineEndingStore};
 use crate::record::{extract_record, format_scalar, TailValue};
 use crate::sections;
@@ -65,6 +66,7 @@ pub fn apply(
     }
     refuse_mixed(store, &path)?;
     let store: &dyn DocStore = &LineEndingStore::new(store, false);
+    refuse_unparseable(store, &path)?;
     let renamed = match key {
         "title" => Some(retitle::apply(store, docs_dir, &path, value)?),
         "number" => Some(renumber::apply(store, docs_dir, &path, value)?),
@@ -150,10 +152,25 @@ pub fn apply_section(
     refuse_mixed(store, &path)?;
     let store: &dyn DocStore = &LineEndingStore::new(store, false);
     let contents = store.read(&path).map_err(|e| e.to_string())?;
+    refuse_unparseable_contents(&path, &contents)?;
     refuse_dropped_children(&contents, heading.trim(), text)?;
     let updated = sections::replace_or_append_section(&contents, heading.trim(), text);
     store.write(&path, &updated).map_err(|e| e.to_string())?;
     settle_in_place(store, docs_dir, path)
+}
+
+/// Refuses a record whose frontmatter does not parse, before any write: no
+/// key can be set on a block that cannot be read.
+fn refuse_unparseable(store: &dyn DocStore, path: &Path) -> Result<(), String> {
+    let contents = store.read(path).map_err(|e| e.to_string())?;
+    refuse_unparseable_contents(path, &contents)
+}
+
+fn refuse_unparseable_contents(path: &Path, contents: &str) -> Result<(), String> {
+    if has_unparseable_frontmatter(contents) {
+        return Err(format!("{}: {UNPARSEABLE_MESSAGE}", path.display()));
+    }
+    Ok(())
 }
 
 fn refuse_dropped_children(contents: &str, heading: &str, text: &str) -> Result<(), String> {

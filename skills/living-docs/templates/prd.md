@@ -38,6 +38,6 @@ timestamp: <ISO 8601 datetime>
 
 ## Related
 
-- Constitution: [/constitution.md](/constitution.md)
-- Issues: [/issues/NNNN-<slug>.md](/issues/NNNN-<slug>.md)
-- Research: [/research/NNNN-<slug>.md](/research/NNNN-<slug>.md)
+- Constitution: [constitution.md](../constitution.md)
+- Issues: [NNNN-<slug>.md](../issues/NNNN-<slug>.md)
+- Research: [NNNN-<slug>.md](../research/NNNN-<slug>.md)

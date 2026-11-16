@@ -10,16 +10,16 @@ timestamp: 2026-07-21T00:00:00Z
 
 ## Atlas edit — optimistic concurrency via a revision precondition
 
-Implements the edit verb + concurrency clause of [ADR 0016](/adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md)
+Implements the edit verb + concurrency clause of [ADR 0016](../adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md)
 ("Concurrency is single-store optimistic, never a merge"). Builds directly on
-[issue 0010](/issues/0010-atlas-create-db-mode-authoring-walking-skeleton.md)'s `revision`
+[issue 0010](0010-atlas-create-db-mode-authoring-walking-skeleton.md)'s `revision`
 column and transactional write+check verb — this slice adds the precondition check, not a
 second write path.
 
 ### Objective link
 
-Constitution → [PRD 0001](/prd/0001-living-docs-atlas-multi-project-authoring-wiki-over-living-docs-core.md)
-→ [ADR 0016](/adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md)
+Constitution → [PRD 0001](../prd/0001-living-docs-atlas-multi-project-authoring-wiki-over-living-docs-core.md)
+→ [ADR 0016](../adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md)
 → issue 0010 → this slice.
 
 ### Context manifest

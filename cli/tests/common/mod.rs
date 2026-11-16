@@ -3,6 +3,7 @@
 pub mod mcp_session;
 pub mod parity;
 pub mod parity_bundles;
+pub mod retired_bundle;
 
 use std::ffi::OsStr;
 use std::fs;

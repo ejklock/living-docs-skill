@@ -26,7 +26,7 @@ four types — `adr`, `bdr`, `prd`, `issue` — and `living-docs index` regenera
 those four type indexes. `paths::dir_for` in `living-docs-core` is the single source
 of truth for that set. But the docs bundle also holds **hand-authored** doc types the
 CLI never scaffolds — most concretely `research` (`type: Research`, living under
-`docs/research/` as `NNNN-*.md` files, see [/research/0002-ontology-tooling-codegraph-docs-bridge.md](/research/0002-ontology-tooling-codegraph-docs-bridge.md))
+`docs/research/` as `NNNN-*.md` files, see [/research/0002-ontology-tooling-codegraph-docs-bridge.md](../research/0002-ontology-tooling-codegraph-docs-bridge.md))
 — plus the bundle-root `docs/index.md`, which is hand-maintained because `index` only
 emits per-type indexes.
 

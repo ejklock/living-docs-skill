@@ -13,7 +13,7 @@ timestamp: <ISO 8601 datetime>          # Optional — last meaningful change, e
 
 | Column / Field | Type | Description |
 |---|---|---|
-| `field` | TYPE | What it is. Link related concepts like [other](/path/to/other.md). |
+| `field` | TYPE | What it is. Link related concepts like [other](./other.md). |
 
 # Examples
 

@@ -8,8 +8,8 @@ convention, not a requirement.
 # Directory Update Log
 
 ## 2026-06-13
-* **Creation**: Established the [concept](/path/to/concept.md).
-* **Update**: Added a new field to the [other concept](/path/to/other.md).
+* **Creation**: Established the [concept](./concept.md).
+* **Update**: Added a new field to the [other concept](./other.md).
 
 ## 2026-06-01
 * **Initialization**: Created foundational directory structure.

@@ -27,24 +27,26 @@ pub(crate) fn run_read(docs_dir: &Path, args: ReadArgs, mode: OutputMode, quiet:
         topic: args.topic,
         full: args.full,
         contract: args.contract,
+        all: args.all,
         dependents,
     };
     let reading = effective::read(store.as_ref(), docs_dir, &options, mode.is_json());
     write_stdout_bytes(reading.output.as_bytes());
     if let Some(topic) = options.topic.as_deref().filter(|_| !quiet) {
-        report_no_match(&reading, topic, docs_dir);
+        report_no_match(&reading, topic, docs_dir, options.all);
     }
     ExitCode::SUCCESS
 }
 
 /// Tells the caller on stderr that a topic matched no live record, so an
 /// empty stdout is not mistaken for an empty bundle.
-fn report_no_match(reading: &Reading, topic: &str, docs_dir: &Path) {
+fn report_no_match(reading: &Reading, topic: &str, docs_dir: &Path, all: bool) {
     if reading.matched > 0 {
         return;
     }
+    let live = if all { "" } else { "live " };
     eprintln!(
-        "living-docs read records: no live record mentions '{topic}' ({} retired withheld); try a broader term or `grep -ril '{topic}' {}`",
+        "living-docs read records: no {live}record mentions '{topic}' ({} retired withheld); try a broader term or `grep -ril '{topic}' {}`",
         reading.withheld,
         docs_dir.display()
     );

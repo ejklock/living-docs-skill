@@ -18,8 +18,8 @@ a number.
 
 ### Objective link
 
-Constitution → [ADR 0001](/adr/0001-living-docs-cli.md) (`check` is the doc-gate) →
-[ADR 0014](/adr/0014-the-cli-serves-skill-content-from-an-embedded-corpus-harness-skill-md-files-are-slim-stubs.md)
+Constitution → [ADR 0001](../adr/0001-living-docs-cli.md) (`check` is the doc-gate) →
+[ADR 0014](../adr/0014-the-cli-serves-skill-content-from-an-embedded-corpus-harness-skill-md-files-are-slim-stubs.md)
 (skill content lives in the embedded corpus) → this slice.
 
 ### Context manifest
@@ -65,4 +65,4 @@ Constitution → [ADR 0001](/adr/0001-living-docs-cli.md) (`check` is the doc-ga
 
 No hard failure on size, no auto-truncation, no per-project target overrides until a
 real need appears. The `brief` scaffold is slice
-[0008](/issues/0008-brief-scaffold.md).
+[0008](0008-brief-scaffold.md).

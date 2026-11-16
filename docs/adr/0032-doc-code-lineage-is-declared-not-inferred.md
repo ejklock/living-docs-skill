@@ -13,7 +13,7 @@ timestamp: 2026-08-05T20:18:36Z
 
 ## Context
 
-[Research 0003](/research/0003-provenance-aware-knowledge-graph-for-living-docs.md) established three field facts. Plain-text code references in docs rot silently in most projects, and the decay driver is rename/move/deprecation refactoring. Automated (IR/ML) link recovery is not good enough to substitute for curated links, and human vetting degrades the best machine-generated link sets. In the field, links that were never created (47% of release artifacts) outnumber links that broke (12%) — creation friction is the larger enemy. Every shipped system that re-anchors positions after change (GitHub review comments, Gerrit ported comments, Swimm auto-sync) does it heuristically and accepts decay. [Issue 0024](/issues/0024-doc-code-pairing-for-living-docs-commit-trailers-covers-based-drift-detection-and-executable-acceptance.md) already specifies the layered pairing design (commit trailers, `covers:` globs, executable acceptance). What it leaves open is the identity model: what a doc-code link points AT, and who resolves change.
+[Research 0003](../research/0003-provenance-aware-knowledge-graph-for-living-docs.md) established three field facts. Plain-text code references in docs rot silently in most projects, and the decay driver is rename/move/deprecation refactoring. Automated (IR/ML) link recovery is not good enough to substitute for curated links, and human vetting degrades the best machine-generated link sets. In the field, links that were never created (47% of release artifacts) outnumber links that broke (12%) — creation friction is the larger enemy. Every shipped system that re-anchors positions after change (GitHub review comments, Gerrit ported comments, Swimm auto-sync) does it heuristically and accepts decay. [Issue 0024](../issues/0024-doc-code-pairing-for-living-docs-commit-trailers-covers-based-drift-detection-and-executable-acceptance.md) already specifies the layered pairing design (commit trailers, `covers:` globs, executable acceptance). What it leaves open is the identity model: what a doc-code link points AT, and who resolves change.
 
 ## Decision
 
@@ -53,7 +53,7 @@ Rejected alternative: heuristic auto-re-binding inside the tool (Swimm's model).
 
 # References
 
-[1] [Research 0003 — provenance-aware knowledge graph for living-docs](/research/0003-provenance-aware-knowledge-graph-for-living-docs.md)
-[2] [Issue 0024 — doc-code pairing](/issues/0024-doc-code-pairing-for-living-docs-commit-trailers-covers-based-drift-detection-and-executable-acceptance.md)
+[1] [Research 0003 — provenance-aware knowledge graph for living-docs](../research/0003-provenance-aware-knowledge-graph-for-living-docs.md)
+[2] [Issue 0024 — doc-code pairing](../issues/0024-doc-code-pairing-for-living-docs-commit-trailers-covers-based-drift-detection-and-executable-acceptance.md)
 [3] [SCIP protobuf schema — position-independent symbol grammar](https://github.com/sourcegraph/scip/blob/main/scip.proto)
 [4] [TAN, W.; WAGNER, S.; TREUDE, C. Detecting Outdated Code Element References in Software Repository Documentation](https://arxiv.org/abs/2212.01479)

@@ -14,7 +14,7 @@ concept — other docs link here rather than redefine.
 ## Link
 
 A `LINK` binds a short `code` to a `target_url`. It is **immutable**: once minted, a code
-always resolves to the same target. Defined in the [constitution](/constitution.md) data
+always resolves to the same target. Defined in the [constitution](../constitution.md) data
 model.
 
 ## Code
@@ -25,9 +25,9 @@ segment in `GET /{code}`.
 ## Mint
 
 The act of creating a new `LINK` for a submitted URL. See
-[issue 0001](/issues/0001-implement-shorten-endpoint.md), acceptance.
+[issue 0001](../issues/0001-implement-shorten-endpoint.md), acceptance.
 
 ## Resolve
 
 The act of turning a `code` back into its `target_url` for redirect. See
-[issue 0001](/issues/0001-implement-shorten-endpoint.md), acceptance.
+[issue 0001](../issues/0001-implement-shorten-endpoint.md), acceptance.

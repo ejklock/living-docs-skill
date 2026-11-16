@@ -81,5 +81,5 @@ freely editable — they are not sealed.
 
 # References
 
-[1] [ADR 0019](/adr/0019-hand-written-record-frontmatter-is-blocked-at-write-time-detected-by-check-and-taught-at-point-of-use.md) — superseded by [ADR 0020](/adr/0020-hand-write-hook-is-scoped-to-cli-owned-type-directories-not-the-whole-bundle.md)
-[2] [ADR 0021](/adr/0021-enforcement-layers-ship-with-the-repo-write-gate-hook-session-teaching-and-pre-commit-doc-gate.md)
+[1] [ADR 0019](0019-hand-written-record-frontmatter-is-blocked-at-write-time-detected-by-check-and-taught-at-point-of-use.md) — superseded by [ADR 0020](0020-hand-write-hook-is-scoped-to-cli-owned-type-directories-not-the-whole-bundle.md)
+[2] [ADR 0021](0021-enforcement-layers-ship-with-the-repo-write-gate-hook-session-teaching-and-pre-commit-doc-gate.md)

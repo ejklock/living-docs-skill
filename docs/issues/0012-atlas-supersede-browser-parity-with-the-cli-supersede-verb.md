@@ -10,7 +10,7 @@ timestamp: 2026-07-21T00:00:00Z
 
 ## Atlas supersede — browser parity with the CLI supersede verb
 
-Implements the supersede-parity verification criterion of [ADR 0016](/adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md):
+Implements the supersede-parity verification criterion of [ADR 0016](../adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md):
 "superseding via the Atlas UI leaves both records linked and conformant, identical to the
 CLI path." Unlike create/edit, `living-docs-core` already has a supersede verb (`--backend
 db supersede`, issue 0006) — this slice exposes it through Atlas, it does not invent new
@@ -18,8 +18,8 @@ core logic.
 
 ### Objective link
 
-Constitution → [PRD 0001](/prd/0001-living-docs-atlas-multi-project-authoring-wiki-over-living-docs-core.md)
-→ [ADR 0016](/adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md)
+Constitution → [PRD 0001](../prd/0001-living-docs-atlas-multi-project-authoring-wiki-over-living-docs-core.md)
+→ [ADR 0016](../adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md)
 → issues 0010/0011 → this slice.
 
 ### Context manifest

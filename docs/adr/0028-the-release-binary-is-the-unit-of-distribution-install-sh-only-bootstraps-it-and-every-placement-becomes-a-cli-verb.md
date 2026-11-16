@@ -25,12 +25,12 @@ same actions, with its own names and its own help text, drifting independently. 
 paths that install the binary disagree — `install.sh cli` writes `~/.local/bin/living-docs`
 while `make cli-install` runs `cargo install` into `~/.cargo/bin`. Two binaries, two
 versions, no gate between them, and whichever comes first on `PATH` wins silently. That is
-the drift class [ADR 0027](/adr/0027-every-rule-keyed-by-doc-type-becomes-a-registry-field-and-glossary-is-not-a-doc-type.md)
+the drift class [ADR 0027](0027-every-rule-keyed-by-doc-type-becomes-a-registry-field-and-glossary-is-not-a-doc-type.md)
 and `check-version.sh` exist to prevent, reappearing one level up.
 
 The way out is already in the repository, applied once and stopped.
-[ADR 0014](/adr/0014-the-cli-serves-skill-content-from-an-embedded-corpus-harness-skill-md-files-are-slim-stubs.md)
-(superseded by [ADR 0017](/adr/0017-skill-md-stubs-are-pure-routers-the-spine-and-all-detail-move-to-cli-topics.md))
+[ADR 0014](0014-the-cli-serves-skill-content-from-an-embedded-corpus-harness-skill-md-files-are-slim-stubs.md)
+(superseded by [ADR 0017](0017-skill-md-stubs-are-pure-routers-the-spine-and-all-detail-move-to-cli-topics.md))
 embedded the skills corpus in the binary. ADR 0023 (Deprecated, no successor — see ADR 0059; the `hooks install` channel survives, the write-gate does not)
 used that to make `living-docs hooks install` materialize hook scripts from the embedded
 copy into a target project, with no working tree involved anywhere. The binary is already a

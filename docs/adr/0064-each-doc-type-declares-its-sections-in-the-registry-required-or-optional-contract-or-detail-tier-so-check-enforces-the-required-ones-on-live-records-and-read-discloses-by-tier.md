@@ -11,7 +11,7 @@ timestamp: 2026-10-05T20:53:01Z
 
 ## Context
 
-The registry ([ADR 0027](/adr/0027-every-rule-keyed-by-doc-type-becomes-a-registry-field-and-glossary-is-not-a-doc-type.md)) owns every rule keyed by doc type, but it says nothing about a record's body sections. Two gaps follow.
+The registry ([ADR 0027](0027-every-rule-keyed-by-doc-type-becomes-a-registry-field-and-glossary-is-not-a-doc-type.md)) owns every rule keyed by doc type, but it says nothing about a record's body sections. Two gaps follow.
 
 First, no section is required. `check` reports an unfilled `{{SLOT}}` and accepts a deleted one, so an issue with no `### Acceptance` passes the gate. The template hints mark some sections optional ("remove the section when the issue decides nothing", "for a large task"); nothing makes the others mandatory.
 
@@ -43,7 +43,7 @@ Rejected alternatives:
 
 **Harder / accepted trade-offs:**
 - Heading text becomes part of the contract: renaming `### Acceptance` to `### Done when` on a live issue fails `check`.
-- A bundle in another repository with live issues that lack `Scope` or `Acceptance` goes red after upgrading; `check --changed-files` ([ADR 0062](/adr/0062-check-changed-files-scopes-the-gate-to-the-records-a-commit-touches-so-a-brownfield-bundle-can-arm-the-hook.md)) limits that to the records a commit touches.
+- A bundle in another repository with live issues that lack `Scope` or `Acceptance` goes red after upgrading; `check --changed-files` ([ADR 0062](0062-check-changed-files-scopes-the-gate-to-the-records-a-commit-touches-so-a-brownfield-bundle-can-arm-the-hook.md)) limits that to the records a commit touches.
 - `read` gains a third level and the flag surface grows by one.
 
 **Follow-ups:**

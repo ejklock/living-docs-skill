@@ -8,7 +8,7 @@ timestamp: 2026-10-24T10:17:26Z
 
 ## 0063. Implement duplicate-number detection and set number, and renumber this repository's open duplicates
 
-Implements [ADR 0069](/adr/0069-duplicate-record-numbers-fail-check-and-set-number-renumbers-a-record-with-its-links-and-index.md).
+Implements [ADR 0069](../adr/0069-duplicate-record-numbers-fail-check-and-set-number-renumbers-a-record-with-its-links-and-index.md).
 
 ### Scope
 

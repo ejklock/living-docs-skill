@@ -8,7 +8,7 @@ timestamp: 2026-10-24T10:17:34Z
 
 ## 0071. check suggests install hooks when the repository has no armed doc-gate
 
-Found by the usage audit: of 41 bundles under the owner's workspace, the six whose repository arms the pre-commit doc-gate all pass `check`, and 25 of the others fail. [ADR 0021](/adr/0021-enforcement-layers-ship-with-the-repo-write-gate-hook-session-teaching-and-pre-commit-doc-gate.md) puts enforcement at commit, and `living-docs install hooks` is the verb that arms it.
+Found by the usage audit: of 41 bundles under the owner's workspace, the six whose repository arms the pre-commit doc-gate all pass `check`, and 25 of the others fail. [ADR 0021](../adr/0021-enforcement-layers-ship-with-the-repo-write-gate-hook-session-teaching-and-pre-commit-doc-gate.md) puts enforcement at commit, and `living-docs install hooks` is the verb that arms it.
 
 ### Scope
 

@@ -18,6 +18,17 @@ fn violations(store: &MapStore) -> Vec<(String, String)> {
 }
 
 #[test]
+fn a_slot_needs_one_or_more_plain_characters_between_its_braces() {
+    assert!(!has_slot("{{}}"));
+    assert!(has_slot("{{a}}"));
+    assert!(has_slot("text {{A: hint}} more"));
+    assert!(!has_slot("{{a\nb}}"));
+    assert!(!has_slot("{{a{b}}"));
+    assert!(has_slot("{{{a}}"));
+    assert!(!has_slot("{{a}"));
+}
+
+#[test]
 fn an_unfilled_placeholder_in_a_record_body_is_a_violation() {
     let store = store_of(&[(
         "docs/adr/0001-x.md",

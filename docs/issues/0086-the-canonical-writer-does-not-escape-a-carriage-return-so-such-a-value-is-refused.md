@@ -1,7 +1,7 @@
 ---
 type: Issue
 title: the canonical writer does not escape a carriage return so such a value is refused
-description: <One sentence — the change and its motivation.>
+description: The canonical writer escapes a carriage return in a double-quoted value, so a value holding one is written and reads back unchanged instead of being refused.
 status: closed
 timestamp: 2026-10-25T02:00:33Z
 ---

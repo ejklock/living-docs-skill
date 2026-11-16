@@ -16,7 +16,7 @@ timestamp: 2026-08-27T19:10:25Z
 
 ## Context
 
-An artifact with no accountable person drifts, and agents propagate drifted decisions at machine speed ([issue 0036](/issues/0036-owner-field-in-record-frontmatter-required-for-adr-and-bdr-by-check.md)). Frontmatter is CLI-owned by construction (ADR 0021) and its shape comes from the single doctype registry (ADR 0026), so a new field must enter through the registry and get a mutation verb, mirroring how `status` and `describe` work. The existing corpus has no owner values, so an immediate hard requirement would break every conformant tree.
+An artifact with no accountable person drifts, and agents propagate drifted decisions at machine speed ([issue 0036](../issues/0036-owner-field-in-record-frontmatter-required-for-adr-and-bdr-by-check.md)). Frontmatter is CLI-owned by construction (ADR 0021) and its shape comes from the single doctype registry (ADR 0026), so a new field must enter through the registry and get a mutation verb, mirroring how `status` and `describe` work. The existing corpus has no owner values, so an immediate hard requirement would break every conformant tree.
 
 ## Decision
 

@@ -10,8 +10,8 @@ timestamp: 2026-07-16T00:00:00Z
 
 ## Findability — db sync + living-docs search
 
-Implements [ADR 0003](/adr/0003-storage-backend-model.md) and
-[ADR 0004](/adr/0004-db-engine-and-data-layer.md). **Slice 1** — the North Star's first
+Implements [ADR 0003](../adr/0003-storage-backend-model.md) and
+[ADR 0004](../adr/0004-db-engine-and-data-layer.md). **Slice 1** — the North Star's first
 truth: answer "where did we decide X?" in seconds.
 
 ### Objective link
@@ -23,7 +23,7 @@ ADR 0004 (SQLite/FTS5 engine) → this slice.
 
 - Read: `living-docs-core` domain + `SearchIndex` port (from slice 0001),
   `living-docs-core/src/check/*` (frontmatter/body parsing to reuse),
-  [ADR 0005](/adr/0005-normalized-schema.md) schema.
+  [ADR 0005](../adr/0005-normalized-schema.md) schema.
 - Seams touched: new `db-store` crate implementing `SearchIndex` over SeaORM + a raw-SQL
   FTS5 index; a `db sync` code path that reads records via `DocStore` and writes the
   derived read-model; a `search` subcommand in `cli`.

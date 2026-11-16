@@ -10,8 +10,8 @@ timestamp: 2026-07-16T00:00:00Z
 
 ## Dev environment — docker-compose (ParadeDB) + Makefile targets
 
-Enables [ADR 0004](/adr/0004-db-engine-and-data-layer.md) (ParadeDB) and
-[ADR 0006](/adr/0006-web-read-only-axum.md) (web). **Enabling/tooling issue** — not a
+Enables [ADR 0004](../adr/0004-db-engine-and-data-layer.md) (ParadeDB) and
+[ADR 0006](../adr/0006-web-read-only-axum.md) (web). **Enabling/tooling issue** — not a
 user-facing vertical slice; its observable outcome is a healthy, reachable stack (smoke).
 
 ### Objective link

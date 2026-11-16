@@ -8,7 +8,7 @@ timestamp: 2026-10-19T13:13:52Z
 
 ## 0059. new --body and set --from read prose from a file or stdin
 
-Implements [ADR 0066](/adr/0066-record-prose-enters-through-a-file-or-stdin-new-body-and-set-from-replace-argv-for-body-and-field-values.md). Prose reaches a record through a file or stdin: `new --body` fills the scaffolded body, `set --from` reads any field value, and the `section` key replaces or appends one body section.
+Implements [ADR 0066](../adr/0066-record-prose-enters-through-a-file-or-stdin-new-body-and-set-from-replace-argv-for-body-and-field-values.md). Prose reaches a record through a file or stdin: `new --body` fills the scaffolded body, `set --from` reads any field value, and the `section` key replaces or appends one body section.
 
 ### Scope
 

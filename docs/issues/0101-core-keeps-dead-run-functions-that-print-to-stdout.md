@@ -1,7 +1,7 @@
 ---
 type: Issue
 title: core keeps dead run functions that print to stdout
-description: <One sentence — the change and its motivation.>
+description: The five dead run functions that print to stdout are removed from living-docs-core with the helpers only they use, so the core never writes to stdout.
 status: closed
 timestamp: 2026-10-27T00:47:08Z
 ---

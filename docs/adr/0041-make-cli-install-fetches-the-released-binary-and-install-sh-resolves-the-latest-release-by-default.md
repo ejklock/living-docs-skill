@@ -1,7 +1,7 @@
 ---
 type: ADR
 title: make cli-install fetches the released binary and install.sh resolves the latest release by default
-description: <One sentence — the decision and its scope.>
+description: make cli-install fetches the released binary and install.sh resolves the latest release by default, so CLI installation has one path that agrees with the release-binary distribution decision.
 owner: Evaldo Klock
 status: Accepted
 timestamp: 2026-08-14T13:49:32Z
@@ -11,7 +11,7 @@ timestamp: 2026-08-14T13:49:32Z
 
 ## Context
 
-[ADR 0028](/adr/0028-the-release-binary-is-the-unit-of-distribution-install-sh-only-bootstraps-it-and-every-placement-becomes-a-cli-verb.md)
+[ADR 0028](0028-the-release-binary-is-the-unit-of-distribution-install-sh-only-bootstraps-it-and-every-placement-becomes-a-cli-verb.md)
 made the released binary the unit of distribution, but the shipped code split CLI
 installation across two disagreeing paths. `./install.sh cli` downloads a release asset to
 `~/.local/bin`. `make cli-install` runs `cargo install --path cli --force` into

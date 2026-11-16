@@ -168,6 +168,7 @@ fn run_read(docs_dir: &Path, args: &ReadArgs) -> Answer {
         topic: args.topic.clone(),
         full: args.full,
         contract: args.contract,
+        all: args.all,
         dependents: dependents_of(docs_dir, args)?,
     };
     let reading = effective::read(&store(docs_dir), docs_dir, &options, true);

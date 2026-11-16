@@ -14,10 +14,15 @@ timestamp: 2026-10-27T13:00:11Z
 
 ### Decision
 
-- To decide in this issue: either `check` treats the placeholder description as unfilled, as it does a body slot, or `new` leaves the key out until `set` writes it.
+- The owner chose that `check` reports a description equal to a doc-type template placeholder as an unfilled-slot violation, while `new` keeps writing the placeholder, as [ADR 0085](../adr/0085-check-fails-a-record-whose-description-is-still-its-template-placeholder.md) records. Not taken: `new` leaving the key out until `set` writes it; keeping it as it is.
 - Fill the description of every record that still carries the placeholder in the same change, so the bundle stays green.
 
 ### Acceptance
 
 - A record whose `description` is still the placeholder fails `check`, or `new` no longer writes one. The deciding cases each have a test: a placeholder, a filled description, and a description that only quotes the placeholder text.
 - `living-docs check` passes over `docs/`.
+
+### Plan
+
+- S1: `check` reports a description equal to a doc-type template placeholder, with a `write set` fix every type accepts, and rules/check.md says so | files: living-docs-core/src/check/placeholder.rs, cli/tests/check_placeholder_description.rs, skills/living-docs/rules/check.md, cli/tests fixtures | after: none
+- S2: the other guides that describe what `write new` leaves to fill and what `check` enforces name the placeholder description: skills/living-docs/rules/procedure.md :13-17, skills/living-docs/rules/doc-trail.md :43, README.md :112 | files: skills/living-docs/rules/procedure.md, skills/living-docs/rules/doc-trail.md, README.md | after: S1

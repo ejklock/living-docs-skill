@@ -1,7 +1,7 @@
 ---
 type: Issue
 title: check skips every entry of a supersedes list that mixes record numbers and other values
-description: <One sentence — the change and its motivation.>
+description: check judges every record-number entry of a supersedes list that also holds other values, in both link directions, so a valid entry is no longer skipped.
 status: open
 timestamp: 2026-10-25T03:14:26Z
 ---
@@ -23,3 +23,7 @@ timestamp: 2026-10-25T03:14:26Z
 ### Plan
 
 Read the raw `supersedes` sequence from the frontmatter tail in the link check, or add a separate rule for a non-numeric entry, as the decision says.
+
+### Decision
+
+The owner chose to judge each record-number entry of the raw `supersedes` sequence by the one-way link rule, in both link directions: a carrier's `supersedes: [0001, abc]` is judged for `0001`, and a target whose `supersedes` is `[0001, abc]` counts as naming `0001` back. An entry that is not a record number stays unjudged by this rule, as `manage fmt` and `write set` already treat it, and no new violation kind is added. The typed `supersedes` field stays `None` for a mixed list; the link check reads the raw sequence itself. Not taken: reporting the mixed list as its own violation; both; leaving it as is.

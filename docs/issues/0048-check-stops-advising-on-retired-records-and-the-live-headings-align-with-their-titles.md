@@ -8,7 +8,7 @@ timestamp: 2026-09-22T22:11:31Z
 
 ## 0048. check stops advising on retired records and the live headings align with their titles
 
-`check` printed 54 advisories over this bundle; 39 sat on retired records that `set title` refuses to change, so they could never be cleared. Implements [ADR 0063](/adr/0063-authoring-advisories-skip-retired-records.md): the `HEADING` and `SIZE` advisories skip retired records. The same issue clears the 12 `HEADING` advisories left on live records, so the bundle's own `check` shows only findings that still matter.
+`check` printed 54 advisories over this bundle; 39 sat on retired records that `set title` refuses to change, so they could never be cleared. Implements [ADR 0063](../adr/0063-authoring-advisories-skip-retired-records.md): the `HEADING` and `SIZE` advisories skip retired records. The same issue clears the 12 `HEADING` advisories left on live records, so the bundle's own `check` shows only findings that still matter.
 
 ### Scope
 

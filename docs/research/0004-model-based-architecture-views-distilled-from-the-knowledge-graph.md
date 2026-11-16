@@ -14,7 +14,7 @@ Can the structural architecture views (module layout, containers) be *generated*
 model the repository already carries — the typed bi-temporal edge set of
 ADR 0031 (Deprecated, no successor — see ADR 0059)
 and the declared doc–code lineage of
-[ADR 0032](/adr/0032-doc-code-lineage-is-declared-not-inferred.md) — instead of being
+[ADR 0032](../adr/0032-doc-code-lineage-is-declared-not-inferred.md) — instead of being
 hand-drawn Mermaid that only the no-drift rule keeps honest?
 
 ## Method
@@ -22,7 +22,7 @@ hand-drawn Mermaid that only the no-drift rule keeps honest?
 Industry survey, August 2026: read the model-based "architecture as code" toolchains
 (Structurizr DSL, LikeC4) against the hand-drawn diagrams-as-code approach (Mermaid,
 PlantUML) this project uses, and against
-[ADR 0036](/adr/0036-architecture-views-are-a-registry-doc-type-on-a-named-identity-with-a-kind-sequenced-generated-index.md)'s
+[ADR 0036](../adr/0036-architecture-views-are-a-registry-doc-type-on-a-named-identity-with-a-kind-sequenced-generated-index.md)'s
 per-view instrument binding (`rules/architecture-diagrams.md`). Findings are true as of
 2026-08-14.
 

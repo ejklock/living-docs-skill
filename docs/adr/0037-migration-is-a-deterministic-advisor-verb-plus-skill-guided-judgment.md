@@ -50,7 +50,7 @@ writes or edits anything; the judgment half is governed by the skill topic
   alternative — `migrate --apply` running `index`/`fmt` in one shot; rejected for this
   slice because the executing agent already runs printed commands verbatim, and an
   applying verb needs its own transactional/rollback story before it earns existence.
-  *(Amended by [ADR 0040](/adr/0040-migrate-apply-is-a-cli-front-transaction-over-the-mechanical-subset.md):
+  *(Amended by [ADR 0040](0040-migrate-apply-is-a-cli-front-transaction-over-the-mechanical-subset.md):
   the transactional story now exists — `--apply` in the CLI front; the core advisor
   stays read-only.)*
 - A skill-only instruction page without a verb was rejected on the standing rule: a
@@ -79,5 +79,5 @@ writes or edits anything; the judgment half is governed by the skill topic
 
 # References
 
-[1] [ADR 0035](/adr/0035-requirement-ids-are-prd-scoped-ears-statements-and-check-traces-bdr-coverage.md)
-[2] [ADR 0036](/adr/0036-architecture-views-are-a-registry-doc-type-on-a-named-identity-with-a-kind-sequenced-generated-index.md)
+[1] [ADR 0035](0035-requirement-ids-are-prd-scoped-ears-statements-and-check-traces-bdr-coverage.md)
+[2] [ADR 0036](0036-architecture-views-are-a-registry-doc-type-on-a-named-identity-with-a-kind-sequenced-generated-index.md)

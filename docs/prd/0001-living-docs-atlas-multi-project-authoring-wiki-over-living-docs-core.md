@@ -14,8 +14,8 @@ timestamp: 2026-07-20T14:45:52Z
 ## Problem / Motivation
 
 Living Docs today is authored through the CLI and read through a **read-only** web view
-(ADR [/adr/0006-web-read-only-axum.md](/adr/0006-web-read-only-axum.md), superseded by
-[/adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md](/adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md)).
+(ADR [/adr/0006-web-read-only-axum.md](../adr/0006-web-read-only-axum.md), superseded by
+[/adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md](../adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md)).
 Two pains follow
 from that shape as the practice spreads across projects:
 
@@ -35,7 +35,7 @@ for the semantic layer (glossary now, code↔concept ontology later) to live.
 This is an evolution, not a rewrite: `living-docs-core` already implements the deterministic
 authoring verbs (`new`, `brief`, `supersede`, `index`, `export`, `check`), and the web front
 already ships the three-pane, search-first, Cmd+K shell (ADR
-[/adr/0015-web-ux-follows-the-three-pane-doc-site-archetype-with-search-first-cmd-k-palette.md](/adr/0015-web-ux-follows-the-three-pane-doc-site-archetype-with-search-first-cmd-k-palette.md)).
+[/adr/0015-web-ux-follows-the-three-pane-doc-site-archetype-with-search-first-cmd-k-palette.md](../adr/0015-web-ux-follows-the-three-pane-doc-site-archetype-with-search-first-cmd-k-palette.md)).
 Atlas adds the **write path**, **multi-project navigation**, and the **semantic layer** on top.
 
 ## Goals
@@ -51,7 +51,7 @@ Atlas adds the **write path**, **multi-project navigation**, and the **semantic 
   typed relations to other terms.
 - Lay a **gated** path to a code↔concept ontology bridge over `codegraph` — built only when
   an evidence-gate justifies it (research
-  [/research/0002-ontology-tooling-codegraph-docs-bridge.md](/research/0002-ontology-tooling-codegraph-docs-bridge.md)).
+  [/research/0002-ontology-tooling-codegraph-docs-bridge.md](../research/0002-ontology-tooling-codegraph-docs-bridge.md)).
 - Preserve the two locked constraints: the **determinism boundary** and **one language / one build**.
 
 ## Non-goals
@@ -83,7 +83,7 @@ Atlas adds the **write path**, **multi-project navigation**, and the **semantic 
    project or all.
 8. The **fs↔db sync / conflict contract** is explicit — which backend is authoritative on
    write, and how the other is reconciled — decided in an ADR **before** the write path ships
-   (extends ADR [/adr/0007-db-mode-authoring-data-model-and-lossless-export-contract.md](/adr/0007-db-mode-authoring-data-model-and-lossless-export-contract.md),
+   (extends ADR [/adr/0007-db-mode-authoring-data-model-and-lossless-export-contract.md](../adr/0007-db-mode-authoring-data-model-and-lossless-export-contract.md),
    which covers lossless export but not write-time conflict).
 9. **Glossary**: a `glossary` doc type where a term is a concept with `prefLabel`/`altLabel`
    and typed relations (`broader`/`narrower`/`related`), each term in exactly one place,
@@ -143,7 +143,7 @@ forthcoming, not yet created:
 ## Decision log
 
 - Substrate/format findings that shape this PRD: research
-  [/research/0002-ontology-tooling-codegraph-docs-bridge.md](/research/0002-ontology-tooling-codegraph-docs-bridge.md)
+  [/research/0002-ontology-tooling-codegraph-docs-bridge.md](../research/0002-ontology-tooling-codegraph-docs-bridge.md)
   (Rust-native SKOS-in-Oxigraph or SQLite-projection; wiki template = Dendron + Cargo, not SMW/Wikibase; ontology gated by evidence).
 - ADRs resolving the open questions above — to be linked as they are decided.
 
@@ -161,6 +161,6 @@ Each slice is a thin end-to-end change; the ontology is deliberately last and ga
 
 ## Related
 
-- Constitution: [/constitution.md](/constitution.md)
-- Research: [/research/0002-ontology-tooling-codegraph-docs-bridge.md](/research/0002-ontology-tooling-codegraph-docs-bridge.md)
-- ADRs: [/adr/0006-web-read-only-axum.md](/adr/0006-web-read-only-axum.md) · [/adr/0007-db-mode-authoring-data-model-and-lossless-export-contract.md](/adr/0007-db-mode-authoring-data-model-and-lossless-export-contract.md) · [/adr/0015-web-ux-follows-the-three-pane-doc-site-archetype-with-search-first-cmd-k-palette.md](/adr/0015-web-ux-follows-the-three-pane-doc-site-archetype-with-search-first-cmd-k-palette.md)
+- Constitution: [/constitution.md](../constitution.md)
+- Research: [/research/0002-ontology-tooling-codegraph-docs-bridge.md](../research/0002-ontology-tooling-codegraph-docs-bridge.md)
+- ADRs: [/adr/0006-web-read-only-axum.md](../adr/0006-web-read-only-axum.md) · [/adr/0007-db-mode-authoring-data-model-and-lossless-export-contract.md](../adr/0007-db-mode-authoring-data-model-and-lossless-export-contract.md) · [/adr/0015-web-ux-follows-the-three-pane-doc-site-archetype-with-search-first-cmd-k-palette.md](../adr/0015-web-ux-follows-the-three-pane-doc-site-archetype-with-search-first-cmd-k-palette.md)

@@ -13,7 +13,7 @@ timestamp: 2026-07-30T22:34:18Z
 
 ## The harness matrix is six targets where four are the same copy
 
-Follow-up from [ADR 0028](/adr/0028-the-release-binary-is-the-unit-of-distribution-install-sh-only-bootstraps-it-and-every-placement-becomes-a-cli-verb.md).
+Follow-up from [ADR 0028](../adr/0028-the-release-binary-is-the-unit-of-distribution-install-sh-only-bootstraps-it-and-every-placement-becomes-a-cli-verb.md).
 
 `living-docs skill install` covers six harness targets. Four of them — Claude, opencode,
 Codex, and pi — are the same operation with a different destination: copy the skill
@@ -23,7 +23,7 @@ frontmatter wrapped around the same skill body.
 
 So the matrix has two shapes and one axis of variation within each. Today that lives as
 per-harness code, which is fine while it is six and is exactly how the doc-type taxonomy
-looked before [ADR 0026](/adr/0026-a-single-doctype-registry-replaces-nine-hand-synced-enumerations-and-research-and-constitution-enter-as-rows.md).
+looked before [ADR 0026](../adr/0026-a-single-doctype-registry-replaces-nine-hand-synced-enumerations-and-research-and-constitution-enter-as-rows.md).
 
 The question this issue exists to answer is whether a `HarnessSpec` registry earns its
 place here, or whether that would be pattern-matching on a resemblance rather than on a

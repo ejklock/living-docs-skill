@@ -14,9 +14,9 @@ timestamp: 2026-08-05T20:25:27Z
 
 ## Corpus import: seed the knowledge graph read-model from real repos to make graph slices demoable from day one
 
-The knowledge-graph work ([ADR 0031](/adr/0031-the-knowledge-graph-is-a-typed-bi-temporal-edge-set-in-the-existing-relational-store.md), [ADR 0032](/adr/0032-doc-code-lineage-is-declared-not-inferred.md)) needs real data before its first query verb lands: an edge model validated only against fixtures proves conformance, not usefulness. Multi-project sync already exists (`db sync --docs-dir <path> --project <slug>`, ADR 0005), so a conformant bundle can enter a shared read-model today. What is missing is (a) a verified multi-repo corpus workflow, (b) a deterministic import path for repos whose docs are NOT living-docs-conformant, and (c) making that corpus the standing demo target for every graph slice. This also feeds the calibration-pending items of [issue 0024](/issues/0024-doc-code-pairing-for-living-docs-commit-trailers-covers-based-drift-detection-and-executable-acceptance.md) with real usage data.
+The knowledge-graph work ([ADR 0031](../adr/0031-the-knowledge-graph-is-a-typed-bi-temporal-edge-set-in-the-existing-relational-store.md), [ADR 0032](../adr/0032-doc-code-lineage-is-declared-not-inferred.md)) needs real data before its first query verb lands: an edge model validated only against fixtures proves conformance, not usefulness. Multi-project sync already exists (`db sync --docs-dir <path> --project <slug>`, ADR 0005), so a conformant bundle can enter a shared read-model today. What is missing is (a) a verified multi-repo corpus workflow, (b) a deterministic import path for repos whose docs are NOT living-docs-conformant, and (c) making that corpus the standing demo target for every graph slice. This also feeds the calibration-pending items of [issue 0024](0024-doc-code-pairing-for-living-docs-commit-trailers-covers-based-drift-detection-and-executable-acceptance.md) with real usage data.
 
-Part of [PRD 0001](/prd/0001-living-docs-atlas-multi-project-authoring-wiki-over-living-docs-core.md) (multi-project read-model); feeds ADR 0031/0032.
+Part of [PRD 0001](../prd/0001-living-docs-atlas-multi-project-authoring-wiki-over-living-docs-core.md) (multi-project read-model); feeds ADR 0031/0032.
 
 ### Scope
 

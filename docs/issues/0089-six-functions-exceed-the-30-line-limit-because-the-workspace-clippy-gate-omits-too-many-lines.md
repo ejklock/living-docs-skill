@@ -1,7 +1,7 @@
 ---
 type: Issue
 title: six functions exceed the 30-line limit because the workspace clippy gate omits too_many_lines
-description: <One sentence — the change and its motivation.>
+description: The six functions over the 30-line limit are split and the workspace clippy gate runs too_many_lines, so the limit holds on every change.
 status: closed
 timestamp: 2026-10-25T02:00:40Z
 ---

@@ -31,7 +31,7 @@ execution (multi-hour, multi-slice work) the tracker cannot distinguish in-fligh
 untouched backlog. The only workaround today is a body-level convention (an `**Executing
 as:**` line), which frontmatter can't express.
 
-[Issue 0017](/issues/0017-bundle-vocabulary-gaps-no-research-doc-type-in-index-and-no-terminal-closed-status-for-issues.md)
+[Issue 0017](0017-bundle-vocabulary-gaps-no-research-doc-type-in-index-and-no-terminal-closed-status-for-issues.md)
 already tracks the other open half of this same vocabulary gap: issues have no terminal
 `Closed`/`Resolved` state, so a downstream repo had to close a fixed bug as `Deprecated`,
 which misstates the outcome. All three gaps — the comment/validator mismatch, the missing

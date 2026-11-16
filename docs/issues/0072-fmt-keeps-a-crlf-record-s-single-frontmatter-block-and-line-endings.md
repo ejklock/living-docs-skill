@@ -27,7 +27,7 @@ Found by the review of the fmt repair work (2026-10-24, reproduced in a temporar
 
 ### Outcome
 
-Delivered 2026-10-24 on branch task/ek-usage-audit-backlog, folded into issue 0059's work by owner decision; [ADR 0072](/adr/0072-records-keep-their-own-line-endings-crlf-is-read-and-written-as-crlf-and-a-mixed-ending-record-fails-check.md) records the design.
+Delivered 2026-10-24 on branch task/ek-usage-audit-backlog, folded into issue 0059's work by owner decision; [ADR 0072](../adr/0072-records-keep-their-own-line-endings-crlf-is-read-and-written-as-crlf-and-a-mixed-ending-record-fails-check.md) records the design.
 
 - A store view in core (`living-docs-core/src/line_ending.rs`) reads a record whose every line break is CRLF as LF and writes it back as CRLF; `set`, `supersede`, `fmt` and `check` go through it, and the type-index refresh converts at its own edge. No parser changed.
 - `fmt` on a CRLF ADR with unordered keys leaves one frontmatter block, keys in canonical order and CRLF endings; a second run writes nothing. `check` on a CRLF record reports what it reports on its LF twin.

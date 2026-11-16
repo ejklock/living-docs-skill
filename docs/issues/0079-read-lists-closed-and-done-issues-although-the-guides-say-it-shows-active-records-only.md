@@ -10,7 +10,7 @@ timestamp: 2026-10-10T19:16:42Z
 
 Found adopting 0.21.0 in a downstream bundle (relent): of 366 records, `living-docs read` printed 220 closed issues, 56% of the index output (about 13,600 of 24,500 tokens), and they also swell `read --topic` and `--contract` results.
 
-Cause: `is_in_force` in `living-docs-core/src/commands/effective.rs` matches only `superseded` and `deprecated`. It ignores `DocTypeSpec::terminal_statuses` (issue: `closed`, `done`), which `is_retired` already uses for `set title` and for the authoring advisories ([ADR 0063](/adr/0063-authoring-advisories-skip-retired-records.md)).
+Cause: `is_in_force` in `living-docs-core/src/commands/effective.rs` matches only `superseded` and `deprecated`. It ignores `DocTypeSpec::terminal_statuses` (issue: `closed`, `done`), which `is_retired` already uses for `set title` and for the authoring advisories ([ADR 0063](../adr/0063-authoring-advisories-skip-retired-records.md)).
 
 Reproduction: `living-docs new issue "Alpha"`, `living-docs set issue/0001 status closed`, `living-docs read`. The closed issue is listed and `withheld` is 0.
 
@@ -27,3 +27,9 @@ Contradicts `skills/living-docs/SKILL.md` line 59 and `skills/living-docs/rules/
 - `read` with the include-retired flag lists the closed issue.
 - The `read` wording in SKILL.md and semantic-index.md matches: closed and done issues are withheld.
 - `living-docs check docs` stays OK.
+
+### Decision
+
+The owner chose to withhold every record `DocTypeSpec::is_retired` reports from `read`, closed and done issues included, with `read records --all` to bring them back, as [ADR 0083](../adr/0083-read-withholds-every-retired-record-closed-and-done-issues-included-and-read-all-brings-them-back.md) records. The flag is named `--all`. Not taken: withholding with no flag; keeping the view and rewording the guides.
+
+The owner chose that `--links-to` and `--impact` withhold retired records like plain `read`, and that `--all` lists them there too, so one model holds: retired records hidden unless `--all`. Not taken: accepting the narrower view with no escape; keeping the old superseded-or-deprecated rule for those two queries only.

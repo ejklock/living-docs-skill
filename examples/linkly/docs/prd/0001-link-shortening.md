@@ -23,7 +23,7 @@ original and never breaks.
 ## Non-goals
 
 - Analytics, accounts, and vanity domains (out of scope per the
-  [constitution](/constitution.md)).
+  [constitution](../constitution.md)).
 
 ## Requirements
 
@@ -44,14 +44,14 @@ original and never breaks.
 ## Open questions
 
 - Where are links stored, and does that survive a restart? → resolved by
-  [ADR 0002](/adr/0002-sqlite-store.md).
+  [ADR 0002](../adr/0002-sqlite-store.md).
 
 ## Decision log
 
-- Storage: [ADR 0002 — SQLite store](/adr/0002-sqlite-store.md)
-  (supersedes [ADR 0001](/adr/0001-in-memory-store.md)).
+- Storage: [ADR 0002 — SQLite store](../adr/0002-sqlite-store.md)
+  (supersedes [ADR 0001](../adr/0001-in-memory-store.md)).
 
 ## Related
 
-- Constitution: [/constitution.md](/constitution.md)
-- Issues: [/issues/0001-implement-shorten-endpoint.md](/issues/0001-implement-shorten-endpoint.md)
+- Constitution: [/constitution.md](../constitution.md)
+- Issues: [/issues/0001-implement-shorten-endpoint.md](../issues/0001-implement-shorten-endpoint.md)

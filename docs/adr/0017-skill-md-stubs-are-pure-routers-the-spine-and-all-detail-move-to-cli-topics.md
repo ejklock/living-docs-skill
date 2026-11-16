@@ -13,7 +13,7 @@ timestamp: 2026-07-20T15:29:03Z
 
 ## Context
 
-[ADR 0014](/adr/0014-the-cli-serves-skill-content-from-an-embedded-corpus-harness-skill-md-files-are-slim-stubs.md)
+[ADR 0014](0014-the-cli-serves-skill-content-from-an-embedded-corpus-harness-skill-md-files-are-slim-stubs.md)
 made the CLI the server of detailed skill content (the `skills/**` tree is embedded via
 `rust-embed` and served as `living-docs skill <name>` / `--topic <topic>`), and made each
 harness-installed `SKILL.md` a **slim stub**. But 0014's decision point 3 deliberately kept
@@ -132,4 +132,4 @@ change; no `install.sh` change.
 
 # References
 
-[1] [ADR 0014 — the CLI serves skill content from an embedded corpus; harness SKILL.md files are slim stubs (superseded by this ADR)](/adr/0014-the-cli-serves-skill-content-from-an-embedded-corpus-harness-skill-md-files-are-slim-stubs.md)
+[1] [ADR 0014 — the CLI serves skill content from an embedded corpus; harness SKILL.md files are slim stubs (superseded by this ADR)](0014-the-cli-serves-skill-content-from-an-embedded-corpus-harness-skill-md-files-are-slim-stubs.md)

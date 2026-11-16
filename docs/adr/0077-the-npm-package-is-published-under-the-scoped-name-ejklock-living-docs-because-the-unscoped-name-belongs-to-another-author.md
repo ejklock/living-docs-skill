@@ -12,7 +12,7 @@ timestamp: 2026-11-09T23:40:02Z
 
 ## Context
 
-[ADR 0067](/adr/0067-an-npm-package-wraps-the-released-binary-as-a-second-distribution-channel-so-npx-living-docs-resolves.md) decided to publish the released binary on npm as a thin wrapper under the name `living-docs`, recording the name as unclaimed on 2026-10-19. On 2026-10-21 another author (`vios94`, repository `Akiles94/living-docs`) published `living-docs@0.2.0` with its own `living-docs` bin (`npm view living-docs maintainers time.created`). Publishing this repository under that name now fails with 403, and the `publish-npm` job has been skipped on every release since because the `NPM_TOKEN` secret is absent. Issue #84 on GitHub asks for the channel and for the name decision.
+[ADR 0067](0067-an-npm-package-wraps-the-released-binary-as-a-second-distribution-channel-so-npx-living-docs-resolves.md) decided to publish the released binary on npm as a thin wrapper under the name `living-docs`, recording the name as unclaimed on 2026-10-19. On 2026-10-21 another author (`vios94`, repository `Akiles94/living-docs`) published `living-docs@0.2.0` with its own `living-docs` bin (`npm view living-docs maintainers time.created`). Publishing this repository under that name now fails with 403, and the `publish-npm` job has been skipped on every release since because the `NPM_TOKEN` secret is absent. Issue #84 on GitHub asks for the channel and for the name decision.
 
 ## Decision
 

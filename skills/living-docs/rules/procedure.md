@@ -14,7 +14,9 @@ the CLI's job; the judgment prose (the "why") is yours to write directly in the 
   its frontmatter and title heading filled and every body section as a `{{SLOT: hint}}`
   placeholder; the hint says what belongs in the slot and vanishes with it. Replace every slot
   with prose, or delete the slot and its heading when the record has nothing to say there —
-  `check` fails on any slot left behind.
+  `check` fails on any slot left behind. `write new` also seeds `description` with the template's
+  placeholder unless `--description` is given; `check` fails on it like a slot, and the fix is
+  `write set <TYPE/NNNN> description --from -`.
 - **Prose reaches a record through a file or stdin, never through argv.** `write new <type> "<title>"
   --body PATH|-` writes the body (everything below the heading) from a file or stdin in place of
   the slots; `write set <ref> <key> --from PATH|-` reads any field value the same way; `write set <ref> section
@@ -28,8 +30,8 @@ the CLI's job; the judgment prose (the "why") is yours to write directly in the 
   process error is hand-numbering a doc, hand-writing frontmatter, hand-maintaining an index row,
   or hand-wiring `supersedes`/`superseded_by` when `write supersede` does it deterministically. Write
   each paragraph as ONE line — never hard-wrap prose at a fixed column; the reading surface
-  soft-wraps. `living-docs manage fmt` unwraps hard-wrapped paragraphs (ADR 0046), so a wrapped body is
-  a `manage fmt` diff, not a style choice.
+  soft-wraps. `living-docs manage fmt` repairs only CLI-owned fields and never reflows prose, so
+  keeping paragraphs on one line is the author's job (ADR 0071).
 - **Repair a hand-written or migrated record with `living-docs manage fmt`** (`manage fmt --check` lists what
   it would change and writes nothing). `manage fmt` repairs three CLI-owned fields: it seeds a missing
   `timestamp` from the author date of the commit that added the file (the clock when the file was

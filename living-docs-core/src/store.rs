@@ -6,15 +6,16 @@
 use std::io;
 use std::path::{Path, PathBuf};
 
-/// Reads and writes doc records against a backing store rooted at a given
-/// directory. `fs-store` implements this over `.md` files on disk; a future
-/// `db-store` adapter implements it over SQLite (slice 0002).
+/// Reads and writes the files of a bundle against a backing store rooted at a
+/// given directory: its doc records and its reserved files (`index.md`).
+/// `fs-store` implements this over `.md` files on disk; a future `db-store`
+/// adapter would implement it over SQLite.
 ///
 /// An adapter may refuse a path outside the root it was built for. The
 /// refusal is an `io::Error` of kind `PermissionDenied` naming the path, the
 /// root and the rule that a record must lie inside the bundle; a caller treats
-/// that error as "this record is not the bundle's", never as a missing or
-/// empty record. [`is_refusal`] names that error: an operating-system
+/// that error as "this file is not the bundle's", never as a missing or
+/// empty file. [`is_refusal`] names that error: an operating-system
 /// permission error has the same kind but carries an OS error code, so it is
 /// not a refusal.
 pub trait DocStore {
@@ -22,11 +23,12 @@ pub trait DocStore {
     /// order.
     fn list(&self, root: &Path) -> io::Result<Vec<PathBuf>>;
 
-    /// Reads the full contents of the doc record at `path`.
+    /// Reads the full contents of the file at `path`, a doc record or a
+    /// reserved file.
     fn read(&self, path: &Path) -> io::Result<String>;
 
-    /// Writes `contents` to the doc record at `path`, creating any missing
-    /// parent directories.
+    /// Writes `contents` to the file at `path`, a doc record or a reserved
+    /// file, creating any missing parent directories.
     fn write(&self, path: &Path, contents: &str) -> io::Result<()>;
 
     /// Moves the doc record at `from` to `to` in one operation, creating any

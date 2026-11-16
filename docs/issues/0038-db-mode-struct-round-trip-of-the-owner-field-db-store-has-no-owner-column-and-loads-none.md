@@ -14,7 +14,7 @@ timestamp: 2026-08-27T21:04:13Z
 
 ## db-mode struct round-trip of the owner field: db-store has no owner column and loads None
 
-Follow-up to [ADR 0043](/adr/0043-owner-is-a-cli-owned-frontmatter-field-with-a-warn-then-error-ratchet-on-adr-and-bdr.md). The owner field entered TYPED_FRONTMATTER_KEYS (excluded from the EAV frontmatter tail), but db-store has no typed owner column, so `load_record` fills `ExtractedRecord::owner` with `None`.
+Follow-up to [ADR 0043](../adr/0043-owner-is-a-cli-owned-frontmatter-field-with-a-warn-then-error-ratchet-on-adr-and-bdr.md). The owner field entered TYPED_FRONTMATTER_KEYS (excluded from the EAV frontmatter tail), but db-store has no typed owner column, so `load_record` fills `ExtractedRecord::owner` with `None`.
 
 The gap is struct-level only: `check` and the `owner` verb read raw record text via `store.read()`, so no write path drops an existing owner value. What breaks is any consumer of the typed struct in db-mode, and ADR 0043's export round-trip fitness for db-authoritative deployments.
 

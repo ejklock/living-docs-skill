@@ -10,7 +10,7 @@ timestamp: 2026-07-16T00:00:00Z
 
 ## ParadeDB engine (BM25) alongside SQLite
 
-Implements [ADR 0004](/adr/0004-db-engine-and-data-layer.md). **Slice 3** — the default,
+Implements [ADR 0004](../adr/0004-db-engine-and-data-layer.md). **Slice 3** — the default,
 server-grade search engine. Large slice: **sub-slice at dispatch** (engine trait wiring →
 bm25 migration → BM25 search) under the 5-file / 6-AC cap.
 

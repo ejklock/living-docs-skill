@@ -17,7 +17,7 @@ Found by the usage audit: `set --help` was read 148 times and `new --help` 195 t
 
 ### Decision
 
-- The CLI does not start accepting the split form; option not taken: a second reference grammar, which the help contract of [ADR 0060](/adr/0060-the-cli-surface-is-a-contract-ten-intention-named-verbs-one-output-mode-per-stream-documented-exit-codes-and-help-written-for-an-agent.md) would have to document.
+- The CLI does not start accepting the split form; option not taken: a second reference grammar, which the help contract of [ADR 0060](../adr/0060-the-cli-surface-is-a-contract-ten-intention-named-verbs-one-output-mode-per-stream-documented-exit-codes-and-help-written-for-an-agent.md) would have to document.
 
 ### Acceptance
 

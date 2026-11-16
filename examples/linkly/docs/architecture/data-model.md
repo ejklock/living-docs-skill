@@ -7,7 +7,7 @@ timestamp: 2026-06-20T00:00:00Z
 
 # Data model
 
-The one persisted entity. Mirrors the [constitution](/constitution.md) data model; update
+The one persisted entity. Mirrors the [constitution](../constitution.md) data model; update
 both in the same change if the schema moves.
 
 ```mermaid

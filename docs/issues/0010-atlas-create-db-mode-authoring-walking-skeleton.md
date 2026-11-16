@@ -10,17 +10,17 @@ timestamp: 2026-07-21T00:00:00Z
 
 ## Atlas create — db-mode authoring walking skeleton
 
-Implements the first slice of [ADR 0016](/adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md)
-(Atlas is writable only in db-mode) and [PRD 0001](/prd/0001-living-docs-atlas-multi-project-authoring-wiki-over-living-docs-core.md)
-(the Atlas authoring wiki). Builds on [issue 0045](/issues/0045-three-pane-web-shell-with-metadata-panel-and-cmd-k-palette.md)'s
+Implements the first slice of [ADR 0016](../adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md)
+(Atlas is writable only in db-mode) and [PRD 0001](../prd/0001-living-docs-atlas-multi-project-authoring-wiki-over-living-docs-core.md)
+(the Atlas authoring wiki). Builds on [issue 0045](0045-three-pane-web-shell-with-metadata-panel-and-cmd-k-palette.md)'s
 read-only three-pane shell. This is the walking skeleton for every Atlas write that
 follows (edit, supersede, delete): once the mode guard, the `revision` column, and one
 transactional write verb exist, the remaining verbs are additive.
 
 ### Objective link
 
-Constitution → [PRD 0001](/prd/0001-living-docs-atlas-multi-project-authoring-wiki-over-living-docs-core.md)
-→ [ADR 0016](/adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md)
+Constitution → [PRD 0001](../prd/0001-living-docs-atlas-multi-project-authoring-wiki-over-living-docs-core.md)
+→ [ADR 0016](../adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md)
 → this slice.
 
 ### Context manifest

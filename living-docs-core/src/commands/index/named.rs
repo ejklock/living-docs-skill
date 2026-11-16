@@ -4,6 +4,7 @@
 //! ranks after every listed one.
 
 use super::first_heading;
+use super::rows::single_line;
 use crate::doc_type::VIEW_KIND_ORDER;
 use crate::frontmatter;
 use crate::store::DocStore;
@@ -72,10 +73,11 @@ fn view_title(contents: &str, filename: &str) -> String {
 }
 
 fn render_row(view: &View) -> String {
+    let title = single_line(&view.title);
     if view.kind.is_empty() {
-        return format!("* [{}]({})", view.title, view.filename);
+        return format!("* [{title}]({})", view.filename);
     }
-    format!("* [{}]({}) - {}", view.title, view.filename, view.kind)
+    format!("* [{title}]({}) - {}", view.filename, view.kind)
 }
 
 #[cfg(test)]
@@ -141,6 +143,20 @@ mod tests {
         assert_eq!(lines[0], "* [Zz](zz.md) - context");
         assert_eq!(lines[1], "* [Bare](bare.md)");
         assert_eq!(lines[2], "* [Mystery](mystery.md) - exotic");
+    }
+
+    #[test]
+    fn a_view_title_holding_a_line_break_renders_on_one_line() {
+        let store = store_with(vec![(
+            "/d/architecture/context.md",
+            "---\ntype: Architecture View\ntitle: \"a\\nb\"\nkind: context\n---\n\n# A\n"
+                .to_string(),
+        )]);
+
+        let body = render_body(&store, Path::new("/d"), Path::new("/d/architecture"))
+            .expect("render must succeed");
+
+        assert_eq!(body, "* [a b](context.md) - context\n");
     }
 
     #[test]

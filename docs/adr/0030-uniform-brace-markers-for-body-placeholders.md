@@ -119,5 +119,5 @@ substrings, which remains true regardless of what replaced them).
 # References
 
 <!-- Optional (OKF §8). External sources backing claims in Context. -->
-[1] [Issue 0022](/issues/0022-template-placeholders-are-fragile-for-programmatic-editing.md) — the fragility problem this ADR resolves.
-[2] [ADR 0029](/adr/0029-the-status-vocabulary-is-per-doc-type-sourced-from-one-doctypespec-field-not-one-global-list-validated-against-every-template-s-own-dialect.md) — same "unify a scaffold contract across registered types, backed by a fitness function" pattern.
+[1] [Issue 0022](../issues/0022-template-placeholders-are-fragile-for-programmatic-editing.md) — the fragility problem this ADR resolves.
+[2] [ADR 0029](0029-the-status-vocabulary-is-per-doc-type-sourced-from-one-doctypespec-field-not-one-global-list-validated-against-every-template-s-own-dialect.md) — same "unify a scaffold contract across registered types, backed by a fitness function" pattern.

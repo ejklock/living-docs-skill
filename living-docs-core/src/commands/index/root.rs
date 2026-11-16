@@ -4,8 +4,9 @@
 
 use crate::check::{normpath, reachable_index_set};
 use crate::doc_type::{self, DocTypeSpec, Identity};
-use std::fs::{self, OpenOptions};
-use std::io::{ErrorKind, Write};
+use crate::store::{is_refusal, DocStore};
+use std::fs;
+use std::io::{self, ErrorKind};
 use std::path::{Path, PathBuf};
 
 const ROOT_FRONTMATTER: &str = "---\nokf_version: \"0.1\"\n---\n\n# Documentation\n\n## Trail\n\n";
@@ -47,24 +48,29 @@ fn present_types<'a>(
 /// Makes the bundle root reach every type index in `touched` (every present
 /// type index when the root is missing): creates a missing root, appends one
 /// link line per unreached index to a present one, and returns the root's
-/// path only when it wrote. A root that is not a regular file, or cannot be
-/// read, is an error naming it; nothing already on disk is removed. A missing
-/// root with no type index to link follows `no_type_index`.
+/// path only when it wrote. The root is read and written through `store`, so
+/// one the store refuses is an error naming it. A root that is not a regular
+/// file, or cannot be read, is an error naming it; nothing already on disk is
+/// removed. A missing root with no type index to link follows `no_type_index`.
 pub(crate) fn ensure_root_index(
+    store: &dyn DocStore,
     docs_dir: &Path,
     touched: &[&str],
     no_type_index: NoTypeIndex,
 ) -> Result<Option<PathBuf>, String> {
     let root = docs_dir.join("index.md");
     match fs::metadata(&root) {
-        Ok(meta) if meta.is_file() => append_unreached(docs_dir, &root, touched),
+        Ok(meta) if meta.is_file() => append_unreached(store, docs_dir, &root, touched),
         Ok(_) => Err(format!("{} is not a regular file", root.display())),
-        Err(e) if e.kind() == ErrorKind::NotFound => create_root(docs_dir, &root, no_type_index),
+        Err(e) if e.kind() == ErrorKind::NotFound => {
+            create_root(store, docs_dir, &root, no_type_index)
+        }
         Err(e) => Err(format!("{}: {e}", root.display())),
     }
 }
 
 fn create_root(
+    store: &dyn DocStore,
     docs_dir: &Path,
     root: &Path,
     no_type_index: NoTypeIndex,
@@ -77,14 +83,19 @@ fn create_root(
         .iter()
         .map(|(spec, dir)| link_line(spec, dir))
         .collect();
-    let mut file = OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(root)
-        .map_err(|e| format!("{}: {e}", root.display()))?;
-    file.write_all(format!("{ROOT_FRONTMATTER}{links}").as_bytes())
-        .map_err(|e| format!("{}: {e}", root.display()))?;
+    store
+        .write(root, &format!("{ROOT_FRONTMATTER}{links}"))
+        .map_err(|e| failure(root, &e))?;
     Ok(Some(root.to_path_buf()))
+}
+
+/// The error text for a failed root read or write: a store's refusal already
+/// names the path, any other failure gets it prefixed.
+fn failure(root: &Path, error: &io::Error) -> String {
+    match is_refusal(error) {
+        true => error.to_string(),
+        false => format!("{}: {error}", root.display()),
+    }
 }
 
 /// The text to append to `existing`: `missing` preceded by a newline when the
@@ -104,12 +115,13 @@ fn appended_text(existing: &str, missing: &str) -> String {
 }
 
 fn append_unreached(
+    store: &dyn DocStore,
     docs_dir: &Path,
     root: &Path,
     touched: &[&str],
 ) -> Result<Option<PathBuf>, String> {
-    let existing = fs::read_to_string(root).map_err(|e| format!("{}: {e}", root.display()))?;
-    let reached = reachable_index_set(docs_dir, root);
+    let existing = store.read(root).map_err(|e| failure(root, &e))?;
+    let reached = reachable_index_set(store, docs_dir, root);
     let specs = touched.iter().filter_map(|token| doc_type::spec_for(token));
     let missing: String = present_types(docs_dir, specs)
         .iter()
@@ -123,11 +135,8 @@ fn append_unreached(
         return Ok(None);
     }
     let addition = appended_text(&existing, &missing);
-    let mut file = OpenOptions::new()
-        .append(true)
-        .open(root)
-        .map_err(|e| format!("{}: {e}", root.display()))?;
-    file.write_all(addition.as_bytes())
-        .map_err(|e| format!("{}: {e}", root.display()))?;
+    store
+        .write(root, &format!("{existing}{addition}"))
+        .map_err(|e| failure(root, &e))?;
     Ok(Some(root.to_path_buf()))
 }

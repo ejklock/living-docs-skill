@@ -11,7 +11,7 @@ timestamp: 2026-09-22T13:03:44Z
 
 ## Context
 
-The pre-commit channel execs a full-bundle `check`. In a bundle born clean that is exactly right: every commit proves the whole corpus. In a bundle that adopts living-docs with history behind it, one legacy violation fails every future commit whatever it touches, so the gate cannot be armed at all until the entire corpus is clean. [Issue 0016](/issues/0016-check-needs-a-ratchet-or-changed-files-mode-so-brownfield-repos-can-arm-the-pre-commit-channel.md) records the adoption attempt that hit this: 180 violations across 177 docs, `fmt` unable to reduce the residue, and the channel shipped disarmed — artifacts committed, `core.hooksPath` left unset.
+The pre-commit channel execs a full-bundle `check`. In a bundle born clean that is exactly right: every commit proves the whole corpus. In a bundle that adopts living-docs with history behind it, one legacy violation fails every future commit whatever it touches, so the gate cannot be armed at all until the entire corpus is clean. [Issue 0016](../issues/0016-check-needs-a-ratchet-or-changed-files-mode-so-brownfield-repos-can-arm-the-pre-commit-channel.md) records the adoption attempt that hit this: 180 violations across 177 docs, `fmt` unable to reduce the residue, and the channel shipped disarmed — artifacts committed, `core.hooksPath` left unset.
 
 An all-or-nothing gate in that state teaches the wrong lesson. The author cannot pay the debt down incrementally, because no intermediate state is rewarded; the only two moves are a corpus-wide cleanup nobody has budget for, or leaving the gate off, which is what happened.
 
@@ -56,4 +56,4 @@ Rejected: an accepted-debt manifest at `.living-docs/check-baseline`. It answers
 
 # References
 
-[1] [Issue 0016 — check needs a ratchet or changed-files mode](/issues/0016-check-needs-a-ratchet-or-changed-files-mode-so-brownfield-repos-can-arm-the-pre-commit-channel.md)
+[1] [Issue 0016 — check needs a ratchet or changed-files mode](../issues/0016-check-needs-a-ratchet-or-changed-files-mode-so-brownfield-repos-can-arm-the-pre-commit-channel.md)

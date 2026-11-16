@@ -8,7 +8,7 @@ timestamp: 2026-10-24T10:17:27Z
 
 ## 0064. Implement union merge of type indexes and the index-drift violation
 
-Implements [ADR 0070](/adr/0070-type-indexes-merge-with-the-git-union-driver-and-check-fails-on-an-index-that-differs-from-its-regeneration.md).
+Implements [ADR 0070](../adr/0070-type-indexes-merge-with-the-git-union-driver-and-check-fails-on-an-index-that-differs-from-its-regeneration.md).
 
 ### Scope
 

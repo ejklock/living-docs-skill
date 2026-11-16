@@ -8,7 +8,7 @@ timestamp: 2026-09-27T02:35:31Z
 
 ## 0051. check mermaid accepts diagrams that mermaid.js rejects
 
-`check` validates mermaid fences in-process through `merman-core` 0.7.0 ([ADR 0013](/adr/0013-mermaid-validation-runs-in-process-via-merman-core-not-a-docker-mermaid-cli-shell-out.md)), and the module calls it "the real Mermaid grammar parser". It is more lenient than mermaid.js, the parser GitHub renders with. A diagram can pass `check` and still fail to render.
+`check` validates mermaid fences in-process through `merman-core` 0.7.0 ([ADR 0013](../adr/0013-mermaid-validation-runs-in-process-via-merman-core-not-a-docker-mermaid-cli-shell-out.md)), and the module calls it "the real Mermaid grammar parser". It is more lenient than mermaid.js, the parser GitHub renders with. A diagram can pass `check` and still fail to render.
 
 Found on 2026-09-26 in the relent repository, while repairing 17 diagrams that `check` reported as invalid. One repair passed `check` but broke the diagram:
 

@@ -8,7 +8,7 @@ timestamp: 2026-10-19T13:13:52Z
 
 ## 0058. check text output collapses advisories into one line per kind and lists them only with --advisories
 
-A `check` over a mature bundle prints one line per advisory before the verdict: the relent bundle prints 31 `MOVED-SOURCE` lines of about 250 characters each, every time, around a one-line verdict. Agents answer with `| tail -3` and `| head -c 300`, and the owner's transcripts show 1,027 `check` results that neither passed nor failed visibly because the output was cut. The gate's signal, the violation, must come first and the review queue of [ADR 0044](/adr/0044-moved-source-review-queue-check-emits-a-warn-level-finding-when-a-linked-record-is-superseded-or-demoted.md) must stay visible without drowning it.
+A `check` over a mature bundle prints one line per advisory before the verdict: the relent bundle prints 31 `MOVED-SOURCE` lines of about 250 characters each, every time, around a one-line verdict. Agents answer with `| tail -3` and `| head -c 300`, and the owner's transcripts show 1,027 `check` results that neither passed nor failed visibly because the output was cut. The gate's signal, the violation, must come first and the review queue of [ADR 0044](../adr/0044-moved-source-review-queue-check-emits-a-warn-level-finding-when-a-linked-record-is-superseded-or-demoted.md) must stay visible without drowning it.
 
 ### Scope
 
