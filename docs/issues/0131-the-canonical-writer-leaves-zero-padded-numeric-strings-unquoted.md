@@ -2,7 +2,7 @@
 type: Issue
 title: The canonical writer leaves zero-padded numeric strings unquoted
 description: A string such as 0005 is written plain, which serde_yaml reads back as a string but YAML 1.1 readers read as the octal number 5
-status: open
+status: closed
 timestamp: 2026-11-15T18:19:14Z
 ---
 
@@ -14,9 +14,12 @@ The canonical frontmatter writer (`living-docs-core/src/record/canonical.rs` ›
 
 ### Decision
 
-- Quote, in the canonical writer, every plain scalar a YAML 1.1 or 1.2 reader would read as another type, a digit-only string with a leading zero such as `0005` included, so the bundle round-trips through any reader (owner, 2026-11-16). Not taken: keep the plain output because only YAML 1.2 readers consume the bundle.
-- Delivered together with issue 0135, which needs the same quoting rule.
+- Keep zero-padded digits such as `0005` and `0089` unquoted and close this issue: every reader of the bundle is YAML 1.2 (`serde_yaml`), and quoting them would change the canonical bytes of every `supersedes`, `superseded_by` and `blocked_by` value, so `check` (`check/canonical.rs`) would fail every existing adopter bundle until `manage fmt` (owner, 2026-11-16). Not taken: quote and migrate through `manage fmt`; quote and let `check` accept both forms (relaxes the byte-exact rule of ADR 0019).
 
 ### Acceptance
 
 - The choice is recorded here; if quoting is chosen, `fmt` keeps existing records stable and a test proves the round trip.
+
+### Outcome
+
+- Closed without code: the Decision keeps the current output. Issue 0135 quotes only the scalars `serde_yaml` itself would read as another type, which no existing record holds.

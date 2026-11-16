@@ -87,10 +87,9 @@ fn run_all_checks(
     graph::check_directory_membership(raw, bundle, &all_md, reporter);
     graph::check_reachability(raw, bundle, &root_index, &all_md, reporter);
     index_drift::check_index_drift(raw, bundle, reporter);
-    check_link_forms(store, bundle, &all_md, reporter);
+    check_references(store, bundle, &all_md, reporter);
     records::check_supersede_chain(store, &all_md, reporter);
     supersede_links::check_supersede_links(store, bundle, &all_md, reporter);
-    check_numbering(store, bundle, &all_md, reporter);
     callout::check_callouts(store, &all_md, reporter);
     moved_source::check_moved_source(store, bundle, &all_md, reporter);
     records::check_owner_requirement(store, &all_md, require_owner, reporter);
@@ -106,20 +105,9 @@ fn run_all_checks(
     doc_count
 }
 
-/// The invariants on record numbers and on the references that name a record
-/// by number: no number is shared, and every issue dependency resolves.
-fn check_numbering(
-    store: &dyn DocStore,
-    bundle: &Path,
-    all_md: &[PathBuf],
-    reporter: &mut Reporter,
-) {
-    duplicate_numbers::check_duplicate_numbers(bundle, all_md, reporter);
-    dependencies::check_dependencies(store, bundle, all_md, reporter);
-}
-
-/// Link validity (violations) and link spelling (advisories) over the same files.
-fn check_link_forms(
+/// The checks on references between records: links resolve and are spelled
+/// relative, no record number is shared, and every issue dependency resolves.
+fn check_references(
     store: &dyn DocStore,
     bundle: &Path,
     all_md: &[PathBuf],
@@ -127,6 +115,8 @@ fn check_link_forms(
 ) {
     links::check_links(store, bundle, all_md, reporter);
     link_style::check_link_style(store, bundle, all_md, reporter);
+    duplicate_numbers::check_duplicate_numbers(bundle, all_md, reporter);
+    dependencies::check_dependencies(store, bundle, all_md, reporter);
 }
 
 /// Runs the per-record frontmatter pass and returns `all_md` without the
