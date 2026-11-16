@@ -86,6 +86,33 @@ fn write_regenerated_adr_index(bundle: &ScratchBundle, store: &dyn DocStore) {
     fs::write(path, content).expect("write scratch adr index");
 }
 
+/// A view of a [`MapStore`] that serves each `index.md` from disk, where the
+/// scratch bundle keeps it, and enumerates only what the map holds: `check`
+/// reads every index through the store, and the records under test live only
+/// in the map.
+struct IndexesOnDisk<'a>(&'a MapStore);
+
+impl DocStore for IndexesOnDisk<'_> {
+    fn list(&self, root: &Path) -> std::io::Result<Vec<PathBuf>> {
+        self.0.list(root)
+    }
+
+    fn read(&self, path: &Path) -> std::io::Result<String> {
+        match path.file_name().is_some_and(|name| name == "index.md") {
+            true => fs::read_to_string(path),
+            false => self.0.read(path),
+        }
+    }
+
+    fn write(&self, path: &Path, contents: &str) -> std::io::Result<()> {
+        self.0.write(path, contents)
+    }
+
+    fn rename(&self, from: &Path, to: &Path) -> std::io::Result<()> {
+        self.0.rename(from, to)
+    }
+}
+
 /// Pins the invariant `is_bundle_singleton`'s docblock names: an unlisted
 /// bundle-root singleton stays exempt from every `check` invariant
 /// whether the caller passes the bundle directly or reaches the same
@@ -184,7 +211,7 @@ fn compile_reads_record_content_through_the_store_even_when_no_file_backs_it_on_
     let store = MapStore { files };
     write_regenerated_adr_index(&bundle, &store);
 
-    let report = compile(&store, &bundle.root, false).expect("bundle root exists");
+    let report = compile(&IndexesOnDisk(&store), &bundle.root, false).expect("bundle root exists");
 
     assert!(report.ok, "violations: {:?}", report.violations);
 }
@@ -229,7 +256,7 @@ fn compile_stays_ok_on_an_adr_missing_owner_by_default() {
     let store = MapStore { files };
     write_regenerated_adr_index(&bundle, &store);
 
-    let report = compile(&store, &bundle.root, false).expect("bundle root exists");
+    let report = compile(&IndexesOnDisk(&store), &bundle.root, false).expect("bundle root exists");
 
     assert!(report.ok, "violations: {:?}", report.violations);
 }
@@ -265,7 +292,7 @@ fn compile_require_owner_never_flags_a_type_that_does_not_require_owner() {
     let store = MapStore { files };
     write_regenerated_adr_index(&bundle, &store);
 
-    let report = compile(&store, &bundle.root, true).expect("bundle root exists");
+    let report = compile(&IndexesOnDisk(&store), &bundle.root, true).expect("bundle root exists");
 
     assert!(report.ok, "violations: {:?}", report.violations);
 }

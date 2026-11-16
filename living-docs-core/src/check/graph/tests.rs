@@ -1,4 +1,28 @@
 use super::*;
+use std::fs;
+use std::io;
+
+/// A store over real files, standing in for an adapter rooted at the bundle
+/// with nothing outside it.
+struct DiskStore;
+
+impl DocStore for DiskStore {
+    fn list(&self, _root: &Path) -> io::Result<Vec<PathBuf>> {
+        Ok(Vec::new())
+    }
+
+    fn read(&self, path: &Path) -> io::Result<String> {
+        fs::read_to_string(path)
+    }
+
+    fn write(&self, _path: &Path, _contents: &str) -> io::Result<()> {
+        Ok(())
+    }
+
+    fn rename(&self, _from: &Path, _to: &Path) -> io::Result<()> {
+        Ok(())
+    }
+}
 
 #[test]
 fn normpath_collapses_dot_and_dotdot_segments() {
@@ -44,7 +68,10 @@ fn links_in_excludes_targets_inside_fenced_code_blocks() {
     let path = std::env::temp_dir().join(format!("living-docs-graph-test-{nanos}.md"));
     fs::write(&path, "[live](live.md)\n```\n[fenced](fenced.md)\n```\n").unwrap();
 
-    assert_eq!(links_in(&path), vec!["live.md".to_string()]);
+    assert_eq!(
+        links_in(&DiskStore, &path),
+        Some(vec!["live.md".to_string()])
+    );
 
     let _ = fs::remove_file(&path);
 }
@@ -70,7 +97,7 @@ impl Scratch {
     fn membership(&self, rels: &[&str]) -> Vec<(String, String)> {
         let all_md: Vec<PathBuf> = rels.iter().map(|rel| self.0.join(rel)).collect();
         let mut reporter = Reporter::new();
-        check_directory_membership(&self.0, &all_md, &mut reporter);
+        check_directory_membership(&DiskStore, &self.0, &all_md, &mut reporter);
         reporter
             .violations
             .into_iter()

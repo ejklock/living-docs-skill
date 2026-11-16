@@ -14,12 +14,12 @@ timestamp: 2026-07-21T00:00:00Z
 
 ## Context
 
-[ADR 0016](/adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md)
+[ADR 0016](0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md)
 lists `new`/`edit`/`supersede`/`delete` as the Atlas verbs mirroring the CLI, noting "delete
 verb if absent." It is absent — `living-docs-core` has never had one — and the project's own
 convention (`adr-conventions.md`, the constitution) is **supersede, never delete** for
 decision records: an ADR/BDR is parked, its history kept, never removed. [Issue
-0013](/issues/0013-atlas-delete-a-new-verb-with-no-cli-precedent.md) named three open
+0013](../issues/0013-atlas-delete-a-new-verb-with-no-cli-precedent.md) named three open
 questions this ADR resolves before any delete code is planned: which doc types are
 delete-eligible, hard-delete vs. soft-archive, and what happens to a record's inbound
 `relations` on delete.
@@ -113,6 +113,6 @@ mode-guard fitness function extended).
 
 # References
 
-[1] [ADR 0016 — Atlas makes the web a db-mode authoring front](/adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md)
-[2] [ADR 0009 — document visibility model](/adr/0009-document-visibility-model.md)
-[3] [Issue 0013 — Atlas delete, the open design question this ADR resolves](/issues/0013-atlas-delete-a-new-verb-with-no-cli-precedent.md)
+[1] [ADR 0016 — Atlas makes the web a db-mode authoring front](0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md)
+[2] [ADR 0009 — document visibility model](0009-document-visibility-model.md)
+[3] [Issue 0013 — Atlas delete, the open design question this ADR resolves](../issues/0013-atlas-delete-a-new-verb-with-no-cli-precedent.md)

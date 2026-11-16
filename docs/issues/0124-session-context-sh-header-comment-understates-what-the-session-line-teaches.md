@@ -10,7 +10,7 @@ timestamp: 2026-11-15T16:24:30Z
 
 ### Scope
 
-The header comment of `skills/living-docs/hooks/session-context.sh` (lines 6-7) says the emitted line states "the body-only rule and the resolved CLI binary". The line has long also taught the write and read verbs, the index repair and, since issue 0121 slice S3, where a mid-work choice is recorded. The comment understates what the hook does. Found by the review of that slice; it predates it.
+The header comment of `skills/living-docs/hooks/session-context.sh` (lines 6-7) says the emitted line states "the body-only rule and the resolved CLI binary". The line has long also taught the write and read verbs, the index repair and, since issue 0144 slice S3, where a mid-work choice is recorded. The comment understates what the hook does. Found by the review of that slice; it predates it.
 
 ### Decision
 

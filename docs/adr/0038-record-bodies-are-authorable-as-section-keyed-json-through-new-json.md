@@ -68,4 +68,4 @@ accepted. Batch creation is shell composition — one `new --json` per record, c
 
 # References
 
-[1] [ADR 0001](/adr/0001-living-docs-cli.md)
+[1] [ADR 0001](0001-living-docs-cli.md)

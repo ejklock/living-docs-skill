@@ -7,28 +7,11 @@ one slice per fresh context, starting from the skeleton.
 
 ## Open
 
-* [0077 — The procedure and hard-rules guides say fmt unwraps hard-wrapped prose, but fmt is frontmatter-only](0077-the-procedure-and-hard-rules-guides-say-fmt-unwraps-hard-wrapped-prose-but-fmt-is-frontmatter-only.md) - open
-* [0078 — size-targets guide exempts architecture docs, but the registry gives the architecture view a size target](0078-size-targets-guide-exempts-architecture-docs-but-the-registry-gives-the-architecture-view-a-size-target.md) - open
-* [0079 — read lists closed and done issues although the guides say it shows active records only](0079-read-lists-closed-and-done-issues-although-the-guides-say-it-shows-active-records-only.md) - open
-* [0080 — index keeps a hand table header and a hand bullet list above the generated listing, leaving a dangling header or a duplicated list](0080-index-keeps-a-hand-table-header-and-a-hand-bullet-list-above-the-generated-listing-leaving-a-dangling-header-or-a-duplicated-list.md) - open
-* [0083 — The guides prescribe /-bundle-relative links, but index and supersede write sibling-relative links and check accepts every style](0083-the-guides-prescribe-bundle-relative-links-but-index-and-supersede-write-sibling-relative-links-and-check-accepts-every-style.md) - open
-* [0087 — fmt rewrites a record whose frontmatter does not parse and drops its keys](0087-fmt-rewrites-a-record-whose-frontmatter-does-not-parse-and-drops-its-keys.md) - open
-* [0088 — a set read-back test writes a fixed-name temp file and fails when runs overlap](0088-a-set-read-back-test-writes-a-fixed-name-temp-file-and-fails-when-runs-overlap.md) - open
-* [0090 — an index row splits across two lines when a record title holds a line break](0090-an-index-row-splits-across-two-lines-when-a-record-title-holds-a-line-break.md) - open
-* [0091 — the file-size and allow-inventory gates fail inside a git worktree under .claude/worktrees](0091-the-file-size-and-allow-inventory-gates-fail-inside-a-git-worktree-under-claude-worktrees.md) - open
-* [0092 — index derives a row title from a fenced heading and leaves it empty without one](0092-index-derives-a-row-title-from-a-fenced-heading-and-leaves-it-empty-without-one.md) - open
-* [0093 — the unnumbered title-heading fallback may rename a section heading such as References](0093-the-unnumbered-title-heading-fallback-may-rename-a-section-heading-such-as-references.md) - open
-* [0094 — the one-way supersede link check lacks tests for its spelling, shared-number and path rules](0094-the-one-way-supersede-link-check-lacks-tests-for-its-spelling-shared-number-and-path-rules.md) - open
-* [0095 — check skips every entry of a supersedes list that mixes record numbers and other values](0095-check-skips-every-entry-of-a-supersedes-list-that-mixes-record-numbers-and-other-values.md) - open
-* [0096 — reserved files such as index.md are written outside the rooted store guard](0096-reserved-files-such-as-index-md-are-written-outside-the-rooted-store-guard.md) - open
-* [0104 — check module docblock links to a run function that no longer exists](0104-check-module-docblock-links-to-a-run-function-that-no-longer-exists.md) - open
-* [0105 — check accepts the placeholder description that new writes](0105-check-accepts-the-placeholder-description-that-new-writes.md) - open
-* [0119 — The doc-trail gate reads a fixture path in a test as a record citation](0119-the-doc-trail-gate-reads-a-fixture-path-in-a-test-as-a-record-citation.md) - open
-* [0121 — Engineering-docs roadmap: domain language and rules, decision capture, issue waves, generated diagrams and a local HTML export](0121-engineering-docs-roadmap-domain-language-and-rules-decision-capture-issue-waves-generated-diagrams-and-a-local-html-export.md) - open
+* [0121 — read --all does not show which listed records are retired](0121-read-all-does-not-show-which-listed-records-are-retired.md) - open
 * [0122 — Docs subagent on a cheaper model: exploration recipe now, drafting only after measured authoring cost](0122-docs-subagent-on-a-cheaper-model-exploration-recipe-now-drafting-only-after-measured-authoring-cost.md) - open
 * [0123 — MCP discovery instructions lack the mid-work decision teaching the session line gained](0123-mcp-discovery-instructions-lack-the-mid-work-decision-teaching-the-session-line-gained.md) - open
 * [0124 — session-context.sh header comment understates what the session line teaches](0124-session-context-sh-header-comment-understates-what-the-session-line-teaches.md) - open
-* [0126 — Implement ADR 0083: the opt-in decision prompt Stop hook and its installation](0126-implement-adr-0083-the-opt-in-decision-prompt-stop-hook-and-its-installation.md) - open
+* [0126 — Implement ADR 0093: the opt-in decision prompt Stop hook and its installation](0126-implement-adr-0083-the-opt-in-decision-prompt-stop-hook-and-its-installation.md) - open
 * [0128 — A 23-digit blocked_by item is refused with a message naming the type key](0128-a-23-digit-blocked-by-item-is-refused-with-a-message-naming-the-type-key.md) - open
 * [0129 — manage install mermaid has no end-to-end test of its success path](0129-manage-install-mermaid-has-no-end-to-end-test-of-its-success-path.md) - open
 * [0130 — Renumbering renames the record before rewriting references, so a failed rewrite leaves the bundle half-renumbered](0130-renumbering-renames-the-record-before-rewriting-references-so-a-failed-rewrite-leaves-the-bundle-half-renumbered.md) - open
@@ -43,6 +26,7 @@ one slice per fresh context, starting from the skeleton.
 * [0141 — check repeats the arm-the-hooks hint on every run](0141-check-repeats-the-arm-the-hooks-hint-on-every-run.md) - open
 * [0142 — The pre-commit gate prints the bundle's absolute path](0142-the-pre-commit-gate-prints-the-bundle-s-absolute-path.md) - open
 * [0143 — The HTML page keeps empty group headings under a filter and repeats a view's title](0143-the-html-page-keeps-empty-group-headings-under-a-filter-and-repeats-a-view-s-title.md) - open
+* [0144 — Engineering-docs roadmap: domain language and rules, decision capture, issue waves, generated diagrams and a local HTML export](0144-engineering-docs-roadmap-domain-language-and-rules-decision-capture-issue-waves-generated-diagrams-and-a-local-html-export.md) - open
 
 ## Closed
 
@@ -122,12 +106,26 @@ one slice per fresh context, starting from the skeleton.
 * [0074 — set title rewrites only the title heading fmt and check judge](0074-set-title-rewrites-only-the-title-heading-fmt-and-check-judge.md) - closed
 * [0075 — index reads a CRLF record's title and status](0075-index-reads-a-crlf-record-s-title-and-status.md) - closed
 * [0076 — fmt keeps a quoted flow-list item quoted](0076-fmt-keeps-a-quoted-flow-list-item-quoted.md) - closed
+* [0077 — The procedure and hard-rules guides say fmt unwraps hard-wrapped prose, but fmt is frontmatter-only](0077-the-procedure-and-hard-rules-guides-say-fmt-unwraps-hard-wrapped-prose-but-fmt-is-frontmatter-only.md) - closed
+* [0078 — size-targets guide exempts architecture docs, but the registry gives the architecture view a size target](0078-size-targets-guide-exempts-architecture-docs-but-the-registry-gives-the-architecture-view-a-size-target.md) - closed
+* [0079 — read lists closed and done issues although the guides say it shows active records only](0079-read-lists-closed-and-done-issues-although-the-guides-say-it-shows-active-records-only.md) - closed
+* [0080 — index keeps a hand table header and a hand bullet list above the generated listing, leaving a dangling header or a duplicated list](0080-index-keeps-a-hand-table-header-and-a-hand-bullet-list-above-the-generated-listing-leaving-a-dangling-header-or-a-duplicated-list.md) - closed
 * [0081 — set cannot write the tracker, labels and blocked_by keys that the issue workflow puts in issue frontmatter](0081-set-cannot-write-the-tracker-labels-and-blocked-by-keys-that-the-issue-workflow-puts-in-issue-frontmatter.md) - closed
 * [0082 — set refuses architecture views, so a view's description is edited by hand](0082-set-refuses-architecture-views-so-a-view-s-description-is-edited-by-hand.md) - closed
+* [0083 — The guides prescribe /-bundle-relative links, but index and supersede write sibling-relative links and check accepts every style](0083-the-guides-prescribe-bundle-relative-links-but-index-and-supersede-write-sibling-relative-links-and-check-accepts-every-style.md) - closed
 * [0084 — fmt drops a tail key whose value is the empty string](0084-fmt-drops-a-tail-key-whose-value-is-the-empty-string.md) - closed
 * [0085 — fmt rewrites the title heading of a record titled with digits only on every run](0085-fmt-rewrites-the-title-heading-of-a-record-titled-with-digits-only-on-every-run.md) - closed
 * [0086 — the canonical writer does not escape a carriage return so such a value is refused](0086-the-canonical-writer-does-not-escape-a-carriage-return-so-such-a-value-is-refused.md) - closed
+* [0087 — fmt rewrites a record whose frontmatter does not parse and drops its keys](0087-fmt-rewrites-a-record-whose-frontmatter-does-not-parse-and-drops-its-keys.md) - closed
+* [0088 — a set read-back test writes a fixed-name temp file and fails when runs overlap](0088-a-set-read-back-test-writes-a-fixed-name-temp-file-and-fails-when-runs-overlap.md) - closed
 * [0089 — six functions exceed the 30-line limit because the workspace clippy gate omits too_many_lines](0089-six-functions-exceed-the-30-line-limit-because-the-workspace-clippy-gate-omits-too-many-lines.md) - closed
+* [0090 — an index row splits across two lines when a record title holds a line break](0090-an-index-row-splits-across-two-lines-when-a-record-title-holds-a-line-break.md) - closed
+* [0091 — the file-size and allow-inventory gates fail inside a git worktree under .claude/worktrees](0091-the-file-size-and-allow-inventory-gates-fail-inside-a-git-worktree-under-claude-worktrees.md) - closed
+* [0092 — index derives a row title from a fenced heading and leaves it empty without one](0092-index-derives-a-row-title-from-a-fenced-heading-and-leaves-it-empty-without-one.md) - closed
+* [0093 — the unnumbered title-heading fallback may rename a section heading such as References](0093-the-unnumbered-title-heading-fallback-may-rename-a-section-heading-such-as-references.md) - closed
+* [0094 — the one-way supersede link check lacks tests for its spelling, shared-number and path rules](0094-the-one-way-supersede-link-check-lacks-tests-for-its-spelling-shared-number-and-path-rules.md) - closed
+* [0095 — check skips every entry of a supersedes list that mixes record numbers and other values](0095-check-skips-every-entry-of-a-supersedes-list-that-mixes-record-numbers-and-other-values.md) - closed
+* [0096 — reserved files such as index.md are written outside the rooted store guard](0096-reserved-files-such-as-index-md-are-written-outside-the-rooted-store-guard.md) - closed
 * [0097 — check and read grow quadratically with the bundle size](0097-check-and-read-grow-quadratically-with-the-bundle-size.md) - closed
 * [0098 — read --links-to and --impact list the records that depend on a record](0098-read-links-to-and-impact-list-the-records-that-depend-on-a-record.md) - closed
 * [0099 — data verbs panic when the reader closes stdout](0099-data-verbs-panic-when-the-reader-closes-stdout.md) - closed
@@ -135,6 +133,8 @@ one slice per fresh context, starting from the skeleton.
 * [0101 — core keeps dead run functions that print to stdout](0101-core-keeps-dead-run-functions-that-print-to-stdout.md) - closed
 * [0102 — core keeps dead set and supersede run functions](0102-core-keeps-dead-set-and-supersede-run-functions.md) - closed
 * [0103 — integration tests keep redundant manual cleanup calls](0103-integration-tests-keep-redundant-manual-cleanup-calls.md) - closed
+* [0104 — check module docblock links to a run function that no longer exists](0104-check-module-docblock-links-to-a-run-function-that-no-longer-exists.md) - closed
+* [0105 — check accepts the placeholder description that new writes](0105-check-accepts-the-placeholder-description-that-new-writes.md) - closed
 * [0106 — Project guide is AGENTS.md with CLAUDE.md a symlink to it](0106-project-guide-is-agents-md-with-claude-md-a-symlink-to-it.md) - closed
 * [0107 — Ship the living-docs-drift skill: anchor resolution plus a configurable LLM judge, advisory report outside the bundle](0107-ship-the-living-docs-drift-skill-anchor-resolution-plus-a-configurable-llm-judge-advisory-report-outside-the-bundle.md) - closed
 * [0108 — A skill with no topics lists as an empty line in guide, and the project guide miscounts the verbs](0108-a-skill-with-no-topics-lists-as-an-empty-line-in-guide-and-the-project-guide-miscounts-the-verbs.md) - closed
@@ -148,8 +148,9 @@ one slice per fresh context, starting from the skeleton.
 * [0116 — The file-size ratchet reports a stale baseline inside a fleet worktree](0116-the-file-size-ratchet-reports-a-stale-baseline-inside-a-fleet-worktree.md) - closed
 * [0117 — The liveness declaration scan walks links with its own parser instead of link_destinations](0117-the-liveness-declaration-scan-walks-links-with-its-own-parser-instead-of-link-destinations.md) - closed
 * [0118 — The size gates pass when find fails to read part of the tree](0118-the-size-gates-pass-when-find-fails-to-read-part-of-the-tree.md) - closed
+* [0119 — The doc-trail gate reads a fixture path in a test as a record citation](0119-the-doc-trail-gate-reads-a-fixture-path-in-a-test-as-a-record-citation.md) - closed
 * [0120 — Two parity test helpers exceed the function line cap and fail clippy](0120-two-parity-test-helpers-exceed-the-function-line-cap-and-fail-clippy.md) - closed
-* [0125 — Implement ADR 0082: blocked_by validation in check, write-time refusal and renumber rewrite](0125-implement-adr-0082-blocked-by-validation-in-check-write-time-refusal-and-renumber-rewrite.md) - closed
-* [0127 — Implement ADR 0084 and 0085: manage html renderer, manage install mermaid and the CLI wiring](0127-implement-adr-0084-and-0085-manage-html-renderer-manage-install-mermaid-and-the-cli-wiring.md) - closed
+* [0125 — Implement ADR 0092: blocked_by validation in check, write-time refusal and renumber rewrite](0125-implement-adr-0082-blocked-by-validation-in-check-write-time-refusal-and-renumber-rewrite.md) - closed
+* [0127 — Implement ADR 0090 and 0091: manage html renderer, manage install mermaid and the CLI wiring](0127-implement-adr-0084-and-0085-manage-html-renderer-manage-install-mermaid-and-the-cli-wiring.md) - closed
 * [0133 — Implement ADR 0086 and 0087: blocked_by advice for free-form items and a once-per-commit decision prompt](0133-implement-adr-0086-and-0087-blocked-by-advice-for-free-form-items-and-a-once-per-commit-decision-prompt.md) - closed
 * [0138 — Implement ADR 0088 and 0089: blocked_by findings as advice and the decision reminder as a non-blocking nudge](0138-implement-adr-0088-and-0089-blocked-by-findings-as-advice-and-the-decision-reminder-as-a-non-blocking-nudge.md) - closed

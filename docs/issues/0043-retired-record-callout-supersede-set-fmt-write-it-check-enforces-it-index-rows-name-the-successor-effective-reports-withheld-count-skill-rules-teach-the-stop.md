@@ -15,7 +15,7 @@ timestamp: 2026-09-17T14:49:17Z
 
 ## Retired-record callout across the CLI, the gate, the read surfaces, and the skill corpus
 
-An agent that opens a Superseded or Deprecated record directly sees no visible sign that the record is history, and plans on a dead decision. Implements [ADR 0058](/adr/0058-retired-records-declare-themselves-a-cli-written-callout-in-the-body-successor-bearing-index-rows-and-effective-as-the-agent-read-verb.md).
+An agent that opens a Superseded or Deprecated record directly sees no visible sign that the record is history, and plans on a dead decision. Implements [ADR 0058](../adr/0058-retired-records-declare-themselves-a-cli-written-callout-in-the-body-successor-bearing-index-rows-and-effective-as-the-agent-read-verb.md).
 
 ### Scope
 

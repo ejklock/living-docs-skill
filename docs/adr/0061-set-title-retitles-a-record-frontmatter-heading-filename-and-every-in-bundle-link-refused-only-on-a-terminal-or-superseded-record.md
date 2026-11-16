@@ -11,7 +11,7 @@ timestamp: 2026-09-22T02:37:50Z
 
 ## Context
 
-A title is the one piece of frontmatter with no CLI path to correct it. `living-docs set` covers `status`, `description` and `owner`, and the authoring rule forbids hand-editing frontmatter, so a record born with a wrong title has only two exits: `supersede`, which spends a number and a retired-record callout on a typo, or delete-and-recreate through `new`, which also rewrites the timestamp. [Issue 0047](/issues/0047-set-accepts-title-so-a-live-record-can-be-retitled-without-hand-editing-frontmatter.md) reports the case that forced this: a `Proposed` ADR whose title carried a count the decision had already changed.
+A title is the one piece of frontmatter with no CLI path to correct it. `living-docs set` covers `status`, `description` and `owner`, and the authoring rule forbids hand-editing frontmatter, so a record born with a wrong title has only two exits: `supersede`, which spends a number and a retired-record callout on a typo, or delete-and-recreate through `new`, which also rewrites the timestamp. [Issue 0047](../issues/0047-set-accepts-title-so-a-live-record-can-be-retitled-without-hand-editing-frontmatter.md) reports the case that forced this: a `Proposed` ADR whose title carried a count the decision had already changed.
 
 Three forces bound the answer. First, the filename slug is derived from the title, so a retitle that leaves the file alone creates a divergence the gate would have to tolerate forever. Second, records reference each other by path, not by number: 255 local markdown links in this bundle resolve to `<type>/NNNN-<slug>.md`, and `check::links` fails on every one that a rename would orphan. The `supersedes`/`superseded_by` frontmatter is immune — it carries the bare number — and `index` regenerates its own rows, so the link set is the whole exposure inside the bundle. Third, a reference that lives outside the bundle — a README in another repo, a code comment, a published GitHub URL — is beyond any scan the tool can run, and that exposure grows the moment a record is accepted and cited.
 
@@ -54,4 +54,4 @@ Rejected: rewriting references outside the bundle. The tool would have to claim 
 
 # References
 
-[1] [Issue 0047 — set accepts title so a Proposed record can be retitled](/issues/0047-set-accepts-title-so-a-live-record-can-be-retitled-without-hand-editing-frontmatter.md)
+[1] [Issue 0047 — set accepts title so a Proposed record can be retitled](../issues/0047-set-accepts-title-so-a-live-record-can-be-retitled-without-hand-editing-frontmatter.md)

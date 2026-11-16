@@ -22,7 +22,7 @@ While reviewing a fresh bundle, a `Proposed` ADR was born with a wrong count in 
 
 Renaming the file is part of the verb, chosen over keeping the old slug because the slug is derived from the title and a mismatch is what `check` would otherwise have to tolerate.
 
-The gate moved from the seed status (`Proposed`/`Draft`/`open`) to the terminal statuses while the work was scoped, and [ADR 0061](/adr/0061-set-title-retitles-a-record-frontmatter-heading-filename-and-every-in-bundle-link-refused-only-on-a-terminal-or-superseded-record.md) carries the reasoning: the seed-status gate is zero-risk but leaves `supersede` as the only remedy for a typo in an accepted record — the exact cost this issue set out to remove. Repointing the in-bundle links is what makes the wider gate safe.
+The gate moved from the seed status (`Proposed`/`Draft`/`open`) to the terminal statuses while the work was scoped, and [ADR 0061](../adr/0061-set-title-retitles-a-record-frontmatter-heading-filename-and-every-in-bundle-link-refused-only-on-a-terminal-or-superseded-record.md) carries the reasoning: the seed-status gate is zero-risk but leaves `supersede` as the only remedy for a typo in an accepted record — the exact cost this issue set out to remove. Repointing the in-bundle links is what makes the wider gate safe.
 
 ### Acceptance
 

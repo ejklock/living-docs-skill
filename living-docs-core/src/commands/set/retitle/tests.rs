@@ -232,3 +232,69 @@ fn retitle_keeps_crlf_on_the_rewritten_heading() {
         format!("{FRONT}# 0003. T\r\nBody.\r\n")
     );
 }
+
+fn heading_of(body: &str, number: Option<&str>) -> Option<String> {
+    title_heading_text(&format!("{FRONT}{body}"), number)
+}
+
+fn heading_in(front: &str, body: &str) -> Option<String> {
+    title_heading_text(&format!("{front}{body}"), None)
+}
+
+const ISSUE_FRONT: &str = "---\ntype: Issue\ntitle: Old\n---\n\n";
+const UNTYPED_FRONT: &str = "---\ntitle: Old\n---\n\n";
+
+#[test]
+fn a_references_heading_is_no_title_heading_of_an_issue() {
+    assert_eq!(
+        heading_in(ISSUE_FRONT, "### Scope\n\nx\n\n# References\n"),
+        None
+    );
+}
+
+#[test]
+fn a_section_the_record_type_declares_is_no_title_heading() {
+    assert_eq!(heading_of("# Decision\n\nx\n", None), None);
+}
+
+#[test]
+fn a_section_of_another_type_can_still_be_a_title_heading() {
+    assert_eq!(
+        heading_in(ISSUE_FRONT, "# Context\n").as_deref(),
+        Some("Context")
+    );
+}
+
+#[test]
+fn a_references_heading_is_no_title_heading_without_a_type() {
+    assert_eq!(heading_in(UNTYPED_FRONT, "# References\n"), None);
+}
+
+#[test]
+fn the_title_heading_is_found_after_a_skipped_section_heading() {
+    assert_eq!(
+        heading_of("# References\n\n# Beta\n", None).as_deref(),
+        Some("Beta")
+    );
+}
+
+#[test]
+fn a_numbered_heading_is_the_title_heading_wherever_it_sits() {
+    assert_eq!(
+        heading_of("### Scope\n\n## 0001. Beta\n", Some("0001")).as_deref(),
+        Some("Beta")
+    );
+}
+
+#[test]
+fn a_fenced_heading_before_the_title_heading_is_skipped() {
+    assert_eq!(
+        heading_of("```\n# Fake\n```\n\n# Beta\n", None).as_deref(),
+        Some("Beta")
+    );
+}
+
+#[test]
+fn a_body_with_no_heading_has_no_title_heading() {
+    assert_eq!(heading_of("Just prose.\n", None), None);
+}

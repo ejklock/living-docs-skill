@@ -46,6 +46,26 @@ pub(crate) fn parse_frontmatter(block: &str) -> Option<Value> {
     serde_yaml::from_str(block).ok()
 }
 
+/// What `check`, `fmt` and `set` say about a record whose frontmatter does
+/// not parse; the repair is the author's, since no verb can rewrite a block it
+/// cannot read.
+pub(crate) const UNPARSEABLE_MESSAGE: &str =
+    "frontmatter does not parse as a YAML mapping; fix it by hand";
+
+/// Whether `contents` carries a frontmatter block that does not parse as a
+/// YAML mapping: a syntax error, or a scalar or sequence at the top level.
+/// A blank block is an empty mapping, and a file with no block at all is not
+/// this case — it carries nothing to lose.
+pub(crate) fn has_unparseable_frontmatter(contents: &str) -> bool {
+    let Some(block) = frontmatter_block(contents) else {
+        return false;
+    };
+    !matches!(
+        parse_frontmatter(block),
+        Some(Value::Mapping(_) | Value::Null)
+    )
+}
+
 /// Reads `key` as a top-level scalar via the canonical `serde_yaml` mapping
 /// parse only — no [`raw_scalar_line`] fallback. Shared by
 /// `check::records`'s per-file frontmatter checks, `sections`, and

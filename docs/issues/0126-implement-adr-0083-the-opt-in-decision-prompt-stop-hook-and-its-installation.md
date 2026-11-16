@@ -1,16 +1,16 @@
 ---
 type: Issue
-title: "Implement ADR 0083: the opt-in decision prompt Stop hook and its installation"
-description: "Land ADR 0083: the decision-prompt script, its install and uninstall wiring in a new module, the constitution line and the 20-prompt measurement"
+title: "Implement ADR 0093: the opt-in decision prompt Stop hook and its installation"
+description: "Land ADR 0093: the decision-prompt script, its install and uninstall wiring in a new module, the constitution line and the 20-prompt measurement"
 status: open
 timestamp: 2026-11-15T17:33:57Z
 ---
 
-## 0126. Implement ADR 0083: the opt-in decision prompt Stop hook and its installation
+## 0126. Implement ADR 0093: the opt-in decision prompt Stop hook and its installation
 
 ### Scope
 
-Implements [ADR 0083](/adr/0083-an-opt-in-stop-hook-prompts-the-agent-to-record-a-material-choice-in-the-active-issue-before-the-turn-ends.md): an opt-in Stop hook that prompts the agent, once per distinct change set, to record a material choice in the active issue's Decision section. Slice S4 of [issue 0121](/issues/0121-engineering-docs-roadmap-domain-language-and-rules-decision-capture-issue-waves-generated-diagrams-and-a-local-html-export.md).
+Implements [ADR 0093](/adr/0093-an-opt-in-stop-hook-prompts-the-agent-to-record-a-material-choice-in-the-active-issue-before-the-turn-ends.md): an opt-in Stop hook that prompts the agent, once per distinct change set, to record a material choice in the active issue's Decision section. Slice S4 of [issue 0144](/issues/0144-engineering-docs-roadmap-domain-language-and-rules-decision-capture-issue-waves-generated-diagrams-and-a-local-html-export.md).
 
 Plan:
 - S1: `skills/living-docs/hooks/decision-prompt.sh` prints nothing and exits 0 unless `LIVING_DOCS_DECISION_PROMPT=1`; with it set it blocks once (Claude Code Stop hook JSON) when non-bundle paths changed, no bundle path changed and the stop-hook-active flag is false, keyed by a hash of the changed paths and contents stored under the git directory; the message names the issue number when the branch carries one | files: skills/living-docs/hooks/decision-prompt.sh (create), cli/tests/decision_prompt.rs (create) | after: none
@@ -20,12 +20,12 @@ Plan:
 
 ### Decision
 
-- The hook ships for Claude Code only; other harnesses wait for the experiment's result (ADR 0083).
+- The hook ships for Claude Code only; other harnesses wait for the experiment's result (ADR 0093).
 - Uninstall restores settings as before install with an empty hook section treated as absent, as Claude Code reads it; a user's own empty section that install appended to is removed on uninstall (review of S2). Not taken: recording which sections install created.
 - The wiring of S2 is born in its own module because the file-size ratchet forbids `cli/src/hooks.rs` from growing.
 
 ### Acceptance
 
-- Each Verification criterion of ADR 0083 holds.
+- Each Verification criterion of ADR 0093 holds.
 - `cargo test --workspace`, `make check`, `cargo fmt --all --check` and `se-gates check` pass.
 - The S4 count is recorded in this issue before it closes.

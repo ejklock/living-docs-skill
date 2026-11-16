@@ -11,7 +11,7 @@ timestamp: 2026-10-19T13:13:52Z
 
 ## Context
 
-The authoring contract since [ADR 0019](/adr/0019-hand-written-record-frontmatter-is-blocked-at-write-time-detected-by-check-and-taught-at-point-of-use.md) is: the CLI scaffolds the numbered record, the author writes the body. The usage analysis over the owner's agent transcripts (8,376 CLI calls, September and October 2026) shows how the body actually arrives. Agents wrote a whole record with a file-writing tool 478 times, 90 of them in a session with no `new` call at all, which hand-rolls the frontmatter the CLI owns and, as recorded in the owner's memory, loses the timestamp `set` cannot restore. `set description` ran 336 times with an average argument of 290 characters passed through shell quoting; 23 of the recorded `status` values carry a stray `;` or `|` from a broken quote. Closing an issue appends an Outcome section, which agents did with `printf >>`, a pattern the owner's Bash hooks block (132 blocked `check` calls were redirects of the same kind).
+The authoring contract since [ADR 0019](0019-hand-written-record-frontmatter-is-blocked-at-write-time-detected-by-check-and-taught-at-point-of-use.md) is: the CLI scaffolds the numbered record, the author writes the body. The usage analysis over the owner's agent transcripts (8,376 CLI calls, September and October 2026) shows how the body actually arrives. Agents wrote a whole record with a file-writing tool 478 times, 90 of them in a session with no `new` call at all, which hand-rolls the frontmatter the CLI owns and, as recorded in the owner's memory, loses the timestamp `set` cannot restore. `set description` ran 336 times with an average argument of 290 characters passed through shell quoting; 23 of the recorded `status` values carry a stray `;` or `|` from a broken quote. Closing an issue appends an Outcome section, which agents did with `printf >>`, a pattern the owner's Bash hooks block (132 blocked `check` calls were redirects of the same kind).
 
 The language model's natural unit is the whole body or a whole section. argv is hostile to prose: quotes, backticks, dollar signs and newlines all need escaping, and a heredoc is a redirect. Every other deterministic authoring tool that takes prose (git commit `-F`, gh `--body-file`) reads it from a file or stdin.
 
@@ -21,7 +21,7 @@ We will let record prose enter through a file or stdin, never through argv, with
 
 - **`new <type> "<title>" --body PATH|-`** replaces the scaffolded body, everything below the heading line, with the file's content. Number, frontmatter and heading stay CLI-owned. The content is taken verbatim, line endings normalized to LF and one trailing newline. A body that opens with a frontmatter fence (`---` on its first line) is refused with exit 2 naming the body-only rule; an empty body is refused with exit 2.
 - **`set <ref> <key> [VALUE] --from PATH|-`** reads the value from the file when VALUE is absent, for every settable key. VALUE together with `--from` is a usage error (exit 2). The value is trimmed of surrounding whitespace and validated exactly as an argv value is.
-- **`set <ref> section "<heading>" --from PATH|-`** is a new key: it replaces the content under the first body section whose heading matches, case-insensitive, by the same matcher the section schema of [ADR 0064](/adr/0064-each-doc-type-declares-its-sections-in-the-registry-required-or-optional-contract-or-detail-tier-so-check-enforces-the-required-ones-on-live-records-and-read-discloses-by-tier.md) uses, keeping the heading line; when no section matches it appends the heading and the content at the end of the body, at the heading level the record's other sections use (`##` when it has none). The tool places text where told and never writes prose: the determinism boundary of the project holds.
+- **`set <ref> section "<heading>" --from PATH|-`** is a new key: it replaces the content under the first body section whose heading matches, case-insensitive, by the same matcher the section schema of [ADR 0064](0064-each-doc-type-declares-its-sections-in-the-registry-required-or-optional-contract-or-detail-tier-so-check-enforces-the-required-ones-on-live-records-and-read-discloses-by-tier.md) uses, keeping the heading line; when no section matches it appends the heading and the content at the end of the body, at the heading level the record's other sections use (`##` when it has none). The tool places text where told and never writes prose: the determinism boundary of the project holds.
 - **`-` is stdin** in both verbs. `-` with a terminal on stdin is a usage error with a hint, so a model that forgets the pipe is not left hanging.
 
 Rejected alternatives:
@@ -43,7 +43,7 @@ Rejected alternatives:
 - `section` is the first `set` key that reaches into the body; the body stays author-owned and the tool only replaces the text under one heading.
 
 **Follow-ups:**
-- [Issue 0059](/issues/0059-new-body-and-set-from-read-prose-from-a-file-or-stdin.md) implements the two options and the `section` key.
+- [Issue 0059](../issues/0059-new-body-and-set-from-read-prose-from-a-file-or-stdin.md) implements the two options and the `section` key.
 - The procedure and issue-workflow topics and the session hook show `--body` and `--from` as the way prose arrives.
 
 ## Verification

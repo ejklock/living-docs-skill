@@ -1,7 +1,7 @@
 ---
 type: Issue
 title: db commands can create a literal 'sqlite:' directory by treating the connection string as a filesystem path
-description: <One sentence — the change and its motivation.>
+description: "The db commands parse a connection string into a path before any filesystem call, so a sqlite: connection string never creates a literal sqlite: directory."
 status: closed
 timestamp: 2026-08-06T21:03:43Z
 ---
@@ -14,7 +14,7 @@ timestamp: 2026-08-06T21:03:43Z
 
 ## db commands can create a literal 'sqlite:' directory by treating the connection string as a filesystem path
 
-An empty directory literally named `sqlite:` appeared at the repository root. The name matches a SQLite connection-string prefix (`sqlite:...`), so some code path most likely passed the connection string to a filesystem call that creates parent directories. The suspects are the `db sync` / `search` engine wiring and the `--engine sqlite` fallback path (`.living-docs/index.db` when `$DATABASE_URL` is unset) from [ADR 0004](/adr/0004-db-engine-and-data-layer.md). The directory was empty, so no data was written through the wrong path; the defect is silent litter plus the risk that a future write lands in it.
+An empty directory literally named `sqlite:` appeared at the repository root. The name matches a SQLite connection-string prefix (`sqlite:...`), so some code path most likely passed the connection string to a filesystem call that creates parent directories. The suspects are the `db sync` / `search` engine wiring and the `--engine sqlite` fallback path (`.living-docs/index.db` when `$DATABASE_URL` is unset) from [ADR 0004](../adr/0004-db-engine-and-data-layer.md). The directory was empty, so no data was written through the wrong path; the defect is silent litter plus the risk that a future write lands in it.
 
 ### Scope
 

@@ -18,7 +18,7 @@ derives facts; it never writes rationale, never chooses an epistemic type).
 
 ### Objective link
 
-Constitution (deterministic layer owns the mechanical) → [ADR 0001](/adr/0001-living-docs-cli.md)
+Constitution (deterministic layer owns the mechanical) → [ADR 0001](../adr/0001-living-docs-cli.md)
 (CLI owns template-fillable steps) → this slice.
 
 ### Context manifest
@@ -65,4 +65,4 @@ judgment field emitted as a marked empty slot. Output passes `check`.
 No LLM calls, no prose generation, no epistemic-type inference (determinism boundary,
 ADR 0001). No new ADR needed unless implementation surfaces a real fork; the scaffold
 is additive CLI surface under existing decisions. Size-target warnings are slice
-[0009](/issues/0009-doc-size-targets.md).
+[0009](0009-doc-size-targets.md).

@@ -13,7 +13,7 @@ timestamp: 2026-09-11T11:51:50Z
 
 ## Context
 
-A record's `status` is whatever its author last wrote; nothing cross-references it with the world it describes. On a strict-mode consumer, 38 of 142 ADRs sit `Proposed` while their implementation issues are already closed with code merged ([issue 0035](/issues/0035-provenance-review-queue-check-flags-records-whose-referenced-source-was-superseded-or-changed-status.md) covered a source *moving*; nothing covers a record's own *currency*). A stale record is worse than a missing one, because the agent that reads the corpus trusts it. `enforcement-modes.md` places doc-trail judgement with the agent because materiality has no sound oracle — but currency does: the linked issue's status and the filesystem. The checkable part belongs in the tool.
+A record's `status` is whatever its author last wrote; nothing cross-references it with the world it describes. On a strict-mode consumer, 38 of 142 ADRs sit `Proposed` while their implementation issues are already closed with code merged ([issue 0035](../issues/0035-provenance-review-queue-check-flags-records-whose-referenced-source-was-superseded-or-changed-status.md) covered a source *moving*; nothing covers a record's own *currency*). A stale record is worse than a missing one, because the agent that reads the corpus trusts it. `enforcement-modes.md` places doc-trail judgement with the agent because materiality has no sound oracle — but currency does: the linked issue's status and the filesystem. The checkable part belongs in the tool.
 
 ## Decision
 

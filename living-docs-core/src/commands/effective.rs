@@ -1,6 +1,7 @@
 //! `living-docs read records` (the module keeps its original name `effective`
 //! internally): the agent-facing read of the bundle — active records only
-//! (superseded/deprecated withheld), supersede chains collapsed to the head
+//! (every record its doc type retires, a closed or done issue included, is
+//! withheld and counted; `--all` lists them), supersede chains collapsed to the head
 //! with a one-line lineage, grouped by kind then number. `--topic` restricts
 //! to records where every term starts a word of the title, description or
 //! body (case- and accent-insensitive) and ranks them by term frequency.
@@ -26,6 +27,9 @@ pub struct Options {
     pub topic: Option<String>,
     pub full: bool,
     pub contract: bool,
+    /// Lists retired records too, so nothing is withheld; the dependents
+    /// queries keep their own rule.
+    pub all: bool,
     /// Narrows the view to the dependents of one record; excludes `topic`.
     pub dependents: Option<Dependents>,
 }
@@ -56,9 +60,9 @@ pub(crate) fn collect(
     let records = read_records(store, &store.list(bundle).unwrap_or_default());
     let withheld = records
         .iter()
-        .filter(|(_, record)| !is_in_force(record.status.as_deref()))
+        .filter(|(_, record)| !options.all && !is_in_force(record))
         .count();
-    let ranked = rank_in_force(&records, options.topic.as_deref());
+    let ranked = rank_in_force(&records, options);
     let selected = match &options.dependents {
         Some(query) => dependents::narrow(&records, bundle, query, ranked),
         None => ranked.into_iter().map(|index| (index, None)).collect(),
@@ -75,13 +79,17 @@ pub(crate) fn collect(
 }
 
 /// The indexes of the in-force records that match `topic`, best match first,
-/// then by reading order.
-fn rank_in_force(records: &[Entry], topic: Option<&str>) -> Vec<usize> {
-    let terms = topic.map(topic::terms).unwrap_or_default();
+/// then by reading order; under `options.all` every record is a candidate.
+fn rank_in_force(records: &[Entry], options: &Options) -> Vec<usize> {
+    let terms = options
+        .topic
+        .as_deref()
+        .map(topic::terms)
+        .unwrap_or_default();
     let mut active: Vec<(usize, topic::Folded)> = records
         .iter()
         .enumerate()
-        .filter(|(_, (_, record))| is_in_force(record.status.as_deref()))
+        .filter(|(_, (_, record))| options.all || is_in_force(record))
         .map(|(index, (_, record))| (index, topic::fold_for(record, &terms)))
         .filter(|(_, folded)| topic::matches(folded, &terms))
         .collect();
@@ -152,11 +160,13 @@ fn is_reserved(path: &Path) -> bool {
     )
 }
 
-fn is_in_force(status: Option<&str>) -> bool {
-    !matches!(
-        status.map(|s| s.to_ascii_lowercase()).as_deref(),
-        Some("superseded") | Some("deprecated")
-    )
+/// Whether the record's doc type retires its status; an unregistered type or
+/// a missing status is live.
+fn is_in_force(record: &ExtractedRecord) -> bool {
+    let retired = record.status.as_deref().is_some_and(|status| {
+        doc_type::spec_for_frontmatter(&record.doc_type).is_some_and(|spec| spec.is_retired(status))
+    });
+    !retired
 }
 
 fn view_of(record: &ExtractedRecord, by_key: &RecordsByKey, contract: bool) -> View {

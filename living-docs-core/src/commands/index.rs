@@ -3,8 +3,8 @@ use crate::commands::next::numeric_prefix as numbered_prefix;
 use crate::doc_type::{self, Identity};
 use crate::frontmatter;
 use crate::line_ending::{ending_of, Ending, LineEndingStore, MIXED_MESSAGE};
-use crate::store::DocStore;
-use std::fs;
+use crate::record::{fallback_title, first_heading};
+use crate::store::{is_refusal, DocStore};
 use std::path::{Path, PathBuf};
 
 mod named;
@@ -59,6 +59,7 @@ pub fn write(
         .collect::<Result<Vec<PathBuf>, String>>()?;
     let tokens: Vec<&str> = types.iter().map(String::as_str).collect();
     written.extend(ensure_root_index(
+        store,
         docs_dir,
         &tokens,
         NoTypeIndex::WriteNothing,
@@ -66,9 +67,22 @@ pub fn write(
     Ok(written)
 }
 
-/// `index.md` is a reserved fs artifact outside every `DocStore` domain:
-/// always read/written through `std::fs`, even in db-mode,
-/// where only the records feeding its body come from `store`.
+/// Reads a reserved `index.md` through `store`, so a store rooted at the
+/// bundle judges it like any record: `Some(text)` when read, `None` when it
+/// cannot be read for any reason but a refusal (a missing index is a fresh
+/// one), and an error naming the path when the store refuses it, so a caller
+/// never regenerates over a file that lies outside the bundle.
+pub(crate) fn read_reserved(store: &dyn DocStore, path: &Path) -> Result<Option<String>, String> {
+    match store.read(path) {
+        Ok(text) => Ok(Some(text)),
+        Err(error) if is_refusal(&error) => Err(error.to_string()),
+        Err(_) => Ok(None),
+    }
+}
+
+/// `index.md` is read and written through `store`, like the records feeding
+/// its body, so a store rooted at the bundle refuses one that resolves outside
+/// it.
 ///
 /// A type with no directory yet is a silent no-op — `new` owns
 /// directory creation, never `index`; regenerating one would materialize an
@@ -81,7 +95,9 @@ fn regenerate(
     let Some((index_path, content)) = pending(store, docs_dir, doc_type)? else {
         return Ok(None);
     };
-    fs::write(&index_path, content).map_err(|e| e.to_string())?;
+    store
+        .write(&index_path, &content)
+        .map_err(|e| e.to_string())?;
     Ok(Some(index_path))
 }
 
@@ -99,16 +115,17 @@ pub(crate) fn pending(
     if !type_dir.is_dir() {
         return Ok(None);
     }
-    if fs::read_to_string(&index_path).is_ok_and(|on_disk| on_disk == content) {
+    if read_reserved(store, &index_path)?.is_some_and(|on_disk| on_disk == content) {
         return Ok(None);
     }
     Ok(Some((index_path, content)))
 }
 
-/// Computes `doc_type`'s regenerated `index.md` path and content — reading
-/// the on-disk preamble and the records through `store` — without writing
-/// anything: the pure step [`regenerate`] and `db-store`'s `write_checked`
-/// both build on, the latter controlling its own write/rollback timing.
+/// Computes `doc_type`'s regenerated `index.md` path and content without
+/// writing anything. The on-disk preamble and the records are both read
+/// through `store`, so an index the store refuses is an error, not an empty
+/// preamble. [`regenerate`] writes the result; a caller that controls its own
+/// write timing uses this step alone.
 pub fn compute(
     store: &dyn DocStore,
     docs_dir: &Path,
@@ -116,7 +133,7 @@ pub fn compute(
 ) -> Result<(PathBuf, String), String> {
     let type_dir = docs_dir.join(numbered_dir_for(doc_type)?);
     let index_path = type_dir.join("index.md");
-    let existing = fs::read_to_string(&index_path).unwrap_or_default();
+    let existing = read_reserved(store, &index_path)?.unwrap_or_default();
     let (existing, eol) = match ending_of(&existing) {
         Ending::Crlf => (existing.replace("\r\n", "\n"), "\r\n"),
         _ => (existing, "\n"),
@@ -218,7 +235,7 @@ fn record_from_path(store: &dyn DocStore, path: &Path) -> Option<Record> {
     let filename = path.file_name()?.to_str()?.to_string();
     let number = numbered_prefix(&filename)?;
     let contents = store.read(path).ok()?;
-    let title = title_for_record(&contents, path, number);
+    let title = title_for_record(&contents, path);
     let status = frontmatter::read_scalar_from_str(&contents, "status").unwrap_or_default();
     let superseded_by = frontmatter::read_scalar_from_str(&contents, "superseded_by");
     Some(Record {
@@ -231,54 +248,19 @@ fn record_from_path(store: &dyn DocStore, path: &Path) -> Option<Record> {
 }
 
 /// The record's rendered title: its frontmatter `title:` when present and
-/// parseable, otherwise its first `# ` H1 heading with a leading numbering
-/// prefix stripped. A stderr warning names `path`
-/// whenever the fallback fires; the title stays empty (still warned) only
-/// when the H1 is also absent.
-fn title_for_record(contents: &str, path: &Path, number: u32) -> String {
+/// parseable, otherwise the title [`fallback_title`] derives, the same one
+/// `read` shows. A stderr warning names `path` and that title whenever the
+/// fallback fires.
+fn title_for_record(contents: &str, path: &Path) -> String {
     if let Some(title) = frontmatter::read_scalar_from_str(contents, "title") {
         return title;
     }
-    let fallback = first_heading(contents)
-        .map(|heading| strip_heading_number_prefix(&heading, number))
-        .unwrap_or_default();
-    warn_missing_title(path, &fallback);
+    let fallback = fallback_title(path, contents);
+    eprintln!(
+        "living-docs manage index: {} has no parseable 'title' frontmatter; using {fallback:?}",
+        path.display()
+    );
     fallback
-}
-
-fn first_heading(contents: &str) -> Option<String> {
-    contents
-        .lines()
-        .find_map(|line| line.strip_prefix("# ").map(|title| title.trim().to_owned()))
-}
-
-/// Strips a leading `ADR NNNN — `, `NNNN. `, or `NNNN — ` numbering prefix
-/// (`NNNN` being `number` zero-padded to four digits) from `heading`, in
-/// that order, leaving it untouched when none matches.
-fn strip_heading_number_prefix(heading: &str, number: u32) -> String {
-    let padded = format!("{number:04}");
-    [
-        format!("ADR {padded} — "),
-        format!("{padded}. "),
-        format!("{padded} — "),
-    ]
-    .into_iter()
-    .find_map(|prefix| heading.strip_prefix(prefix.as_str()).map(str::to_owned))
-    .unwrap_or_else(|| heading.to_owned())
-}
-
-fn warn_missing_title(path: &Path, fallback: &str) {
-    if fallback.is_empty() {
-        eprintln!(
-            "living-docs manage index: {} has no parseable 'title' frontmatter and no H1 heading; rendering an empty title",
-            path.display()
-        );
-    } else {
-        eprintln!(
-            "living-docs manage index: {} has no parseable 'title' frontmatter; using its H1 heading {fallback:?}",
-            path.display()
-        );
-    }
 }
 
 #[cfg(test)]

@@ -2,7 +2,7 @@
 type: Issue
 title: size-targets guide exempts architecture docs, but the registry gives the architecture view a size target
 description: The size-targets guide and the registry disagree on architecture views, so check emits SIZE advisories the guide says cannot exist.
-status: open
+status: closed
 timestamp: 2026-10-10T19:16:42Z
 ---
 

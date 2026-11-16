@@ -1,9 +1,9 @@
 # Doc Size Targets
 
-**Aim for ~100 body lines; the checker advises at 120.** The target is uniform across
-decision and execution records — ADR, PRD, issue. Exempt: research (long-form dated
-evidence), the constitution, context and architecture docs, and the reserved
-`index.md`/`log.md` listings.
+**Aim for ~100 body lines; the checker advises at 120.** The target applies to
+decision and execution records — ADR, PRD, issue — and to architecture views: a view is
+one concern per file, so the target nudges a split. Exempt: research (long-form dated
+evidence), the constitution, context docs, and the reserved `index.md`/`log.md` listings.
 
 Body lines are what follows the closing frontmatter fence; the frontmatter block is
 never counted.

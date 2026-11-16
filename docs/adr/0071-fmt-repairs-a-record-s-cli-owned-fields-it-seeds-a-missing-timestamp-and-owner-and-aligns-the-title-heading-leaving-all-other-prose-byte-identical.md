@@ -10,15 +10,15 @@ timestamp: 2026-10-24T10:15:28Z
 
 # 0071. fmt repairs a record's CLI-owned fields: it seeds a missing timestamp and owner and aligns the title heading, leaving all other prose byte-identical
 
-This decision supersedes [ADR 0047](/adr/0047-living-docs-fmt-is-frontmatter-only-and-the-record-body-stays-byte-identical.md), keeping its guarantee that `fmt` never rewrites prose and narrowing it by one line: the record's title heading.
+This decision supersedes [ADR 0047](0047-living-docs-fmt-is-frontmatter-only-and-the-record-body-stays-byte-identical.md), keeping its guarantee that `fmt` never rewrites prose and narrowing it by one line: the record's title heading.
 
 ## Context
 
-[ADR 0047](/adr/0047-living-docs-fmt-is-frontmatter-only-and-the-record-body-stays-byte-identical.md) made `fmt` frontmatter-only after a body-reflow pass deleted 12951 lines from one bundle. `fmt` now orders the frontmatter keys and leaves every byte below the closing `---` unchanged.
+[ADR 0047](0047-living-docs-fmt-is-frontmatter-only-and-the-record-body-stays-byte-identical.md) made `fmt` frontmatter-only after a body-reflow pass deleted 12951 lines from one bundle. `fmt` now orders the frontmatter keys and leaves every byte below the closing `---` unchanged.
 
 The failures consumers hit are elsewhere. Of 41 bundles under the owner's workspace, 25 fail `check` (`living-docs check docs --plain` per repository, October 2026); the dominant kinds are non-canonical hand-written frontmatter, an ADR without owner, and a heading that disagrees with the title. A usage audit over four harness accounts' transcripts found 516 whole-file `Write` calls into numbered records: agents rewrite the record, guess the frontmatter, and lose the timestamp the CLI wrote, which no verb restores (`set` refuses `timestamp`; `fmt` does not seed it). On a hand-written ADR with a mismatched heading, `fmt` today adds `description: ""` and leaves the missing timestamp, the missing owner and the heading as they were.
 
-Each missing field has a deterministic source: the timestamp in the git history of the file, the owner in git config (as `new` already seeds it), the heading in the frontmatter title (as `set title` already rewrites it, [ADR 0061](/adr/0061-set-title-retitles-a-record-frontmatter-heading-filename-and-every-in-bundle-link-refused-only-on-a-terminal-or-superseded-record.md)).
+Each missing field has a deterministic source: the timestamp in the git history of the file, the owner in git config (as `new` already seeds it), the heading in the frontmatter title (as `set title` already rewrites it, [ADR 0061](0061-set-title-retitles-a-record-frontmatter-heading-filename-and-every-in-bundle-link-refused-only-on-a-terminal-or-superseded-record.md)).
 
 ## Decision
 
@@ -33,7 +33,7 @@ We will make `living-docs fmt` repair the CLI-owned fields of a record, by defau
 
 Rejected alternatives:
 
-- **An opt-in `fmt --repair`.** The default is what agents run; a flag they must remember goes unused, as the standalone `index` call did before [ADR 0065](/adr/0065-mutation-verbs-leave-the-bundle-indexed-new-set-and-supersede-regenerate-the-touched-type-index-in-the-same-run.md).
+- **An opt-in `fmt --repair`.** The default is what agents run; a flag they must remember goes unused, as the standalone `index` call did before [ADR 0065](0065-mutation-verbs-leave-the-bundle-indexed-new-set-and-supersede-regenerate-the-touched-type-index-in-the-same-run.md).
 - **Let `set` write `timestamp`.** It turns the creation seal into an editable field and invites guessed dates.
 - **Keep `fmt` as it is.** The top failure cluster in consumer bundles stays a hand repair.
 
@@ -46,7 +46,7 @@ Rejected alternatives:
 **Harder / accepted trade-offs:**
 - `fmt` on a brownfield bundle rewrites more records than before (heading lines); `fmt --check` shows them first.
 - `fmt` now reads git history and config. Outside a git repository the timestamp falls back to the clock and the owner stays absent.
-- The guarantee of [ADR 0047](/adr/0047-living-docs-fmt-is-frontmatter-only-and-the-record-body-stays-byte-identical.md) is narrowed from "the body is byte-identical" to "the body is byte-identical except the title heading".
+- The guarantee of [ADR 0047](0047-living-docs-fmt-is-frontmatter-only-and-the-record-body-stays-byte-identical.md) is narrowed from "the body is byte-identical" to "the body is byte-identical except the title heading".
 
 **Follow-ups:**
 - `check` advice that names `fmt` covers the heading and owner kinds.

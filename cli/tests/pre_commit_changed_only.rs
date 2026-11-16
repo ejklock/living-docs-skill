@@ -43,10 +43,6 @@ fn git_with(repo: &Path, vars: &[(&str, &str)], args: &[&str]) -> Output {
         .expect("failed to run git")
 }
 
-fn adr_path(name: &str) -> String {
-    format!("docs/{}/{name}", "adr")
-}
-
 fn git(repo: &Path, args: &[&str]) -> Output {
     git_with(repo, &[], args)
 }
@@ -81,10 +77,14 @@ fn stage_bundle(repo: &Path, debt: bool) {
     }
     write(&docs, "adr/0002-clean.md", CLEAN);
     common::index_bundle(&docs);
-    let clean = adr_path("0002-clean.md");
     git(
         repo,
-        &["add", "docs/index.md", &adr_path("index.md"), &clean],
+        &[
+            "add",
+            "docs/index.md",
+            "docs/adr/index.md",
+            "docs/adr/0002-clean.md",
+        ],
     );
 }
 
@@ -147,7 +147,7 @@ fn stage_ownerless(repo: &Path) {
     common::index_bundle(&docs);
     git(
         repo,
-        &["add", &adr_path("0003-ownerless.md"), &adr_path("index.md")],
+        &["add", "docs/adr/0003-ownerless.md", "docs/adr/index.md"],
     );
 }
 

@@ -4,7 +4,8 @@
 //! is parsed as a `CodeBlock` event, never as `Link`/`Image` tags).
 //!
 //! Resolution mirrors `resolve_link`/`normpath` in `lint-docs.sh` and
-//! `check::graph`: strip the anchor, skip external/mailto/tel targets, join
+//! `check::graph`: strip the query and anchor, skip external targets (a scheme,
+//! a protocol-relative `//host`, mailto, tel), join
 //! bundle-relative (leading `/`) against the bundle root and everything else
 //! against the linking file's directory, then normalize and check existence.
 //!
@@ -83,7 +84,7 @@ pub(crate) fn link_starts(content: &str) -> Vec<(usize, LinkKind, String)> {
 /// Resolves a raw destination to a normalized local path, or `None` if it's
 /// external / a pure anchor / unsupported.
 pub(crate) fn resolve_destination(file: &str, raw_dest: &str, bundle: &str) -> Option<String> {
-    let target = strip_anchor(raw_dest);
+    let target = strip_suffix(raw_dest);
     if target.is_empty() || is_external(target) {
         return None;
     }
@@ -95,15 +96,22 @@ pub(crate) fn resolve_destination(file: &str, raw_dest: &str, bundle: &str) -> O
     Some(normpath(&joined))
 }
 
-fn strip_anchor(raw_dest: &str) -> &str {
-    match raw_dest.find('#') {
+/// The destination's path: everything before its first `?` or `#`, since
+/// a query or an anchor never names a different file.
+fn strip_suffix(raw_dest: &str) -> &str {
+    match raw_dest.find(['?', '#']) {
         Some(pos) => &raw_dest[..pos],
         None => raw_dest,
     }
 }
 
-fn is_external(target: &str) -> bool {
-    target.contains("://") || target.starts_with("mailto:") || target.starts_with("tel:")
+/// Whether `target` leaves the bundle: a URL with a scheme, a
+/// protocol-relative `//host/…` link, or a mailto/tel address.
+pub(crate) fn is_external(target: &str) -> bool {
+    target.contains("://")
+        || target.starts_with("//")
+        || target.starts_with("mailto:")
+        || target.starts_with("tel:")
 }
 
 #[cfg(test)]
@@ -229,6 +237,23 @@ mod tests {
             resolve_destination("docs/index.md", "#section", "docs"),
             None
         );
+        assert_eq!(
+            resolve_destination("docs/index.md", "//cdn.example.com/x.png", "docs"),
+            None
+        );
+    }
+
+    #[test]
+    fn resolve_destination_drops_a_query_like_an_anchor() {
+        assert_eq!(
+            resolve_destination("docs/a/index.md", "c.md?v=2#top", "docs"),
+            Some("docs/a/c.md".to_string())
+        );
+        assert_eq!(
+            resolve_destination("docs/a/index.md", "/b/index.md?v=2", "docs"),
+            Some("docs/b/index.md".to_string())
+        );
+        assert_eq!(resolve_destination("docs/index.md", "?v=2", "docs"), None);
     }
 
     #[test]

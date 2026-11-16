@@ -10,7 +10,7 @@ timestamp: 2026-11-15T16:02:42Z
 
 > **SUPERSEDED — do not act on this record.** Replaced by [0089](0089-the-decision-reminder-is-a-non-blocking-posttooluse-nudge-once-per-commit-cycle.md). Run `living-docs read records` for what is in force.
 
-# 0083. An opt-in Stop hook prompts the agent to record a material choice in the active issue before the turn ends
+# 0093. An opt-in Stop hook prompts the agent to record a material choice in the active issue before the turn ends
 
 ## Context
 
@@ -18,7 +18,7 @@ A coding agent makes many choices while it implements, and most of the rationale
 
 [ADR 0059](/adr/0059-cut-living-docs-to-the-authoring-core-remove-the-database-read-model-web-front-public-export-migrate-json-authoring-and-the-write-gate-hook.md) is the counterweight. It deleted the PreToolUse write-gate because the agent negotiated with the block instead of changing behaviour, because the gate existed on one harness only, and because "a failing `check` in the same session" is what changes behaviour. The constitution lists a write-time hook as out of scope. Any new hook has to show why it is not that hook again.
 
-The owner chose ([issue 0121](/issues/0121-engineering-docs-roadmap-domain-language-and-rules-decision-capture-issue-waves-generated-diagrams-and-a-local-html-export.md)) an opt-in Stop hook that points at the active issue's Decision section, measured as an experiment. [ADR 0057](/adr/0057-refocus-living-docs-on-a-decision-log-delete-bdr-cut-peripheral-verbs-and-check-advisories-and-consolidate-the-rule-corpus.md) bounds what it may ask for: materiality is the only authoring rule, and a hook that demands a record per change recreates the inflation that deleted the BDR type.
+The owner chose ([issue 0144](/issues/0144-engineering-docs-roadmap-domain-language-and-rules-decision-capture-issue-waves-generated-diagrams-and-a-local-html-export.md)) an opt-in Stop hook that points at the active issue's Decision section, measured as an experiment. [ADR 0057](/adr/0057-refocus-living-docs-on-a-decision-log-delete-bdr-cut-peripheral-verbs-and-check-advisories-and-consolidate-the-rule-corpus.md) bounds what it may ask for: materiality is the only authoring rule, and a hook that demands a record per change recreates the inflation that deleted the BDR type.
 
 ## Decision
 
@@ -31,7 +31,7 @@ We will ship an opt-in end-of-turn decision prompt as a Stop hook, installed by 
 - **Kill criterion.** After the first 20 prompts in a consumer project, count how many ended in a record edit that a reviewer judges a true capture. If none did, the hook is removed by a superseding ADR.
 
 Rejected alternatives:
-- **The session line alone.** It is the cheapest and ships anyway (issue 0121, S3), but it is taught once at t=0 and the evidence says compliance decays as the session grows.
+- **The session line alone.** It is the cheapest and ships anyway (issue 0144, S3), but it is taught once at t=0 and the evidence says compliance decays as the session grows.
 - **A `Decision:` commit trailer checked at `commit-msg`.** It is deterministic and harness-neutral, but it is a second gate beside `check`, it taxes every commit, and `Decision: none` becomes the reflexive answer: the negotiation ADR 0059 observed, moved to commit time.
 - **Blocking until a record changes.** It removes the escape and so forces a record per change, the inflation ADR 0057 removed.
 - **An LLM judge at Stop that decides whether a decision was made.** It reads the diff with judgment, which ADR 0001 keeps outside the binary, costs a model call per turn, and gives answers that change with the wording; ADR 0075 keeps such judges advisory and offline.

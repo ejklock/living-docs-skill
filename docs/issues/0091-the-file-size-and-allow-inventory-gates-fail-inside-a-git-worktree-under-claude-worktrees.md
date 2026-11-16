@@ -1,8 +1,8 @@
 ---
 type: Issue
 title: the file-size and allow-inventory gates fail inside a git worktree under .claude/worktrees
-description: <One sentence — the change and its motivation.>
-status: open
+description: The file-size and allow-inventory scripts skip only worktrees nested below the directory they check, so make check passes inside a git worktree.
+status: closed
 timestamp: 2026-10-25T02:55:52Z
 ---
 

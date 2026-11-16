@@ -12,10 +12,14 @@ pub(super) fn preamble_for(existing: &str, doc_type: &str) -> String {
 }
 
 pub(super) fn find_boundary_offset(existing: &str) -> Option<usize> {
+    let raw: Vec<&str> = existing.split_inclusive('\n').collect();
+    let lines: Vec<&str> = raw
+        .iter()
+        .map(|line| line.trim_end_matches(['\n', '\r']))
+        .collect();
     let mut offset = 0;
-    for line in existing.split_inclusive('\n') {
-        let trimmed = line.trim_end_matches(['\n', '\r']);
-        if is_boundary_line(trimmed) {
+    for (index, line) in raw.iter().enumerate() {
+        if is_boundary_line(lines[index]) || starts_table_listing(&lines[index..]) {
             return Some(offset);
         }
         offset += line.len();
@@ -24,12 +28,48 @@ pub(super) fn find_boundary_offset(existing: &str) -> Option<usize> {
 }
 
 /// Any generator-managed heading (`## `, whatever its text), bullet listing
-/// row, or hand-maintained Markdown table listing row is a boundary,
+/// row (`* [`, or a `- [` whose link names a numbered record file), or
+/// hand-maintained Markdown table listing row is a boundary,
 /// whichever comes first — letting a legacy `## Done`/`## Open` index or a
 /// hand-maintained table migrate in a single pass rather than
 /// a silent append below it.
 pub(super) fn is_boundary_line(line: &str) -> bool {
-    line.starts_with("## ") || line.starts_with("* [") || is_table_listing_row(line)
+    line.starts_with("## ")
+        || line.starts_with("* [")
+        || is_record_dash_bullet(line)
+        || is_table_listing_row(line)
+}
+
+/// True when `lines` opens a hand table: a header row with any first cell, a
+/// separator row, then a record listing row. A legend table whose rows are
+/// not record links never qualifies.
+fn starts_table_listing(lines: &[&str]) -> bool {
+    let [header, separator, row, ..] = lines else {
+        return false;
+    };
+    first_table_cell(header).is_some() && is_separator_row(separator) && is_table_listing_row(row)
+}
+
+fn is_separator_row(line: &str) -> bool {
+    let Some(rest) = line.trim().strip_prefix('|') else {
+        return false;
+    };
+    rest.contains('-') && rest.chars().all(|c| matches!(c, '|' | '-' | ':' | ' '))
+}
+
+/// `- [text](0001-foo.md)` or `- [text](./0001-foo.md)`: a dash bullet whose
+/// link destination starts, bare or after `./`, with four digits and a dash.
+/// A path such as `../adr/0001-x.md` stays preamble by design.
+fn is_record_dash_bullet(line: &str) -> bool {
+    let Some(rest) = line.strip_prefix("- [") else {
+        return false;
+    };
+    let Some((_, after)) = rest.split_once("](") else {
+        return false;
+    };
+    let destination = after.strip_prefix("./").unwrap_or(after);
+    let bytes = destination.as_bytes();
+    bytes.len() > 4 && bytes[..4].iter().all(u8::is_ascii_digit) && bytes[4] == b'-'
 }
 
 /// True for a Markdown table row (`| cell | cell | ... |`) whose first cell

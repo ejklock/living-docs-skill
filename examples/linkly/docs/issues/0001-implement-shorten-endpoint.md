@@ -14,8 +14,8 @@ timestamp: 2026-06-20T00:00:00Z
 ## Implement shorten + redirect endpoints
 
 Build the `POST /shorten` and `GET /{code}` endpoints. Implements
-[PRD 0001](/prd/0001-link-shortening.md) and uses the store from
-[ADR 0002](/adr/0002-sqlite-store.md).
+[PRD 0001](../prd/0001-link-shortening.md) and uses the store from
+[ADR 0002](../adr/0002-sqlite-store.md).
 
 ### Scope
 

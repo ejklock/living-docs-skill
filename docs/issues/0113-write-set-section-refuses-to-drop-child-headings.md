@@ -8,7 +8,7 @@ timestamp: 2026-11-12T16:14:04Z
 
 ## 0113. write set section refuses to drop child headings
 
-Implements [ADR 0080](/adr/0080-write-set-section-refuses-to-drop-child-headings-the-new-text-does-not-carry.md): `write set <ref> section <heading>` refuses with exit 2, writing nothing, when the section holds child headings the new text does not carry, and names each missing child.
+Implements [ADR 0080](../adr/0080-write-set-section-refuses-to-drop-child-headings-the-new-text-does-not-carry.md): `write set <ref> section <heading>` refuses with exit 2, writing nothing, when the section holds child headings the new text does not carry, and names each missing child.
 
 ### Scope
 

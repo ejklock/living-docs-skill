@@ -12,7 +12,7 @@ Found by the usage audit: agents pass a record file to `check` and get "bundle r
 
 ### Scope
 
-- `living-docs check <record.md>` resolves the enclosing bundle from the file's ancestors and checks it scoped to that record, as `--changed-files` does ([ADR 0062](/adr/0062-check-changed-files-scopes-the-gate-to-the-records-a-commit-touches-so-a-brownfield-bundle-can-arm-the-hook.md)); a bundle root still checks the whole bundle.
+- `living-docs check <record.md>` resolves the enclosing bundle from the file's ancestors and checks it scoped to that record, as `--changed-files` does ([ADR 0062](../adr/0062-check-changed-files-scopes-the-gate-to-the-records-a-commit-touches-so-a-brownfield-bundle-can-arm-the-hook.md)); a bundle root still checks the whole bundle.
 - `check` reports a violation when a record names another in `supersedes` or `superseded_by` and the other does not name it back.
 - `supersede OLD NEW` keeps a value NEW's `supersedes` already carries and adds OLD to it.
 

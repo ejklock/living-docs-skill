@@ -8,7 +8,7 @@ timestamp: 2026-09-23T14:00:22Z
 
 ## 0050. jscpd ignores tests and markdown so the duplication gate measures production code
 
-`se-gates check` runs the `jscpd` duplication check over the whole tree. This repository has no committed baseline ([issue 0046](/issues/0046-packaging-is-the-cli-install-sh-bootstraps-the-binary-only-and-the-harness-install-matrix-the-claude-code-plugin-channel-and-the-generated-copilot-copy-leave-the-repo.md) removed it), so the gate blocks every clone whose either side is a changed file. On 2026-09-23 the tree held 69 clones; 52 sat in test code or markdown, where repeated fixtures and prose are expected. Issue 0048 paid that toll twice for a change that did not add any production duplication.
+`se-gates check` runs the `jscpd` duplication check over the whole tree. This repository has no committed baseline ([issue 0046](0046-packaging-is-the-cli-install-sh-bootstraps-the-binary-only-and-the-harness-install-matrix-the-claude-code-plugin-channel-and-the-generated-copilot-copy-leave-the-repo.md) removed it), so the gate blocks every clone whose either side is a changed file. On 2026-09-23 the tree held 69 clones; 52 sat in test code or markdown, where repeated fixtures and prose are expected. Issue 0048 paid that toll twice for a change that did not add any production duplication.
 
 ### Scope
 

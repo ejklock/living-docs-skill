@@ -17,6 +17,7 @@ pub(crate) use graph::{normpath, reachable_index_set};
 mod index_drift;
 pub mod kinds;
 mod line_endings;
+mod link_style;
 pub(crate) mod links;
 mod liveness;
 mod mermaid;
@@ -28,6 +29,7 @@ mod report;
 mod sections;
 mod size;
 mod supersede_links;
+mod unparseable_frontmatter;
 
 use crate::doc_type::{self, Identity};
 use crate::line_ending::LineEndingStore;
@@ -82,10 +84,10 @@ fn run_all_checks(
     }
     let doc_count = all_md.len();
     let all_md = judge_records(store, all_md, &root_index, reporter);
-    graph::check_directory_membership(bundle, &all_md, reporter);
-    graph::check_reachability(bundle, &root_index, &all_md, reporter);
+    graph::check_directory_membership(raw, bundle, &all_md, reporter);
+    graph::check_reachability(raw, bundle, &root_index, &all_md, reporter);
     index_drift::check_index_drift(raw, bundle, reporter);
-    links::check_links(store, bundle, &all_md, reporter);
+    check_link_forms(store, bundle, &all_md, reporter);
     records::check_supersede_chain(store, &all_md, reporter);
     supersede_links::check_supersede_links(store, bundle, &all_md, reporter);
     check_numbering(store, bundle, &all_md, reporter);
@@ -116,6 +118,17 @@ fn check_numbering(
     dependencies::check_dependencies(store, bundle, all_md, reporter);
 }
 
+/// Link validity (violations) and link spelling (advisories) over the same files.
+fn check_link_forms(
+    store: &dyn DocStore,
+    bundle: &Path,
+    all_md: &[PathBuf],
+    reporter: &mut Reporter,
+) {
+    links::check_links(store, bundle, all_md, reporter);
+    link_style::check_link_style(store, bundle, all_md, reporter);
+}
+
 /// Runs the per-record frontmatter pass and returns `all_md` without the
 /// records the store refused, which every later check leaves out.
 fn judge_records(
@@ -131,12 +144,10 @@ fn judge_records(
         .collect()
 }
 
-/// The invariants [`run`] validates, minus the unfilled-placeholder pass, returned as a plain violation list rather
-/// than printed — the mechanism a per-write gate (e.g. `db_store::DbDocStore::write_checked`) uses to reject a
-/// structurally invalid record. The placeholder pass is deliberately excluded here: db-mode authoring is
-/// create-then-edit, so a freshly created record legitimately still carries its `{{PLACEHOLDER}}` slots until the
-/// author fills them in the edit view. Unfilled placeholders are caught at the commit boundary by the `check`
-/// command (which runs the pass), not by the per-write gate.
+/// The invariants [`compile`] validates, minus the unfilled-placeholder pass, returned as a plain violation list
+/// rather than printed — for a caller that must reject a structurally invalid record. The placeholder pass is
+/// deliberately excluded here: a freshly created record legitimately still carries its `{{PLACEHOLDER}}` slots until
+/// the author fills them in. Unfilled placeholders are caught by the full `check` command, which runs the pass.
 pub fn check_violations(store: &dyn DocStore, bundle: &Path) -> Vec<(String, String)> {
     let mut reporter = Reporter::new();
     run_all_checks(store, bundle, &mut reporter, false, false);

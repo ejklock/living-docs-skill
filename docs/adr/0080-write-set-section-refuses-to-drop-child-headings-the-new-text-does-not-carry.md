@@ -11,7 +11,7 @@ timestamp: 2026-11-12T16:13:09Z
 
 ## Context
 
-`write set <ref> section "<heading>" --from PATH|-`, from [ADR 0066](/adr/0066-record-prose-enters-through-a-file-or-stdin-new-body-and-set-from-replace-argv-for-body-and-field-values.md), replaces the text under the first body section whose heading matches and keeps the heading line. "The text under the heading" runs to the next heading of the same or a higher level, so it includes every child heading and its text.
+`write set <ref> section "<heading>" --from PATH|-`, from [ADR 0066](0066-record-prose-enters-through-a-file-or-stdin-new-body-and-set-from-replace-argv-for-body-and-field-values.md), replaces the text under the first body section whose heading matches and keeps the heading line. "The text under the heading" runs to the next heading of the same or a higher level, so it includes every child heading and its text.
 
 The verb therefore deletes structure the caller never mentioned. Replacing an issue's `### Scope` that holds a `#### Out of scope` child with one new paragraph removes the child and its text, and the command exits 0 with nothing on stderr (reproduced with the current build). The caller is usually an agent that read the section's first lines, not its whole subtree, and the loss surfaces only in a later diff review, if at all. ADR 0066 states the tool only replaces the text under one heading; it never said the replacement may silently drop headings the author wrote.
 

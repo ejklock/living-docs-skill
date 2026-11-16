@@ -20,6 +20,7 @@ fn options(topic: Option<&str>, full: bool) -> Options {
         topic: topic.map(str::to_string),
         full,
         contract: false,
+        all: false,
         dependents: None,
     }
 }
@@ -121,7 +122,7 @@ fn withheld_retired_records_open_the_view_with_their_count() {
     let out = compile(&store, Path::new("docs"), &options(None, false));
     assert!(
         out.starts_with(
-            "_Withheld 2 retired record(s) (superseded or deprecated): history only, never act on them._\n\n"
+            "_Withheld 2 retired record(s) (superseded, deprecated, closed or done): history only, never act on them._\n\n"
         ),
         "must open with the withheld count and a blank line:\n{out}"
     );

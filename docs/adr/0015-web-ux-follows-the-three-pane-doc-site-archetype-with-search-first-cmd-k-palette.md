@@ -14,7 +14,7 @@ timestamp: 2026-07-19T02:16:09Z
 
 ## Context
 
-Issue [0003](/issues/0003-web-read-only.md) delivers a
+Issue [0003](../issues/0003-web-read-only.md) delivers a
 read-only, server-rendered axum + maud view over the SQLite/FTS5 read-model (ADR 0006:
 no in-browser editing — authoring stays in the CLI + model). With the minimal
 search-page + record-page slices defined, the open fork was which UX archetype the web

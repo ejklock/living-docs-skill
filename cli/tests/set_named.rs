@@ -18,6 +18,7 @@ fn new_view(docs: &Path, title: &str, kind: &str) {
     let out = living_docs()
         .args(["--docs-dir", docs.to_str().unwrap()])
         .args(["write", "new", "view", title, "--kind", kind])
+        .args(["--description", "A filled description."])
         .output()
         .unwrap();
     assert!(out.status.success(), "{out:?}");

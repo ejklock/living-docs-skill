@@ -1,7 +1,7 @@
 ---
 name: living-docs
 description: Run a project's engineering decisions as a living log — MADR-lite ADRs (supersede, never delete) for decisions expensive to reverse, issues for the work (and its cheap-to-reverse choices), research artifacts, an optional PRD, a project constitution, and living Mermaid architecture views, where every record has exactly one home, indexes never drift, and a record is earned by materiality, not written per layer. Use when setting up or maintaining project docs, writing an ADR/PRD/constitution/issue/research note, drawing or updating an architecture diagram, or enforcing the no-drift maintenance rule.
-version: "0.28.0"
+version: "0.29.0"
 metadata:
   type: skill
   layer: procedural
@@ -59,9 +59,9 @@ a record per layer.
 - Recording **research** (technology evaluation, external trade-offs) → load the **`research-artifacts`** skill. It owns the OKF research-note format, the source discipline, and the research → decision → issue traceable chain, and links back here for the ADR/issue artifacts. Pairs with the `deep-research` skill.
 - Drawing or updating an **architecture, data-flow, or tool-calling diagram** → `living-docs read guide architecture-diagrams`.
 - A doc has grown too large or mixes concerns → **split into a semantic index** → `living-docs read guide semantic-index`.
-- **Reading the corpus as an agent** (what governs X *now*) → run `living-docs read records` (active records only, supersede chains collapsed; `--topic <term>` to filter, `--contract` for the contract sections, `--full` for whole bodies — ADRs 0050, 0064), **never `index.md` directly**. Before a supersede or an edit, run `living-docs read records --links-to <TYPE/NNNN>` (who links it) and `--impact <TYPE/NNNN>` (who reaches it through a chain, with distance) to see what to revisit. A raw record whose body opens with a `SUPERSEDED` or `DEPRECATED` callout is history — follow the successor link or discard it, never plan on it.
+- **Reading the corpus as an agent** (what governs X *now*) → run `living-docs read records` (active records only, supersede chains collapsed; superseded, deprecated, closed and done records are withheld and counted in `withheld`, and `--all` includes them, in `--links-to` and `--impact` too; `--topic <term>` to filter, `--contract` for the contract sections, `--full` for whole bodies — ADRs 0050, 0064), **never `index.md` directly**. Before a supersede or an edit, run `living-docs read records --links-to <TYPE/NNNN>` (who links it) and `--impact <TYPE/NNNN>` (who reaches it through a chain, with distance) to see what to revisit. A raw record whose body opens with a `SUPERSEDED` or `DEPRECATED` callout is history — follow the successor link or discard it, never plan on it.
 - Handing the **search of the bundle and code** to a cheaper subagent (it returns `TYPE/NNNN` refs with quotes; the session reads them) → `living-docs read guide delegated-exploration`.
 - Sizing a record's body (aim ~100 lines, `check` advises at 120; research exempt; never trim a load-bearing rationale) → `living-docs read guide size-targets`.
-- Enforcing the **no-drift maintenance rule** after any structural change → run `living-docs check`; treat a non-zero exit as blocked; treat each advisory (`SIZE`, `LIVENESS stale-proposed`, `MOVED-SOURCE`) as work to schedule. Detail → `living-docs read guide check`; the maintaining loop → `read guide procedure`.
-- Authoring or checking the **OKF format** of any doc (frontmatter `type`, reserved `index.md`/`log.md`, bundle-relative links, `# References`) → `living-docs read guide okf-format`.
+- Enforcing the **no-drift maintenance rule** after any structural change → run `living-docs check`; treat a non-zero exit as blocked; treat each advisory (`SIZE`, `OWNER`, `HEADING`, `LIVENESS stale-proposed`, `MOVED-SOURCE`, `LINK-STYLE`, `BLOCKED-BY`; `living-docs check --help` lists them all) as work to schedule. Detail → `living-docs read guide check`; the maintaining loop → `read guide procedure`.
+- Authoring or checking the **OKF format** of any doc (frontmatter `type`, reserved `index.md`/`log.md`, relative links, `# References`) → `living-docs read guide okf-format`.
 - Understanding the **doc trail** (constitution → PRD → ADR → issues → code) and which record type answers which question → `living-docs read guide doc-trail`.

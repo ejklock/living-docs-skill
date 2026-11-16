@@ -17,4 +17,4 @@ flowchart LR
 ```
 
 The API is the only component; storage is the single-file SQLite database chosen in
-[ADR 0002](/adr/0002-sqlite-store.md).
+[ADR 0002](../adr/0002-sqlite-store.md).

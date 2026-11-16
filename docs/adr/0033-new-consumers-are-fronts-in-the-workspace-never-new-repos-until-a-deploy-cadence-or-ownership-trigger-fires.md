@@ -42,6 +42,6 @@ We will add every new consumer as a front inside the existing Cargo workspace (`
 
 # References
 
-[1] [ADR 0002 — hexagonal core, Cargo workspace](/adr/0002-hexagonal-core-workspace.md)
-[2] [Research 0003 — provenance-aware knowledge graph for living-docs](/research/0003-provenance-aware-knowledge-graph-for-living-docs.md)
+[1] [ADR 0002 — hexagonal core, Cargo workspace](0002-hexagonal-core-workspace.md)
+[2] [Research 0003 — provenance-aware knowledge graph for living-docs](../research/0003-provenance-aware-knowledge-graph-for-living-docs.md)
 [3] [getzep/graphiti — core, server, and MCP server in one repository](https://github.com/getzep/graphiti)

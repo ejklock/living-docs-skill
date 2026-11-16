@@ -243,10 +243,10 @@ mod tests {
     #[test]
     fn a_bundle_with_no_records_reports_no_violation() {
         let scratch = Scratch::new("read-once-empty");
-        let store = scratch.store(&[("index.md", ROOT_INDEX), ("adr/index.md", ADR_INDEX)]);
+        let mut store = scratch.store(&[("index.md", ROOT_INDEX), ("adr/index.md", ADR_INDEX)]);
         let (index, regenerated) =
             crate::commands::index::compute(&store, &scratch.0, "adr").unwrap();
-        fs::write(index, regenerated).unwrap();
+        store.inner.files.insert(index, regenerated);
 
         assert_eq!(check_violations(&store, &scratch.0), vec![]);
     }

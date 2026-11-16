@@ -51,7 +51,7 @@ Rejected alternatives:
 - In a densely linked corpus, `--impact` can return most of the bundle. `distance` is how a caller trims it.
 
 **Follow-ups:**
-- [Issue 0098](/issues/0098-read-links-to-and-impact-list-the-records-that-depend-on-a-record.md) carries the implementation.
+- [Issue 0098](../issues/0098-read-links-to-and-impact-list-the-records-that-depend-on-a-record.md) carries the implementation.
 
 ## Verification
 

@@ -11,7 +11,7 @@ timestamp: 2026-11-11T21:51:26Z
 
 ## Context
 
-Issue 0027 proposed an MCP front and was closed as won't do on 2026-09-22: an agent drives the CLI through its shell, the CLI is the agent contract ([ADR 0060](/adr/0060-the-cli-surface-is-a-contract-ten-intention-named-verbs-one-output-mode-per-stream-documented-exit-codes-and-help-written-for-an-agent.md)), and no consumer needed a second surface. [Issue 0111](/issues/0111-mcp-front-serve-the-bundle-over-stdio-as-write-read-manage-and-check-tools-from-living-docs-mcp.md) supersedes it and implements this decision.
+Issue 0027 proposed an MCP front and was closed as won't do on 2026-09-22: an agent drives the CLI through its shell, the CLI is the agent contract ([ADR 0060](0060-the-cli-surface-is-a-contract-ten-intention-named-verbs-one-output-mode-per-stream-documented-exit-codes-and-help-written-for-an-agent.md)), and no consumer needed a second surface. [Issue 0111](../issues/0111-mcp-front-serve-the-bundle-over-stdio-as-write-read-manage-and-check-tools-from-living-docs-mcp.md) supersedes it and implements this decision.
 
 On 2026-11-11 the owner reported that models do not use living-docs to its potential, in Claude Code, in Codex and in clients without a shell. Four failures were named: a client without a shell cannot reach the CLI at all; models do not find the verbs; models write record files by hand instead of `new` and `set`; models decide without reading what is already decided. The surfaces that teach the tool explain each one:
 
@@ -26,7 +26,7 @@ The MCP specification revision 2026-07-28 is final. It removed the `initialize` 
 
 ## Decision
 
-We will add an MCP front: a workspace crate `mcp` that depends on `living-docs-core` and `fs-store` only, served by the `living-docs mcp` subcommand of the same binary over the stdio transport. It exposes four tools grouped as [ADR 0076](/adr/0076-the-cli-groups-its-operations-under-write-read-and-manage-as-nested-subcommands-with-check-kept-top-level.md) groups the CLI:
+We will add an MCP front: a workspace crate `mcp` that depends on `living-docs-core` and `fs-store` only, served by the `living-docs mcp` subcommand of the same binary over the stdio transport. It exposes four tools grouped as [ADR 0076](0076-the-cli-groups-its-operations-under-write-read-and-manage-as-nested-subcommands-with-check-kept-top-level.md) groups the CLI:
 
 | Tool | `operation` | CLI path |
 |---|---|---|
@@ -35,12 +35,12 @@ We will add an MCP front: a workspace crate `mcp` that depends on `living-docs-c
 | `manage` | `index`, `fmt` | `manage index\|fmt` |
 | `check` | none | `check` |
 
-- **Parity with the CLI.** Each tool calls the same `core` entry point as its CLI path, so an MCP call and the equivalent CLI command leave the same bytes on disk and return the same JSON shape. Record prose arrives as a string parameter, which is how [ADR 0066](/adr/0066-record-prose-enters-through-a-file-or-stdin-new-body-and-set-from-replace-argv-for-body-and-field-values.md) keeps it out of argv in a protocol with no argv.
+- **Parity with the CLI.** Each tool calls the same `core` entry point as its CLI path, so an MCP call and the equivalent CLI command leave the same bytes on disk and return the same JSON shape. Record prose arrives as a string parameter, which is how [ADR 0066](0066-record-prose-enters-through-a-file-or-stdin-new-body-and-set-from-replace-argv-for-body-and-field-values.md) keeps it out of argv in a protocol with no argv.
 - **The gate reports as data.** `check` returns its report (`ok`, violations, advisories) as a result, not as a tool error; `check` at commit and in CI stays the only enforcement.
-- **The bundle comes from the launch.** `living-docs mcp --docs-dir <path>` fixes one bundle per server entry, rooted as [ADR 0073](/adr/0073-the-filesystem-store-is-rooted-at-the-bundle-and-refuses-any-read-write-or-rename-that-resolves-outside-it.md) roots the store; no tool takes a path to another bundle.
+- **The bundle comes from the launch.** `living-docs mcp --docs-dir <path>` fixes one bundle per server entry, rooted as [ADR 0073](0073-the-filesystem-store-is-rooted-at-the-bundle-and-refuses-any-read-write-or-rename-that-resolves-outside-it.md) roots the store; no tool takes a path to another bundle.
 - **The server teaches at discovery.** The `instructions` field carries the authoring contract and the read-before-deciding rule in the ADR 0076 vocabulary, so every MCP client receives what `session-context.sh` gives Claude Code; that hook gains the read verbs in the same change.
 - **Dual-era protocol.** The server serves revision 2026-07-28 and answers the 2025-11-25 `initialize` handshake, so clients that have not moved to the stateless revision still connect.
-- **Order.** The front ships after [issue 0109](/issues/0109-regroup-the-cli-under-write-read-and-manage-with-check-top-level-and-move-every-surface-that-teaches-a-command.md) implements ADR 0076, so the CLI, the tools, the instructions and the hook share one vocabulary.
+- **Order.** The front ships after [issue 0109](../issues/0109-regroup-the-cli-under-write-read-and-manage-with-check-top-level-and-move-every-surface-that-teaches-a-command.md) implements ADR 0076, so the CLI, the tools, the instructions and the hook share one vocabulary.
 - **Out of the front.** `install`, `uninstall` and `completions` place files on a host and stay CLI-only. The Streamable HTTP transport, the Tasks extension and `subscriptions/listen` are not part of this decision.
 
 Rejected alternatives:

@@ -11,7 +11,7 @@ timestamp: 2026-10-24T10:15:27Z
 
 ## Context
 
-Every `new` on a branch appends a row to the same place in its type's `index.md`. Two branches that each add a record therefore conflict in the index on every merge, although the index is derived data that `living-docs index` regenerates ([ADR 0065](/adr/0065-mutation-verbs-leave-the-bundle-indexed-new-set-and-supersede-regenerate-the-touched-type-index-in-the-same-run.md)). A usage audit over the owner's agent transcripts of four harness accounts (October 2026) found 349 mentions of conflicts in `docs/issues/index.md` across 75 sessions of one account alone, and 176 shell edits of an `index.md`: agents resolve the conflict by hand instead of regenerating.
+Every `new` on a branch appends a row to the same place in its type's `index.md`. Two branches that each add a record therefore conflict in the index on every merge, although the index is derived data that `living-docs index` regenerates ([ADR 0065](0065-mutation-verbs-leave-the-bundle-indexed-new-set-and-supersede-regenerate-the-touched-type-index-in-the-same-run.md)). A usage audit over the owner's agent transcripts of four harness accounts (October 2026) found 349 mentions of conflicts in `docs/issues/index.md` across 75 sessions of one account alone, and 176 shell edits of an `index.md`: agents resolve the conflict by hand instead of regenerating.
 
 `check` does not see a drifted index. It reports an unlisted record (orphan) and a row whose link is broken, but a duplicated row, a row with a stale status, or rows out of order pass. A hand resolution or a line-based merge can therefore leave a wrong index that the gate accepts.
 
@@ -22,9 +22,9 @@ Git ships a built-in `union` merge driver that keeps the lines of both sides ins
 We will merge type indexes with git's `union` driver and make `check` fail on an index that differs from its regeneration.
 
 - **`.gitattributes`.** `living-docs install hooks` adds `<docs-dir>/**/index.md merge=union` to the project's `.gitattributes`, creating the file when absent and keeping every other line; running it again adds nothing. `living-docs uninstall hooks` removes that line only.
-- **Index drift is a violation.** `check` regenerates each type index in memory with the computation `index` uses and fails when the file differs, naming the index and the repair `living-docs index <type>`. A bundle the CLI wrote never trips it, because `index` is idempotent ([ADR 0001](/adr/0001-living-docs-cli.md)).
+- **Index drift is a violation.** `check` regenerates each type index in memory with the computation `index` uses and fails when the file differs, naming the index and the repair `living-docs index <type>`. A bundle the CLI wrote never trips it, because `index` is idempotent ([ADR 0001](0001-living-docs-cli.md)).
 - **The merge flow.** A merge of two branches that both added records completes without a conflict in the index; the merged index may hold rows out of order or twice; the pre-commit gate fails on it; one `living-docs index` repairs it.
-- **`check` stays read-only** ([ADR 0059](/adr/0059-cut-living-docs-to-the-authoring-core-remove-the-database-read-model-web-front-public-export-migrate-json-authoring-and-the-write-gate-hook.md)): it reports the drift, it never writes the index.
+- **`check` stays read-only** ([ADR 0059](0059-cut-living-docs-to-the-authoring-core-remove-the-database-read-model-web-front-public-export-migrate-json-authoring-and-the-write-gate-hook.md)): it reports the drift, it never writes the index.
 
 Rejected alternatives:
 

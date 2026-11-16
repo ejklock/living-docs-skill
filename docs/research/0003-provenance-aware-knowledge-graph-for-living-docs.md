@@ -10,7 +10,7 @@ timestamp: 2026-08-05T20:09:05Z
 
 ## Question
 
-Can living-docs evolve into a provenance-aware knowledge graph that links records to code symbols, with Graphiti-style bi-temporality, while it keeps the determinism boundary of [ADR 0001](/adr/0001-living-docs-cli.md)? Do the components proposed in the incoming handoff — a dedicated graph database (Neo4j) and a probabilistic inference layer (ProbLog) — earn their complexity?
+Can living-docs evolve into a provenance-aware knowledge graph that links records to code symbols, with Graphiti-style bi-temporality, while it keeps the determinism boundary of [ADR 0001](../adr/0001-living-docs-cli.md)? Do the components proposed in the incoming handoff — a dedicated graph database (Neo4j) and a probabilistic inference layer (ProbLog) — earn their complexity?
 
 ## Method
 
@@ -51,7 +51,7 @@ This evidence supports: promoting the existing `relations` table to a typed, bi-
 
 This evidence rules out: adopting Neo4j or any embedded graph engine (dependency risk without payoff at this scale); a ProbLog/probabilistic-logic inference layer (no peer-system precedent, no Rust path, #P-complete); and heuristic anchor re-binding inside the tool (belongs to the authoring model per the determinism boundary).
 
-This repo already holds a compatible design: [issue 0024](/issues/0024-doc-code-pairing-for-living-docs-commit-trailers-covers-based-drift-detection-and-executable-acceptance.md) specifies commit trailers, `covers:`-glob drift detection, and executable acceptance. The evidence here maps onto it directly — trailers are declared lineage events (Graphiti's episode pattern), `drift` is the loud-breakage staleness verdict, and the additions this research motivates are symbol-level (FQN) anchors as a finer grain than path globs, plus the bi-temporal edge model over the existing `relations` table.
+This repo already holds a compatible design: [issue 0024](../issues/0024-doc-code-pairing-for-living-docs-commit-trailers-covers-based-drift-detection-and-executable-acceptance.md) specifies commit trailers, `covers:`-glob drift detection, and executable acceptance. The evidence here maps onto it directly — trailers are declared lineage events (Graphiti's episode pattern), `drift` is the loud-breakage staleness verdict, and the additions this research motivates are symbol-level (FQN) anchors as a finer grain than path globs, plus the bi-temporal edge model over the existing `relations` table.
 
 The decisions themselves belong to ADRs that this note feeds; it makes none of them.
 

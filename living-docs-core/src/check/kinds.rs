@@ -14,6 +14,7 @@ pub const HEADING: &str = "heading";
 pub const LIVENESS: &str = "liveness";
 pub const MOVED_SOURCE: &str = "moved-source";
 pub const BLOCKED_BY: &str = "blocked-by";
+pub const LINK_STYLE: &str = "link-style";
 
 /// Every kind an advisory can carry, in a stable order.
 pub const ALL: &[Kind] = &[
@@ -40,6 +41,11 @@ pub const ALL: &[Kind] = &[
     Kind {
         name: BLOCKED_BY,
         meaning: "a blocked_by item is not an issue number, names no issue, lists its own issue, or closes a cycle",
+    },
+    Kind {
+        name: LINK_STYLE,
+        meaning:
+            "a link is written bundle-rooted (`/…`) where a relative link is the canonical form",
     },
 ];
 

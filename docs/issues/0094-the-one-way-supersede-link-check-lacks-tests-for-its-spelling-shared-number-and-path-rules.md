@@ -1,8 +1,8 @@
 ---
 type: Issue
 title: the one-way supersede link check lacks tests for its spelling, shared-number and path rules
-description: <One sentence — the change and its motivation.>
-status: open
+description: Tests pin the spelling, shared-number and path rules of the one-way supersede link check, so a regression in any of them fails the suite.
+status: closed
 timestamp: 2026-10-25T03:14:25Z
 ---
 

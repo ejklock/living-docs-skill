@@ -8,7 +8,7 @@ timestamp: <ISO 8601 datetime>
 
 ## <Issue title>
 
-{{SUMMARY: the change and why; link the ADR or PRD it implements bundle-relative, e.g. Implements [ADR NNNN](/adr/NNNN-slug.md)}}
+{{SUMMARY: the change and why; link the ADR or PRD it implements with a relative link, e.g. Implements [ADR NNNN](../adr/NNNN-slug.md)}}
 
 ### Scope
 

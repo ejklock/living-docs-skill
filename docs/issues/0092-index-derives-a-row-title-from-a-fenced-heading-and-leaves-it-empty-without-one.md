@@ -1,8 +1,8 @@
 ---
 type: Issue
 title: index derives a row title from a fenced heading and leaves it empty without one
-description: <One sentence — the change and its motivation.>
-status: open
+description: index derives a row title with the record extractor read and fmt use, so a fenced heading is never taken as the title and a record without a heading falls back to its filename.
+status: closed
 timestamp: 2026-10-25T03:10:30Z
 ---
 

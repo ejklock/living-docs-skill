@@ -7,7 +7,7 @@ status: Accepted
 timestamp: 2026-11-15T16:03:26Z
 ---
 
-# 0084. manage html renders the bundle into one local, read-only, deterministic HTML file
+# 0090. manage html renders the bundle into one local, read-only, deterministic HTML file
 
 ## Context
 
@@ -15,7 +15,7 @@ The owner wants to browse the bundle in a browser: records by type and status, t
 
 The project already built and removed such a surface. [ADR 0059](/adr/0059-cut-living-docs-to-the-authoring-core-remove-the-database-read-model-web-front-public-export-migrate-json-authoring-and-the-write-gate-hook.md) deleted the axum web front, the database read-model behind it and public export: about 16k lines and two thirds of the locked dependencies, serving no consumer in the authoring loop. The constitution lets a front return only as a workspace front ([ADR 0033](/adr/0033-new-consumers-are-fronts-in-the-workspace-never-new-repos-until-a-deploy-cadence-or-ownership-trigger-fires.md)) when a consumer needs cross-project search or an independently deployed surface, and it forbids a daemon and a database. [Research 0005](/research/0005-engineering-documentation-in-ai-assisted-development-living-architecture-domain-language-and-rules-decision-capture-issue-waves-and-a-local-html-view.md) compared the options: a static export from the `.md` tree, a content mirror for an external generator (Quartz, Zola, mdBook, MkDocs), and a local `serve` command.
 
-The owner chose ([issue 0121](/issues/0121-engineering-docs-roadmap-domain-language-and-rules-decision-capture-issue-waves-generated-diagrams-and-a-local-html-export.md)) a local single-file export that the owner reads, never published. That reader is outside the authoring loop, and a local file is neither cross-project search nor a deployed surface, so the constitution's clause does not cover it as written; this ADR amends the scope rather than stretching the clause.
+The owner chose ([issue 0144](/issues/0144-engineering-docs-roadmap-domain-language-and-rules-decision-capture-issue-waves-generated-diagrams-and-a-local-html-export.md)) a local single-file export that the owner reads, never published. That reader is outside the authoring loop, and a local file is neither cross-project search nor a deployed surface, so the constitution's clause does not cover it as written; this ADR amends the scope rather than stretching the clause.
 
 ## Decision
 
@@ -24,7 +24,7 @@ We will add `living-docs manage html`, which renders the bundle into one self-co
 - **Surface.** A `manage` operation, not a top-level verb, keeping the surface of [ADR 0060](/adr/0060-the-cli-surface-is-a-contract-ten-intention-named-verbs-one-output-mode-per-stream-documented-exit-codes-and-help-written-for-an-agent.md). It is not exposed as an MCP tool: an agent reads Markdown.
 - **Output.** One file, default `.living-docs/html/index.html` (the tool's existing ignored output directory), `--out PATH` to override. The tool never serves, uploads or publishes it.
 - **Content.** Every record grouped by type and status from frontmatter; each record's body rendered from Markdown; backlinks and the supersede chain from the in-memory link graph of [ADR 0074](/adr/0074-read-links-to-and-impact-answer-who-depends-on-a-record-from-a-link-graph-built-in-memory-per-run.md); architecture views ([ADR 0036](/adr/0036-architecture-views-are-a-registry-doc-type-on-a-named-identity-with-a-kind-sequenced-generated-index.md)) in their kind order. A small inline script filters records by text; no search index is built.
-- **Mermaid.** Fenced `mermaid` blocks are emitted as diagram source and rendered in the browser by a pinned release of mermaid.js (MIT) that the binary embeds and inlines into the file, so the page renders offline and needs no network. The pinned version changes only by a deliberate upgrade, recorded in the issue that carries it. *Superseded in part by [ADR 0085](/adr/0085-manage-install-mermaid-fetches-the-pinned-mermaid-js-with-curl-and-manage-html-inlines-it-when-installed.md): mermaid.js is installed on demand with `manage install mermaid` and inlined when present, not embedded in the binary.*
+- **Mermaid.** Fenced `mermaid` blocks are emitted as diagram source and rendered in the browser by a pinned release of mermaid.js (MIT) that the binary embeds and inlines into the file, so the page renders offline and needs no network. The pinned version changes only by a deliberate upgrade, recorded in the issue that carries it. *Superseded in part by [ADR 0091](/adr/0091-manage-install-mermaid-fetches-the-pinned-mermaid-js-with-curl-and-manage-html-inlines-it-when-installed.md): mermaid.js is installed on demand with `manage install mermaid` and inlined when present, not embedded in the binary.*
 - **Determinism.** The same bundle produces byte-identical output: stable ordering, no build timestamp, no absolute path.
 - **Dependencies.** Only the `html` feature of the existing `pulldown-cmark` dependency and the embedded mermaid.js asset; no template engine, no HTTP stack, no async runtime.
 - **Scope amendment.** The constitution adds "a local, read-only, single-file HTML render of the bundle" to the scope and keeps "never served, never published" in the out-of-scope list.

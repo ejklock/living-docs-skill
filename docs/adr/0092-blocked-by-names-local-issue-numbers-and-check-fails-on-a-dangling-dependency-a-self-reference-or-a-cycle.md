@@ -10,7 +10,7 @@ timestamp: 2026-11-15T16:01:28Z
 
 > **SUPERSEDED — do not act on this record.** Replaced by [0086](0086-blocked-by-fails-check-only-on-a-dangling-issue-number-a-self-reference-or-a-cycle-other-items-are-advice.md). Run `living-docs read records` for what is in force.
 
-# 0082. blocked_by names local issue numbers and check fails on a dangling dependency, a self-reference or a cycle
+# 0092. blocked_by names local issue numbers and check fails on a dangling dependency, a self-reference or a cycle
 
 ## Context
 
@@ -18,7 +18,7 @@ An issue declares what it waits on in the `blocked_by` frontmatter key. Since [i
 
 In practice the bundles already use one referent. A read-only probe on 2026-11-15 found that every `blocked_by` item is a bare issue number: 11 issues in this bundle and 67 issues (95 items) in the relent bundle. Every item resolves to an issue in the same bundle, none is a self-reference, and neither graph has a cycle; Kahn layering gives 4 dependency layers here and 9 in relent. The gap is ahead, not behind: `write set <TYPE/NNNN> number next` ([ADR 0069](/adr/0069-duplicate-record-numbers-fail-check-and-set-number-renumbers-a-record-with-its-links-and-index.md)) rewrites links and the index row, but `living-docs-core/src/commands/set/renumber.rs` never touches `blocked_by`, so renumbering a blocker leaves every dependent pointing at a number that no longer exists, silently.
 
-The owner wants issues grouped into waves to scope work ([issue 0121](/issues/0121-engineering-docs-roadmap-domain-language-and-rules-decision-capture-issue-waves-generated-diagrams-and-a-local-html-export.md), evidence in [research 0005](/research/0005-engineering-documentation-in-ai-assisted-development-living-architecture-domain-language-and-rules-decision-capture-issue-waves-and-a-local-html-view.md)). Any wave plan derived from dependencies is only as sound as the dependency graph, and an unvalidated graph can hold a dangling edge or a cycle that makes a plan meaningless.
+The owner wants issues grouped into waves to scope work ([issue 0144](/issues/0144-engineering-docs-roadmap-domain-language-and-rules-decision-capture-issue-waves-generated-diagrams-and-a-local-html-export.md), evidence in [research 0005](/research/0005-engineering-documentation-in-ai-assisted-development-living-architecture-domain-language-and-rules-decision-capture-issue-waves-and-a-local-html-view.md)). Any wave plan derived from dependencies is only as sound as the dependency graph, and an unvalidated graph can hold a dangling edge or a cycle that makes a plan meaningless.
 
 ## Decision
 

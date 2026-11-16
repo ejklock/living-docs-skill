@@ -55,8 +55,8 @@ Directory layout is domain-independent — organize concepts however the knowled
 
 ## Cross-linking (§5)
 
-- **Absolute (bundle-relative), recommended:** start with `/`, stable across moves — `[customers](/tables/customers.md)`.
-- **Relative:** standard markdown paths — `[other](./other.md)`.
+- **Absolute (bundle-relative):** start with `/` — `[customers](/tables/customers.md)`. The spec recommends this form because it is stable when documents are moved within their subdirectory. On GitHub, though, it resolves against the repository root and 404s when the bundle sits under a subdirectory such as `docs/`, so living-docs writes the relative form instead.
+- **Relative:** standard markdown paths — `[other](./other.md)`, `[customers](../tables/customers.md)`. living-docs writes this form: it resolves on GitHub, in editors and in `check`.
 - A link is an untyped directed relationship; the kind (joins-with, depends-on, references) lives in the prose. Broken links are tolerated (not-yet-written knowledge).
 
 ## References (§8)

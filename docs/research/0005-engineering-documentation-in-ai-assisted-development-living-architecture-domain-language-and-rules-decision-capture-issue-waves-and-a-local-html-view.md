@@ -1,7 +1,7 @@
 ---
 type: Research
 title: "Engineering documentation in AI-assisted development: living architecture, domain language and rules, decision capture, issue waves and a local HTML view"
-description: Four parallel research sessions and one advisor review, 2026-11-15, behind the roadmap in issue 0121
+description: Four parallel research sessions and one advisor review, 2026-11-15, behind the roadmap in issue 0144
 status: Draft
 timestamp: 2026-11-15T14:51:36Z
 ---
@@ -120,7 +120,7 @@ The owner framed the answer as a layered model: ubiquitous language → business
 
 ## Implications
 
-The owner's decisions on these findings live in the Decision section of [issue 0121](/issues/0121-engineering-docs-roadmap-domain-language-and-rules-decision-capture-issue-waves-generated-diagrams-and-a-local-html-export.md); this note carries only the evidence and the critiques below.
+The owner's decisions on these findings live in the Decision section of [issue 0144](/issues/0144-engineering-docs-roadmap-domain-language-and-rules-decision-capture-issue-waves-generated-diagrams-and-a-local-html-export.md); this note carries only the evidence and the critiques below.
 
 - The layered model holds as a map of homes, not a pipeline: the literature places terms and rules together per bounded context [41][53], decisions in append-only records, and work apart from current truth [47] `[inference]`.
 - Advisor's judgment `[inference]`: an in-binary graph snapshot with a region-equality check proves the region equals the snapshot, not that the snapshot equals the code, so the gate can be green over a stale diagram. The extractors already emit Mermaid [10][12], so the first step is a skill recipe plus a CI regenerate-and-diff [18]. A reflexion advisory is the class ADR 0057 removed until a consumer true positive exists.

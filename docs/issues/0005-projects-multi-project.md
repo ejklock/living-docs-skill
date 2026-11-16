@@ -10,7 +10,7 @@ timestamp: 2026-07-16T00:00:00Z
 
 ## projects root + multi-project catalog
 
-Implements [ADR 0005](/adr/0005-normalized-schema.md) (the `projects` root and
+Implements [ADR 0005](../adr/0005-normalized-schema.md) (the `projects` root and
 `project_id` FKs). **Slice 4** — the catalog dimension. Large slice: **sub-slice at
 dispatch** (schema → ingestion → cross-project query/UI).
 

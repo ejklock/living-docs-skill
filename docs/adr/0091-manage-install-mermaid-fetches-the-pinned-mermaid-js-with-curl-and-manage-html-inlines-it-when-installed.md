@@ -7,13 +7,13 @@ status: Proposed
 timestamp: 2026-11-15T17:30:13Z
 ---
 
-# 0085. manage install mermaid fetches the pinned mermaid.js with curl and manage html inlines it when installed
+# 0091. manage install mermaid fetches the pinned mermaid.js with curl and manage html inlines it when installed
 
 ## Context
 
-[ADR 0084](/adr/0084-manage-html-renders-the-bundle-into-one-local-read-only-deterministic-html-file.md) decided that `manage html` embeds mermaid.js in the binary and inlines it into every output file, so diagrams render offline. The size was not measured when that was decided. Measured on 2026-11-15: `mermaid.min.js` 12.3.0 (MIT) is 5,537,838 bytes (SHA-256 `336df803d87a38b70a01e736e666c8f7601d2ce42f5e47c8fafe5d721074b9a3`, identical in the npm tarball and on jsDelivr), against a 15.4 MB release binary: embedding grows the binary by 36% on every release, and the file would have to be committed to the repository.
+[ADR 0090](/adr/0090-manage-html-renders-the-bundle-into-one-local-read-only-deterministic-html-file.md) decided that `manage html` embeds mermaid.js in the binary and inlines it into every output file, so diagrams render offline. The size was not measured when that was decided. Measured on 2026-11-15: `mermaid.min.js` 12.3.0 (MIT) is 5,537,838 bytes (SHA-256 `336df803d87a38b70a01e736e666c8f7601d2ce42f5e47c8fafe5d721074b9a3`, identical in the npm tarball and on jsDelivr), against a 15.4 MB release binary: embedding grows the binary by 36% on every release, and the file would have to be committed to the repository.
 
-The owner still wants offline rendering, without the weight ([issue 0121](/issues/0121-engineering-docs-roadmap-domain-language-and-rules-decision-capture-issue-waves-generated-diagrams-and-a-local-html-export.md)). Three ways to fetch the file on demand were compared: the install channel (`install.sh` and the npm package) downloading it beside the binary, a `manage install mermaid` operation that shells out to `curl`, and the same operation with an HTTP client compiled into the binary. [ADR 0059](/adr/0059-cut-living-docs-to-the-authoring-core-remove-the-database-read-model-web-front-public-export-migrate-json-authoring-and-the-write-gate-hook.md) removed the HTTP stack from the workspace, and [ADR 0075](/adr/0075-doc-to-code-drift-is-an-advisory-skill-whose-llm-judge-runs-outside-the-binary-through-a-configurable-command.md) set the precedent of shelling out to a configurable external command instead of compiling one in.
+The owner still wants offline rendering, without the weight ([issue 0144](/issues/0144-engineering-docs-roadmap-domain-language-and-rules-decision-capture-issue-waves-generated-diagrams-and-a-local-html-export.md)). Three ways to fetch the file on demand were compared: the install channel (`install.sh` and the npm package) downloading it beside the binary, a `manage install mermaid` operation that shells out to `curl`, and the same operation with an HTTP client compiled into the binary. [ADR 0059](/adr/0059-cut-living-docs-to-the-authoring-core-remove-the-database-read-model-web-front-public-export-migrate-json-authoring-and-the-write-gate-hook.md) removed the HTTP stack from the workspace, and [ADR 0075](/adr/0075-doc-to-code-drift-is-an-advisory-skill-whose-llm-judge-runs-outside-the-binary-through-a-configurable-command.md) set the precedent of shelling out to a configurable external command instead of compiling one in.
 
 ## Decision
 
@@ -24,10 +24,10 @@ We will install mermaid.js on demand with `living-docs manage install mermaid`, 
 - **Determinism.** For one bundle and one mermaid source the output stays byte-identical.
 - **Dependencies.** No new package: the hash uses `sha2`, already in the build through `rmcp` and `rust-embed`.
 
-This supersedes only the Mermaid bullet of ADR 0084; the rest of ADR 0084 stands.
+This supersedes only the Mermaid bullet of ADR 0090; the rest of ADR 0090 stands.
 
 Rejected alternatives:
-- **Embed mermaid.js in the binary** (ADR 0084 as accepted). Offline with no install step, but +5.5 MB on every release and a 5.5 MB file in the repository.
+- **Embed mermaid.js in the binary** (ADR 0090 as accepted). Offline with no install step, but +5.5 MB on every release and a 5.5 MB file in the repository.
 - **Embed it compressed** (1.6 MB with gzip). A third of the weight, but still a binary blob in the repository and a decompression dependency.
 - **Download through the install channel.** No new operation, but a binary built with `cargo build` or copied by hand would never get the file.
 - **An HTTP client inside the binary.** `ureq` with `rustls` adds dozens of packages, the weight ADR 0059 removed.
@@ -45,7 +45,7 @@ Rejected alternatives:
 - An inlined file is about 5.5 MB per output.
 
 **Follow-ups:**
-- The implementation issue of ADR 0084 carries the install target as its own slice.
+- The implementation issue of ADR 0090 carries the install target as its own slice.
 
 ## Verification
 

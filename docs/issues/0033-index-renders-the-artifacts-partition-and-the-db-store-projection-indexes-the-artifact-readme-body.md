@@ -14,7 +14,7 @@ timestamp: 2026-08-07T14:38:11Z
 
 ## index renders the Artifacts partition and search indexes the README
 
-Implements [ADR 0034](/adr/0034-artifacts-are-directory-bundle-records-a-canonical-readme-plus-a-validated-file-manifest-on-a-new-bundle-identity.md). Third slice: make artifacts discoverable — listed in the index and findable in search.
+Implements [ADR 0034](../adr/0034-artifacts-are-directory-bundle-records-a-canonical-readme-plus-a-validated-file-manifest-on-a-new-bundle-identity.md). Third slice: make artifacts discoverable — listed in the index and findable in search.
 
 After issues 0031–0032 an artifact bundle is created and validated, but it appears in no index and no search result. This slice wires the two read paths.
 

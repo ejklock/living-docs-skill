@@ -15,7 +15,7 @@ timestamp: 2026-08-27T22:00:48Z
 
 ## moved-source clearing honors terminal statuses and self-supersession; the owner ratchet flips to require-owner
 
-The corpus sweep after [ADR 0044](/adr/0044-moved-source-review-queue-check-emits-a-warn-level-finding-when-a-linked-record-is-superseded-or-demoted.md) exposed two false-positive classes in the MOVED-SOURCE clearing rule. First, the closed-dependent clause matches only `superseded|closed`, so issues with status `done` — a terminal status in this bundle's issue vocabulary — still fire. Second, a record that links its own predecessor fires against itself: the finding names the dependent as the successor, and no link update can clear it. With those fixed and owners backfilled (repo and example corpus), the [ADR 0043](/adr/0043-owner-is-a-cli-owned-frontmatter-field-with-a-warn-then-error-ratchet-on-adr-and-bdr.md) ratchet flips to error.
+The corpus sweep after [ADR 0044](../adr/0044-moved-source-review-queue-check-emits-a-warn-level-finding-when-a-linked-record-is-superseded-or-demoted.md) exposed two false-positive classes in the MOVED-SOURCE clearing rule. First, the closed-dependent clause matches only `superseded|closed`, so issues with status `done` — a terminal status in this bundle's issue vocabulary — still fire. Second, a record that links its own predecessor fires against itself: the finding names the dependent as the successor, and no link update can clear it. With those fixed and owners backfilled (repo and example corpus), the [ADR 0043](../adr/0043-owner-is-a-cli-owned-frontmatter-field-with-a-warn-then-error-ratchet-on-adr-and-bdr.md) ratchet flips to error.
 
 ### Scope
 

@@ -10,8 +10,8 @@ timestamp: 2026-07-16T00:00:00Z
 
 ## Read-only web view — axum over the read-model
 
-Implements [ADR 0006](/adr/0006-web-read-only-axum.md), reusing
-[ADR 0002](/adr/0002-hexagonal-core-workspace.md) core. **Slice 2** — findability you can
+Implements [ADR 0006](../adr/0006-web-read-only-axum.md), reusing
+[ADR 0002](../adr/0002-hexagonal-core-workspace.md) core. **Slice 2** — findability you can
 open in a browser.
 
 ### Objective link
@@ -22,7 +22,7 @@ slice-1 search browsable.
 ### Context manifest
 
 - Read: `living-docs-core` `SearchIndex` / `DocStore` ports, the `db-store` read-model (slice
-  0002), [ADR 0006](/adr/0006-web-read-only-axum.md).
+  0002), [ADR 0006](../adr/0006-web-read-only-axum.md).
 - Seams touched: new `web` crate (axum + HTML templates); a search route and a record-view
   route; no write routes.
 - Pattern: server-rendered, read-only; reuses the core query — no second record model.

@@ -2,7 +2,7 @@
 type: Issue
 title: The doc-trail gate reads a fixture path in a test as a record citation
 description: Settle the doc-trail false positive on fixture paths in tests in the gate configuration, then restore the plain literals the 0114 change disguised.
-status: open
+status: closed
 timestamp: 2026-11-13T01:00:30Z
 ---
 

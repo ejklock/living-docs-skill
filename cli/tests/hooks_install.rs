@@ -534,9 +534,9 @@ fn with_clean_body(contents: &str) -> String {
 fn scaffold_canonical_bundle(project: &Path, bundle: &str) {
     let docs_dir = project.join(bundle);
     let new_output = living_docs()
-        .arg("--docs-dir")
-        .arg(&docs_dir)
+        .args(["--docs-dir", docs_dir.to_str().unwrap()])
         .args(["write", "new", "adr", "Pre Commit Fixture"])
+        .args(["--description", "A filled description."])
         .output()
         .expect("failed to scaffold a record");
     assert!(new_output.status.success(), "new failed: {new_output:?}");

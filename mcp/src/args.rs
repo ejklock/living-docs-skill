@@ -87,6 +87,9 @@ pub struct RecordsArgs {
     /// Return each body without its detail-tier sections.
     #[serde(default)]
     pub contract: bool,
+    /// Include the retired records (superseded, deprecated, closed, done) that are withheld by default, `links_to` and `impact` included.
+    #[serde(default)]
+    pub all: bool,
     /// Only the live records whose body links this record (`TYPE/NNNN`).
     pub links_to: Option<String>,
     /// Every live record that reaches this record (`TYPE/NNNN`) through links, nearest first.

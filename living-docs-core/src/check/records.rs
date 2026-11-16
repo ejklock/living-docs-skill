@@ -5,7 +5,7 @@
 //! (`DocStore::list`'s own enumeration) rather than a filesystem re-scan, so
 //! both invariants validate whichever backend `check::compile` is given.
 
-use super::{file_name_str, kinds, Reporter};
+use super::{file_name_str, kinds, unparseable_frontmatter::report_unparseable, Reporter};
 use crate::commands::set::retitle;
 use crate::doc_type;
 use crate::frontmatter::{frontmatter_block, read_scalar_strict};
@@ -54,6 +54,10 @@ pub(crate) fn check_frontmatter_and_format(
             }
             read => read.unwrap_or_default(),
         };
+        if !is_reserved(&base) && report_unparseable(f, &contents, reporter) {
+            refused.push(f.clone());
+            continue;
+        }
         if is_reserved(&base) {
             check_reserved_file(f, &base, root_index, &contents, reporter);
         } else {

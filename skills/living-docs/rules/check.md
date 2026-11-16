@@ -4,7 +4,7 @@
 
 `living-docs check [docs/]` mechanically validates the invariants a machine checks better than
 prose: frontmatter/`type`, directory-index membership + root reachability, link resolution,
-supersede integrity, Mermaid fences, **unfilled `{{PLACEHOLDER}}` slots** (a violation — a
+supersede integrity, Mermaid fences, **unfilled `{{PLACEHOLDER}}` slots and a `description` still the template's placeholder** (a violation — a
 scaffold left half-authored fails the gate), and **required sections** (ADR 0064): a live record
 missing a section its type requires fails with `missing required section '<name>'`. Retired
 records are exempt. *A constraint without an instrument is a vibe* — so
@@ -18,8 +18,15 @@ schedule. The text report prints violations first, then one summary line per adv
 every advisory in full, and the JSON output always carries them all. The kinds:
 
 - `SIZE` — a decision/execution body past the ~120-line target (aim ~100; research exempt).
+- `OWNER` — a record of a type that requires an owner has none (a violation under
+  `--require-owner`).
+- `HEADING` — a record's title heading disagrees with its frontmatter `title`; `manage fmt`
+  aligns it.
 - `MOVED-SOURCE` — a record whose linked source path moved.
 - `BLOCKED-BY` — every `blocked_by` finding of an issue is advice and never fails `check`: an item that is not a decimal number (a tracker identifier, `ADR 0077`, never validated), a number naming no issue, an issue listing itself, and a cycle of issues waiting on one another (advised once, naming every member).
+- `LINK-STYLE` — a link or image written `/`-rooted (`/adr/0007-x.md`); the advisory names the
+  relative form to write instead (`../adr/0007-x.md`). It fires whether or not the target exists
+  and never moves the exit code.
 - `LIVENESS stale-proposed` (ADR 0049, ADR 0079) — an ADR still at its seed status (`Proposed`)
   that an issue already `closed`/`done`/`Superseded` declares it implements: the issue body
   holds `Implements` (any case) followed by a link to the ADR, so the work landed but the record
@@ -48,10 +55,10 @@ supersede, and placeholder items are enforced by `living-docs check` — run it 
 eyeballing them; the rest are judgement:
 
 - [ ] Every concept doc opens with OKF frontmatter carrying a non-empty `type`; `status` is in frontmatter, not a body line.
-- [ ] Directory listings are `index.md` with no frontmatter (except the bundle-root `docs/index.md` → `okf_version`); cross-links are bundle-relative (`/…`).
+- [ ] Directory listings are `index.md` with no frontmatter (except the bundle-root `docs/index.md` → `okf_version`); cross-links are relative to the linking file (`../adr/0007-x.md`), never `/`-rooted.
 - [ ] Every new doc is linked from its directory `index.md` **and** the bundle-root `docs/index.md`.
 - [ ] No concept appears in two files (cross-reference instead).
-- [ ] No unfilled `{{PLACEHOLDER}}` slot remains in any record.
+- [ ] No unfilled `{{PLACEHOLDER}}` slot remains in any record, and no `description` is still its template's placeholder sentence.
 - [ ] Every live record carries its type's required sections as headings (issue: Scope, Acceptance; ADR: Context, Decision, Consequences; PRD: Problem / Motivation, Non-goals; constitution: Product, Scope Boundaries, Non-negotiables).
 - [ ] Superseded ADRs/PRDs carry frontmatter `status: Superseded` + `superseded_by: NNNN`; the superseding record sets `supersedes` and links back.
 - [ ] A Superseded or Deprecated record's body opens with its exact CLI-written callout above the heading, and no active record opens with one; `living-docs manage fmt` is the remediation.

@@ -19,10 +19,10 @@ fn bundle_with(label: &str, records: &[(String, String)], orphan: bool) -> commo
     let bundle = common::temp_bundle("digest", label);
     let mut index = String::from("# ADR Index\n\n");
     for (name, contents) in records {
-        index.push_str(&format!("- [Doc](/adr/{name})\n"));
+        index.push_str(&format!("- [Doc]({name})\n"));
         write(&bundle, &format!("adr/{name}"), contents);
     }
-    write(&bundle, "index.md", "# Docs\n\n- [ADRs](/adr/index.md)\n");
+    write(&bundle, "index.md", "# Docs\n\n- [ADRs](adr/index.md)\n");
     write(&bundle, "adr/index.md", &index);
     common::index_bundle(&bundle);
     if orphan {
