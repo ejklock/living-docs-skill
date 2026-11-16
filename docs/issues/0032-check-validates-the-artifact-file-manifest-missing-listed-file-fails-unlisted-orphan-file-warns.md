@@ -14,7 +14,7 @@ timestamp: 2026-08-07T14:38:11Z
 
 ## check validates the artifact file manifest
 
-Implements [ADR 0034](/adr/0034-artifacts-are-directory-bundle-records-a-canonical-readme-plus-a-validated-file-manifest-on-a-new-bundle-identity.md). Second slice: make the `files:` manifest a gate signal, giving [issue 0024](/issues/0024-doc-code-pairing-for-living-docs-commit-trailers-covers-based-drift-detection-and-executable-acceptance.md) its first concrete drift instrument.
+Implements [ADR 0034](../adr/0034-artifacts-are-directory-bundle-records-a-canonical-readme-plus-a-validated-file-manifest-on-a-new-bundle-identity.md). Second slice: make the `files:` manifest a gate signal, giving [issue 0024](0024-doc-code-pairing-for-living-docs-commit-trailers-covers-based-drift-detection-and-executable-acceptance.md) its first concrete drift instrument.
 
 After issue 0031 an artifact bundle exists with a `files:` list, but nothing checks it. This slice teaches `check` to validate the manifest against the bundle directory.
 

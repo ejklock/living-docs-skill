@@ -11,7 +11,7 @@ timestamp: 2026-07-30T20:19:45Z
 
 ## Context
 
-[ADR 0026](/adr/0026-a-single-doctype-registry-replaces-nine-hand-synced-enumerations-and-research-and-constitution-enter-as-rows.md)
+[ADR 0026](0026-a-single-doctype-registry-replaces-nine-hand-synced-enumerations-and-research-and-constitution-enter-as-rows.md)
 replaced nine hand-synced doc-type enumerations with one compile-time `DocTypeSpec`
 registry, and deliberately left two questions open. Both are the same question — what
 belongs in the registry — and they answer in opposite directions, which is why they are
@@ -104,7 +104,7 @@ directory.
   owns the thresholds themselves.
 
 **Follow-ups:**
-- [Issue 0018](/issues/0018-identity-cannot-express-an-author-named-record-in-a-directory-so-glossary-and-the-context-family-stay-hand-authored.md)
+- [Issue 0018](../issues/0018-identity-cannot-express-an-author-named-record-in-a-directory-so-glossary-and-the-context-family-stay-hand-authored.md)
   for the third `Identity` variant, which is what `glossary` and the wider `Context` and
   `Architecture View` families are waiting on.
 - The 100/120-line thresholds stay global constants in `check::size`. Per-type thresholds

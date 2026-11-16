@@ -21,7 +21,7 @@ timestamp: 2026-08-27T19:11:04Z
      research artifact or PRD/issue that motivates it, bundle-relative:
      [research](/research/NNNN-<slug>.md), [PRD](/prd/NNNN-<slug>.md). -->
 
-A record that links another record inherits meaning from it. When the source is superseded or leaves its accepted state, the dependent record may be silently wrong, and agents consume it at machine speed ([issue 0035](/issues/0035-provenance-review-queue-check-flags-records-whose-referenced-source-was-superseded-or-changed-status.md)). Detecting that a source moved is a diff; judging whether the move invalidates the dependent is human judgment (ADR 0001 determinism boundary). The tool must produce the review queue and stop there.
+A record that links another record inherits meaning from it. When the source is superseded or leaves its accepted state, the dependent record may be silently wrong, and agents consume it at machine speed ([issue 0035](../issues/0035-provenance-review-queue-check-flags-records-whose-referenced-source-was-superseded-or-changed-status.md)). Detecting that a source moved is a diff; judging whether the move invalidates the dependent is human judgment (ADR 0001 determinism boundary). The tool must produce the review queue and stop there.
 
 ## Decision
 

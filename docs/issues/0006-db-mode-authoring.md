@@ -20,8 +20,8 @@ timestamp: 2026-07-16T00:00:00Z
 
 ## db-mode authoritative authoring
 
-Implements [ADR 0003](/adr/0003-storage-backend-model.md) (db-mode authoritative) and
-[ADR 0005](/adr/0005-normalized-schema.md) (check parity, lossless export). **Slice 5** —
+Implements [ADR 0003](../adr/0003-storage-backend-model.md) (db-mode authoritative) and
+[ADR 0005](../adr/0005-normalized-schema.md) (check parity, lossless export). **Slice 5** —
 the second authoring surface. Large slice: **sub-slice at dispatch** (db `DocStore` write →
 export → parity).
 

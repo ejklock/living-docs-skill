@@ -15,19 +15,19 @@ timestamp: 2026-07-30T20:21:19Z
 
 > **CLOSED 2026-09-22 — the structural gap was filled; the glossary row is
 > not wanted.** The missing variant shipped as `Identity::Named { dir }` in
-> [ADR 0036](/adr/0036-architecture-views-are-a-registry-doc-type-on-a-named-identity-with-a-kind-sequenced-generated-index.md):
+> [ADR 0036](../adr/0036-architecture-views-are-a-registry-doc-type-on-a-named-identity-with-a-kind-sequenced-generated-index.md):
 > a record at `<dir>/<slug>.md`, keyed by its concern, updated in place. It
 > carries the Architecture View type, `new` scaffolds it without a number,
 > `index` renders it, and `check` reaches it through `spec_for_dir` with no
 > identity-specific branch — the fitness function this issue asked for. What
 > stays undone is the `glossary` row, and it stays undone deliberately:
-> [ADR 0027](/adr/0027-every-rule-keyed-by-doc-type-becomes-a-registry-field-and-glossary-is-not-a-doc-type.md)
+> [ADR 0027](../adr/0027-every-rule-keyed-by-doc-type-becomes-a-registry-field-and-glossary-is-not-a-doc-type.md)
 > already ruled glossary out as a doc type, and
-> [ADR 0059](/adr/0059-cut-living-docs-to-the-authoring-core-remove-the-database-read-model-web-front-public-export-migrate-json-authoring-and-the-write-gate-hook.md)
+> [ADR 0059](../adr/0059-cut-living-docs-to-the-authoring-core-remove-the-database-read-model-web-front-public-export-migrate-json-authoring-and-the-write-gate-hook.md)
 > cut the periphery rather than grew it. A future type that needs the shape
 > inherits it from the registry and needs no new record here.
 
-Follow-up from [ADR 0027](/adr/0027-every-rule-keyed-by-doc-type-becomes-a-registry-field-and-glossary-is-not-a-doc-type.md).
+Follow-up from [ADR 0027](../adr/0027-every-rule-keyed-by-doc-type-becomes-a-registry-field-and-glossary-is-not-a-doc-type.md).
 
 `DocTypeSpec::identity` has two variants. `Numbered { dir }` places a record in a
 directory under an `NNNN` prefix the tool allocates. `Singleton { file }` places it at one

@@ -52,6 +52,6 @@ We will add `living-docs migrate --apply` as a **CLI-front transaction** over th
 
 # References
 
-[1] [ADR 0037](/adr/0037-migration-is-a-deterministic-advisor-verb-plus-skill-guided-judgment.md)
-[2] [ADR 0039](/adr/0039-cli-produced-records-carry-an-ephemeral-hmac-provenance-seal-that-check-verifies.md)
+[1] [ADR 0037](0037-migration-is-a-deterministic-advisor-verb-plus-skill-guided-judgment.md)
+[2] [ADR 0039](0039-cli-produced-records-carry-an-ephemeral-hmac-provenance-seal-that-check-verifies.md)
 

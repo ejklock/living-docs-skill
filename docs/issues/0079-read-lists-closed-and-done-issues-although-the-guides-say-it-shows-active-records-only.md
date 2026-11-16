@@ -10,7 +10,7 @@ timestamp: 2026-10-10T19:16:42Z
 
 Found adopting 0.21.0 in a downstream bundle (relent): of 366 records, `living-docs read` printed 220 closed issues, 56% of the index output (about 13,600 of 24,500 tokens), and they also swell `read --topic` and `--contract` results.
 
-Cause: `is_in_force` in `living-docs-core/src/commands/effective.rs` matches only `superseded` and `deprecated`. It ignores `DocTypeSpec::terminal_statuses` (issue: `closed`, `done`), which `is_retired` already uses for `set title` and for the authoring advisories ([ADR 0063](/adr/0063-authoring-advisories-skip-retired-records.md)).
+Cause: `is_in_force` in `living-docs-core/src/commands/effective.rs` matches only `superseded` and `deprecated`. It ignores `DocTypeSpec::terminal_statuses` (issue: `closed`, `done`), which `is_retired` already uses for `set title` and for the authoring advisories ([ADR 0063](../adr/0063-authoring-advisories-skip-retired-records.md)).
 
 Reproduction: `living-docs new issue "Alpha"`, `living-docs set issue/0001 status closed`, `living-docs read`. The closed issue is listed and `withheld` is 0.
 

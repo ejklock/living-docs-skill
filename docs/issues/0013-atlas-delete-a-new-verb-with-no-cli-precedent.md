@@ -10,7 +10,7 @@ timestamp: 2026-07-21T00:00:00Z
 
 ## Atlas delete — a new verb with no CLI precedent
 
-[ADR 0016](/adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md)
+[ADR 0016](../adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md)
 lists `new`/`edit`/`supersede`/`delete` as the Atlas verbs mirroring the CLI, noting
 "delete verb if absent." It is absent: `living-docs-core` has no delete service today, and
 the project's own ADR/BDR convention is explicitly **supersede, never delete** — a decision
@@ -21,8 +21,8 @@ duplicate), and does it hard-delete or soft-archive?**
 
 ### Objective link
 
-Constitution (supersede, never delete, for decision records) → [PRD 0001](/prd/0001-living-docs-atlas-multi-project-authoring-wiki-over-living-docs-core.md)
-→ [ADR 0016](/adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md)
+Constitution (supersede, never delete, for decision records) → [PRD 0001](../prd/0001-living-docs-atlas-multi-project-authoring-wiki-over-living-docs-core.md)
+→ [ADR 0016](../adr/0016-atlas-makes-the-web-a-db-mode-authoring-front-superseding-web-read-only.md)
 → this slice — **blocked on a new ADR, not blocked on 0011/0012's code.**
 
 ### Context manifest

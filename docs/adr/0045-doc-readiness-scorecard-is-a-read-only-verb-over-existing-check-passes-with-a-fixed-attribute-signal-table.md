@@ -23,7 +23,7 @@ timestamp: 2026-08-27T21:25:24Z
      research artifact or PRD/issue that motivates it, bundle-relative:
      [research](/research/NNNN-<slug>.md), [PRD](/prd/NNNN-<slug>.md). -->
 
-Agents are the primary consumers of a living-docs tree, and a single pass/fail from `check` hides WHERE a corpus is weak ([issue 0037](/issues/0037-doc-readiness-scorecard-a-check-subreport-that-grades-a-docs-tree-from-human-era-to-agent-ready.md)). Readiness is capped by the weakest attribute, never averaged. Every signal must be deterministic and computable from the tree (plus, optionally, the projection); the tool grades structure, never prose quality (ADR 0001).
+Agents are the primary consumers of a living-docs tree, and a single pass/fail from `check` hides WHERE a corpus is weak ([issue 0037](../issues/0037-doc-readiness-scorecard-a-check-subreport-that-grades-a-docs-tree-from-human-era-to-agent-ready.md)). Readiness is capped by the weakest attribute, never averaged. Every signal must be deterministic and computable from the tree (plus, optionally, the projection); the tool grades structure, never prose quality (ADR 0001).
 
 ## Decision
 

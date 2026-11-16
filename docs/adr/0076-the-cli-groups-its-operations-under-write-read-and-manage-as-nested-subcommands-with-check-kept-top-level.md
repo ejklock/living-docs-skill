@@ -11,7 +11,7 @@ timestamp: 2026-11-09T12:03:06Z
 
 ## Context
 
-[ADR 0060](/adr/0060-the-cli-surface-is-a-contract-ten-intention-named-verbs-one-output-mode-per-stream-documented-exit-codes-and-help-written-for-an-agent.md) fixed the CLI at ten top-level verbs plus a `completions` utility: `new`, `set`, `supersede`, `index`, `check`, `fmt`, `read`, `guide`, `install`, `uninstall`. A human meeting the tool has to learn eleven names that answer three questions: how do I write a record, how do I read what is in force, how do I maintain the bundle and its installation. Two of the names exist only to repair a bundle (`index`, `fmt`), and two read different things (`read` the records, `guide` the rules).
+[ADR 0060](0060-the-cli-surface-is-a-contract-ten-intention-named-verbs-one-output-mode-per-stream-documented-exit-codes-and-help-written-for-an-agent.md) fixed the CLI at ten top-level verbs plus a `completions` utility: `new`, `set`, `supersede`, `index`, `check`, `fmt`, `read`, `guide`, `install`, `uninstall`. A human meeting the tool has to learn eleven names that answer three questions: how do I write a record, how do I read what is in force, how do I maintain the bundle and its installation. Two of the names exist only to repair a bundle (`index`, `fmt`), and two read different things (`read` the records, `guide` the rules).
 
 The owner wants those three questions to be the CLI's three verbs, write, read and manage, for human use.
 
@@ -60,7 +60,7 @@ Rejected alternatives:
 - About 97 files in this repository cite the current names, most of them integration tests; the change is mechanical but wide.
 
 **Follow-ups:**
-- [Issue 0109](/issues/0109-regroup-the-cli-under-write-read-and-manage-with-check-top-level-and-move-every-surface-that-teaches-a-command.md) carries the change, sliced so the binary, its tests and every teaching surface land in one release.
+- [Issue 0109](../issues/0109-regroup-the-cli-under-write-read-and-manage-with-check-top-level-and-move-every-surface-that-teaches-a-command.md) carries the change, sliced so the binary, its tests and every teaching surface land in one release.
 
 ## Verification
 

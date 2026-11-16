@@ -11,7 +11,7 @@ timestamp: 2026-09-22T22:11:31Z
 
 ## Context
 
-`check` prints advisories next to its violations. An advisory never fails the gate; it exists to name something the author can still improve. Two of them judge how a record is written: `HEADING` (the body heading disagrees with the frontmatter `title`, [ADR 0061](/adr/0061-set-title-retitles-a-record-frontmatter-heading-filename-and-every-in-bundle-link-refused-only-on-a-terminal-or-superseded-record.md)) and `SIZE` (the body exceeds its line target, issue 0009).
+`check` prints advisories next to its violations. An advisory never fails the gate; it exists to name something the author can still improve. Two of them judge how a record is written: `HEADING` (the body heading disagrees with the frontmatter `title`, [ADR 0061](0061-set-title-retitles-a-record-frontmatter-heading-filename-and-every-in-bundle-link-refused-only-on-a-terminal-or-superseded-record.md)) and `SIZE` (the body exceeds its line target, issue 0009).
 
 A retired record is history: its status is terminal for its type (`Deprecated` for an ADR, `closed` or `done` for an issue) or it is `Superseded`. ADR 0061 already draws that line for writes — `set title` refuses a retired record, because "a closed one is history". `check` does not draw it for reads. It keeps advising on records the tool refuses to change.
 
@@ -37,7 +37,7 @@ Rejected: removing the `HEADING` advisory entirely. It is simpler, but it drops 
 - A heading or size drift inside a retired record is no longer reported. That is accepted: the record is history and the CLI refuses to rewrite it.
 
 **Follow-ups:**
-- None. The live headings that disagree with their titles are aligned in [issue 0048](/issues/0048-check-stops-advising-on-retired-records-and-the-live-headings-align-with-their-titles.md), the issue that implements this decision.
+- None. The live headings that disagree with their titles are aligned in [issue 0048](../issues/0048-check-stops-advising-on-retired-records-and-the-live-headings-align-with-their-titles.md), the issue that implements this decision.
 
 ## Verification
 
@@ -51,4 +51,4 @@ Rejected: removing the `HEADING` advisory entirely. It is simpler, but it drops 
 
 # References
 
-[1] [ADR 0061 — set title retitles a record](/adr/0061-set-title-retitles-a-record-frontmatter-heading-filename-and-every-in-bundle-link-refused-only-on-a-terminal-or-superseded-record.md)
+[1] [ADR 0061 — set title retitles a record](0061-set-title-retitles-a-record-frontmatter-heading-filename-and-every-in-bundle-link-refused-only-on-a-terminal-or-superseded-record.md)

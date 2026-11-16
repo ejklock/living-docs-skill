@@ -13,7 +13,7 @@ timestamp: 2026-08-05T20:18:36Z
 
 ## Context
 
-The handoff that motivated [research 0003](/research/0003-provenance-aware-knowledge-graph-for-living-docs.md) proposed a knowledge graph with lineage between records and code, backed by a graph database (Neo4j was named) and a probabilistic inference layer (ProbLog) for confidence and impact scores. The research refuted both components and confirmed the graph itself. Three forces bound the decision. First, the determinism boundary (ADR 0001): no LLM and no heuristic inference inside the tool. Second, the db-store already holds the substrate — a `relations` table (today only `kind="supersede"`), records with `status`/`revision`/`deleted_at`, and FTS5 — so the graph is an evolution of an existing projection, not a new system. Third, the embedded graph-engine field collapsed in 2025 (Kuzu archived, CozoDB abandoned, IndraDB dormant, Neo4j JVM-only), while SQLite recursive CTEs carry two orders of magnitude of headroom at this scale.
+The handoff that motivated [research 0003](../research/0003-provenance-aware-knowledge-graph-for-living-docs.md) proposed a knowledge graph with lineage between records and code, backed by a graph database (Neo4j was named) and a probabilistic inference layer (ProbLog) for confidence and impact scores. The research refuted both components and confirmed the graph itself. Three forces bound the decision. First, the determinism boundary (ADR 0001): no LLM and no heuristic inference inside the tool. Second, the db-store already holds the substrate — a `relations` table (today only `kind="supersede"`), records with `status`/`revision`/`deleted_at`, and FTS5 — so the graph is an evolution of an existing projection, not a new system. Third, the embedded graph-engine field collapsed in 2025 (Kuzu archived, CozoDB abandoned, IndraDB dormant, Neo4j JVM-only), while SQLite recursive CTEs carry two orders of magnitude of headroom at this scale.
 
 ## Decision
 
@@ -54,6 +54,6 @@ Rejected alternatives: a dedicated graph engine (dependency risk without payoff 
 
 # References
 
-[1] [Research 0003 — provenance-aware knowledge graph for living-docs](/research/0003-provenance-aware-knowledge-graph-for-living-docs.md)
+[1] [Research 0003 — provenance-aware knowledge graph for living-docs](../research/0003-provenance-aware-knowledge-graph-for-living-docs.md)
 [2] [XTDB — Time in XTDB (SQL:2011 bitemporal pattern)](https://docs.xtdb.com/about/time-in-xtdb.html)
 [3] [Zep: A Temporal Knowledge Graph Architecture for Agent Memory](https://arxiv.org/abs/2501.13956)

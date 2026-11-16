@@ -15,17 +15,17 @@ Parallel branches each run `living-docs new`, and each takes the next free numbe
 
 This repository carries seven such pairs today, issues 0055 to 0061 (`ls docs/issues | grep -oE '^[0-9]{4}' | sort | uniq -d`): six were filed on main while a feature branch had already taken the same numbers. A usage audit over the owner's agent transcripts of four harness accounts (October 2026) found 349 mentions of merge conflicts in `docs/issues/index.md` and fleet managers coordinating numbers by message ("message the manager BEFORE running living-docs new, so the numbers do not collide"). The repair today is by hand: `git mv`, a `sed` over every link to the old path, then `index`.
 
-[ADR 0061](/adr/0061-set-title-retitles-a-record-frontmatter-heading-filename-and-every-in-bundle-link-refused-only-on-a-terminal-or-superseded-record.md) already gives `set title` the machinery a renumbering needs: rename the file, rewrite the heading, rewrite every in-bundle link, regenerate the index.
+[ADR 0061](0061-set-title-retitles-a-record-frontmatter-heading-filename-and-every-in-bundle-link-refused-only-on-a-terminal-or-superseded-record.md) already gives `set title` the machinery a renumbering needs: rename the file, rewrite the heading, rewrite every in-bundle link, regenerate the index.
 
 ## Decision
 
 We will make a duplicate number a `check` violation and give `set` a `number` key that renumbers one record.
 
 - **The violation.** `check` fails when two records of the same numbered type share a number, whatever their status. The message names both paths and the repair, `living-docs set <path> number next`; the path form of the reference is the one that stays unambiguous while the duplicate exists.
-- **`set <ref> number <NNNN|next>`.** Renames the file to the new number with its slug unchanged, rewrites the number in the record's heading, rewrites every in-bundle link to the old path, and regenerates the type index ([ADR 0065](/adr/0065-mutation-verbs-leave-the-bundle-indexed-new-set-and-supersede-regenerate-the-touched-type-index-in-the-same-run.md)). `next` takes the next free number of the type. A number already taken, a number of the wrong width, or a type without numbers (architecture view, constitution) exits 2 and writes nothing.
+- **`set <ref> number <NNNN|next>`.** Renames the file to the new number with its slug unchanged, rewrites the number in the record's heading, rewrites every in-bundle link to the old path, and regenerates the type index ([ADR 0065](0065-mutation-verbs-leave-the-bundle-indexed-new-set-and-supersede-regenerate-the-touched-type-index-in-the-same-run.md)). `next` takes the next free number of the type. A number already taken, a number of the wrong width, or a type without numbers (architecture view, constitution) exits 2 and writes nothing.
 - **Every status.** Unlike a retitle, a renumbering is allowed on a closed or superseded record: two closed records can collide, and without the key there would be no repair.
 - **The author chooses which record moves.** The tool reports both and renumbers the one it is told to; it never guesses which one is canonical.
-- **Ten verbs.** `number` is a key of `set`, so the surface [ADR 0060](/adr/0060-the-cli-surface-is-a-contract-ten-intention-named-verbs-one-output-mode-per-stream-documented-exit-codes-and-help-written-for-an-agent.md) fixed stays at ten verbs. `set` already performs a rename for `title`.
+- **Ten verbs.** `number` is a key of `set`, so the surface [ADR 0060](0060-the-cli-surface-is-a-contract-ten-intention-named-verbs-one-output-mode-per-stream-documented-exit-codes-and-help-written-for-an-agent.md) fixed stays at ten verbs. `set` already performs a rename for `title`.
 
 Rejected alternatives:
 

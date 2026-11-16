@@ -8,7 +8,7 @@ timestamp: 2026-10-19T13:13:52Z
 
 ## 0061. npm package living-docs wraps the release binary and the release workflow publishes it
 
-Implements [ADR 0067](/adr/0067-an-npm-package-wraps-the-released-binary-as-a-second-distribution-channel-so-npx-living-docs-resolves.md). A `living-docs` package on npm wraps the released binary so `npx living-docs` and `npm install -g living-docs` resolve, and the release workflow publishes it when the token is present.
+Implements [ADR 0067](../adr/0067-an-npm-package-wraps-the-released-binary-as-a-second-distribution-channel-so-npx-living-docs-resolves.md). A `living-docs` package on npm wraps the released binary so `npx living-docs` and `npm install -g living-docs` resolve, and the release workflow publishes it when the token is present.
 
 ### Scope
 

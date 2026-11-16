@@ -10,7 +10,7 @@ timestamp: 2026-11-11T21:51:45Z
 
 ## 0111. MCP front: serve the bundle over stdio as write, read, manage and check tools from living-docs mcp
 
-Implements [ADR 0078](/adr/0078-an-mcp-front-serves-the-bundle-over-stdio-as-write-read-manage-and-check-tools-from-the-living-docs-mcp-subcommand.md). Replaces [issue 0027](/issues/0027-mcp-front-expose-the-ten-authoring-verbs-as-mcp-tools-over-the-md-tree.md), closed as won't do because no consumer needed an MCP surface; the owner named that consumer on 2026-11-11. Blocked by [issue 0109](/issues/0109-regroup-the-cli-under-write-read-and-manage-with-check-top-level-and-move-every-surface-that-teaches-a-command.md), which gives the CLI the `write`/`read`/`manage` vocabulary the tools mirror.
+Implements [ADR 0078](../adr/0078-an-mcp-front-serves-the-bundle-over-stdio-as-write-read-manage-and-check-tools-from-the-living-docs-mcp-subcommand.md). Replaces [issue 0027](0027-mcp-front-expose-the-ten-authoring-verbs-as-mcp-tools-over-the-md-tree.md), closed as won't do because no consumer needed an MCP surface; the owner named that consumer on 2026-11-11. Blocked by [issue 0109](0109-regroup-the-cli-under-write-read-and-manage-with-check-top-level-and-move-every-surface-that-teaches-a-command.md), which gives the CLI the `write`/`read`/`manage` vocabulary the tools mirror.
 
 ### Scope
 

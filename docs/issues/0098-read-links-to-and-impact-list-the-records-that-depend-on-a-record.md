@@ -8,7 +8,7 @@ timestamp: 2026-10-26T22:18:43Z
 
 ## 0098. read --links-to and --impact list the records that depend on a record
 
-Implements [ADR 0074](/adr/0074-read-links-to-and-impact-answer-who-depends-on-a-record-from-a-link-graph-built-in-memory-per-run.md). `read --links-to <TYPE/NNNN>` lists the live records that link a record, and `read --impact <TYPE/NNNN>` lists every live record that reaches it through a chain of links, each with its distance. This answers "what do I revisit before I change or supersede this" without `grep`.
+Implements [ADR 0074](../adr/0074-read-links-to-and-impact-answer-who-depends-on-a-record-from-a-link-graph-built-in-memory-per-run.md). `read --links-to <TYPE/NNNN>` lists the live records that link a record, and `read --impact <TYPE/NNNN>` lists every live record that reaches it through a chain of links, each with its distance. This answers "what do I revisit before I change or supersede this" without `grep`.
 
 ### Scope
 

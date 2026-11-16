@@ -10,8 +10,8 @@ timestamp: 2026-07-16T00:00:00Z
 
 ## Walking skeleton — Cargo workspace + living-docs-core + fs-store + thin cli
 
-Implements [ADR 0002](/adr/0002-hexagonal-core-workspace.md). Serves the
-[Constitution](/constitution.md) North Star by laying the runnable foundation for
+Implements [ADR 0002](../adr/0002-hexagonal-core-workspace.md). Serves the
+[Constitution](../constitution.md) North Star by laying the runnable foundation for
 findability. **Slice 0** — the walking skeleton: does almost nothing new, but is end-to-end
 and demoable, and every later slice keeps its smoke test green.
 

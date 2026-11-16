@@ -8,7 +8,7 @@ timestamp: 2026-09-18T08:26:00Z
 
 ## Execute the authoring-core cut
 
-Implements [ADR 0059](/adr/0059-cut-living-docs-to-the-authoring-core-remove-the-database-read-model-web-front-public-export-migrate-json-authoring-and-the-write-gate-hook.md). Each slice below is one commit so any of them can be reverted alone.
+Implements [ADR 0059](../adr/0059-cut-living-docs-to-the-authoring-core-remove-the-database-read-model-web-front-public-export-migrate-json-authoring-and-the-write-gate-hook.md). Each slice below is one commit so any of them can be reverted alone.
 
 ### Scope
 

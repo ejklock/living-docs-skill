@@ -8,7 +8,7 @@ timestamp: 2026-10-19T13:13:52Z
 
 ## 0060. read --topic matches whole-word prefixes, ranks by weighted term frequency and says when nothing live matches
 
-Agents in the owner's transcripts used `read --topic` 225 times against 3,391 direct file reads of `docs/`. The matcher is a case-sensitive-folded substring over title, description and body with no ranking, so `--topic heading` returns six ADRs in reading order and `--topic tailwind` returns `{"withheld":8,"records":[]}` with no word about what to try next; half the recorded topics were code terms (`zod`, `luxon`, `jest`). [ADR 0056](/adr/0056-effective-topic-ranks-by-the-fts5-read-model-when-a-fresh-projection-exists-falling-back-to-a-deterministic-relevance-rank.md) decided a deterministic weighted rank as the fallback; the read model it preferred was removed by ADR 0059 and the fallback was never written.
+Agents in the owner's transcripts used `read --topic` 225 times against 3,391 direct file reads of `docs/`. The matcher is a case-sensitive-folded substring over title, description and body with no ranking, so `--topic heading` returns six ADRs in reading order and `--topic tailwind` returns `{"withheld":8,"records":[]}` with no word about what to try next; half the recorded topics were code terms (`zod`, `luxon`, `jest`). [ADR 0056](../adr/0056-effective-topic-ranks-by-the-fts5-read-model-when-a-fresh-projection-exists-falling-back-to-a-deterministic-relevance-rank.md) decided a deterministic weighted rank as the fallback; the read model it preferred was removed by ADR 0059 and the fallback was never written.
 
 ### Scope
 
@@ -22,7 +22,7 @@ Agents in the owner's transcripts used `read --topic` 225 times against 3,391 di
 
 - Terms combine with AND; option not taken: OR, which turns a two-word topic into a wider net than one word.
 - Prefix match, not substring: `cach` finds `caching`, `ache` no longer finds `cache`; option not taken: stemming, which needs a dictionary.
-- Accent folding reuses the transliteration `slugify` gains in [issue 0057](/issues/0057-new-seeds-owner-from-git-config-when-owner-is-absent-and-slugs-transliterate-accented-letters.md) so `ação` and `acao` meet; the two issues share that function.
+- Accent folding reuses the transliteration `slugify` gains in [issue 0057](0057-new-seeds-owner-from-git-config-when-owner-is-absent-and-slugs-transliterate-accented-letters.md) so `ação` and `acao` meet; the two issues share that function.
 
 ### Acceptance
 

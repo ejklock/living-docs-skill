@@ -8,7 +8,7 @@ timestamp: 2026-10-05T20:53:51Z
 
 ## 0052. Section schema in the registry: check requires Scope and Acceptance on live issues and read gains a contract level
 
-Implements [ADR 0064](/adr/0064-each-doc-type-declares-its-sections-in-the-registry-required-or-optional-contract-or-detail-tier-so-check-enforces-the-required-ones-on-live-records-and-read-discloses-by-tier.md) for the issue type. Today a live issue can drop `Acceptance` and still pass `check`, and `read --full` hands an agent the delivery plan together with the contract.
+Implements [ADR 0064](../adr/0064-each-doc-type-declares-its-sections-in-the-registry-required-or-optional-contract-or-detail-tier-so-check-enforces-the-required-ones-on-live-records-and-read-discloses-by-tier.md) for the issue type. Today a live issue can drop `Acceptance` and still pass `check`, and `read --full` hands an agent the delivery plan together with the contract.
 
 ### Scope
 
@@ -44,4 +44,4 @@ Kept unchanged: `read` default and `read --full` output, every other doc type's 
 
 ### Outcome
 
-Closed: `check` requires Scope and Acceptance on live issues, and `read --contract` omits Plan and Outcome. Default `read` and `read --full` output is byte-identical to the previous release. The workspace suite went from 601 to 636 tests. Two heading-parser gaps found in review are tracked in [issue 0053](/issues/0053-section-heading-parser-counts-indented-code-headings-and-always-drops-the-first-heading-as-the-title.md).
+Closed: `check` requires Scope and Acceptance on live issues, and `read --contract` omits Plan and Outcome. Default `read` and `read --full` output is byte-identical to the previous release. The workspace suite went from 601 to 636 tests. Two heading-parser gaps found in review are tracked in [issue 0053](0053-section-heading-parser-counts-indented-code-headings-and-always-drops-the-first-heading-as-the-title.md).

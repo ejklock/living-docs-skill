@@ -11,7 +11,7 @@ timestamp: 2026-11-12T16:13:09Z
 
 ## Context
 
-`check` keeps one liveness advisory, `stale-proposed`, which [ADR 0057](/adr/0057-refocus-living-docs-on-a-decision-log-delete-bdr-cut-peripheral-verbs-and-check-advisories-and-consolidate-the-rule-corpus.md) retained because it has a real oracle: an ADR still at `Proposed` whose implementing issue is already closed has a decision that landed while the record never left its birth state.
+`check` keeps one liveness advisory, `stale-proposed`, which [ADR 0057](0057-refocus-living-docs-on-a-decision-log-delete-bdr-cut-peripheral-verbs-and-check-advisories-and-consolidate-the-rule-corpus.md) retained because it has a real oracle: an ADR still at `Proposed` whose implementing issue is already closed has a decision that landed while the record never left its birth state.
 
 The oracle is approximated today by any link. `links_terminal_issue` in `living-docs-core/src/check/liveness.rs` flags a `Proposed` ADR whose body links any issue that is closed or superseded. An ADR's Context routinely cites a closed issue as history ("issue 0059 implemented the section key"), so a new decision that cites old work reads as stale the moment it is written. The author's only escape is to drop the citation, which removes the trail the record exists to keep.
 

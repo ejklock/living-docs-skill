@@ -14,7 +14,7 @@ timestamp: 2026-10-19T13:13:52Z
 
 ## Context
 
-[ADR 0028](/adr/0028-the-release-binary-is-the-unit-of-distribution-install-sh-only-bootstraps-it-and-every-placement-becomes-a-cli-verb.md) made the release binary the unit of distribution and [ADR 0041](/adr/0041-make-cli-install-fetches-the-released-binary-and-install-sh-resolves-the-latest-release-by-default.md) made `install.sh` fetch it from the GitHub release, sha256-verified. The release workflow publishes five platform assets with checksums and a job that verifies every one of them.
+[ADR 0028](0028-the-release-binary-is-the-unit-of-distribution-install-sh-only-bootstraps-it-and-every-placement-becomes-a-cli-verb.md) made the release binary the unit of distribution and [ADR 0041](0041-make-cli-install-fetches-the-released-binary-and-install-sh-resolves-the-latest-release-by-default.md) made `install.sh` fetch it from the GitHub release, sha256-verified. The release workflow publishes five platform assets with checksums and a job that verifies every one of them.
 
 The usage analysis over the owner's agent transcripts recorded 100 attempts of `npx living-docs`, 15 of them answered by npm's 404 and the rest by a shell fallback the agent wrote around the absence. An agent looks for a CLI where the ecosystem it works in keeps CLIs: in a Node project, that is npm. `install.sh` is unknown to it, and `cargo install` requires a toolchain the host does not have. The name `living-docs` is unclaimed on npm (`npm view living-docs` returns 404 on 2026-10-19).
 
@@ -44,7 +44,7 @@ Rejected alternatives:
 - Installing needs network access to github.com at postinstall or first run, the same trust and checksum `install.sh` relies on.
 
 **Follow-ups:**
-- [Issue 0061](/issues/0061-npm-package-living-docs-wraps-the-release-binary-and-the-release-workflow-publishes-it.md) implements the package, the shim, the version gate and the workflow job.
+- [Issue 0061](../issues/0061-npm-package-living-docs-wraps-the-release-binary-and-the-release-workflow-publishes-it.md) implements the package, the shim, the version gate and the workflow job.
 - The owner creates the npm account and the `NPM_TOKEN` repository secret; until then the job is skipped.
 - The README installation section lists the npm channel beside `install.sh`.
 

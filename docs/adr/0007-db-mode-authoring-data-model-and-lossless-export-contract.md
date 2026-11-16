@@ -14,11 +14,11 @@ timestamp: 2026-07-17T14:41:11Z
 
 ## Context
 
-[Issue 0006](/issues/0006-db-mode-authoring.md) makes the database an authoritative
+[Issue 0006](../issues/0006-db-mode-authoring.md) makes the database an authoritative
 authoring backend: with `--backend db`, `new`/`index`/`supersede` write to `db-store`, a
 `living-docs export` materializes records back to conformant `.md`, and `check` runs over the
-domain model loaded from the DB, identical to file-mode. [ADR 0003](/adr/0003-storage-backend-model.md)
-established db-mode as authoritative (not a projection); [ADR 0005](/adr/0005-normalized-schema.md)
+domain model loaded from the DB, identical to file-mode. [ADR 0003](0003-storage-backend-model.md)
+established db-mode as authoritative (not a projection); [ADR 0005](0005-normalized-schema.md)
 drew the normalized schema but **explicitly deferred** three data-model decisions to whoever
 planned db-mode authoring. Issue 0005 shipped only the `projects` root, `project_id` FKs, and
 the `relations`/`tags` tables — the current `records` shape is `(id, project_id, path,

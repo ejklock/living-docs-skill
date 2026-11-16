@@ -8,7 +8,7 @@ timestamp: 2026-10-05T23:16:04Z
 
 ## 0054. Section schemas for ADR, PRD, constitution and research so check and read --contract cover every record type
 
-Implements the follow-ups of [ADR 0064](/adr/0064-each-doc-type-declares-its-sections-in-the-registry-required-or-optional-contract-or-detail-tier-so-check-enforces-the-required-ones-on-live-records-and-read-discloses-by-tier.md). [Issue 0052](/issues/0052-section-schema-in-the-registry-check-requires-scope-and-acceptance-on-live-issues-and-read-gains-a-contract-level.md) populated only the issue row, so a live ADR with no Consequences still passes `check`, and `read --contract` shows every other type whole.
+Implements the follow-ups of [ADR 0064](../adr/0064-each-doc-type-declares-its-sections-in-the-registry-required-or-optional-contract-or-detail-tier-so-check-enforces-the-required-ones-on-live-records-and-read-discloses-by-tier.md). [Issue 0052](0052-section-schema-in-the-registry-check-requires-scope-and-acceptance-on-live-issues-and-read-gains-a-contract-level.md) populated only the issue row, so a live ADR with no Consequences still passes `check`, and `read --contract` shows every other type whole.
 
 ### Scope
 
@@ -46,4 +46,4 @@ Each type's guide topic names its required sections in one line. Kept unchanged:
 
 ### Outcome
 
-Closed: the four rows ship in `living-docs-core/src/doc_type/sections.rs` beside the issue row, and the suite went from 636 to 650 tests. Fourteen existing tests needed their live ADR or constitution fixtures to carry the required headings, which is the same migration a downstream bundle faces. A PRD test for a missing `Problem / Motivation` rides with [issue 0053](/issues/0053-section-heading-parser-counts-indented-code-headings-and-always-drops-the-first-heading-as-the-title.md).
+Closed: the four rows ship in `living-docs-core/src/doc_type/sections.rs` beside the issue row, and the suite went from 636 to 650 tests. Fourteen existing tests needed their live ADR or constitution fixtures to carry the required headings, which is the same migration a downstream bundle faces. A PRD test for a missing `Problem / Motivation` rides with [issue 0053](0053-section-heading-parser-counts-indented-code-headings-and-always-drops-the-first-heading-as-the-title.md).

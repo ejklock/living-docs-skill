@@ -8,7 +8,7 @@ timestamp: 2026-10-19T13:13:52Z
 
 ## 0055. new, set and supersede regenerate the touched index in the same run
 
-Implements [ADR 0065](/adr/0065-mutation-verbs-leave-the-bundle-indexed-new-set-and-supersede-regenerate-the-touched-type-index-in-the-same-run.md). Each mutation verb regenerates the index of the doc types it touched, so a CLI-authored record is never an orphan and `index` becomes the repair verb.
+Implements [ADR 0065](../adr/0065-mutation-verbs-leave-the-bundle-indexed-new-set-and-supersede-regenerate-the-touched-type-index-in-the-same-run.md). Each mutation verb regenerates the index of the doc types it touched, so a CLI-authored record is never an orphan and `index` becomes the repair verb.
 
 ### Scope
 

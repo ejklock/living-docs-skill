@@ -15,16 +15,16 @@ timestamp: 2026-07-20T15:09:34Z
 
 ## Context
 
-The [Living Docs Atlas PRD](/prd/0001-living-docs-atlas-multi-project-authoring-wiki-over-living-docs-core.md)
+The [Living Docs Atlas PRD](../prd/0001-living-docs-atlas-multi-project-authoring-wiki-over-living-docs-core.md)
 turns the web front from a read-only viewer into a **multi-project authoring wiki** — create,
 edit, supersede, delete in the browser. That directly reverses the central decision of
-[ADR 0006](/adr/0006-web-read-only-axum.md), which kept the web **read-only** precisely to
+[ADR 0006](0006-web-read-only-axum.md), which kept the web **read-only** precisely to
 avoid "reintroducing a second source of truth and the sync/conflict problem ADR 0003 killed."
 So the write path cannot be bolted on; it must be decided against the locked storage model.
 
 The binding constraints are two prior locked decisions, not open questions:
 
-- **[ADR 0003](/adr/0003-storage-backend-model.md)** made the `DocStore` backend
+- **[ADR 0003](0003-storage-backend-model.md)** made the `DocStore` backend
   **config-selected and mutually exclusive**: *file-mode* (`.md` in git is the source of
   truth; `search`/web read a **derived, never-authoritative read-model**) **or** *db-mode*
   (the database **is** the authoritative store). Because exactly one backend is authoritative
@@ -32,7 +32,7 @@ The binding constraints are two prior locked decisions, not open questions:
   explicitly **rejects** co-authoritative equal-weight adapters. (Note: the "two interchangeable
   adapters / both authoritative" phrasing still living in `CLAUDE.md` is stale relative to
   ADR 0003; this ADR treats 0003 as the SSOT.)
-- **[ADR 0007](/adr/0007-db-mode-authoring-data-model-and-lossless-export-contract.md)** gave
+- **[ADR 0007](0007-db-mode-authoring-data-model-and-lossless-export-contract.md)** gave
   db-mode a lossless, byte-stable `export` (db → `.md`) and `check` parity across backends.
 
 The naive framing of this decision — "define the fs↔db write-authority / sync-conflict
@@ -109,7 +109,7 @@ concurrency against a *projection* cannot be sound because the projection is not
 - ADR: **authn/authz** for the hosted Atlas surface (who may read / who may edit).
 - ADR (gated): the **ontology substrate** (extend SQLite + JSON-LD projection vs embed
   Oxigraph), opened only when the evidence-gate opens — research
-  [/research/0002-ontology-tooling-codegraph-docs-bridge.md](/research/0002-ontology-tooling-codegraph-docs-bridge.md).
+  [/research/0002-ontology-tooling-codegraph-docs-bridge.md](../research/0002-ontology-tooling-codegraph-docs-bridge.md).
 - ADR (later): whether Atlas's independent deploy cadence justifies splitting the `web` front
   from the CLI (the locked monorepo's documented "reconsider when" trigger).
 
@@ -137,7 +137,7 @@ specs under `tests/browser/`.
 
 # References
 
-[1] [ADR 0003 — storage backend is config-selected and mutually exclusive](/adr/0003-storage-backend-model.md)
-[2] [ADR 0006 — the web view is read-only (superseded by this ADR)](/adr/0006-web-read-only-axum.md)
-[3] [ADR 0007 — db-mode authoring data model and lossless export contract](/adr/0007-db-mode-authoring-data-model-and-lossless-export-contract.md)
-[4] [PRD 0001 — Living Docs Atlas](/prd/0001-living-docs-atlas-multi-project-authoring-wiki-over-living-docs-core.md)
+[1] [ADR 0003 — storage backend is config-selected and mutually exclusive](0003-storage-backend-model.md)
+[2] [ADR 0006 — the web view is read-only (superseded by this ADR)](0006-web-read-only-axum.md)
+[3] [ADR 0007 — db-mode authoring data model and lossless export contract](0007-db-mode-authoring-data-model-and-lossless-export-contract.md)
+[4] [PRD 0001 — Living Docs Atlas](../prd/0001-living-docs-atlas-multi-project-authoring-wiki-over-living-docs-core.md)

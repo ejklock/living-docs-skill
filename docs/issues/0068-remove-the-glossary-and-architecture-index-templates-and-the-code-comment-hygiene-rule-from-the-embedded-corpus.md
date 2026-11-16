@@ -8,7 +8,7 @@ timestamp: 2026-10-24T10:17:31Z
 
 ## 0068. Remove the glossary and architecture-index templates and the code-comment-hygiene rule from the embedded corpus
 
-Found by the usage audit over four harness accounts' transcripts (October 2026): `guide` loaded `glossary`, `architecture-index` and `code-comment-hygiene` at most once each, and no transcript reads `templates/glossary.md` or `templates/architecture-index.md` directly; `rules/code-comment-hygiene.md` was read three times. Continues the corpus cut of [ADR 0057](/adr/0057-refocus-living-docs-on-a-decision-log-delete-bdr-cut-peripheral-verbs-and-check-advisories-and-consolidate-the-rule-corpus.md).
+Found by the usage audit over four harness accounts' transcripts (October 2026): `guide` loaded `glossary`, `architecture-index` and `code-comment-hygiene` at most once each, and no transcript reads `templates/glossary.md` or `templates/architecture-index.md` directly; `rules/code-comment-hygiene.md` was read three times. Continues the corpus cut of [ADR 0057](../adr/0057-refocus-living-docs-on-a-decision-log-delete-bdr-cut-peripheral-verbs-and-check-advisories-and-consolidate-the-rule-corpus.md).
 
 ### Scope
 

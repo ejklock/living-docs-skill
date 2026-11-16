@@ -10,9 +10,9 @@ timestamp: 2026-07-19T02:22:09Z
 
 ## Three-pane web shell with metadata panel and Cmd+K palette
 
-Implements [ADR 0015](/adr/0015-web-ux-follows-the-three-pane-doc-site-archetype-with-search-first-cmd-k-palette.md)
+Implements [ADR 0015](../adr/0015-web-ux-follows-the-three-pane-doc-site-archetype-with-search-first-cmd-k-palette.md)
 on top of the read-only web front delivered by
-[issue 0003](/issues/0003-web-read-only.md). The web view grows from two bare pages
+[issue 0003](0003-web-read-only.md). The web view grows from two bare pages
 (search, record) into the three-pane doc-site archetype: left nav tree grouped by record
 type, center record body, right metadata panel (status badge, supersede chain,
 cross-links), with a search-first Cmd+K palette over the FTS5 read-model.
