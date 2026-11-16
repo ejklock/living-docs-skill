@@ -38,7 +38,6 @@ one slice per fresh context, starting from the skeleton.
 * [0135 — blocked_by cannot hold an item YAML reads as another type](0135-blocked-by-cannot-hold-an-item-yaml-reads-as-another-type.md) - open
 * [0136 — A blocked_by item beyond the u64 range is refused with a message naming the wrong key](0136-a-blocked-by-item-beyond-the-u64-range-is-refused-with-a-message-naming-the-wrong-key.md) - open
 * [0137 — write set reads a value that starts with a dash as a flag](0137-write-set-reads-a-value-that-starts-with-a-dash-as-a-flag.md) - open
-* [0138 — Implement ADR 0088 and 0089: blocked_by findings as advice and the decision reminder as a non-blocking nudge](0138-implement-adr-0088-and-0089-blocked-by-findings-as-advice-and-the-decision-reminder-as-a-non-blocking-nudge.md) - open
 * [0139 — The check summary repeats a file's number once per advisory](0139-the-check-summary-repeats-a-file-s-number-once-per-advisory.md) - open
 * [0140 — The decision prompt goes silent when the working directory path holds a quote](0140-the-decision-prompt-goes-silent-when-the-working-directory-path-holds-a-quote.md) - open
 
@@ -150,3 +149,4 @@ one slice per fresh context, starting from the skeleton.
 * [0125 — Implement ADR 0082: blocked_by validation in check, write-time refusal and renumber rewrite](0125-implement-adr-0082-blocked-by-validation-in-check-write-time-refusal-and-renumber-rewrite.md) - closed
 * [0127 — Implement ADR 0084 and 0085: manage html renderer, manage install mermaid and the CLI wiring](0127-implement-adr-0084-and-0085-manage-html-renderer-manage-install-mermaid-and-the-cli-wiring.md) - closed
 * [0133 — Implement ADR 0086 and 0087: blocked_by advice for free-form items and a once-per-commit decision prompt](0133-implement-adr-0086-and-0087-blocked-by-advice-for-free-form-items-and-a-once-per-commit-decision-prompt.md) - closed
+* [0138 — Implement ADR 0088 and 0089: blocked_by findings as advice and the decision reminder as a non-blocking nudge](0138-implement-adr-0088-and-0089-blocked-by-findings-as-advice-and-the-decision-reminder-as-a-non-blocking-nudge.md) - closed

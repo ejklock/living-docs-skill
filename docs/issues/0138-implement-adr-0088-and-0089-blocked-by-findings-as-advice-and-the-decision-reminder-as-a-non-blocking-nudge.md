@@ -2,7 +2,7 @@
 type: Issue
 title: "Implement ADR 0088 and 0089: blocked_by findings as advice and the decision reminder as a non-blocking nudge"
 description: Move every blocked_by finding to the advisory channel and turn the Stop hook into a PostToolUse additionalContext nudge with its install wiring
-status: open
+status: closed
 timestamp: 2026-11-15T23:09:45Z
 ---
 
