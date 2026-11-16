@@ -31,7 +31,8 @@ fn multiline_titled_issue(docs: &Path) -> PathBuf {
     .unwrap();
     let created = living_docs()
         .args(["--docs-dir", docs.to_str().unwrap()])
-        .args(["write", "new", "issue", "one", "--plain", "--body"])
+        .args(["write", "new", "issue", "one", "--plain"])
+        .args(["--description", "A filled description.", "--body"])
         .arg(&body)
         .output()
         .unwrap();

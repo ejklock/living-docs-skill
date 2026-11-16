@@ -4,7 +4,7 @@
 
 `living-docs check [docs/]` mechanically validates the invariants a machine checks better than
 prose: frontmatter/`type`, directory-index membership + root reachability, link resolution,
-supersede integrity, Mermaid fences, **unfilled `{{PLACEHOLDER}}` slots** (a violation — a
+supersede integrity, Mermaid fences, **unfilled `{{PLACEHOLDER}}` slots and a `description` still the template's placeholder** (a violation — a
 scaffold left half-authored fails the gate), and **required sections** (ADR 0064): a live record
 missing a section its type requires fails with `missing required section '<name>'`. Retired
 records are exempt. *A constraint without an instrument is a vibe* — so
@@ -50,7 +50,7 @@ eyeballing them; the rest are judgement:
 - [ ] Directory listings are `index.md` with no frontmatter (except the bundle-root `docs/index.md` → `okf_version`); cross-links are bundle-relative (`/…`).
 - [ ] Every new doc is linked from its directory `index.md` **and** the bundle-root `docs/index.md`.
 - [ ] No concept appears in two files (cross-reference instead).
-- [ ] No unfilled `{{PLACEHOLDER}}` slot remains in any record.
+- [ ] No unfilled `{{PLACEHOLDER}}` slot remains in any record, and no `description` is still its template's placeholder sentence.
 - [ ] Every live record carries its type's required sections as headings (issue: Scope, Acceptance; ADR: Context, Decision, Consequences; PRD: Problem / Motivation, Non-goals; constitution: Product, Scope Boundaries, Non-negotiables).
 - [ ] Superseded ADRs/PRDs carry frontmatter `status: Superseded` + `superseded_by: NNNN`; the superseding record sets `supersedes` and links back.
 - [ ] A Superseded or Deprecated record's body opens with its exact CLI-written callout above the heading, and no active record opens with one; `living-docs manage fmt` is the remediation.

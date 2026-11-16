@@ -167,7 +167,8 @@ fn new_issue(repo: &Path, title: &str) {
     fs::write(&body, BODY).unwrap();
     let output = living_docs()
         .current_dir(repo)
-        .args(["write", "new", "issue", title, "--plain", "--body"])
+        .args(["write", "new", "issue", title, "--plain"])
+        .args(["--description", "A filled description.", "--body"])
         .arg(&body)
         .output()
         .unwrap();

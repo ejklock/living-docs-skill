@@ -20,7 +20,8 @@ fn new_issue(docs: &Path, title: &str) {
             "issue",
             title,
         ])
-        .args(["--plain", "--body"])
+        .args(["--plain", "--description", "A filled description."])
+        .args(["--body"])
         .arg(&body)
         .output()
         .unwrap();

@@ -123,6 +123,7 @@ fn view_with_body_lines(bundle: &Path, body_lines: usize) {
     let output = living_docs()
         .args(["--docs-dir", bundle.to_str().unwrap()])
         .args(["write", "new", "view", "Rings", "--kind", "component"])
+        .args(["--description", "Shows the rings."])
         .output()
         .expect("failed to run living-docs write new");
     assert!(output.status.success(), "write new view failed");
