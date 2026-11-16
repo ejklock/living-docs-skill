@@ -51,6 +51,15 @@ fn a_shared_name_retitle_leaves_prose_and_link_titles_alone() {
 }
 
 #[test]
+fn a_shared_name_retitle_rewrites_a_link_carrying_a_query() {
+    let docs = shared_name_bundle("query");
+    let before =
+        "[q](architecture/constitution.md?v=1#a) and [p](architecture/constitution.md#a)\n";
+    let after = before.replace("constitution.md", "charter.md");
+    assert_retitle_rewrites(&docs, "view/constitution", "notes.md", (before, &after));
+}
+
+#[test]
 fn a_shared_name_retitle_rewrites_reference_definitions_and_angle_destinations() {
     let docs = shared_name_bundle("definitions");
     let before = "[x][r2] and [a](<architecture/constitution.md#top>) and [n](./architecture/constitution.md)\n\n[r2]:architecture/constitution.md\n";

@@ -71,13 +71,24 @@ fn a_rooted_link_or_image_is_advised_with_its_relative_form_and_nothing_else_is(
 }
 
 #[test]
-fn a_protocol_relative_link_is_not_advised_as_rooted() {
+fn a_protocol_relative_link_is_external_and_never_advised_or_broken() {
     let bundle = temp_bundle("protocol-relative");
     write_bundle(&bundle, "[d](//cdn.example.com/x)", "");
 
-    let (_, json) = check_json(&bundle);
+    let (code, json) = check_json(&bundle);
 
     assert!(link_style_messages(&json, "issues/0001-y.md").is_empty());
+    assert_eq!(code, Some(0), "{json}");
+}
+
+#[test]
+fn a_link_with_a_query_resolves_to_its_file() {
+    let bundle = temp_bundle("query");
+    write_bundle(&bundle, "[q](../adr/0001-a.md?v=2#context)", "");
+
+    let (code, json) = check_json(&bundle);
+
+    assert_eq!(code, Some(0), "{json}");
 }
 
 #[test]
