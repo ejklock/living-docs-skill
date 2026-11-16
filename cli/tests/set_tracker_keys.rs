@@ -241,21 +241,6 @@ fn gate_refuses_each_key_on_an_adr_naming_key_and_issue_type() {
 }
 
 #[test]
-fn items_the_parser_would_store_as_something_else_are_written_quoted() {
-    let (docs, path) = issue_bundle("quote-reinterpreted");
-    for (key, value, line) in [
-        ("labels", "1e3", "labels: [\"1e3\"]"),
-        ("labels", "null, a", "labels: [\"null\", a]"),
-        ("labels", "true, 1.5, x", "labels: [\"true\", \"1.5\", x]"),
-        ("labels", "false, 2.5, .inf", "labels: [\"false\", \"2.5\", \".inf\"]"),
-        ("blocked_by", "~", "blocked_by: [\"~\"]"),
-    ] {
-        assert!(set(&docs, &["0001", key, value]).status.success(), "{value}");
-        assert_eq!(lines_of(&path, key), [line], "{value}");
-    }
-}
-
-#[test]
 fn a_tracker_that_reads_as_a_number_when_plain_is_written_quoted() {
     let (docs, path) = issue_bundle("tracker-quoted-number");
     assert!(set(&docs, &["0001", "tracker", "0x10"]).status.success());

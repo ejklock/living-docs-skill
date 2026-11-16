@@ -175,4 +175,3 @@ fn blocked_by_accepts_items_the_record_quotes_and_keeps_them_as_text() {
     assert!(out.status.success(), "{out:?}");
     assert_eq!(lines_of(&path, "blocked_by"), ["blocked_by: [12, \"-0\"]"]);
 }
-

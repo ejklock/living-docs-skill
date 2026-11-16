@@ -76,7 +76,10 @@ fn leaves_integers_zero_padded_digits_and_words_unquoted() {
 #[test]
 fn quotes_digits_beyond_what_a_number_can_hold_and_reads_them_back() {
     for value in ["12345678901234567890123", "18446744073709551616"] {
-        for list in [format_flow_list(&[value]), format_strict_flow_list(&[value])] {
+        for list in [
+            format_flow_list(&[value]),
+            format_strict_flow_list(&[value]),
+        ] {
             assert_eq!(list, format!("[\"{value}\"]"));
             assert_eq!(read_string(&format!("k: {list}")).as_deref(), Some(value));
         }

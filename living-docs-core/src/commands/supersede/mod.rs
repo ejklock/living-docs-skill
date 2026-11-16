@@ -193,7 +193,9 @@ pub(crate) fn draft_frontmatter_fields(
 fn unread_message(path: &Path, draft: &str, fields: &[(&str, String)], key: &str) -> String {
     let written: Vec<&str> = fields.iter().map(|(k, _)| *k).collect();
     let written = written.join("', '");
-    let parses = frontmatter_block(draft).and_then(parse_frontmatter).is_some();
+    let parses = frontmatter_block(draft)
+        .and_then(parse_frontmatter)
+        .is_some();
     if parses {
         format!(
             "{}: '{written}' cannot be written without changing how '{key}' reads in the record's frontmatter; edit the file by hand",

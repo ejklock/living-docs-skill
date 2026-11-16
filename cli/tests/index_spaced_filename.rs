@@ -54,7 +54,11 @@ fn a_spaced_successor_is_linked_in_angle_form_by_index_and_callout() {
 #[test]
 fn a_named_view_with_a_space_is_indexed_in_angle_form_and_check_passes() {
     let bundle = temp_bundle("index-spaced", "view");
-    write(&bundle, "index.md", "# Docs\n\n* [architecture](architecture/)\n");
+    write(
+        &bundle,
+        "index.md",
+        "# Docs\n\n* [architecture](architecture/)\n",
+    );
     let view = "---\ntype: Architecture View\ntitle: Ctx\ndescription: d.\nkind: context\n---\n\n# Ctx\n\nProse.\n";
     write(&bundle, "architecture/ctx view.md", view);
     index_bundle(&bundle);
