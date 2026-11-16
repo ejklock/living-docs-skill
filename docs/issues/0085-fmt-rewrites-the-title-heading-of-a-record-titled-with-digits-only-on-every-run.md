@@ -1,7 +1,7 @@
 ---
 type: Issue
 title: fmt rewrites the title heading of a record titled with digits only on every run
-description: <One sentence — the change and its motivation.>
+description: fmt aligns the title heading of a record titled with digits only once, so a second fmt changes nothing.
 status: closed
 timestamp: 2026-10-25T02:00:31Z
 ---

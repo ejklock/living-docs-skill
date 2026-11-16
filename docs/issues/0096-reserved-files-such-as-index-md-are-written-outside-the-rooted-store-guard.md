@@ -1,7 +1,7 @@
 ---
 type: Issue
 title: reserved files such as index.md are written outside the rooted store guard
-description: <One sentence — the change and its motivation.>
+description: Every read and write of an index.md goes through the rooted store, so an index that resolves outside the bundle is refused by every verb and reported once by check.
 status: open
 timestamp: 2026-10-25T03:32:21Z
 ---

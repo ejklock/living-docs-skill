@@ -1,7 +1,7 @@
 ---
 type: Issue
 title: fmt drops a tail key whose value is the empty string
-description: <One sentence — the change and its motivation.>
+description: The canonical writer keeps a tail key whose value is the empty string, so fmt no longer drops a key the author wrote.
 status: closed
 timestamp: 2026-10-25T02:00:28Z
 ---

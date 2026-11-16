@@ -1,7 +1,7 @@
 ---
 type: Issue
 title: check skips every entry of a supersedes list that mixes record numbers and other values
-description: <One sentence — the change and its motivation.>
+description: check judges every record-number entry of a supersedes list that also holds other values, in both link directions, so a valid entry is no longer skipped.
 status: open
 timestamp: 2026-10-25T03:14:26Z
 ---

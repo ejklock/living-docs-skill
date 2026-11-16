@@ -33,3 +33,8 @@ Pick one canonical style, make the CLI write it, make the guides say it, and hav
 ### Decision
 
 The owner chose the relative link style as canonical: the guides and slot hints say so, the CLI writes only it, and `check` emits an advisory, not a violation, for an in-bundle `/` link, as [ADR 0084](../adr/0084-in-bundle-links-are-written-relative-to-the-linking-file-and-check-advises-on-a-slash-rooted-link.md) records. Rewriting this repository's own `/` links is follow-up work. Not taken: the `/` style as canonical; accepting both with no advisory.
+
+### Plan
+
+- S1: the guides, the okf-knowledge-format model and procedure, the research-artifacts rules and the templates' slot hints name the relative link style as canonical, with the GitHub reason | files: skills/living-docs/rules/okf-format.md, skills/living-docs/rules/adr-conventions.md, skills/living-docs/templates/claude-hard-rules.md, skills/living-docs/templates/issue.md, skills/okf-knowledge-format/rules/model.md, skills/okf-knowledge-format/rules/procedure.md, skills/research-artifacts/rules/structure.md, skills/research-artifacts/rules/rules.md, skills/research-artifacts/templates/research-general-references.md | after: none
+- S2: `check` emits an advisory for an in-bundle `/` link, and the check, SKILL.md and semantic-index guides say so | files: living-docs-core/src/check/links.rs, living-docs-core/src/check/kinds.rs, skills/living-docs/rules/check.md, skills/living-docs/SKILL.md, skills/living-docs/rules/semantic-index.md | after: issue 0079 and issue 0105 (they edit SKILL.md, semantic-index.md and check.md)

@@ -1,7 +1,7 @@
 ---
 type: Issue
 title: a set read-back test writes a fixed-name temp file and fails when runs overlap
-description: <One sentence — the change and its motivation.>
+description: Every test that hands set --from a file writes it under a path unique to the run, so overlapping test runs no longer race on a fixed-name temp file.
 status: open
 timestamp: 2026-10-25T02:00:37Z
 ---

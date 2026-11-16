@@ -1,7 +1,7 @@
 ---
 type: Issue
 title: "status verb cannot set the issue lifecycle: number resolution prefers the ADR on cross-type collision and the status vocabulary is ADR-only"
-description: <One sentence — the change and its motivation.>
+description: Record resolution takes an explicit type qualifier and fails loudly on a cross-type number collision, and the status vocabulary covers the issue lifecycle, so status, describe and supersede never act on the wrong record.
 status: closed
 timestamp: 2026-08-06T20:33:19Z
 ---

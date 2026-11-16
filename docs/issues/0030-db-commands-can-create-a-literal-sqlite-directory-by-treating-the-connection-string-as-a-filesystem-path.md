@@ -1,7 +1,7 @@
 ---
 type: Issue
 title: db commands can create a literal 'sqlite:' directory by treating the connection string as a filesystem path
-description: <One sentence — the change and its motivation.>
+description: "The db commands parse a connection string into a path before any filesystem call, so a sqlite: connection string never creates a literal sqlite: directory."
 status: closed
 timestamp: 2026-08-06T21:03:43Z
 ---
