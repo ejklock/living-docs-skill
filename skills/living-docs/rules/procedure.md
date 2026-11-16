@@ -14,7 +14,9 @@ the CLI's job; the judgment prose (the "why") is yours to write directly in the 
   its frontmatter and title heading filled and every body section as a `{{SLOT: hint}}`
   placeholder; the hint says what belongs in the slot and vanishes with it. Replace every slot
   with prose, or delete the slot and its heading when the record has nothing to say there —
-  `check` fails on any slot left behind.
+  `check` fails on any slot left behind. `write new` also seeds `description` with the template's
+  placeholder unless `--description` is given; `check` fails on it like a slot, and the fix is
+  `write set <TYPE/NNNN> description --from -`.
 - **Prose reaches a record through a file or stdin, never through argv.** `write new <type> "<title>"
   --body PATH|-` writes the body (everything below the heading) from a file or stdin in place of
   the slots; `write set <ref> <key> --from PATH|-` reads any field value the same way; `write set <ref> section

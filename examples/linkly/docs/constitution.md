@@ -52,5 +52,5 @@ is the product's core trust commitment and the reason it is fixed in the constit
 
 - A minted `code` never changes its `target_url` (links are permanent).
 - Only `http`/`https` targets are accepted — never `javascript:` or `data:` (see
-  [issue 0001](/issues/0001-implement-shorten-endpoint.md), acceptance).
+  [issue 0001](issues/0001-implement-shorten-endpoint.md), acceptance).
 - The doc corpus is authored in **English** (project doc language).
