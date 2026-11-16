@@ -2,7 +2,7 @@
 type: Issue
 title: The guides prescribe /-bundle-relative links, but index and supersede write sibling-relative links and check accepts every style
 description: An adopter cannot tell which link style is canonical, and the prescribed one 404s when the bundle is browsed on GitHub.
-status: open
+status: closed
 timestamp: 2026-10-10T19:17:22Z
 ---
 

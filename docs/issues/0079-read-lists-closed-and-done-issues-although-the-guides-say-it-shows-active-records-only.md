@@ -2,7 +2,7 @@
 type: Issue
 title: read lists closed and done issues although the guides say it shows active records only
 description: read withholds only Superseded and Deprecated records, so closed and done issues, which the registry marks terminal, fill the agent entry point.
-status: open
+status: closed
 timestamp: 2026-10-10T19:16:42Z
 ---
 

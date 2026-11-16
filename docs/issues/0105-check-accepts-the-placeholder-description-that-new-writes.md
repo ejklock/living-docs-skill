@@ -2,7 +2,7 @@
 type: Issue
 title: check accepts the placeholder description that new writes
 description: Make check refuse the placeholder description that new scaffolds, or stop new from writing one.
-status: open
+status: closed
 timestamp: 2026-10-27T13:00:11Z
 ---
 

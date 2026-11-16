@@ -2,7 +2,7 @@
 type: Issue
 title: check module docblock links to a run function that no longer exists
 description: Fix the check module docblock that links to a run function the module no longer has.
-status: open
+status: closed
 timestamp: 2026-10-27T13:00:10Z
 ---
 

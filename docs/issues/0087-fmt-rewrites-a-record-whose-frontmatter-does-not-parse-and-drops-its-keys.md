@@ -2,7 +2,7 @@
 type: Issue
 title: fmt rewrites a record whose frontmatter does not parse and drops its keys
 description: fmt and set refuse a record whose frontmatter does not parse and check reports it as unparseable, so a broken frontmatter is named instead of rewritten with its keys dropped.
-status: open
+status: closed
 timestamp: 2026-10-25T02:00:35Z
 ---
 

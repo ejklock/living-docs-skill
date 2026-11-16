@@ -3,7 +3,7 @@ type: ADR
 title: read withholds every retired record, closed and done issues included, and read --all brings them back
 description: read withholds every record DocTypeSpec::is_retired reports (closed and done issues included) from all its views and counts them in withheld; read records --all includes them
 owner: Evaldo Klock
-status: Proposed
+status: Accepted
 timestamp: 2026-11-16T02:33:31Z
 ---
 

@@ -3,7 +3,7 @@ type: ADR
 title: Reserved files are read and written through the rooted store port, so the bundle guard covers index.md and log.md
 description: Route every content read and write of index.md and log.md through DocStore, widening the port contract from a doc record to any bundle file, so the FsStore rooted guard covers them; amends ADR 0073
 owner: Evaldo Klock
-status: Proposed
+status: Accepted
 timestamp: 2026-11-16T00:18:18Z
 ---
 

@@ -2,7 +2,7 @@
 type: Issue
 title: an index row splits across two lines when a record title holds a line break
 description: An index row always fits on one line whatever the record title holds, so a title with a line break no longer splits its link.
-status: open
+status: closed
 timestamp: 2026-10-25T02:06:18Z
 ---
 

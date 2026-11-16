@@ -2,7 +2,7 @@
 type: Issue
 title: the unnumbered title-heading fallback may rename a section heading such as References
 description: The unnumbered title-heading fallback of set title and fmt never picks a section heading such as References, so retitling a record cannot rename one of its sections.
-status: open
+status: closed
 timestamp: 2026-10-25T03:10:31Z
 ---
 

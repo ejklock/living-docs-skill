@@ -3,7 +3,7 @@ type: ADR
 title: In-bundle links are written relative to the linking file, and check advises on a slash-rooted link
 description: "The relative link style is canonical for links between records: guides and slot hints say so, the CLI writes only it, and check emits an advisory, not a violation, for an in-bundle slash-rooted link"
 owner: Evaldo Klock
-status: Proposed
+status: Accepted
 timestamp: 2026-11-16T02:33:32Z
 ---
 

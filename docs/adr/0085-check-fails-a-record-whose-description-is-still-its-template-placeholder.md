@@ -3,7 +3,7 @@ type: ADR
 title: check fails a record whose description is still its template placeholder
 description: check reports a description equal to a doc-type template placeholder as an unfilled-slot violation; new keeps writing the placeholder; the repository fills its 18 placeholder descriptions in the same change
 owner: Evaldo Klock
-status: Proposed
+status: Accepted
 timestamp: 2026-11-16T02:33:32Z
 ---
 

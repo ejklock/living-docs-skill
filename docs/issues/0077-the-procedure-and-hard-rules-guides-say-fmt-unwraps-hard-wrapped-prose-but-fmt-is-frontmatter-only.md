@@ -2,7 +2,7 @@
 type: Issue
 title: The procedure and hard-rules guides say fmt unwraps hard-wrapped prose, but fmt is frontmatter-only
 description: Guides promise a behavior the binary does not have; an author who wraps prose trusts a fix that never comes.
-status: open
+status: closed
 timestamp: 2026-10-10T19:16:42Z
 ---
 
@@ -18,11 +18,11 @@ Reproduction: put a paragraph hard-wrapped at 80 columns in a record body, run `
 
 ### Scope
 
-Rewrite the three passages so they state the rule the binary enforces: one paragraph is one line, written that way by the author, and `fmt` touches frontmatter only. Cite ADR 0047 where a citation stays, never 0046. Kept: the one-line-per-paragraph authoring rule, and the `fmt` behavior.
+Rewrite the three passages so they state the rule the binary enforces: one paragraph is one line, written that way by the author, and `fmt` never reflows prose; it repairs only CLI-owned fields (frontmatter, and the title heading) as [ADR 0071](../adr/0071-fmt-repairs-a-record-s-cli-owned-fields-it-seeds-a-missing-timestamp-and-owner-and-aligns-the-title-heading-leaving-all-other-prose-byte-identical.md) states, which supersedes ADR 0047. Cite ADR 0071 where a citation stays, never 0046 or 0047. Kept: the one-line-per-paragraph authoring rule, and the `fmt` behavior.
 
 ### Acceptance
 
 - `grep -rn "fmt.*unwrap\|unwraps" skills` returns no hit that claims `fmt` rewrites body prose.
-- The three passages say the author keeps each paragraph on one line and `fmt` canonicalizes frontmatter only.
-- No embedded guide cites ADR 0046 as live behavior.
+- The three passages say the author keeps each paragraph on one line and `fmt` never reflows prose (it repairs only CLI-owned fields).
+- No embedded guide cites ADR 0046 or 0047 as live behavior.
 - `living-docs check docs` stays OK.

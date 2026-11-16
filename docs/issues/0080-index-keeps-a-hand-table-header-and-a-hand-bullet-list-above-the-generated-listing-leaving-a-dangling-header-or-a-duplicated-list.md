@@ -2,7 +2,7 @@
 type: Issue
 title: index keeps a hand table header and a hand bullet list above the generated listing, leaving a dangling header or a duplicated list
 description: "A hand-maintained index migrates into a broken file: its table header survives alone, or its hand bullets are listed twice."
-status: open
+status: closed
 timestamp: 2026-10-10T19:16:42Z
 ---
 
