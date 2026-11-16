@@ -40,6 +40,9 @@ one slice per fresh context, starting from the skeleton.
 * [0137 — write set reads a value that starts with a dash as a flag](0137-write-set-reads-a-value-that-starts-with-a-dash-as-a-flag.md) - open
 * [0139 — The check summary repeats a file's number once per advisory](0139-the-check-summary-repeats-a-file-s-number-once-per-advisory.md) - open
 * [0140 — The decision prompt goes silent when the working directory path holds a quote](0140-the-decision-prompt-goes-silent-when-the-working-directory-path-holds-a-quote.md) - open
+* [0141 — check repeats the arm-the-hooks hint on every run](0141-check-repeats-the-arm-the-hooks-hint-on-every-run.md) - open
+* [0142 — The pre-commit gate prints the bundle's absolute path](0142-the-pre-commit-gate-prints-the-bundle-s-absolute-path.md) - open
+* [0143 — The HTML page keeps empty group headings under a filter and repeats a view's title](0143-the-html-page-keeps-empty-group-headings-under-a-filter-and-repeats-a-view-s-title.md) - open
 
 ## Closed
 
