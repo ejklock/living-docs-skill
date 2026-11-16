@@ -119,12 +119,10 @@ fn judge_records(
         .collect()
 }
 
-/// The invariants [`run`] validates, minus the unfilled-placeholder pass, returned as a plain violation list rather
-/// than printed — the mechanism a per-write gate (e.g. `db_store::DbDocStore::write_checked`) uses to reject a
-/// structurally invalid record. The placeholder pass is deliberately excluded here: db-mode authoring is
-/// create-then-edit, so a freshly created record legitimately still carries its `{{PLACEHOLDER}}` slots until the
-/// author fills them in the edit view. Unfilled placeholders are caught at the commit boundary by the `check`
-/// command (which runs the pass), not by the per-write gate.
+/// The invariants [`compile`] validates, minus the unfilled-placeholder pass, returned as a plain violation list
+/// rather than printed — for a caller that must reject a structurally invalid record. The placeholder pass is
+/// deliberately excluded here: a freshly created record legitimately still carries its `{{PLACEHOLDER}}` slots until
+/// the author fills them in. Unfilled placeholders are caught by the full `check` command, which runs the pass.
 pub fn check_violations(store: &dyn DocStore, bundle: &Path) -> Vec<(String, String)> {
     let mut reporter = Reporter::new();
     run_all_checks(store, bundle, &mut reporter, false, false);
