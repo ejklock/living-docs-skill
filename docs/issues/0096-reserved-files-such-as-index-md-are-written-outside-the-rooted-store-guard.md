@@ -25,3 +25,7 @@ ADR 0073 roots the filesystem store at the bundle, and the store refuses any rec
 ### Plan
 
 Route reserved-file reads and writes through the store port, so the rooted guard covers them, or apply the same guard at the core's reserved-file write path. Pick one in an ADR amendment if the port's contract changes.
+
+### Decision
+
+The owner chose to route the reserved-file reads and writes (`index.md`, `log.md`) through `DocStore`, so the rooted `FsStore` guard covers them, as [ADR 0082](/adr/0082-reserved-files-are-read-and-written-through-the-rooted-store-port-so-the-bundle-guard-covers-index-md-and-log-md.md) records; it amends ADR 0073 and widens the port's contract from a doc record to any bundle file. Not taken: a guard on the core side; leaving it as is.

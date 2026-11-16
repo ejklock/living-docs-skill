@@ -51,6 +51,7 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0079 — stale-proposed counts only an issue that declares it implements the ADR](0079-stale-proposed-counts-only-an-issue-that-declares-it-implements-the-adr.md) - Accepted
 * [0080 — write set section refuses to drop child headings the new text does not carry](0080-write-set-section-refuses-to-drop-child-headings-the-new-text-does-not-carry.md) - Accepted
 * [0081 — The distributed pre-commit hook is the only copy and environment variables opt it into changed-only and owner checks](0081-the-distributed-pre-commit-hook-is-the-only-copy-and-environment-variables-opt-it-into-changed-only-and-owner-checks.md) - Accepted
+* [0082 — Reserved files are read and written through the rooted store port, so the bundle guard covers index.md and log.md](0082-reserved-files-are-read-and-written-through-the-rooted-store-port-so-the-bundle-guard-covers-index-md-and-log-md.md) - Proposed
 
 ## Superseded
 
