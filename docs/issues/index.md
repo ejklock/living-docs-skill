@@ -12,9 +12,7 @@ one slice per fresh context, starting from the skeleton.
 * [0126 — Implement ADR 0093: the opt-in decision prompt Stop hook and its installation](0126-implement-adr-0083-the-opt-in-decision-prompt-stop-hook-and-its-installation.md) - open
 * [0132 — The HTML renderer duplicates the record reader and link graph of read records](0132-the-html-renderer-duplicates-the-record-reader-and-link-graph-of-read-records.md) - open
 * [0144 — Engineering-docs roadmap: domain language and rules, decision capture, issue waves, generated diagrams and a local HTML export](0144-engineering-docs-roadmap-domain-language-and-rules-decision-capture-issue-waves-generated-diagrams-and-a-local-html-export.md) - open
-* [0145 — A failing callout reconcile after a renumber leaves the bundle renamed](0145-a-failing-callout-reconcile-after-a-renumber-leaves-the-bundle-renamed.md) - open
-* [0146 — The changed-only pre-commit drops staged files whose names hold a space](0146-the-changed-only-pre-commit-drops-staged-files-whose-names-hold-a-space.md) - open
-* [0147 — write set refuses a purely numeric label](0147-write-set-refuses-a-purely-numeric-label.md) - open
+* [0148 — manage index writes a link to a filename with a space that check cannot resolve](0148-manage-index-writes-a-link-to-a-filename-with-a-space-that-check-cannot-resolve.md) - open
 
 ## Closed
 
@@ -157,3 +155,6 @@ one slice per fresh context, starting from the skeleton.
 * [0141 — check repeats the arm-the-hooks hint on every run](0141-check-repeats-the-arm-the-hooks-hint-on-every-run.md) - closed
 * [0142 — The pre-commit gate prints the bundle's absolute path](0142-the-pre-commit-gate-prints-the-bundle-s-absolute-path.md) - closed
 * [0143 — The HTML page keeps empty group headings under a filter and repeats a view's title](0143-the-html-page-keeps-empty-group-headings-under-a-filter-and-repeats-a-view-s-title.md) - closed
+* [0145 — A failing callout reconcile after a renumber leaves the bundle renamed](0145-a-failing-callout-reconcile-after-a-renumber-leaves-the-bundle-renamed.md) - closed
+* [0146 — The changed-only pre-commit drops staged files whose names hold a space](0146-the-changed-only-pre-commit-drops-staged-files-whose-names-hold-a-space.md) - closed
+* [0147 — write set refuses a purely numeric label](0147-write-set-refuses-a-purely-numeric-label.md) - closed
