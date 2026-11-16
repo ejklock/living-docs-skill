@@ -39,7 +39,7 @@ pub const ALL: &[Kind] = &[
     },
     Kind {
         name: BLOCKED_BY,
-        meaning: "a blocked_by item is not an issue number, so it is not validated",
+        meaning: "a blocked_by item is not an issue number, names no issue, lists its own issue, or closes a cycle",
     },
 ];
 

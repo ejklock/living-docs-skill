@@ -19,7 +19,7 @@ every advisory in full, and the JSON output always carries them all. The kinds:
 
 - `SIZE` — a decision/execution body past the ~120-line target (aim ~100; research exempt).
 - `MOVED-SOURCE` — a record whose linked source path moved.
-- `BLOCKED-BY` — an issue `blocked_by` item that is not a decimal number (a tracker identifier, `ADR 0077`): it is not validated, so nothing checks that it names real work.
+- `BLOCKED-BY` — every `blocked_by` finding of an issue is advice and never fails `check`: an item that is not a decimal number (a tracker identifier, `ADR 0077`, never validated), a number naming no issue, an issue listing itself, and a cycle of issues waiting on one another (advised once, naming every member).
 - `LIVENESS stale-proposed` (ADR 0049, ADR 0079) — an ADR still at its seed status (`Proposed`)
   that an issue already `closed`/`done`/`Superseded` declares it implements: the issue body
   holds `Implements` (any case) followed by a link to the ADR, so the work landed but the record

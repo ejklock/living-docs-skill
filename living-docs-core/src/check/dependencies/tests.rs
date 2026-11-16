@@ -10,10 +10,6 @@ fn issue_at(number: &str, blocked_by: &str) -> (String, String) {
     )
 }
 
-fn run(records: &[(String, String)]) -> Vec<(String, String)> {
-    run_both(records).0
-}
-
 type Findings = Vec<(String, String)>;
 
 fn run_both(records: &[(String, String)]) -> (Findings, Findings) {
@@ -39,12 +35,13 @@ fn run_both(records: &[(String, String)]) -> (Findings, Findings) {
 
 #[test]
 fn a_quoted_zero_padded_item_names_the_same_issue_as_its_bare_number() {
-    let found = run(&[
+    let (violations, advice) = run_both(&[
         issue_at("0012", "[]"),
         issue_at("0013", "[\"0012\"]"),
         issue_at("0014", "[12]"),
     ]);
-    assert!(found.is_empty(), "{found:?}");
+    assert!(violations.is_empty(), "{violations:?}");
+    assert!(advice.is_empty(), "{advice:?}");
 }
 
 #[test]
@@ -58,55 +55,55 @@ fn a_text_item_is_advised_with_the_item_and_the_issue_file_and_not_reported() {
 
 #[test]
 fn a_scalar_comma_list_reads_as_several_items() {
-    let found = run(&[issue_at("0001", "[]"), issue_at("0002", "0001, 0003")]);
-    assert_eq!(found.len(), 1, "{found:?}");
+    let (violations, advice) = run_both(&[issue_at("0001", "[]"), issue_at("0002", "0001, 0003")]);
+    assert!(violations.is_empty(), "{violations:?}");
+    assert_eq!(advice.len(), 1, "{advice:?}");
     assert!(
-        found[0].1.contains("0003") && !found[0].1.contains("0001"),
+        advice[0].1.contains("0003") && !advice[0].1.contains("0001"),
         "{}",
-        found[0].1
+        advice[0].1
     );
 }
 
 #[test]
 fn an_item_beyond_the_integer_range_names_no_issue() {
     let (violations, advice) = run_both(&[issue_at("0001", "[99999999999]")]);
-    assert_eq!(violations.len(), 1, "{violations:?}");
-    assert!(
-        violations[0].1.contains("names no issue"),
-        "{}",
-        violations[0].1
-    );
-    assert!(advice.is_empty(), "{advice:?}");
+    assert!(violations.is_empty(), "{violations:?}");
+    assert_eq!(advice.len(), 1, "{advice:?}");
+    assert!(advice[0].1.contains("names no issue"), "{}", advice[0].1);
 }
 
 #[test]
-fn a_cycle_is_reported_once_with_its_members_and_not_the_issue_leading_into_it() {
-    let found = run(&[
+fn a_cycle_is_advised_once_with_its_members_and_not_the_issue_leading_into_it() {
+    let (violations, advice) = run_both(&[
         issue_at("0004", "[2]"),
         issue_at("0001", "[2]"),
         issue_at("0002", "[3]"),
         issue_at("0003", "[1]"),
     ]);
-    assert_eq!(found.len(), 1, "{found:?}");
-    let message = &found[0].1;
+    assert!(violations.is_empty(), "{violations:?}");
+    assert_eq!(advice.len(), 1, "{advice:?}");
+    let message = &advice[0].1;
     assert!(message.ends_with("issues/0001-work.md, issues/0002-work.md, issues/0003-work.md"));
     assert!(!message.contains("0004"), "{message}");
 }
 
 #[test]
-fn two_separate_cycles_give_two_findings() {
-    let found = run(&[
+fn two_separate_cycles_give_two_advisories() {
+    let (violations, advice) = run_both(&[
         issue_at("0001", "[2]"),
         issue_at("0002", "[1]"),
         issue_at("0003", "[4]"),
         issue_at("0004", "[3]"),
     ]);
-    assert_eq!(found.len(), 2, "{found:?}");
+    assert!(violations.is_empty(), "{violations:?}");
+    assert_eq!(advice.len(), 2, "{advice:?}");
 }
 
 #[test]
-fn a_self_reference_is_one_finding_and_not_a_cycle() {
-    let found = run(&[issue_at("0005", "[5]")]);
-    assert_eq!(found.len(), 1, "{found:?}");
-    assert!(found[0].1.contains("itself"), "{}", found[0].1);
+fn a_self_reference_is_one_advisory_and_not_a_cycle() {
+    let (violations, advice) = run_both(&[issue_at("0005", "[5]")]);
+    assert!(violations.is_empty(), "{violations:?}");
+    assert_eq!(advice.len(), 1, "{advice:?}");
+    assert!(advice[0].1.contains("itself"), "{}", advice[0].1);
 }

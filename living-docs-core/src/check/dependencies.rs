@@ -1,6 +1,7 @@
-//! Issue dependencies declared in `blocked_by`. Only numeric items are
-//! validated: each names an issue of the bundle, no issue waits on itself,
-//! and no issues wait on one another in a cycle. Any other item is advice.
+//! Issue dependencies declared in `blocked_by`. Numeric items are resolved:
+//! each should name an issue of the bundle, no issue should wait on itself,
+//! and no issues should wait on one another in a cycle. Every finding,
+//! including a non-numeric item, is advice.
 
 use super::records::for_each_readable_record;
 use super::{kinds, Reporter};
@@ -24,12 +25,12 @@ struct Issue {
     items: Vec<String>,
 }
 
-/// Reports, on the issue that carries it, a numeric `blocked_by` item that
-/// names no issue of the bundle, and an issue that lists itself; advises, once
-/// per item, on an item that is not a decimal number (it never fails and never takes
-/// part in a cycle);
-/// reports one finding per cycle of issues waiting on one another, anchored
-/// on every member so a scope holding any one of them keeps it. Items compare
+/// Advises, on the issue that carries it and once per item, on a `blocked_by`
+/// item that names no issue of the bundle, on an issue that lists itself, and
+/// on an item that is not a decimal number (which never takes part in a
+/// cycle); advises once per cycle of issues waiting on one another, anchored
+/// on every member so a scope holding any one of them keeps it. Every finding
+/// is advice and never fails the check. Items compare
 /// as integers (`12` and `0012` are one issue) and a blocker in any status
 /// resolves. Resolution reads every issue of `all_md`, whatever the scope;
 /// records of any other type are never judged.
@@ -55,7 +56,7 @@ pub(crate) fn check_dependencies(
             "issues wait on one another in a cycle through blocked_by: {}",
             names.join(", ")
         );
-        reporter.report_group(&members, message);
+        reporter.advise_group(&members, kinds::BLOCKED_BY, message);
     }
 }
 
@@ -121,20 +122,18 @@ fn item_number(item: &str) -> Option<u32> {
 
 fn check_items(issue: &Issue, paths: &Paths, reporter: &mut Reporter) {
     for item in &issue.items {
-        if !is_decimal(item) {
-            let advice =
-                format!("blocked_by: '{item}' is not an issue number, so it is not validated");
-            reporter.advise(&issue.path, kinds::BLOCKED_BY, advice);
-            continue;
-        }
-        let message = match item_number(item) {
-            Some(n) if Some(n) == issue.number => {
-                format!("blocked_by: {item} lists the issue itself")
+        let advice = if !is_decimal(item) {
+            format!("blocked_by: '{item}' is not an issue number, so it is not validated")
+        } else {
+            match item_number(item) {
+                Some(n) if Some(n) == issue.number => {
+                    format!("blocked_by: {item} lists the issue itself")
+                }
+                Some(n) if paths.contains_key(&n) => continue,
+                _ => format!("blocked_by: {item} names no issue of the bundle"),
             }
-            Some(n) if paths.contains_key(&n) => continue,
-            _ => format!("blocked_by: {item} names no issue of the bundle"),
         };
-        reporter.report(&issue.path, message);
+        reporter.advise(&issue.path, kinds::BLOCKED_BY, advice);
     }
 }
 

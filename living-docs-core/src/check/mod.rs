@@ -235,6 +235,26 @@ impl Reporter {
             file: file.display().to_string(),
             kind: kind.to_owned(),
             message: message.into(),
+            anchors: Vec::new(),
+        });
+    }
+
+    /// Advises once for a group of records, anchored on every member so a
+    /// scope holding any one of them keeps it. The members are not serialized.
+    pub(crate) fn advise_group(
+        &mut self,
+        members: &[PathBuf],
+        kind: &str,
+        message: impl Into<String>,
+    ) {
+        let Some(first) = members.first() else {
+            return;
+        };
+        self.advisories.push(Advisory {
+            file: first.display().to_string(),
+            kind: kind.to_owned(),
+            message: message.into(),
+            anchors: members.iter().map(|m| m.display().to_string()).collect(),
         });
     }
 

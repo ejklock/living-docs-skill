@@ -65,7 +65,7 @@ fn findings(output: &Output) -> Vec<String> {
 
 fn scoped(bundle: &Path, changed: &[&str]) -> Output {
     let mut command = living_docs();
-    command.args(["check", "--plain", "--changed-files"]);
+    command.args(["check", "--plain", "--advisories", "--changed-files"]);
     for number in changed {
         command.arg(bundle.join(file(number)));
     }
@@ -73,11 +73,11 @@ fn scoped(bundle: &Path, changed: &[&str]) -> Output {
 }
 
 #[test]
-fn an_item_naming_no_issue_fails_naming_the_file_and_the_item() {
+fn an_item_naming_no_issue_is_advised_naming_the_file_and_the_item() {
     let bundle = bundle_of("dangling", &[issue("0001", "[7]"), issue("0002", "[]")]);
-    let output = run_check(&bundle);
+    let output = run_check_advisories(&bundle);
     let lines = findings(&output);
-    assert_eq!(output.status.code(), Some(1), "{}", stdout_of(&output));
+    assert_eq!(output.status.code(), Some(0), "{}", stdout_of(&output));
     assert_eq!(lines.len(), 1, "{}", stdout_of(&output));
     assert!(lines[0].contains("0001-work.md"), "{}", lines[0]);
     assert!(lines[0].contains('7'), "{}", lines[0]);
@@ -122,14 +122,14 @@ fn a_scalar_comma_list_resolves_each_number_like_a_flow_list() {
 }
 
 #[test]
-fn a_scalar_comma_list_naming_a_missing_number_fails() {
+fn a_scalar_comma_list_naming_a_missing_number_is_advised() {
     let bundle = bundle_of(
         "scalar-missing",
         &[issue("0045", "[]"), issue("0048", "0045, 0099")],
     );
-    let output = run_check(&bundle);
+    let output = run_check_advisories(&bundle);
     let lines = findings(&output);
-    assert_eq!(output.status.code(), Some(1), "{}", stdout_of(&output));
+    assert_eq!(output.status.code(), Some(0), "{}", stdout_of(&output));
     assert_eq!(lines.len(), 1, "{}", stdout_of(&output));
     assert!(
         lines[0].contains("0099") && !lines[0].contains("0045"),
@@ -139,11 +139,11 @@ fn a_scalar_comma_list_naming_a_missing_number_fails() {
 }
 
 #[test]
-fn an_issue_listing_itself_fails() {
+fn an_issue_listing_itself_is_advised() {
     let bundle = bundle_of("self", &[issue("0003", "[3]")]);
-    let output = run_check(&bundle);
+    let output = run_check_advisories(&bundle);
     let lines = findings(&output);
-    assert_eq!(output.status.code(), Some(1), "{}", stdout_of(&output));
+    assert_eq!(output.status.code(), Some(0), "{}", stdout_of(&output));
     assert_eq!(lines.len(), 1, "{}", stdout_of(&output));
     assert!(lines[0].contains("0003-work.md"), "{}", lines[0]);
 }
@@ -189,7 +189,7 @@ fn a_record_that_is_not_an_issue_is_never_judged() {
 }
 
 #[test]
-fn a_cycle_gives_one_finding_naming_every_member_in_ascending_order() {
+fn a_cycle_gives_one_advisory_naming_every_member_in_ascending_order() {
     let three = bundle_of(
         "cycle3",
         &[
@@ -198,9 +198,9 @@ fn a_cycle_gives_one_finding_naming_every_member_in_ascending_order() {
             issue("0002", "[3]"),
         ],
     );
-    let output = run_check(&three);
+    let output = run_check_advisories(&three);
     let lines = findings(&output);
-    assert_eq!(output.status.code(), Some(1), "{}", stdout_of(&output));
+    assert_eq!(output.status.code(), Some(0), "{}", stdout_of(&output));
     assert_eq!(lines.len(), 1, "{}", stdout_of(&output));
     let at = |n: &str| lines[0].find(&format!("{n}-work.md")).unwrap();
     assert!(
@@ -210,7 +210,9 @@ fn a_cycle_gives_one_finding_naming_every_member_in_ascending_order() {
     );
 
     let two = bundle_of("cycle2", &[issue("0001", "[2]"), issue("0002", "[1]")]);
-    let lines = findings(&run_check(&two));
+    let output = run_check_advisories(&two);
+    assert_eq!(output.status.code(), Some(0), "{}", stdout_of(&output));
+    let lines = findings(&output);
     assert_eq!(lines.len(), 1);
     assert!(lines[0].contains("0001-work.md") && lines[0].contains("0002-work.md"));
 }
@@ -230,7 +232,7 @@ fn a_chain_without_a_cycle_passes() {
 }
 
 #[test]
-fn a_scoped_check_judges_only_the_named_issue_but_resolves_against_all() {
+fn a_scoped_check_advises_only_the_named_issue_but_resolves_against_all() {
     let bundle = bundle_of(
         "scoped-dangling",
         &[
@@ -239,17 +241,19 @@ fn a_scoped_check_judges_only_the_named_issue_but_resolves_against_all() {
             issue("0003", "[9]"),
         ],
     );
-    let output = scoped(&bundle, &["0001"]);
-    assert_eq!(output.status.code(), Some(0), "{}", stdout_of(&output));
-    let output = scoped(&bundle, &["0002"]);
-    assert_eq!(output.status.code(), Some(0), "{}", stdout_of(&output));
+    for clean in ["0001", "0002"] {
+        let output = scoped(&bundle, &[clean]);
+        assert_eq!(output.status.code(), Some(0), "{}", stdout_of(&output));
+        assert_eq!(findings(&output).len(), 0, "{}", stdout_of(&output));
+    }
     let output = scoped(&bundle, &["0003"]);
-    assert_eq!(output.status.code(), Some(1), "{}", stdout_of(&output));
+    assert_eq!(output.status.code(), Some(0), "{}", stdout_of(&output));
     assert!(stdout_of(&output).contains("0003-work.md"));
+    assert_eq!(findings(&output).len(), 1, "{}", stdout_of(&output));
 }
 
 #[test]
-fn a_scoped_check_reports_a_cycle_when_any_member_is_named() {
+fn a_scoped_check_advises_a_cycle_when_any_member_is_named() {
     let bundle = bundle_of(
         "scoped-cycle",
         &[
@@ -260,8 +264,28 @@ fn a_scoped_check_reports_a_cycle_when_any_member_is_named() {
     );
     for member in ["0001", "0002"] {
         let output = scoped(&bundle, &[member]);
-        assert_eq!(output.status.code(), Some(1), "{}", stdout_of(&output));
-        assert_eq!(findings(&output).len(), 1);
+        assert_eq!(output.status.code(), Some(0), "{}", stdout_of(&output));
+        assert_eq!(findings(&output).len(), 1, "{}", stdout_of(&output));
     }
-    assert_eq!(scoped(&bundle, &["0003"]).status.code(), Some(0));
+    let output = scoped(&bundle, &["0003"]);
+    assert_eq!(output.status.code(), Some(0));
+    assert_eq!(findings(&output).len(), 0, "{}", stdout_of(&output));
+}
+
+#[test]
+fn a_cycle_advisory_serializes_one_entry_with_only_file_kind_and_message() {
+    let bundle = bundle_of("json", &[issue("0001", "[2]"), issue("0002", "[1]")]);
+    let output = living_docs()
+        .args(["check", "--json"])
+        .arg(&bundle)
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(0), "{}", stdout_of(&output));
+    let report: serde_json::Value = serde_json::from_str(&stdout_of(&output)).unwrap();
+    let advisories = report["advisories"].as_array().unwrap();
+    assert_eq!(advisories.len(), 1, "{report}");
+    let mut keys: Vec<&String> = advisories[0].as_object().unwrap().keys().collect();
+    keys.sort();
+    assert_eq!(keys, ["file", "kind", "message"], "{report}");
+    assert_eq!(advisories[0]["kind"], "blocked-by");
 }

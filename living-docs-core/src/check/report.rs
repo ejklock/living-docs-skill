@@ -25,6 +25,10 @@ pub struct Advisory {
     pub file: String,
     pub kind: String,
     pub message: String,
+    /// Every record a group advisory names, so scoping keeps it when any
+    /// member is in scope. Empty for an advisory of one file; never serialized.
+    #[serde(skip)]
+    pub anchors: Vec<String>,
 }
 
 /// `check`'s full report: every invariant's violations and
@@ -63,7 +67,7 @@ impl Report {
             advisories: self
                 .advisories
                 .into_iter()
-                .filter(|advisory| anchors_in(&advisory.file, &scope))
+                .filter(|advisory| advisory.is_anchored_in(&scope))
                 .collect(),
             ..self
         }
@@ -81,6 +85,13 @@ fn anchors_in(file: &str, scope: &[String]) -> bool {
             || file.ends_with(&format!("/{candidate}"))
             || candidate.ends_with(&format!("/{file}"))
     })
+}
+
+impl Advisory {
+    /// Whether the advisory's file or any member of its group is in `scope`.
+    fn is_anchored_in(&self, scope: &[String]) -> bool {
+        anchors_in(&self.file, scope) || self.anchors.iter().any(|a| anchors_in(a, scope))
+    }
 }
 
 impl Violation {
