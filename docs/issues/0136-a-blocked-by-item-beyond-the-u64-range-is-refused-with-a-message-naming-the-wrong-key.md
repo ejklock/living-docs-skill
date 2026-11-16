@@ -2,7 +2,7 @@
 type: Issue
 title: A blocked_by item beyond the u64 range is refused with a message naming the wrong key
 description: The early item check misses digits-only items serde_yaml cannot read as numbers, so the generic read-back message names type
-status: open
+status: closed
 timestamp: 2026-11-15T22:51:24Z
 ---
 
@@ -19,3 +19,7 @@ timestamp: 2026-11-15T22:51:24Z
 ### Acceptance
 
 - The command either writes the item or refuses it naming `blocked_by` and the item; a test proves it.
+
+### Outcome
+
+- Delivered with issue 0128: an item beyond the u64 range is written quoted and reads back unchanged; u64::MAX stays a plain number. Proof: `blocked_by_round_trips_an_unreadable_number_quoted`.

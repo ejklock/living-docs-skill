@@ -2,7 +2,7 @@
 type: Issue
 title: write set reads a value that starts with a dash as a flag
 description: A blocked_by or other value whose first character is - is rejected by the argument parser unless it follows --
-status: open
+status: closed
 timestamp: 2026-11-15T23:06:50Z
 ---
 
@@ -19,3 +19,7 @@ timestamp: 2026-11-15T23:06:50Z
 ### Acceptance
 
 - `write set <issue> blocked_by "-3, 12"` succeeds without `--`, and a test proves it; flags after the value still parse.
+
+### Outcome
+
+- The VALUE argument of `write set` accepts a leading dash (`allow_hyphen_values`), so `blocked_by "-3, 12"` works without `--` and known flags after it still parse. An unknown flag in the value position is stored as the value. Proof: `blocked_by_value_starting_with_a_dash`.

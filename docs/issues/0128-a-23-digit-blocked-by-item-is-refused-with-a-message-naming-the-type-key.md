@@ -2,7 +2,7 @@
 type: Issue
 title: A 23-digit blocked_by item is refused with a message naming the type key
 description: The read-back guard refuses a very large number but names the wrong key in its message
-status: open
+status: closed
 timestamp: 2026-11-15T18:06:57Z
 ---
 
@@ -20,3 +20,7 @@ timestamp: 2026-11-15T18:06:57Z
 
 - The 23-digit `blocked_by` item is refused with exit 2 and a message naming `blocked_by` and the item; a test proves it.
 - `cargo test --workspace` and `make check` stay green.
+
+### Outcome
+
+- A blocked_by item too large to read back as a number is now written quoted and round-trips as a string, so the misleading refusal naming `type` no longer occurs; the read-back guard message names the written keys when a draft no longer parses. Proof: `cli/tests/set_blocked_by_numbers.rs` › `blocked_by_round_trips_an_unreadable_number_quoted`, `supersede/tests.rs` guard-message test.
