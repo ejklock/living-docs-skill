@@ -18,6 +18,10 @@ schedule. The text report prints violations first, then one summary line per adv
 every advisory in full, and the JSON output always carries them all. The kinds:
 
 - `SIZE` — a decision/execution body past the ~120-line target (aim ~100; research exempt).
+- `OWNER` — a record of a type that requires an owner has none (a violation under
+  `--require-owner`).
+- `HEADING` — a record's title heading disagrees with its frontmatter `title`; `manage fmt`
+  aligns it.
 - `MOVED-SOURCE` — a record whose linked source path moved.
 - `LINK-STYLE` — a link or image written `/`-rooted (`/adr/0007-x.md`); the advisory names the
   relative form to write instead (`../adr/0007-x.md`). It fires whether or not the target exists
