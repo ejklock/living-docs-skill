@@ -24,6 +24,7 @@ one slice per fresh context, starting from the skeleton.
 * [0104 — check module docblock links to a run function that no longer exists](0104-check-module-docblock-links-to-a-run-function-that-no-longer-exists.md) - open
 * [0105 — check accepts the placeholder description that new writes](0105-check-accepts-the-placeholder-description-that-new-writes.md) - open
 * [0119 — The doc-trail gate reads a fixture path in a test as a record citation](0119-the-doc-trail-gate-reads-a-fixture-path-in-a-test-as-a-record-citation.md) - open
+* [0121 — read --all does not show which listed records are retired](0121-read-all-does-not-show-which-listed-records-are-retired.md) - open
 
 ## Closed
 
