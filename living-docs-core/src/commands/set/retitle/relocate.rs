@@ -2,6 +2,7 @@
 //! drafted, then applied with an undo journal.
 
 use super::references::plan_references;
+use crate::callout::draft_reconciled;
 use crate::commands::supersede::draft_frontmatter_fields;
 use crate::store::DocStore;
 use std::io;
@@ -16,7 +17,9 @@ use std::path::{Path, PathBuf};
 /// that cannot be read leaves the bundle untouched; a write or the rename
 /// that fails afterwards is undone, file by file, and the error is returned,
 /// followed by the paths the undo could not restore when it was incomplete.
-/// Returns the records it rewrote.
+/// The moved record's callout is reconciled with its status in the same
+/// draft, so it is written with the record and undone with it. Returns the
+/// records it rewrote.
 pub(in crate::commands::set) fn relocate(
     store: &dyn DocStore,
     docs_dir: &Path,
@@ -29,6 +32,8 @@ pub(in crate::commands::set) fn relocate(
         .iter()
         .find(|(planned, _)| planned == target)
         .map_or(own, |(_, text)| text.as_str());
+    let reconciled = draft_reconciled(store, target, moved)?;
+    let moved = reconciled.as_deref().unwrap_or(moved);
     let mut done = Vec::new();
     if let Err(error) = apply_plan(store, (path, target), moved, &plan, &mut done) {
         let stuck = undo(store, (path, target), done);

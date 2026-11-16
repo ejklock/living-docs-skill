@@ -1,5 +1,5 @@
 use super::resolve_spec;
-use crate::record::canonical::{format_strict_flow_list, is_plain_integer};
+use crate::record::canonical::{flow_strings, format_strict_flow_list, is_plain_integer};
 use crate::record::{format_scalar, TailValue};
 use crate::store::DocStore;
 use serde_yaml::Value;
@@ -46,6 +46,8 @@ fn tracker_value(value: &str) -> Result<(String, TailValue), String> {
 
 /// Splits `value` on commas into trimmed, non-empty items and renders the
 /// flow list the canonical serializer emits (`[a, b]`, `[]` when empty).
+/// `blocked_by` leaves integers plain (they are issue numbers); `labels`
+/// quotes them so a numeric label reads back as text.
 fn list_value(key: &str, value: &str) -> Result<(String, TailValue), String> {
     if value.contains(['[', ']', '{', '}', '"', '\n', '\r']) {
         return Err(format!(
@@ -58,13 +60,10 @@ fn list_value(key: &str, value: &str) -> Result<(String, TailValue), String> {
         .filter(|item| !item.is_empty())
         .map(str::to_string)
         .collect();
-    let rendered = format_strict_flow_list(&items);
-    let intended = if key == "blocked_by" {
-        typed_items(&items)
-    } else {
-        TailValue::Sequence(items)
-    };
-    Ok((rendered, intended))
+    if key == "blocked_by" {
+        return Ok((format_strict_flow_list(&items), typed_items(&items)));
+    }
+    Ok((flow_strings(&items), TailValue::Sequence(items)))
 }
 
 /// Types the `blocked_by` items for the read-back check: an integer the

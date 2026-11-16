@@ -286,3 +286,6 @@ mod atomic_tests;
 
 #[cfg(test)]
 mod rollback_tests;
+
+#[cfg(test)]
+mod callout_rollback_tests;

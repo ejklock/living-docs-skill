@@ -95,16 +95,19 @@ fn refuse_uncarried(spec: &DocTypeSpec, key: &str) -> Result<(), String> {
     }
 }
 
-/// Finishes a retitle or a renumbering: reconciles the callout at the
-/// record's new path and refreshes the type's index.
+/// Finishes a retitle or a renumbering: refreshes the type's index. A record
+/// that moved had its callout reconciled inside the rename's journal; one that
+/// kept its path is reconciled here.
 fn settle_renamed(
     store: &dyn DocStore,
     docs_dir: &Path,
     old: PathBuf,
     renamed: retitle::Retitled,
 ) -> Result<Applied, String> {
-    callout::reconcile(store, &renamed.path)?;
     let previous = (renamed.path != old).then_some(old);
+    if previous.is_none() {
+        callout::reconcile(store, &renamed.path)?;
+    }
     let indexed = refresh_for_records(store, docs_dir, &[renamed.path.as_path()]);
     Ok(Applied {
         path: renamed.path,

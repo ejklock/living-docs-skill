@@ -198,8 +198,9 @@ pub(crate) fn is_plain_integer(value: &str) -> bool {
 }
 
 /// Renders string `items` as a flow sequence whose every item reads back as
-/// that string, each quoted by [`quote_flow`].
-fn flow_strings<S: AsRef<str>>(items: &[S]) -> String {
+/// that string, each quoted by [`quote_flow`]; unlike [`format_strict_flow_list`]
+/// an integer is quoted too (`["12"]`), so a numeric label stays text.
+pub(crate) fn flow_strings<S: AsRef<str>>(items: &[S]) -> String {
     let items: Vec<String> = items.iter().map(|i| quote_flow(i.as_ref())).collect();
     format!("[{}]", items.join(", "))
 }

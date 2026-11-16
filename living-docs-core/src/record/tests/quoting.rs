@@ -86,3 +86,17 @@ fn quotes_digits_beyond_what_a_number_can_hold_and_reads_them_back() {
         "[18446744073709551615]"
     );
 }
+
+#[test]
+fn a_label_list_quotes_integers_and_keeps_other_items_as_the_strict_list_does() {
+    assert_eq!(
+        canonical::flow_strings(&["x", "12", "0005", "-3", "18446744073709551616"]),
+        "[x, \"12\", 0005, \"-3\", \"18446744073709551616\"]"
+    );
+    for value in ["12", "0", "18446744073709551615"] {
+        let list = canonical::flow_strings(&[value]);
+        assert_eq!(list, format!("[\"{value}\"]"));
+        assert_eq!(read_string(&format!("k: {list}")).as_deref(), Some(value));
+        assert_eq!(format_strict_flow_list(&[value]), format!("[{value}]"));
+    }
+}

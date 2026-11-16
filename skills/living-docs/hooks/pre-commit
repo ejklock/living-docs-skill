@@ -41,12 +41,14 @@ fi
 ARGS+=(--plain)
 
 if [ "${LIVING_DOCS_CHECK_CHANGED_ONLY:-0}" = "1" ]; then
-  STAGED="$(git diff --cached --name-only --diff-filter=ACMR -- "$BUNDLE")"
-  if [ -z "$STAGED" ]; then
+  STAGED=()
+  while IFS= read -r -d "" path; do
+    STAGED+=("--changed-files=$path")
+  done < <(git diff --cached --name-only -z --diff-filter=ACMR -- "$BUNDLE")
+  if [ "${#STAGED[@]}" -eq 0 ]; then
     exit 0
   fi
-  # shellcheck disable=SC2086
-  exec "$BIN" "${ARGS[@]}" --changed-files $STAGED -- "$BUNDLE"
+  exec "$BIN" "${ARGS[@]}" "${STAGED[@]}" -- "$BUNDLE"
 fi
 
 exec "$BIN" "${ARGS[@]}" "$BUNDLE"
