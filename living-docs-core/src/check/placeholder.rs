@@ -9,7 +9,7 @@
 
 use super::{file_name_str, records, Reporter};
 use crate::store::DocStore;
-use crate::{doc_type, frontmatter, record};
+use crate::{doc_type, frontmatter, paths, record};
 use std::path::{Path, PathBuf};
 
 pub(crate) fn check_placeholders(
@@ -49,31 +49,55 @@ fn has_template_description(contents: &str) -> bool {
 }
 
 fn placeholder_description_message(path: &Path, contents: &str) -> String {
-    let reference = record_reference(path, contents);
-    format!(
-        "description is still its template placeholder — run `living-docs write set {reference} description --from -`"
-    )
+    match record_reference(path, contents) {
+        Some(reference) => format!(
+            "description is still its template placeholder — run `living-docs write set {reference} description --from -`"
+        ),
+        None if has_registered_type(contents) => "description is still its template placeholder — the record sits outside the place `write new` gives its type, so no `write set` reference reaches it; edit its `description` by hand or move it there".to_string(),
+        None => "description is still its template placeholder — the record has no registered `type`, so no `write set` reference reaches it; set a registered type, or edit its `description` by hand".to_string(),
+    }
+}
+
+fn has_registered_type(contents: &str) -> bool {
+    frontmatter::read_scalar_from_str(contents, "type")
+        .and_then(|value| doc_type::spec_for_frontmatter(&value))
+        .is_some()
 }
 
 /// The reference `write set` accepts for the record, by its doc type's
 /// identity: `TYPE/NNNN` for a numbered record, `TYPE/slug` for a named one
 /// and the bare token for a singleton, so the message's fix can be pasted as
-/// written. A record of no known type is named by its file path.
-fn record_reference(path: &Path, contents: &str) -> String {
+/// written. A record of no known type, or one outside the form `write new`
+/// gives its type (nested below the type directory, or a named record whose
+/// file stem is not a slug), has none: a `TYPE/…` reference for it would be
+/// refused, or would reach another record.
+fn record_reference(path: &Path, contents: &str) -> Option<String> {
     let spec = frontmatter::read_scalar_from_str(contents, "type")
         .and_then(|value| doc_type::spec_for_frontmatter(&value));
     let name = file_name_str(path);
+    let stem = name.trim_end_matches(".md");
     let number: String = name.chars().take_while(char::is_ascii_digit).collect();
     match spec.map(|spec| (spec.token, spec.identity)) {
-        Some((token, doc_type::Identity::Numbered { .. })) if !number.is_empty() => {
-            format!("{token}/{number}")
+        Some((token, doc_type::Identity::Numbered { dir }))
+            if !number.is_empty() && sits_in(path, dir) =>
+        {
+            Some(format!("{token}/{number}"))
         }
-        Some((token, doc_type::Identity::Named { .. })) => {
-            format!("{token}/{}", name.trim_end_matches(".md"))
+        Some((token, doc_type::Identity::Named { dir }))
+            if sits_in(path, dir) && paths::slugify(stem) == stem =>
+        {
+            Some(format!("{token}/{stem}"))
         }
-        Some((token, doc_type::Identity::Singleton { .. })) => token.to_string(),
-        _ => path.display().to_string(),
+        Some((token, doc_type::Identity::Singleton { .. })) => Some(token.to_string()),
+        _ => None,
     }
+}
+
+/// Whether `path` lies directly in a directory named `dir`.
+fn sits_in(path: &Path, dir: &str) -> bool {
+    path.parent()
+        .and_then(Path::file_name)
+        .is_some_and(|parent| parent == dir)
 }
 
 /// `text` with fenced ``` blocks and inline `code` spans removed, so a record

@@ -200,6 +200,53 @@ fn the_printed_fix_for_a_view_is_accepted_and_clears_the_violation() {
     run_printed_fix(&bundle);
 }
 
+/// A view `write new` never names that way, or one nested below its type
+/// directory, has no `view/<slug>` reference: offering one would be refused,
+/// or would set the description of the top-level view of the same stem.
+#[test]
+fn a_view_outside_the_named_form_is_not_offered_a_view_reference() {
+    let bundle = scaffold_with_placeholder("odd-views", &["view", "Rings", "--kind", "component"]);
+    let rings = std::fs::read_to_string(bundle.join("architecture/rings.md")).unwrap();
+    write(&bundle, "architecture/sub/rings.md", &rings);
+    write(&bundle, "architecture/My_View.md", &rings);
+
+    let text = stdout_of(&run_check(&bundle));
+
+    assert_eq!(text.matches("write set view/rings ").count(), 1, "{text}");
+    assert!(!text.contains("view/My_View"), "{text}");
+    assert_eq!(
+        text.matches("no `write set` reference reaches it").count(),
+        2,
+        "{text}"
+    );
+}
+
+#[test]
+fn a_record_of_no_registered_type_is_told_to_set_one() {
+    let record = issue_with(Some(ISSUE_PLACEHOLDER)).replace("type: Issue", "type: Memo");
+    let (_, text) = check_text("unknown-type", "notes/0001-memo.md", &record);
+
+    assert!(text.contains("has no registered `type`"), "{text}");
+}
+
+/// A numbered record nested below its type directory gets no `TYPE/NNNN`
+/// reference, which would reach the top-level record of the same number.
+#[test]
+fn a_nested_numbered_record_is_not_offered_its_number() {
+    let bundle = scaffold_with_placeholder("nested-adr", &["adr", "Store"]);
+    let adr = std::fs::read_to_string(bundle.join("adr/0001-store.md")).unwrap();
+    write(&bundle, "adr/old/0001-store.md", &adr);
+
+    let text = stdout_of(&run_check(&bundle));
+
+    assert_eq!(text.matches("write set adr/0001 ").count(), 1, "{text}");
+    assert_eq!(
+        text.matches("no `write set` reference reaches it").count(),
+        1,
+        "{text}"
+    );
+}
+
 #[test]
 fn the_printed_fix_for_the_constitution_is_accepted_and_clears_the_violation() {
     let bundle = scaffold_with_placeholder("fix-constitution", &["constitution", "P"]);
