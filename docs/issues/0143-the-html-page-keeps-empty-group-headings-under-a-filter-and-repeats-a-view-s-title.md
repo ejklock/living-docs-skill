@@ -2,7 +2,7 @@
 type: Issue
 title: The HTML page keeps empty group headings under a filter and repeats a view's title
 description: The text filter hides records but leaves their type and status headings, and an architecture view shows its title twice in its card
-status: open
+status: closed
 timestamp: 2026-11-16T04:49:09Z
 ---
 
@@ -19,3 +19,7 @@ The QA web walkthrough of 2026-11-16 over `manage html` output showed two readab
 ### Acceptance
 
 - Under a filter no heading without visible records shows; a view's title appears once per card; tests prove both and determinism holds.
+
+### Outcome
+
+- The page groups each type and status in a section; the filter hides a group whose records are all hidden and restores it on clear, and a view card drops a leading body heading equal to its title. Output stays deterministic and escaped. Proof: `html/tests.rs`, and `cli/tests/manage_html.rs` runs the emitted script under node against a selector-checking stub (prints SKIPPED without node).
