@@ -59,6 +59,9 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0089 — The decision reminder is a non-blocking PostToolUse nudge, once per commit cycle](0089-the-decision-reminder-is-a-non-blocking-posttooluse-nudge-once-per-commit-cycle.md) - Accepted
 * [0090 — manage html renders the bundle into one local, read-only, deterministic HTML file](0090-manage-html-renders-the-bundle-into-one-local-read-only-deterministic-html-file.md) - Accepted
 * [0091 — manage install mermaid fetches the pinned mermaid.js with curl and manage html inlines it when installed](0091-manage-install-mermaid-fetches-the-pinned-mermaid-js-with-curl-and-manage-html-inlines-it-when-installed.md) - Proposed
+* [0094 — Generated retired-record text names no command, so renaming a verb never invalidates a bundle](0094-generated-retired-record-text-names-no-command-so-renaming-a-verb-never-invalidates-a-bundle.md) - Accepted
+* [0095 — A new check rule starts as an advisory and becomes a violation only by a later ADR that counts it over real bundles](0095-a-new-check-rule-starts-as-an-advisory-and-becomes-a-violation-only-by-a-later-adr-that-counts-it-over-real-bundles.md) - Accepted
+* [0096 — check advises on an inline-code repository path that no longer exists](0096-check-advises-on-an-inline-code-repository-path-that-no-longer-exists.md) - Accepted
 
 ## Superseded
 

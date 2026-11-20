@@ -12,6 +12,7 @@ one slice per fresh context, starting from the skeleton.
 * [0126 — Implement ADR 0093: the opt-in decision prompt Stop hook and its installation](0126-implement-adr-0083-the-opt-in-decision-prompt-stop-hook-and-its-installation.md) - open
 * [0132 — The HTML renderer duplicates the record reader and link graph of read records](0132-the-html-renderer-duplicates-the-record-reader-and-link-graph-of-read-records.md) - open
 * [0144 — Engineering-docs roadmap: domain language and rules, decision capture, issue waves, generated diagrams and a local HTML export](0144-engineering-docs-roadmap-domain-language-and-rules-decision-capture-issue-waves-generated-diagrams-and-a-local-html-export.md) - open
+* [0149 — Make the CLI deterministic across releases and close the paths that leave a bundle red or silently wrong](0149-make-the-cli-deterministic-across-releases-and-close-the-paths-that-leave-a-bundle-red-or-silently-wrong.md) - open
 
 ## Closed
 
