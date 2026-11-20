@@ -1,0 +1,1 @@
+Issue 1, the CSV export, is finished and shipped. Please close it. One more thing we settled while finishing it: the export separates fields with semicolons so Excel in European locales opens it cleanly. Add that to the issue's Decision section, and keep the choices that are already recorded there.

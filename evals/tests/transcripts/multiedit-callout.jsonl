@@ -1,0 +1,2 @@
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"MultiEdit","input":{"file_path":"docs/adr/0001-use-sqlite.md","edits":[{"old_string":"x","new_string":"y"},{"old_string":"> **SUPERSEDED — do not act on this record.** Replaced by [0002](0002-x.md).","new_string":"> **DEPRECATED — do not act on this record.**"}]}}]}}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"edited","is_error":false}]}}
