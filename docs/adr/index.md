@@ -62,6 +62,7 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0094 — Generated retired-record text names no command, so renaming a verb never invalidates a bundle](0094-generated-retired-record-text-names-no-command-so-renaming-a-verb-never-invalidates-a-bundle.md) - Accepted
 * [0095 — A new check rule starts as an advisory and becomes a violation only by a later ADR that counts it over real bundles](0095-a-new-check-rule-starts-as-an-advisory-and-becomes-a-violation-only-by-a-later-adr-that-counts-it-over-real-bundles.md) - Accepted
 * [0096 — check advises on an inline-code repository path that no longer exists](0096-check-advises-on-an-inline-code-repository-path-that-no-longer-exists.md) - Accepted
+* [0097 — A stale type index is in scope of a changed record of its type](0097-a-stale-type-index-is-in-scope-of-a-changed-record-of-its-type.md) - Accepted
 
 ## Superseded
 
