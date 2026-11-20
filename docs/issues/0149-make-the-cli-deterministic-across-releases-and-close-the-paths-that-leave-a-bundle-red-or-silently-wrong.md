@@ -28,7 +28,6 @@ Kept: the verb surface, the registry, every existing violation, and the rule tha
 
 ### Decision
 
-
 - Callout text (owner, 2026-11-20): verb-free text, one canonical form. Not taken: verb-free text plus accepting the earlier wordings; keeping the wording and accepting the earlier ones.
 - New rules (owner, 2026-11-20): born advisories, measured over the real bundles before any promotion. Not taken: violations at once; only `stale-successor` as a violation.
 - Code anchor (owner, 2026-11-20): a `path-missing` advisory in `check`. Not taken: the drift skill only; a `covers:` key.
@@ -39,6 +38,9 @@ Kept: the verb surface, the registry, every existing violation, and the rule tha
 - Read-only target: the atomic write refuses an existing file that is not writable, as the in-place write did. Not taken: replacing it through the rename, which silently overwrites a file its owner protected.
 - No un-supersede path: a supersede is undone by hand; the eval scenario for that request passes when the bundle is left uncorrupted. Open for the owner: whether a verb should undo a supersede.
 - Evals: a runner command set by an environment variable drives the model, as the drift skill does for its judge; no model call lives in the workspace crates.
+- Atomic write (owner, 2026-11-20): dropped; record writes stay a plain overwrite. Review showed that replacing by rename trades a partial read for a directory listing that can miss the record for an instant under a concurrent writer, changes the owner of another user's file and breaks a hard link, and the defect that motivated it is covered by the supersede rollback. Not taken: keeping it with the trade-offs documented; keeping it with a retried listing. This supersedes the "Read-only target" bullet above and removes slice S4.
+- Sequence test: bounded exhaustive enumeration with std only. Not taken: `proptest`, a dev-dependency tree and a random seed in a project whose point is reproducibility.
+- Path probe: the existence probe of ADR 0096 is a default method on the store port that answers "unknown" unless the adapter implements it, so every existing store double keeps compiling and the rule is skipped where no repository root exists. Not taken: a second port passed to `check::compile`, which changes every caller's signature.
 
 ### Acceptance
 
