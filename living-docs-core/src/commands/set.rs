@@ -50,7 +50,8 @@ pub struct Applied {
 /// a record closed for good ([`retitle`]). `number` takes `NNNN` or `next`
 /// and does the same for the record's number on any status, refusing a number
 /// a record of the type holds and a record in a supersede link
-/// ([`renumber`]). Nothing is written when
+/// ([`renumber`]). A `status` change is refused, with nothing written, on a
+/// record whose `superseded_by` names a successor. Nothing is written when
 /// the reference is unresolvable or the value fails validation. Returns what
 /// was written — the CLI front renders it as colored text or JSON.
 pub fn apply(
@@ -199,6 +200,7 @@ fn resolve_field(
             let contents = store.read(path).map_err(|e| e.to_string())?;
             let spec = resolve_spec(path, &contents)?;
             validate_status(value, spec)?;
+            refuse_superseded(path, &contents)?;
             plain("status", value.to_string())
         }
         "description" => plain("description", format_scalar(value)),
@@ -233,6 +235,19 @@ fn resolve_spec(path: &Path, contents: &str) -> Result<&'static DocTypeSpec, Str
             path.display()
         )
     })
+}
+
+/// Refuses a status change on a record that names a successor in
+/// `superseded_by`: the link is removed only by hand, so no status can be
+/// set that would contradict it.
+fn refuse_superseded(path: &Path, contents: &str) -> Result<(), String> {
+    match extract_record(path, contents).superseded_by {
+        Some(successor) if !successor.trim().is_empty() => Err(format!(
+            "{}: superseded_by is {successor}; a superseded record keeps its status, and the link is removed only by hand",
+            path.display()
+        )),
+        _ => Ok(()),
+    }
 }
 
 fn validate_status(new_status: &str, spec: &DocTypeSpec) -> Result<(), String> {
