@@ -23,6 +23,7 @@ pub(crate) mod links;
 mod liveness;
 mod mermaid;
 mod moved_source;
+mod path_missing;
 mod placeholder;
 mod read_once;
 mod records;
@@ -108,7 +109,8 @@ fn run_all_checks(
 }
 
 /// The checks on references between records: links resolve and are spelled
-/// relative, no record number is shared, and every issue dependency resolves.
+/// relative, no record number is shared, every issue dependency resolves, and
+/// a repository path named in inline code still exists.
 fn check_references(
     store: &dyn DocStore,
     bundle: &Path,
@@ -119,6 +121,7 @@ fn check_references(
     link_style::check_link_style(store, bundle, all_md, reporter);
     duplicate_numbers::check_duplicate_numbers(bundle, all_md, reporter);
     dependencies::check_dependencies(store, bundle, all_md, reporter);
+    path_missing::check_path_missing(store, all_md, reporter);
 }
 
 /// Runs the per-record frontmatter pass and returns `all_md` without the

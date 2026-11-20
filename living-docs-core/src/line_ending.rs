@@ -95,6 +95,10 @@ impl DocStore for LineEndingStore<'_> {
     fn rename(&self, from: &Path, to: &Path) -> io::Result<()> {
         self.inner.rename(from, to)
     }
+
+    fn repository_entry_exists(&self, relative: &Path) -> Option<bool> {
+        self.inner.repository_entry_exists(relative)
+    }
 }
 
 #[cfg(test)]

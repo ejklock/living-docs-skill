@@ -3,10 +3,7 @@
 //! result, so a dozen checks over the same record cost one read.
 
 use crate::store::DocStore;
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::io;
-use std::path::{Path, PathBuf};
+use std::{cell::RefCell, collections::HashMap, io, path::Path, path::PathBuf};
 
 /// A failed read kept so it can be raised again: the kind, the text every
 /// check prints, and the operating-system code that tells a refusal by the
@@ -64,10 +61,7 @@ impl DocStore for ReadOnceStore<'_> {
             None => {}
         }
         let result = self.inner.read(path);
-        let kept = match &result {
-            Ok(text) => Ok(text.clone()),
-            Err(error) => Err(Failure::of(error)),
-        };
+        let kept = result.as_ref().map(String::clone).map_err(Failure::of);
         self.seen.borrow_mut().insert(path.to_path_buf(), kept);
         result
     }
@@ -78,6 +72,10 @@ impl DocStore for ReadOnceStore<'_> {
 
     fn rename(&self, _from: &Path, _to: &Path) -> io::Result<()> {
         Err(read_only())
+    }
+
+    fn repository_entry_exists(&self, relative: &Path) -> Option<bool> {
+        self.inner.repository_entry_exists(relative)
     }
 }
 

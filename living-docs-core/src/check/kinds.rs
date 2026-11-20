@@ -19,6 +19,7 @@ pub const STATUS_VOCABULARY: &str = "status-vocabulary";
 pub const RECORD_TYPE: &str = "record-type";
 pub const TIMESTAMP: &str = "timestamp";
 pub const STALE_SUCCESSOR: &str = "stale-successor";
+pub const PATH_MISSING: &str = "path-missing";
 
 /// Every kind an advisory can carry, in a stable order.
 pub const ALL: &[Kind] = &[
@@ -66,6 +67,10 @@ pub const ALL: &[Kind] = &[
     Kind {
         name: STALE_SUCCESSOR,
         meaning: "a record names a successor in superseded_by but its status is not Superseded",
+    },
+    Kind {
+        name: PATH_MISSING,
+        meaning: "a live record names, in inline code, a repository path that does not exist",
     },
 ];
 

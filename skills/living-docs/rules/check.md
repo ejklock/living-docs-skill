@@ -31,6 +31,13 @@ every advisory in full, and the JSON output always carries them all. The kinds:
 - `RECORD-TYPE` — a record in a typed directory declares a different type than the directory's.
 - `TIMESTAMP` — a record of a registry type has no timestamp; `living-docs manage fmt` seeds it.
 - `STALE-SUCCESSOR` — a record names a successor in superseded_by but its status is not Superseded.
+- `PATH-MISSING` — a live record names, in inline code outside a fenced block, a repository path that
+  does not exist (`src/gone.rs`, with an optional `:LINE`). A token counts as a path when it holds only
+  letters, digits and `_ . / @ + ~ -`, contains a `/`, and its first segment is an entry of the repository
+  root (the nearest ancestor of the bundle holding `.git`); only existence is probed. An absolute token
+  (`/login`) and a token with a `..` segment are not paths, and neither is one that resolves outside
+  the repository (a symlink leaving it); none of them is advised. Without a repository the rule is skipped;
+  retired records and index files are not examined.
 - `LIVENESS` (`stale-proposed`, ADR 0049, ADR 0079) — an ADR still at its seed status (`Proposed`)
   that an issue already `closed`/`done`/`Superseded` declares it implements: the issue body
   holds `Implements` (any case) followed by a link to the ADR, so the work landed but the record
