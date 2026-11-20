@@ -28,13 +28,16 @@ Kept: the verb surface, the registry, every existing violation, and the rule tha
 
 ### Decision
 
+
 - Callout text (owner, 2026-11-20): verb-free text, one canonical form. Not taken: verb-free text plus accepting the earlier wordings; keeping the wording and accepting the earlier ones.
 - New rules (owner, 2026-11-20): born advisories, measured over the real bundles before any promotion. Not taken: violations at once; only `stale-successor` as a violation.
 - Code anchor (owner, 2026-11-20): a `path-missing` advisory in `check`. Not taken: the drift skill only; a `covers:` key.
 - Commits (owner, 2026-11-20): branch `task/ek-0149-deterministic-cli`, one commit per approved delivery, no push.
 - Status on a superseded record: `write set status` refuses any status change on a record that carries `superseded_by`, as it already refuses a title change on a terminal record. Not taken: clearing the link and the callout, which would be an un-supersede verb nobody asked for.
 - Cross-type supersede: refused. Not taken: writing a typed reference into `superseded_by`, a frontmatter contract change.
-- Changed-only hook: a stale type index is in scope when any record of that type is staged; drift in a record that is not staged stays out of scope, which is what ADR 0081 defines changed-only to mean. Not taken: failing on every index and callout drift regardless of the staged set (the session's first recommendation), which turns changed-only back into the full gate.
+- Changed-only scope (owner, 2026-11-20): a stale type index is in scope when any record of that type is among the changed files, which inverts what `changed_files_reports_drift_only_when_the_drifted_index_is_among_them` asserted; the pre-commit hook also passes staged deletions. Not taken: keeping the earlier contract and fixing only staged deletions; reporting only drift the commit itself caused, which makes check depend on git; failing on every unstaged drift (the session's first recommendation).
+- Read-only target: the atomic write refuses an existing file that is not writable, as the in-place write did. Not taken: replacing it through the rename, which silently overwrites a file its owner protected.
+- No un-supersede path: a supersede is undone by hand; the eval scenario for that request passes when the bundle is left uncorrupted. Open for the owner: whether a verb should undo a supersede.
 - Evals: a runner command set by an environment variable drives the model, as the drift skill does for its judge; no model call lives in the workspace crates.
 
 ### Acceptance
