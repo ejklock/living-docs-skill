@@ -36,7 +36,7 @@ The corpus is append-only (supersede, never rewrite): right for history, wrong a
 
 `index.md` remains the generated on-disk artifact and the human/browser entry point; `read records` is the agent's read surface over the same records.
 
-A raw record opened directly still carries its own stop signal: a body that opens with a `SUPERSEDED` or `DEPRECATED` callout is history. Follow the successor link or discard the record; never plan on it; read `living-docs read records` for what is in force.
+A raw record opened directly still carries its own stop signal: a body that opens with a `SUPERSEDED` or `DEPRECATED` callout is history. Follow the successor link or discard the record; never plan on it; read `living-docs read records` to see what is in force.
 
 ## Heading discipline
 

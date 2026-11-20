@@ -41,8 +41,7 @@ fn set_status_deprecated_adds_the_deprecated_callout() {
     let contents = store.contents("/bundle/adr/0001-a-decision.md");
     assert!(
         contents.contains(
-            "> **DEPRECATED — do not act on this record.** It has no successor. \
-             Run `living-docs read records` for what is in force.\n\n# A Decision"
+            "> **DEPRECATED — do not act on this record.** It has no successor.\n\n# A Decision"
         ),
         "got: {contents}"
     );

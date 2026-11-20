@@ -6,8 +6,7 @@ fn expected_superseded_links_the_resolved_successor() {
     let line = expected(Some("Superseded"), Some("0002-new-record.md")).unwrap();
     assert_eq!(
         line,
-        "> **SUPERSEDED — do not act on this record.** Replaced by [0002](0002-new-record.md). \
-         Run `living-docs read records` for what is in force."
+        "> **SUPERSEDED — do not act on this record.** Replaced by [0002](0002-new-record.md)."
     );
 }
 
@@ -16,8 +15,7 @@ fn expected_superseded_falls_back_to_the_bare_number() {
     let line = expected(Some("superseded"), Some("0002")).unwrap();
     assert_eq!(
         line,
-        "> **SUPERSEDED — do not act on this record.** Replaced by [0002](0002). \
-         Run `living-docs read records` for what is in force."
+        "> **SUPERSEDED — do not act on this record.** Replaced by [0002](0002)."
     );
 }
 
@@ -26,8 +24,7 @@ fn expected_deprecated_has_no_successor_link() {
     let line = expected(Some("Deprecated"), None).unwrap();
     assert_eq!(
         line,
-        "> **DEPRECATED — do not act on this record.** It has no successor. \
-         Run `living-docs read records` for what is in force."
+        "> **DEPRECATED — do not act on this record.** It has no successor."
     );
 }
 
@@ -56,8 +53,7 @@ fn leading_skips_blank_lines_before_the_first_content_line() {
 
 const ACTIVE_BODY: &str = "# Title\n\nBody text.\n";
 const SUPERSEDED_LINE: &str =
-    "> **SUPERSEDED — do not act on this record.** Replaced by [0002](0002.md). \
-     Run `living-docs read records` for what is in force.";
+    "> **SUPERSEDED — do not act on this record.** Replaced by [0002](0002.md).";
 
 #[test]
 fn reconcile_body_adds_a_missing_callout() {
@@ -68,8 +64,7 @@ fn reconcile_body_adds_a_missing_callout() {
 #[test]
 fn reconcile_body_replaces_a_stale_callout() {
     let stale = format!("{SUPERSEDED_LINE}\n\n{ACTIVE_BODY}");
-    let fresh_line = "> **DEPRECATED — do not act on this record.** It has no successor. \
-                       Run `living-docs read records` for what is in force.";
+    let fresh_line = "> **DEPRECATED — do not act on this record.** It has no successor.";
     let reconciled = reconcile_body(&stale, Some(fresh_line));
     assert_eq!(reconciled, format!("{fresh_line}\n\n{ACTIVE_BODY}"));
 }

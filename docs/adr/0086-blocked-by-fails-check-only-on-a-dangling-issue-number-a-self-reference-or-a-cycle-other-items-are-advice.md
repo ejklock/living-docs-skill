@@ -9,7 +9,7 @@ superseded_by: 0088
 timestamp: 2026-11-15T22:15:41Z
 ---
 
-> **SUPERSEDED — do not act on this record.** Replaced by [0088](0088-every-blocked-by-finding-is-advice-and-none-fails-check.md). Run `living-docs read records` for what is in force.
+> **SUPERSEDED — do not act on this record.** Replaced by [0088](0088-every-blocked-by-finding-is-advice-and-none-fails-check.md).
 
 # 0086. blocked_by fails check only on a dangling issue number, a self-reference or a cycle; other items are advice
 

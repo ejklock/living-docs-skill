@@ -95,7 +95,7 @@ fn deprecated_row_has_no_successor() {
 #[test]
 fn history_note_sits_between_the_superseded_heading_and_the_first_retired_row() {
     let contents = indexed_adr_index_contents("history-note");
-    let note = "_History only. Do not act on these records — run `living-docs read records` for what is in force._";
+    let note = "_History only. Do not act on these records._";
     let note_offset = contents.find(note).expect("missing history note");
     let superseded_heading = contents.find("## Superseded").unwrap();
     let first_retired_row = contents.find("0001-old.md").unwrap();

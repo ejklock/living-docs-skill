@@ -7,7 +7,7 @@ status: Deprecated
 timestamp: 2026-09-11T12:52:15Z
 ---
 
-> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.
+> **DEPRECATED — do not act on this record.** It has no successor.
 
 # 0054. Teach record types by a decision test and a counterexample leak table, with a LEAK advisory
 

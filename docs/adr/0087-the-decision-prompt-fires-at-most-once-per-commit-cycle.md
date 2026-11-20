@@ -8,7 +8,7 @@ superseded_by: 0089
 timestamp: 2026-11-15T22:15:56Z
 ---
 
-> **SUPERSEDED — do not act on this record.** Replaced by [0089](0089-the-decision-reminder-is-a-non-blocking-posttooluse-nudge-once-per-commit-cycle.md). Run `living-docs read records` for what is in force.
+> **SUPERSEDED — do not act on this record.** Replaced by [0089](0089-the-decision-reminder-is-a-non-blocking-posttooluse-nudge-once-per-commit-cycle.md).
 
 # 0087. The decision prompt fires at most once per commit cycle
 
