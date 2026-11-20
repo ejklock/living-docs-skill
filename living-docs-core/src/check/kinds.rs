@@ -15,6 +15,10 @@ pub const LIVENESS: &str = "liveness";
 pub const MOVED_SOURCE: &str = "moved-source";
 pub const BLOCKED_BY: &str = "blocked-by";
 pub const LINK_STYLE: &str = "link-style";
+pub const STATUS_VOCABULARY: &str = "status-vocabulary";
+pub const RECORD_TYPE: &str = "record-type";
+pub const TIMESTAMP: &str = "timestamp";
+pub const STALE_SUCCESSOR: &str = "stale-successor";
 
 /// Every kind an advisory can carry, in a stable order.
 pub const ALL: &[Kind] = &[
@@ -46,6 +50,22 @@ pub const ALL: &[Kind] = &[
         name: LINK_STYLE,
         meaning:
             "a link is written bundle-rooted (`/…`) where a relative link is the canonical form",
+    },
+    Kind {
+        name: STATUS_VOCABULARY,
+        meaning: "a record's status is neither in its type's vocabulary nor Superseded",
+    },
+    Kind {
+        name: RECORD_TYPE,
+        meaning: "a record in a typed directory declares a different type than the directory's",
+    },
+    Kind {
+        name: TIMESTAMP,
+        meaning: "a record of a registry type has no timestamp; `living-docs manage fmt` seeds it",
+    },
+    Kind {
+        name: STALE_SUCCESSOR,
+        meaning: "a record names a successor in superseded_by but its status is not Superseded",
     },
 ];
 

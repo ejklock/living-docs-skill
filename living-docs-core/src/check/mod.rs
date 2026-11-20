@@ -12,6 +12,7 @@ mod callout;
 pub(crate) mod canonical;
 mod dependencies;
 mod duplicate_numbers;
+mod frontmatter_advice;
 mod graph;
 pub(crate) use graph::{normpath, reachable_index_set};
 mod index_drift;
@@ -94,6 +95,7 @@ fn run_all_checks(
     moved_source::check_moved_source(store, bundle, &all_md, reporter);
     records::check_owner_requirement(store, &all_md, require_owner, reporter);
     records::check_heading_matches_title(store, &all_md, reporter);
+    frontmatter_advice::check_frontmatter_advice(store, bundle, &all_md, reporter);
     canonical::check_canonical_frontmatter(store, bundle, &all_md, reporter);
     mermaid::check_bundle(&all_md, reporter);
     size::check_body_size(store, &all_md, reporter);

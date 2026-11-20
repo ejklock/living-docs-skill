@@ -27,6 +27,10 @@ every advisory in full, and the JSON output always carries them all. The kinds:
 - `LINK-STYLE` — a link or image written `/`-rooted (`/adr/0007-x.md`); the advisory names the
   relative form to write instead (`../adr/0007-x.md`). It fires whether or not the target exists
   and never moves the exit code.
+- `STATUS-VOCABULARY` — a record's status is neither in its type's vocabulary nor Superseded.
+- `RECORD-TYPE` — a record in a typed directory declares a different type than the directory's.
+- `TIMESTAMP` — a record of a registry type has no timestamp; `living-docs manage fmt` seeds it.
+- `STALE-SUCCESSOR` — a record names a successor in superseded_by but its status is not Superseded.
 - `LIVENESS` (`stale-proposed`, ADR 0049, ADR 0079) — an ADR still at its seed status (`Proposed`)
   that an issue already `closed`/`done`/`Superseded` declares it implements: the issue body
   holds `Implements` (any case) followed by a link to the ADR, so the work landed but the record

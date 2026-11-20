@@ -12,7 +12,7 @@ fn record(owner: bool, extra_lines: usize) -> String {
     let filler = (0..extra_lines)
         .map(|i| format!("line {i}\n"))
         .collect::<String>();
-    format!("---\ntype: ADR\ntitle: Doc\ndescription: A record.\n{owner}status: Accepted\n---\n\n# Doc\n\n{BODY}{filler}")
+    format!("---\ntype: ADR\ntitle: Doc\ndescription: A record.\n{owner}status: Accepted\ntimestamp: 2026-11-20T10:00:00Z\n---\n\n# Doc\n\n{BODY}{filler}")
 }
 
 fn bundle_with(label: &str, records: &[(String, String)], orphan: bool) -> common::Scratch {
