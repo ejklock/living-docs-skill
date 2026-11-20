@@ -32,6 +32,7 @@ fn dirty_bundle(label: &str) -> common::Scratch {
         "adr/0002-dirty.md",
         "---\ntype: ADR\ntitle: Dirty\ndescription: A record with debt.\nowner: a@b.c\nstatus: Accepted\n---\n\n# 0002. Dirty\n\n{{UNFILLED: legacy debt}}\n",
     );
+    common::index_bundle(&bundle);
     bundle
 }
 
