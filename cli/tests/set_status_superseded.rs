@@ -1,6 +1,8 @@
 mod common;
 
-use common::{living_docs, new_two_adrs_and_supersede, run_new, run_supersede, temp_bundle};
+use common::{
+    living_docs, new_two_adrs_and_supersede, run_new, run_supersede, stdout_of, temp_bundle,
+};
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -184,4 +186,17 @@ fn other_keys_on_a_superseded_record_are_untouched_by_the_guard() {
         "the callout is gone: {text}"
     );
     succeeded(&set(&docs, &["adr/0002", "owner", "x"]));
+}
+
+#[test]
+fn help_says_a_status_change_is_refused_on_a_superseded_record() {
+    let out = living_docs()
+        .args(["write", "set", "--help", "--plain"])
+        .output()
+        .unwrap();
+    let help = stdout_of(&out);
+    assert!(
+        help.contains("refused on a record that carries `superseded_by`"),
+        "{help}"
+    );
 }

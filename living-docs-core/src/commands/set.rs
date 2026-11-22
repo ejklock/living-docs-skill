@@ -238,12 +238,12 @@ fn resolve_spec(path: &Path, contents: &str) -> Result<&'static DocTypeSpec, Str
 }
 
 /// Refuses a status change on a record that names a successor in
-/// `superseded_by`: the link is removed only by hand, so no status can be
-/// set that would contradict it.
+/// `superseded_by`, so no status can be set that would contradict the link.
+/// The message names the by-hand edits that undo a supersede.
 fn refuse_superseded(path: &Path, contents: &str) -> Result<(), String> {
     match extract_record(path, contents).superseded_by {
         Some(successor) if !successor.trim().is_empty() => Err(format!(
-            "{}: superseded_by is {successor}; a superseded record keeps its status, and the link is removed only by hand",
+            "{}: superseded_by is {successor}, so its status is not changed; to undo the supersede, by hand remove superseded_by from this record and set its status, remove this record's number from supersedes on {successor}, then run `living-docs manage fmt` and `living-docs manage index`",
             path.display()
         )),
         _ => Ok(()),
