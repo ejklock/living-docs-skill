@@ -28,6 +28,7 @@ Kept: the verb surface, the registry, every existing violation, and the rule tha
 
 ### Decision
 
+
 - Callout text (owner, 2026-11-20): verb-free text, one canonical form. Not taken: verb-free text plus accepting the earlier wordings; keeping the wording and accepting the earlier ones.
 - New rules (owner, 2026-11-20): born advisories, measured over the real bundles before any promotion. Not taken: violations at once; only `stale-successor` as a violation.
 - Code anchor (owner, 2026-11-20): a `path-missing` advisory in `check`. Not taken: the drift skill only; a `covers:` key.
@@ -41,6 +42,8 @@ Kept: the verb surface, the registry, every existing violation, and the rule tha
 - Atomic write (owner, 2026-11-20): dropped; record writes stay a plain overwrite. Review showed that replacing by rename trades a partial read for a directory listing that can miss the record for an instant under a concurrent writer, changes the owner of another user's file and breaks a hard link, and the defect that motivated it is covered by the supersede rollback. Not taken: keeping it with the trade-offs documented; keeping it with a retried listing. This supersedes the "Read-only target" bullet above and removes slice S4.
 - Sequence test: bounded exhaustive enumeration with std only. Not taken: `proptest`, a dev-dependency tree and a random seed in a project whose point is reproducibility.
 - Path probe: the existence probe of ADR 0096 is a default method on the store port that answers "unknown" unless the adapter implements it, so every existing store double keeps compiling and the rule is skipped where no repository root exists. Not taken: a second port passed to `check::compile`, which changes every caller's signature.
+- Type token case (2026-11-22, after the owner asked to close the minor items before release): a CLI type token matches its registry row ignoring ASCII case (`ADR/0001`, `write new ADR`), in `doc_type::spec_for` only; a directory on disk still matches exactly. Not taken: keeping the refusal with a "did you mean" hint, which still costs the caller a retry.
+- Cross-type refusal wording: the message names both types without an article, so no type reads "a ADR". Not taken: choosing the article per type, which a new registry row would have to remember.
 
 ### Acceptance
 
@@ -56,6 +59,7 @@ Kept: the verb surface, the registry, every existing violation, and the rule tha
 
 ### Plan
 
+
 - S1: the retired-record callouts and the index history note name no command, and `manage fmt` plus `manage index` migrate each earlier wording | files: living-docs-core/src/callout.rs, living-docs-core/src/commands/index/rows.rs, their tests and fixtures, skills/living-docs/rules/semantic-index.md, skills/living-docs/templates/claude-hard-rules.md, skills/living-docs-drift/tests/fixtures | after: none
 - S2: `write set status` refuses a record that carries `superseded_by` | files: living-docs-core/src/commands/set.rs, a new sibling test file | after: none
 - S3: `write supersede` refuses two records of different types and rolls back when a later write fails | files: living-docs-core/src/commands/supersede | after: none
@@ -66,6 +70,10 @@ Kept: the verb surface, the registry, every existing violation, and the rule tha
 - S8: the path-missing advisory | files: living-docs-core/src/check, fs-store/src, the store port | after: S4, S5
 - S9: property test over sequences of write verbs | files: cli/tests (create), cli/Cargo.toml, Cargo.lock | after: S1, S2, S3
 - S10: migrate this bundle with the new binary, document the five kinds in the skill rules, measure the kinds over the surveyed bundles, run the evals with a model and a terminal walkthrough | files: docs, skills/living-docs/rules | after: S1, S5, S7, S8
+- S11: a type token in any case resolves to its registry row | files: living-docs-core/src/doc_type.rs, living-docs-core/src/doc_type/tests.rs, cli/tests (new file) | after: none
+- S12: the cross-type supersede refusal names both types without an article | files: living-docs-core/src/commands/supersede/same_type.rs, the test that asserts its text | after: none
+- S13: the sequence search fails when its call into the contract skips a part | files: fs-store/tests/write_sequences.rs, fs-store/tests/write_sequences/ | after: none
+- S14: the constitution names the shipped verbs (`read records`, four verbs and `mcp`) | files: docs/constitution.md | after: none
 
 ### Outcome
 
