@@ -29,6 +29,7 @@ Kept: the verb surface, the registry, every existing violation, and the rule tha
 ### Decision
 
 
+
 - Callout text (owner, 2026-11-20): verb-free text, one canonical form. Not taken: verb-free text plus accepting the earlier wordings; keeping the wording and accepting the earlier ones.
 - New rules (owner, 2026-11-20): born advisories, measured over the real bundles before any promotion. Not taken: violations at once; only `stale-successor` as a violation.
 - Code anchor (owner, 2026-11-20): a `path-missing` advisory in `check`. Not taken: the drift skill only; a `covers:` key.
@@ -37,13 +38,16 @@ Kept: the verb surface, the registry, every existing violation, and the rule tha
 - Cross-type supersede: refused. Not taken: writing a typed reference into `superseded_by`, a frontmatter contract change.
 - Changed-only scope (owner, 2026-11-20): a stale type index is in scope when any record of that type is among the changed files, which inverts what `changed_files_reports_drift_only_when_the_drifted_index_is_among_them` asserted; the pre-commit hook also passes staged deletions. Not taken: keeping the earlier contract and fixing only staged deletions; reporting only drift the commit itself caused, which makes check depend on git; failing on every unstaged drift (the session's first recommendation).
 - Read-only target: the atomic write refuses an existing file that is not writable, as the in-place write did. Not taken: replacing it through the rename, which silently overwrites a file its owner protected.
-- No un-supersede path: a supersede is undone by hand; the eval scenario for that request passes when the bundle is left uncorrupted. Open for the owner: whether a verb should undo a supersede.
+- No un-supersede path: a supersede is undone by hand; the eval scenario for that request passes when the bundle is left uncorrupted.
 - Evals: a runner command set by an environment variable drives the model, as the drift skill does for its judge; no model call lives in the workspace crates.
 - Atomic write (owner, 2026-11-20): dropped; record writes stay a plain overwrite. Review showed that replacing by rename trades a partial read for a directory listing that can miss the record for an instant under a concurrent writer, changes the owner of another user's file and breaks a hard link, and the defect that motivated it is covered by the supersede rollback. Not taken: keeping it with the trade-offs documented; keeping it with a retried listing. This supersedes the "Read-only target" bullet above and removes slice S4.
 - Sequence test: bounded exhaustive enumeration with std only. Not taken: `proptest`, a dev-dependency tree and a random seed in a project whose point is reproducibility.
 - Path probe: the existence probe of ADR 0096 is a default method on the store port that answers "unknown" unless the adapter implements it, so every existing store double keeps compiling and the rule is skipped where no repository root exists. Not taken: a second port passed to `check::compile`, which changes every caller's signature.
 - Type token case (2026-11-22, after the owner asked to close the minor items before release): a CLI type token matches its registry row ignoring ASCII case (`ADR/0001`, `write new ADR`), in `doc_type::spec_for` only; a directory on disk still matches exactly. Not taken: keeping the refusal with a "did you mean" hint, which still costs the caller a retry.
 - Cross-type refusal wording: the message names both types without an article, so no type reads "a ADR". Not taken: choosing the article per type, which a new registry row would have to remember.
+- Undoing a supersede (owner, 2026-11-22): stays by hand, guided by the status refusal. Not taken: a `write unsupersede` verb, a public surface with no measured use.
+- Subproject-relative paths in path-missing (owner, 2026-11-22): a path still resolves from the repository root only, and those findings stay advisories. Not taken: accepting a path found under any first-level subdirectory, which hides a path gone from the root; a configured list of search roots, a new config contract.
+- Advisory promotion (owner, 2026-11-22): `stale-successor` becomes a violation by its own ADR, since it has 0 hits over the surveyed bundles; the other kinds stay advisories. Not taken: no promotion before release; promoting `status-vocabulary` too, with 319 hits.
 
 ### Acceptance
 
@@ -60,6 +64,7 @@ Kept: the verb surface, the registry, every existing violation, and the rule tha
 ### Plan
 
 
+
 - S1: the retired-record callouts and the index history note name no command, and `manage fmt` plus `manage index` migrate each earlier wording | files: living-docs-core/src/callout.rs, living-docs-core/src/commands/index/rows.rs, their tests and fixtures, skills/living-docs/rules/semantic-index.md, skills/living-docs/templates/claude-hard-rules.md, skills/living-docs-drift/tests/fixtures | after: none
 - S2: `write set status` refuses a record that carries `superseded_by` | files: living-docs-core/src/commands/set.rs, a new sibling test file | after: none
 - S3: `write supersede` refuses two records of different types and rolls back when a later write fails | files: living-docs-core/src/commands/supersede | after: none
@@ -74,6 +79,7 @@ Kept: the verb surface, the registry, every existing violation, and the rule tha
 - S12: the cross-type supersede refusal names both types without an article | files: living-docs-core/src/commands/supersede/same_type.rs, the test that asserts its text | after: none
 - S13: the sequence search fails when its call into the contract skips a part | files: fs-store/tests/write_sequences.rs, fs-store/tests/write_sequences/ | after: none
 - S14: the constitution names the shipped verbs (`read records`, four verbs and `mcp`) | files: docs/constitution.md | after: none
+- S15: `stale-successor` is a check violation (ADR 0098) | files: living-docs-core/src/check, cli/tests/check_frontmatter_advice.rs, fs-store/tests/write_sequences, skills/living-docs/rules/check.md | after: S13
 
 ### Outcome
 
