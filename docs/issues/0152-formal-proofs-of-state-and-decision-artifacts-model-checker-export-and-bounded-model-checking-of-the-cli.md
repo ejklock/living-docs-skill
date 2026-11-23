@@ -42,3 +42,4 @@ Kept: the determinism boundary (no model inside the binary, no external tool run
 - S4: `decision-table` advisory | files: living-docs-core/src/check (new modules), check/kinds.rs, skills/living-docs/templates/domain.md, skills/living-docs/rules | after: S2
 - S5: bounded enumerations proving glob-pruning soundness and hash-order independence | files: living-docs-core/src/inputs_hash/exhaustive.rs, living-docs-core/src/exhaustive.rs | after: S3
 - S6: `manage view <view> --export tla` | files: cli/src/args/manage.rs, cli/src/commands, living-docs-core, skill recipe | after: S2, issue 0151 S2
+- S7: the MCP `manage` tool's view operation exposes `export` with the same output as `manage view --export tla` (review of S6 found the parity gap) | files: mcp/src/tools.rs, mcp tests | after: S6
