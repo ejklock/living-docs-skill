@@ -2,7 +2,7 @@
 type: Issue
 title: Make the CLI deterministic across releases and close the paths that leave a bundle red or silently wrong
 description: Implements ADR 0094, 0095 and 0096 and fixes the supersede, hook and write-path defects the 2026-11-20 audit reproduced, with a property test and model-driven evals.
-status: open
+status: closed
 timestamp: 2026-11-20T16:31:10Z
 ---
 

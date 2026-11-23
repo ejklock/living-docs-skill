@@ -3,7 +3,7 @@ type: ADR
 title: stale-successor becomes a check violation after counting zero hits over real bundles
 description: A record with superseded_by and a status other than Superseded now fails check; the other advisory kinds stay advisories.
 owner: Evaldo Klock
-status: Proposed
+status: Accepted
 timestamp: 2026-11-22T23:14:37Z
 ---
 
