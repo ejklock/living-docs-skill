@@ -39,8 +39,10 @@ Kept: every existing type, the `architecture` views and numbered types staying o
 
 ### Plan
 
+
 - S1: the `domain` row, `Identity::Nested`, its template and every exhaustive match, with `write new domain` placing at the root of `docs/context/` | files: living-docs-core/src/doc_type.rs, doc_type tests, skills/living-docs/templates/domain.md (create), the match sites, cli/src/args/help.rs | after: none
 - S2: `--dir` on `write new` (CLI and MCP) with path validation | files: living-docs-core/src/commands/new.rs, new/fill.rs, cli/src/args/sub.rs, cli/src/commands/new.rs, mcp/src/args.rs, mcp/src/tools.rs, tests | after: S1
 - S3: nested records reached by index, check, fmt, references and read; generated folder-grouped context index | files: living-docs-core/src/commands/index (named.rs, index.rs), check/placeholder.rs, check/index_drift.rs, commands/reference/lookup.rs, tests | after: S1
 - S4: the `anchor-missing` advisory and the GitHub heading slug | files: living-docs-core/src/check/links.rs, a new slug module, check/kinds.rs, cli/tests | after: none
 - S5: skill rules for domain records and anchors, retire templates/context-index.md, help examples | files: skills/living-docs/rules, skills/living-docs/templates/context-index.md, cli/src/args/help.rs | after: S2, S3, S4
+- S6: the generated context index carries each record's description as ADR 0099 states, and `write new domain --dir` regenerates the context index like a root-level write | files: living-docs-core/src/commands/index/named.rs, living-docs-core/src/commands/index.rs, living-docs-core/src/commands/new.rs, cli/tests | after: S3
