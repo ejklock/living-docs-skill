@@ -20,10 +20,6 @@ Kept: the determinism boundary (no model inside the binary, no external tool run
 
 ### Decision
 
-
-
-
-
 - Formal verification (owner, 2026-11-23): all three arms: proofs of state and decision-table artifacts in `check`; export of state views to a model-checker specification for the project's CI; bounded model checking of the CLI's own pure functions. Not taken: any one arm alone (the session recommended the `check` proofs first, the export only on demand).
 - Proofs Kani cannot reach as the code stands (owner, 2026-11-23): refactor production code so glob pruning soundness and hash order independence become provable: a segment matcher without `regex` beside the regex one, and the canonical byte stream split from the SHA-256 digest. Not taken: property tests with a random seed for those two (rejected for determinism in issue 0149); leaving them to today's example tests.
 - Export format (owner, 2026-11-23): TLA+ only; Alloy on demand. Not taken: TLA+ and Alloy, two output grammars to keep.
@@ -31,7 +27,7 @@ Kept: the determinism boundary (no model inside the binary, no external tool run
 - State checks (design review): unreachable state, dead end (a non-final state with no outgoing transition and no ancestor composite that has one), and more than one initial transition in a scope; "undeclared state" and "transition from a final state" are dropped, since Mermaid creates every named state and `[*]` on the right is always an end.
 - Kani locally (owner, 2026-11-23): Kani and its toolchain are installed on the development machine so every harness runs before a push; the manual-dispatch CI job still runs them. Not taken: running Kani only in CI, where a harness would land on the branch without ever having run.
 - Proof scope after measuring Kani (owner, 2026-11-23): at the first bounds only the CRLF harness closed (4 bytes, about 3.5 minutes); slugify and the subfolder validation never finished, because slugify runs through Unicode normalisation tables. Kani now proves slugify on ASCII input with the Unicode transliteration stubbed, the subfolder validation against the proved slugify contract, the marker parser and CRLF at small bounds; a bounded exhaustive enumeration in the normal test suite covers every string up to a small length over an alphabet that includes non-ASCII letters, `/`, `..`, CR, LF and space. Not taken: compositional Kani alone; enumeration alone; keeping only the harnesses that closed.
-- Proof closure (owner, 2026-11-23, after a second Kani round): bounded exhaustive enumeration in the normal test suite is the main proof of slugify, the subfolder validation and CRLF normalisation (11,111, 19,608 and 127 cases in 0.09 s); Kani keeps only the harnesses that finish, CRLF and the marker parser at small bounds, in the manual job. Not taken: Kani at smaller bounds than the enumeration already covers; Kani with a model replacing std Path.
+- Proof closure (owner, 2026-11-23, after a second Kani round): bounded exhaustive enumeration in the normal test suite is the main proof of slugify, the subfolder validation and CRLF normalisation (11,111, 19,608 and 127 cases in 0.09 s); Kani keeps only the harnesses that finish, in the manual job: CRLF at 4 bytes, which covers all 256 byte values; the marker parser gave no verdict at 1- and 2-byte gaps, so a bounded enumeration over marker, fence and text lines proves it never panics and returns ordered spans. Not taken: Kani at smaller bounds than the enumeration already covers; Kani with a model replacing std Path.
 
 ### Acceptance
 
