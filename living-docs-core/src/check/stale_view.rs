@@ -3,6 +3,8 @@
 //! region's command is never run. A store that knows no repository root keeps
 //! the rule silent; a stamp that cannot be parsed or hashed is advised as
 //! unverifiable. An unstamped region is never judged. It never fails the gate.
+//! The advisory's anchors are the view followed by each input glob, so a
+//! scope of changed inputs can keep it by matching a glob.
 
 use super::records::{for_each_readable_record, frontmatter_scalar};
 use super::{kinds, Reporter};
@@ -95,7 +97,9 @@ fn judge(
             format!("the generated region at line {line} cannot be checked: {reason}")
         }
     };
-    reporter.advise(view, kinds::STALE_VIEW, message);
+    let mut members = vec![view.to_path_buf()];
+    members.extend(region.inputs.iter().map(PathBuf::from));
+    reporter.advise_group(&members, kinds::STALE_VIEW, message);
 }
 
 fn hash_of(store: &dyn DocStore, globs: &[String]) -> Outcome {

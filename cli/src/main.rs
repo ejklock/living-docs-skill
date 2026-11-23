@@ -43,7 +43,10 @@ fn run_check(
         docs_dir,
         args.paths,
         args.require_owner,
-        &args.changed_files,
+        &commands::check::Changes {
+            files: &args.changed_files,
+            inputs_from: args.changed_inputs_from.as_deref(),
+        },
         mode,
         color,
         &commands::check::Verbosity {
