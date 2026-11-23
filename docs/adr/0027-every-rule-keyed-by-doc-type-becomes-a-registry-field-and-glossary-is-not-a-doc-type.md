@@ -69,6 +69,8 @@ frontmatter — directory scaffolds, not records.
 We will move every rule keyed by doc type into `DocTypeSpec`, beginning with the body-size
 rule, and we will not make `glossary` a registry row.
 
+> Amended by [ADR 0099](0099-domain-records-are-a-registry-type-in-docs-context-nested-in-folders-by-bounded-context.md): the context files, the glossary among them, became records of a `domain` row in `docs/context/`. The size-target decision below stands.
+
 `has_size_target` becomes a `body_size` field on the row, typed as an enum rather than a
 `bool` so that a call site reads as a rule and a future third rule stays representable.
 `check::size` reads that rule through the registry instead of matching on strings, and its

@@ -28,6 +28,10 @@ Plan:
 
 ### Decision
 
+
+
+
+
 - Rules home: trial with a hand-kept context file, then a `domain` type. Not taken: `domain` type at once; a PRD section; the issue stays the home.
 - Decision capture: opt-in Stop hook, measured as an experiment. Not taken: session line only; a `Decision:` commit trailer (a second gate that invites a reflexive `none`); governance globs in check (Deprecated ADR 0032 again).
 - `blocked_by` referent: local record numbers. Not taken: tracker numbers (check cannot resolve them offline); free text (today, unvalidated).
@@ -40,6 +44,11 @@ Plan:
 - QA friction pass (2026-11-15): the strict blocked_by rule blocked four real bundles (agent-memory 143 violations from 'ADR NNNN', '#N' and free-text items) and the decision prompt re-prompted on every coding turn. Chosen: only a dangling issue number, a self-reference and a cycle fail check, other items are advice (ADR 0086, superseding 0092); the prompt fires at most once per commit cycle (ADR 0087). Not taken: keep blocked_by strict, advisory for one release then strict, once per change set, once per session.
 - Nudge, never block (2026-11-15): every blocked_by finding is advice (ADR 0088, superseding 0086), and the decision reminder is a non-blocking PostToolUse additionalContext nudge after Edit or Write, once per commit cycle (ADR 0089, superseding 0093 and 0087). Not taken: keep dangling numbers and cycles blocking, make the whole pre-commit gate advisory, keep the Stop hook, a UserPromptSubmit nudge, removing the hook.
 - Rejected: BR-ID grammar, rule-to-test orphan report (the traceability pass ADR 0057 removed), Vale emitter, `use-case` view kind (fails `check --mermaid-only`), file-overlap key.
+- Trial bundles for the hand-kept context file (owner, 2026-11-22): the two consumer bundles with the most normative prose; one of them first clears its `check` violations. Not taken: `qa-walkthrough-cli` alone, whose bundle holds few business rules.
+- Domain record type now (owner, 2026-11-22, after the advisor's design review): a `domain` registry type with a scaffold holding Terms and Rules, a generated index, and `check` resolving a link's `#anchor` against a heading of the target; this overrides "trial first, then type" in the Rules-home bullet, and the S0 trial is replaced by migrating the two bundles onto the type. Not taken: only the rule-heading convention in the skill (option A); the convention plus the anchor advisory, with the type gated on the trial (option B, the session's recommendation).
+- Nested domain records (owner, 2026-11-22): `write new domain` takes a directory under the domain root, so an author groups records by bounded context in folders (`<root>/<context>/<slug>.md`); the CLI owns the path, frontmatter, sections and index. Not taken: one flat directory of context files, which `Identity::Named` allows today.
+- Domain root (owner, 2026-11-22): the type lives in the existing `docs/context/` with `type: Context`, so the context files consumers already keep become records without moving and their links keep resolving. Not taken: a new `docs/domain/` with `type: Domain`, which moves every file and rewrites every link to it.
+- Nesting depth (owner, 2026-11-22): any depth under the domain root; the generated index renders the folder tree. Not taken: one level (`context/<bounded-context>/<file>.md`, the session's recommendation), which keeps one predictable taxonomy across bundles.
 
 ### Acceptance
 
