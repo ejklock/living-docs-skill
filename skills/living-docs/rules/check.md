@@ -52,6 +52,11 @@ every advisory in full, and the JSON output always carries them all. The kinds:
   sits in no composite with one (a state whose only transition is to itself counts as having one; add `X --> [*]` if it is terminal), and a scope with more than one initial transition. Notes
   are ignored; choice, fork and join are plain states. A diagram with concurrent regions (`--`) or no root `[*]` gets one
   "not proved" advisory. Only state views are judged; the exit code stays put.
+- `DECISION-TABLE` (ADR 0102) — a table marked `<!-- decision-table -->` or `<!-- decision-table: first -->` under a `###` rule of a
+  domain record: a combination of the declared condition values no row covers, two rows with different outcomes on one
+  combination (default policy), a row fully shadowed by earlier rows (`first`), a value outside its condition's domain, a
+  malformed marker or header, or a table over 4096 combinations ("too large to prove"). An unmarked table is never read; the
+  exit code stays put. The grammar is in `read guide domain`.
 - `LIVENESS` (`stale-proposed`, ADR 0049, ADR 0079) — an ADR still at its seed status (`Proposed`)
   that an issue already `closed`/`done`/`Superseded` declares it implements: the issue body
   holds `Implements` (any case) followed by a link to the ADR, so the work landed but the record
