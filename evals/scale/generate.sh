@@ -29,9 +29,9 @@ plant_fields() { # plant_fields <t1|t2> <same|para>: title, description, context
 	t1-same) printf '%s\t%s\t%s\t%s' "Keep user sessions in Redis" "Every user session lives in a shared Redis cluster that all app nodes read." \
 		"App nodes come and go behind the load balancer, so a user session must survive a node." \
 		"keep every user session in a shared Redis cluster that all app nodes read and write" ;;
-	t1-para) printf '%s\t%s\t%s\t%s' "Shared key-value store for login state" "Login state for every visitor sits in one central in-memory key-value cluster." \
-		"Web servers come and go behind the balancer, so login state must outlive any one server." \
-		"hold the login state of every visitor in one central in-memory key-value cluster that all web servers share" ;;
+	t1-para) printf '%s\t%s\t%s\t%s' "Shared key-value store for login state" "Login state for every visitor sits in one central key-value cluster." \
+		"Web servers come and go behind the router, so login state must outlive any one server." \
+		"hold the login state of every visitor in one central key-value cluster that all web servers share" ;;
 	t2-same) printf '%s\t%s\t%s\t%s' "Store uploads in S3 and serve them through the CDN" "Uploaded files are stored in S3 and served to users through the CDN." \
 		"Users upload files that other users download, and downloads come from every region." \
 		"store every uploaded file in S3 and serve uploaded files to users through the CDN" ;;

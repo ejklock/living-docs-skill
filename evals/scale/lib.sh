@@ -10,7 +10,7 @@
 #
 # expect prints one line per finding, each with a prefix the aggregator reads:
 #   missed:      the planted record is not caught
-#   false-alarm: another record is superseded (unprompted) or listed (prompted)
+#   false-alarm: another record is newly superseded, or listed in CONFLICTS.txt (prompted)
 #   incomplete:  the decision is not recorded, check is red, or CONFLICTS.txt is absent
 
 . "$(dirname "${BASH_SOURCE[0]}")/common.sh"
@@ -88,16 +88,16 @@ scale_new_records() { # prints the path of every record added since the baseline
 
 scale_linked() { # scale_linked <number>: a record added since the baseline names it
 	local pattern file
-	pattern="(^|[^0-9])$(scale_padded "$1")([^0-9]|$)|[Aa][Dd][Rr][ /#-]*0*$1([^0-9]|$)"
+	pattern="(^|[^0-9])$(scale_padded "$1")([^0-9]|$)|[Aa][Dd][Rr][Ss]?[ /#-]*0*$1([^0-9]|$)"
 	while IFS= read -r file; do
 		[[ -f "$file" ]] && grep -q -E "$pattern" "$file" && return 0
 	done < <(scale_new_records)
 	return 1
 }
 
-scale_listed() { # prints the numbers in CONFLICTS.txt, one per line, without leading zeros
+scale_listed() { # prints the record number each CONFLICTS.txt line starts with, after an optional bullet and adr/ or ADR prefix; a line starting with text lists nothing
 	[[ -f CONFLICTS.txt ]] || return 0
-	grep -o -E '[0-9]+' CONFLICTS.txt | sed -E 's/^0+([0-9])/\1/' | sort -un
+	sed -n -E 's/^[[:space:]]*([-*][[:space:]]+)?([Aa][Dd][Rr][ \/#-]*)?([0-9]+).*/\3/p' CONFLICTS.txt | sed -E 's/^0+([0-9])/\1/' | sort -un
 }
 
 scale_new_adr_in_force() {
@@ -124,6 +124,9 @@ scale_judge_prompted() { # scale_judge_prompted <plant number>
 	[[ -f CONFLICTS.txt ]] || eval_fail "incomplete: no CONFLICTS.txt"
 	for n in $(scale_listed); do
 		if [[ "$n" == "$plant" ]]; then caught=1; else eval_fail "false-alarm: $n is listed in CONFLICTS.txt"; fi
+	done
+	for n in $(scale_newly_superseded); do
+		[[ "$n" == "$plant" ]] || eval_fail "false-alarm: adr/$(scale_padded "$n") was superseded"
 	done
 	((plant == 0 || caught == 1)) || eval_fail "missed: adr/$(scale_padded "$plant") is not listed in CONFLICTS.txt"
 }

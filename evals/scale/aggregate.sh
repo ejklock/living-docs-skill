@@ -9,15 +9,17 @@
 #   rows    one per scenario run: type, size, wording, position, arm, model (the transcript's init
 #           line, else "unknown"), caught (null for a control), false_alarm, incomplete,
 #           read_before_first_write, cost_usd (the last result line, else null), setup_failed,
-#           runner_failed
+#           runner_failed, unscored
 #   groups  by type, size, wording, position, arm, model and the cell type/size/wording/arm/model:
 #           runs, excluded, planted, catches, catch_rate (null with no planted run), false_alarms,
 #           false_alarm_rate, read_before_first_write counts and the summed known cost
 #   total   runs, excluded and the summed known cost
 #   rule    the catch rate of the unprompted arm at the large size, of the prompted arm at the large
 #           size and of the unprompted arm at the small size, and build_o2: true exactly when the
-#           first is below either of the others
-# A run whose setup or runner failed has a row and is excluded from every rate. --markdown prints
+#           first is below either of the others; per_model holds the same three rates and build_o2
+#           for each model
+# A run whose setup or runner failed, or whose expect_failures is null or holds a line starting with
+# none of missed:, false-alarm:, incomplete: (unscored), has a row and is excluded from every rate. --markdown prints
 # the same as tables. Needs bash and jq. Exit: 0 = printed, 2 = bad usage.
 
 set -uo pipefail
@@ -31,21 +33,28 @@ split("\n") | map(try fromjson catch empty) | map(select(type == "object")) |
  cost_usd: ([.[] | select(.type == "result" and ((.total_cost_usd | type) == "number")) | .total_cost_usd] | last)}'
 
 readonly ROW_PROGRAM='
-(.scenario | capture($pattern)) as $n | (.expect_failures // []) as $lines |
+(.scenario | capture($pattern)) as $n | .expect_failures as $raw |
+(($raw | type) != "array" or ($raw | any(type != "string" or (startswith("missed:") or startswith("false-alarm:") or startswith("incomplete:") | not)))) as $unscored |
+(if ($raw | type) == "array" then [$raw[] | select(type == "string")] else [] end) as $lines |
 {scenario, type: $n.type, size: ($n.size | tonumber), wording: ($n.wording // "none"), position: ($n.position // "none"),
- arm: $n.arm, model: $t.model, setup_failed: (.setup_failed == true), runner_failed: (.runner_failed == true),
- caught: (if $n.type == "control" then null else ($lines | any(startswith("missed:")) | not) end),
+ arm: $n.arm, model: $t.model, unscored: $unscored, setup_failed: (.setup_failed == true), runner_failed: (.runner_failed == true),
+ caught: (if $n.type == "control" or $unscored then null else ($lines | any(startswith("missed:")) | not) end),
  false_alarm: ($lines | any(startswith("false-alarm:"))), incomplete: ($lines | any(startswith("incomplete:"))),
  read_before_first_write: .usage.read_before_first_write, cost_usd: $t.cost_usd}'
 
 readonly STATS_DEFS='
-def scored: (.setup_failed | not) and (.runner_failed | not);
+def scored: (.setup_failed | not) and (.runner_failed | not) and (.unscored | not);
 def rate($part; $whole): if $whole == 0 then null else $part / $whole end;
 def count($rows; f): $rows | map(select(f)) | length;
 def summed: map(.cost_usd | select(. != null)) | if length == 0 then null else add end;
 def planted_rate($rows; $arm; $size):
 	[$rows[] | select(scored and .caught != null and .arm == $arm and .size == $size)] as $p
 	| rate(count($p; .caught); $p | length);
+def rule_of($rows; $sizes):
+	planted_rate($rows; "unprompted"; $sizes[1]) as $ul | planted_rate($rows; "prompted"; $sizes[1]) as $pl
+	| planted_rate($rows; "unprompted"; $sizes[0]) as $us
+	| {unprompted_large: $ul, prompted_large: $pl, unprompted_small: $us,
+	   build_o2: ($ul != null and (($pl != null and $ul < $pl) or ($us != null and $ul < $us)))};
 def stats($all):
 	[$all[] | select(scored)] as $r | [$r[] | select(.caught != null)] as $p
 	| {runs: ($r | length), excluded: (($all | length) - ($r | length)), planted: ($p | length), catches: count($p; .caught),
@@ -57,15 +66,13 @@ def grouped(key): group_by(key | tostring) | map({key: (.[0] | key | tostring)} 
 
 readonly AGGREGATE_PROGRAM="$STATS_DEFS"'
 . as $rows | ([$rows[] | select(scored) | .size] | [min, max]) as $sizes |
-planted_rate($rows; "unprompted"; $sizes[1]) as $ul | planted_rate($rows; "prompted"; $sizes[1]) as $pl |
-planted_rate($rows; "unprompted"; $sizes[0]) as $us |
 {rows: $rows,
  groups: {type: grouped(.type), size: grouped(.size), wording: grouped(.wording), position: grouped(.position),
 	arm: grouped(.arm), model: grouped(.model),
 	cell: grouped([.type, .size, .wording, .arm, .model] | join("/"))},
  total: {runs: ($rows | length), excluded: (count($rows; scored | not)), cost_usd: ($rows | summed)},
- rule: {small_size: $sizes[0], large_size: $sizes[1], unprompted_large: $ul, prompted_large: $pl, unprompted_small: $us,
-	build_o2: ($ul != null and (($pl != null and $ul < $pl) or ($us != null and $ul < $us)))}}'
+ rule: ({small_size: $sizes[0], large_size: $sizes[1]} + rule_of($rows; $sizes) +
+	{per_model: ([$rows[].model] | unique | map(. as $m | {key: $m, value: rule_of([$rows[] | select(.model == $m)]; $sizes)}) | from_entries)})}'
 
 readonly MARKDOWN_PROGRAM='
 def cell: if . == null then "n/a" else (. * 100 | round / 100 | tostring) end;
@@ -79,7 +86,8 @@ table("By cell (type/size/wording/arm/model)"; .groups.cell),
 "## Total", "", "runs: \(.total.runs), excluded: \(.total.excluded), cost: \(.total.cost_usd | cell)", "",
 "## Decision rule", "",
 "unprompted at \(.rule.large_size): \(.rule.unprompted_large | cell), prompted at \(.rule.large_size): \(.rule.prompted_large | cell), unprompted at \(.rule.small_size): \(.rule.unprompted_small | cell)",
-"build_o2: \(.rule.build_o2)"'
+"build_o2: \(.rule.build_o2)", "",
+(.rule.large_size as $large | .rule.small_size as $small | .rule.per_model | to_entries[] | "\(.key): unprompted at \($large): \(.value.unprompted_large | cell), prompted at \($large): \(.value.prompted_large | cell), unprompted at \($small): \(.value.unprompted_small | cell), build_o2: \(.value.build_o2)")'
 
 die() {
 	printf 'aggregate: %s\n' "$*" >&2

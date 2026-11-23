@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # scale.sh — tests for the scale scenarios: the generator, the bundles setup.sh builds, the
-# unprompted and prompted scoring of expect.sh, and the aggregator. Sourced by run.sh, which
+# unprompted and prompted scoring of expect.sh, the paraphrase vocabulary, and the aggregator. Sourced by run.sh, which
 # provides TMP, HERE, EVALS, assert_eq, assert_true, run_eval and wanted. Scenarios are generated
 # into $TMP; the scripted stand-in scale-solve.sh stands in for the agent.
 
@@ -170,7 +170,7 @@ test_scale_unprompted_mentions() {
 	echo "scale unprompted scoring: mentions"
 	local dir="$TMP/unp-scenarios" name=t1-12-same-early-unprompted scratch mention
 	scale_small "$dir"
-	for mention in "See $SCALE_KIND/0003." "See ${SCALE_KIND^^} 0003." "See ${SCALE_KIND^^}-3." "See 0003-keep-user-sessions-in-redis.md."; do
+	for mention in "See $SCALE_KIND/0003." "See ${SCALE_KIND^^} 0003." "See ${SCALE_KIND^^}-3." "See 0003-keep-user-sessions-in-redis.md." "See ${SCALE_KIND^^}s 3." "See ${SCALE_KIND^^}s 0003 and 0005."; do
 		scratch="$(scale_case "$dir" "$name")"
 		scale_add_adr "$scratch" "$mention" >/dev/null
 		scale_score "$dir" "$name" "$scratch"
@@ -228,10 +228,11 @@ test_scale_unprompted_baseline() {
 	assert_eq "a control with any supersede is a false alarm" 1 "$(scale_count false-alarm:)"
 }
 
-scale_conflicts() { # scale_conflicts <name> <content | NONE>: scores a scratch with that CONFLICTS.txt; sets OUTPUT
-	local dir="$TMP/unp-scenarios" scratch
+scale_conflicts() { # scale_conflicts <name> <content | NONE> [superseded number]: scores a scratch with that CONFLICTS.txt; sets OUTPUT
+	local dir="$TMP/unp-scenarios" scratch new
 	scratch="$(scale_case "$dir" "$1")"
-	scale_add_adr "$scratch" "Nothing else." >/dev/null
+	new="$(scale_add_adr "$scratch" "Nothing else.")"
+	[[ -z "${3:-}" ]] || scale_ld "$scratch" write supersede "adr/$3" "adr/$new"
 	[[ "$2" == NONE ]] || printf '%s' "$2" >"$scratch/CONFLICTS.txt"
 	scale_score "$dir" "$1" "$scratch"
 }
@@ -267,6 +268,53 @@ scale_modes() { # scale_modes <arm> <mode> <out>: runs the ten scenarios of an a
 scale_expect_summary() { # scale_expect_summary <out> <prefix> <planted|control|all>: scenarios passing or printing prefix
 	jq -s -c --arg prefix "$2" --arg which "$3" '[.[] | select(($which == "all") or (($which == "control") == (.scenario | startswith("control"))))
 		| select(.expect_failures | any(startswith($prefix)))] | length' "$1"/*/*/score.json
+}
+
+test_scale_prompted_lines() {
+	echo "scale prompted scoring: one record per line"
+	local plant=t1-24-same-late-prompted control=control-24-prompted listed
+	scale_small "$TMP/unp-scenarios"
+	scale_conflicts "$plant" "0022 Store uploads in S3 and serve them through the CDN"$'\n'
+	assert_eq "a title line lists its leading number only" "0 0" "$(scale_count missed:) $(scale_count false-alarm:)"
+	scale_conflicts "$control" "0022 Store uploads in S3 and serve them through the CDN"$'\n'
+	assert_eq "the same line in a control is one false alarm" 1 "$(scale_count false-alarm:)"
+	assert_true "the false alarm names 22 alone" grep -q '^false-alarm: 22 ' <<<"$OUTPUT"
+	scale_conflicts "$control" "No conflicts (checked 240 ADRs)"$'\n'
+	assert_eq "a sentence with a count lists nothing" "0 0" "$(scale_count false-alarm:) $(scale_count incomplete:)"
+	scale_conflicts "$plant" "adr/0022 (2 clauses)"$'\n'
+	assert_eq "a clause count is not a listed record" "0 0" "$(scale_count missed:) $(scale_count false-alarm:)"
+	for listed in "22" "0022" "$SCALE_KIND/0022" "${SCALE_KIND^^} 0022" "- ${SCALE_KIND^^}-0022: title"; do
+		scale_conflicts "$plant" "$listed"$'\n'
+		assert_eq "the line '$listed' catches the plant" "0 0" "$(scale_count missed:) $(scale_count false-alarm:)"
+	done
+	scale_conflicts "$plant" $'0022\n0005\n'
+	assert_eq "two lines list the plant and one other" "0 1" "$(scale_count missed:) $(scale_count false-alarm:)"
+	assert_true "the other record is 5" grep -q '^false-alarm: 5 ' <<<"$OUTPUT"
+}
+
+test_scale_prompted_supersedes() {
+	echo "scale prompted scoring: newly superseded records"
+	scale_small "$TMP/unp-scenarios"
+	scale_conflicts control-12-prompted "" 0004
+	assert_eq "a prompted control superseding a record is a false alarm" 1 "$(scale_count false-alarm:)"
+	scale_conflicts t1-12-same-early-prompted $'3\n' 0003
+	assert_eq "listing and superseding the plant is a catch and clean" "0 0" "$(scale_count missed:) $(scale_count false-alarm:)"
+	scale_conflicts t1-12-same-early-prompted $'3\n' 0004
+	assert_eq "listing the plant and superseding another is a catch and a false alarm" "0 1" "$(scale_count missed:) $(scale_count false-alarm:)"
+	scale_conflicts t1-12-same-early-prompted "" 0003
+	assert_eq "superseding the plant without listing it stays a miss" "1 0" "$(scale_count missed:) $(scale_count false-alarm:)"
+}
+
+test_scale_paraphrase_vocabulary() {
+	echo "scale paraphrase vocabulary"
+	local dir="$TMP/para-vocab" line word
+	scale_generate "$dir"
+	line="$(grep -F 'Shared key-value store for login state' "$dir/t1-60-para-late-unprompted/manifest.tsv")"
+	assert_true "the paraphrased plant line is found" test -n "$line"
+	assert_true "the plant states one shared store of login state" grep -q -i 'one central key-value cluster' <<<"$line"
+	for word in memory balancer load session sessions sticky node nodes app; do
+		assert_true "the paraphrased plant does not say '$word'" test -z "$(grep -i -w -o "$word" <<<"$line")"
+	done
 }
 
 test_scale_modes() {
@@ -309,7 +357,7 @@ test_scale_aggregate_rates() {
 	assert_eq "the row carries its dimensions" '["t1",12,"same","early","unprompted","unknown"]' \
 		"$(jq -c '.rows[0] | [.type, .size, .wording, .position, .arm, .model]' <<<"$json")"
 	assert_eq "a caught row says so and a missed row says so" "[true,false]" "$(jq -c '[.rows[].caught] | sort | reverse' <<<"$json")"
-	assert_eq "the row fields are all present" '["arm","caught","cost_usd","false_alarm","incomplete","model","position","read_before_first_write","runner_failed","setup_failed","size","type","wording"]' \
+	assert_eq "the row fields are all present" '["arm","caught","cost_usd","false_alarm","incomplete","model","position","read_before_first_write","runner_failed","setup_failed","size","type","unscored","wording"]' \
 		"$(jq -c '.rows[0] | del(.scenario, .scratch) | keys' <<<"$json")"
 	assert_eq "the groups exist by every dimension" '["arm","cell","model","position","size","type","wording"]' "$(jq -c '.groups | keys' <<<"$json")"
 	assert_eq "runs that wrote before reading are counted" '{"true":0,"false":2,"null":0}' "$(jq -c '.groups.arm[0].read_before_first_write' <<<"$json")"
@@ -362,6 +410,40 @@ test_scale_aggregate_rule() {
 	assert_eq "the rule shows its three rates" '[0,1,1]' "$(scale_rule_rates "$miss" '[]' '[]')"
 }
 
+test_scale_aggregate_unscored() {
+	echo "scale aggregate: runs without a usable verdict"
+	local dir="$TMP/agg-unscored" json
+	scale_run_dir "$dir" t1-12-same-early-unprompted null
+	scale_run_dir "$dir" t1-12-para-late-unprompted '["expect.sh exited 127 with no message"]'
+	scale_run_dir "$dir" t2-12-same-late-unprompted '["incomplete: no CONFLICTS.txt", "missed: x"]'
+	scale_run_dir "$dir" t2-12-para-early-unprompted '[]'
+	scale_run_dir "$dir" control-12-unprompted '["something unknown"]'
+	json="$(scale_agg "$dir")"
+	assert_eq "a null verdict and an unknown line are unscored" \
+		'{"control-12-unprompted":true,"t1-12-para-late-unprompted":true,"t1-12-same-early-unprompted":true,"t2-12-para-early-unprompted":false,"t2-12-same-late-unprompted":false}' \
+		"$(jq -c '[.rows[] | {(.scenario): .unscored}] | add | to_entries | sort_by(.key) | from_entries' <<<"$json")"
+	assert_eq "unscored runs are excluded and the other two are scored, one caught" '[5,2,3,2,1]' \
+		"$(jq -c '.groups.arm[0] as $g | [.total.runs, $g.runs, $g.excluded, $g.planted, $g.catches]' <<<"$json")"
+	assert_eq "an unscored row has no catch and still has its row" null "$(jq -c '.rows[] | select(.scenario == "t1-12-same-early-unprompted") | .caught' <<<"$json")"
+}
+
+test_scale_aggregate_per_model() {
+	echo "scale aggregate: rule per model"
+	local low="$TMP/agg-low" high="$TMP/agg-high" miss='["missed: x"]'
+	scale_run_dir "$low" t1-24-same-late-unprompted "$miss" scale-model-cost.jsonl
+	scale_run_dir "$low" t1-24-same-late-prompted '[]' scale-model-cost.jsonl
+	scale_run_dir "$low" t1-12-same-early-unprompted '[]' scale-model-cost.jsonl
+	scale_run_dir "$high" t1-24-same-late-unprompted '[]' scale-model-cost-other.jsonl
+	scale_run_dir "$high" t1-24-same-late-prompted '[]' scale-model-cost-other.jsonl
+	scale_run_dir "$high" t1-12-same-early-unprompted '[]' scale-model-cost-other.jsonl
+	assert_eq "the model below builds and the model equal does not" '[true,false]' \
+		"$(scale_agg "$low" "$high" | jq -c '.rule.per_model | [.["claude-sonnet-5-5"].build_o2, .["claude-haiku-4-5"].build_o2]')"
+	assert_eq "each model has its three rates" '[0,1,1]' \
+		"$(scale_agg "$low" "$high" | jq -c '.rule.per_model["claude-sonnet-5-5"] | [.unprompted_large, .prompted_large, .unprompted_small]')"
+	assert_eq "the pooled rule is unchanged by the models" '[0.5,1,1,true]' \
+		"$(scale_agg "$low" "$high" | jq -c '.rule | [.unprompted_large, .prompted_large, .unprompted_small, .build_o2]')"
+}
+
 test_scale_aggregate_cost() {
 	echo "scale aggregate: model and cost"
 	local dir="$TMP/agg-cost" json
@@ -391,9 +473,14 @@ test_scale() {
 	test_scale_unprompted_outcomes
 	test_scale_unprompted_baseline
 	test_scale_prompted
+	test_scale_prompted_lines
+	test_scale_prompted_supersedes
+	test_scale_paraphrase_vocabulary
 	test_scale_modes
 	test_scale_aggregate_rates
 	test_scale_aggregate_control_and_failures
 	test_scale_aggregate_rule
+	test_scale_aggregate_unscored
+	test_scale_aggregate_per_model
 	test_scale_aggregate_cost
 }
