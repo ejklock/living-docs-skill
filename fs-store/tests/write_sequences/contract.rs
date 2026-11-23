@@ -4,7 +4,7 @@
 use crate::ops;
 use crate::snapshot::{self, Entry, Snapshot};
 use fs_store::FsStore;
-use living_docs_core::check::{self, kinds};
+use living_docs_core::check;
 use living_docs_core::commands::{effective, index};
 use living_docs_core::record::extract_record;
 use std::collections::BTreeSet;
@@ -106,6 +106,7 @@ fn part_of(message: &str) -> Part {
         ("non-canonical", Part::NonCanonicalFrontmatter),
         ("share the number", Part::DuplicateNumber),
         ("not listed in", Part::RecordNotListedInIndex),
+        ("status is not Superseded", Part::StaleSuccessor),
     ];
     parts
         .iter()
@@ -119,17 +120,7 @@ fn check_report(store: &FsStore, bundle: &Path) -> Result<(), Breach> {
         let detail = format!("{}: {}", violation.file, violation.message);
         return breach(part_of(&violation.message), detail);
     }
-    match report
-        .advisories
-        .iter()
-        .find(|a| a.kind == kinds::STALE_SUCCESSOR)
-    {
-        Some(advisory) => breach(
-            Part::StaleSuccessor,
-            format!("{}: {}", advisory.file, advisory.message),
-        ),
-        None => Ok(()),
-    }
+    Ok(())
 }
 
 fn record_texts(bundle: &Path) -> Vec<(PathBuf, String)> {

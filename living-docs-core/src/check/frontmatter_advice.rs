@@ -1,8 +1,9 @@
-//! Four advisories on frontmatter states the CLI never writes but a hand edit
+//! Three advisories on frontmatter states the CLI never writes but a hand edit
 //! or an older release can leave behind: a status outside the type's
-//! vocabulary, a record whose `type` is not its directory's type, a missing
-//! `timestamp`, and a successor link on a record that is not superseded.
-//! None of them fails the gate.
+//! vocabulary, a record whose `type` is not its directory's type, and a
+//! missing `timestamp`. None of them fails the gate. A fourth state, a
+//! successor link on a record that is not superseded, is a violation of the
+//! supersede chain.
 
 use super::records::{for_each_readable_record, frontmatter_scalar, has_frontmatter};
 use super::{kinds, Reporter};
@@ -23,6 +24,12 @@ pub(crate) fn check_frontmatter_advice(
         }
         for (kind, message) in findings(directory_spec(bundle, f), &contents) {
             reporter.advise(f, kind, message);
+        }
+        let status = frontmatter_scalar(&contents, "status");
+        let declared = frontmatter_scalar(&contents, "type").unwrap_or_default();
+        let spec = doc_type::spec_for_frontmatter(&declared);
+        if let Some(message) = successor_violation(spec, &contents, status.as_deref()) {
+            reporter.report(f, message);
         }
     });
 }
@@ -56,7 +63,6 @@ fn findings(directory: Option<&DocTypeSpec>, contents: &str) -> Vec<(&'static st
     found.extend(status_finding(spec, status.as_deref()));
     found.extend(type_finding(directory, &declared));
     found.extend(timestamp_finding(spec, contents));
-    found.extend(successor_finding(contents, status.as_deref()));
     found
 }
 
@@ -108,15 +114,32 @@ fn timestamp_finding(spec: Option<&DocTypeSpec>, contents: &str) -> Option<(&'st
     Some((kinds::TIMESTAMP, message))
 }
 
-fn successor_finding(contents: &str, status: Option<&str>) -> Option<(&'static str, String)> {
+/// A successor link on a record whose status is not Superseded. A status the
+/// type marks terminal is named instead of claimed to read as in force.
+fn successor_violation(
+    spec: Option<&DocTypeSpec>,
+    contents: &str,
+    status: Option<&str>,
+) -> Option<String> {
     let successor = frontmatter_scalar(contents, "superseded_by")?;
     if status.is_some_and(|s| s.eq_ignore_ascii_case("superseded")) {
         return None;
     }
-    let message = format!(
-        "superseded_by: {successor} is set but the status is not Superseded; the record still reads as in force"
-    );
-    Some((kinds::STALE_SUCCESSOR, message))
+    let terminal = status.filter(|s| {
+        spec.is_some_and(|spec| {
+            spec.terminal_statuses
+                .iter()
+                .any(|t| t.eq_ignore_ascii_case(s))
+        })
+    });
+    Some(match terminal {
+        Some(status) => format!(
+            "superseded_by: {successor} is set but the {status} status is not Superseded (invariant 4)"
+        ),
+        None => format!(
+            "superseded_by: {successor} is set but the status is not Superseded; the record still reads as in force (invariant 4)"
+        ),
+    })
 }
 
 #[cfg(test)]

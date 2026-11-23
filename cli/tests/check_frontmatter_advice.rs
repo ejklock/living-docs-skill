@@ -1,6 +1,5 @@
-//! The four frontmatter advisories (`status-vocabulary`, `record-type`,
-//! `timestamp`, `stale-successor`): each fires on a state the CLI never
-//! writes, and none of them fails the gate.
+//! Three frontmatter advisories (`status-vocabulary`, `record-type`,
+//! `timestamp`) never fail the gate; a stale successor link does.
 
 use serde_json::Value;
 use std::path::Path;
@@ -9,12 +8,7 @@ mod common;
 use common::{living_docs, write};
 
 const STAMP: &str = "2026-11-20T10:00:00Z";
-const KINDS: [&str; 4] = [
-    "status-vocabulary",
-    "record-type",
-    "timestamp",
-    "stale-successor",
-];
+const KINDS: [&str; 3] = ["status-vocabulary", "record-type", "timestamp"];
 
 fn adr(extra: &str) -> String {
     format!(
@@ -196,53 +190,69 @@ fn timestamp_is_silent_when_present_and_gone_after_manage_fmt() {
     assert!(after.is_empty(), "got: {after:?}");
 }
 
+fn successor_check(label: &str, rel: &str, contents: String) -> (Option<i32>, Value) {
+    let successor = adr(&stamped("status: Accepted\nsupersedes: 0001\n"));
+    check_json(&bundle_of(
+        label,
+        &[(rel, contents), ("adr/0002-y.md", successor)],
+    ))
+}
+
+fn successor_violations(json: &Value) -> Vec<&str> {
+    let all = json["violations"].as_array().into_iter().flatten();
+    let text = all.filter_map(|v| v["message"].as_str());
+    text.filter(|m| m.contains("not Superseded")).collect()
+}
+
 #[test]
-fn stale_successor_names_the_successor_of_a_record_still_in_force() {
-    for status in ["Accepted", "Deprecated"] {
-        let contents = adr(&stamped(&format!(
-            "status: {status}\nsuperseded_by: 0002\n"
-        )));
-        let found = advised("ss-live", "adr/0001-x.md", contents, "stale-successor");
-        assert_eq!(found.len(), 1, "{status}: {found:?}");
-        assert!(found[0].contains("0002"), "{status}: {found:?}");
+fn a_record_still_in_force_that_names_a_successor_fails_check() {
+    let cases = [
+        ("adr/0001-x.md", "Accepted", true),
+        ("adr/0001-x.md", "Proposed", true),
+        ("issues/0001-x.md", "open", false),
+    ];
+    for (rel, status, is_adr) in cases {
+        let extra = stamped(&format!("status: {status}\nsuperseded_by: 0002\n"));
+        let contents = if is_adr { adr(&extra) } else { issue(&extra) };
+        let (code, json) = successor_check("ss-fail", rel, contents);
+        let found = successor_violations(&json);
+        assert_eq!(code, Some(1), "{rel}: {json}");
+        assert_eq!(found.len(), 1, "{rel}: {json}");
+        assert!(found[0].contains("0002") && found[0].ends_with("(invariant 4)"));
+        assert!(messages(&json, "stale-successor").is_empty(), "{rel}");
     }
 }
 
 #[test]
-fn stale_successor_is_silent_for_a_superseded_record_or_an_empty_link() {
+fn a_successor_link_is_silent_for_a_superseded_record_any_case_an_empty_link_or_no_link() {
     for extra in [
         "status: Superseded\nsuperseded_by: 0002\n",
+        "status: SUPERSEDED\nsuperseded_by: 0002\n",
+        "status: superseded\nsuperseded_by: 0002\n",
         "status: Accepted\nsuperseded_by:\n",
+        "status: Accepted\n",
     ] {
-        let found = advised(
-            "ss-silent",
-            "adr/0001-x.md",
-            adr(&stamped(extra)),
-            "stale-successor",
-        );
-        assert!(found.is_empty(), "{extra:?}: {found:?}");
+        let (_, json) = successor_check("ss-silent", "adr/0001-x.md", adr(&stamped(extra)));
+        assert!(successor_violations(&json).is_empty(), "{extra:?}: {json}");
+        assert!(messages(&json, "stale-successor").is_empty(), "{extra:?}");
     }
 }
 
-fn all_four_states() -> common::Scratch {
+fn all_three_states() -> common::Scratch {
     let wrong_type = adr(&stamped("status: Accepted\n")).replace("type: ADR", "type: BDR");
     bundle_of(
         "gate",
         &[
             ("issues/0001-x.md", issue(&stamped("status: done\n"))),
             ("adr/0001-x.md", adr("status: Accepted\n")),
-            (
-                "adr/0002-x.md",
-                adr(&stamped("status: Accepted\nsuperseded_by: 0003\n")),
-            ),
             ("adr/0003-x.md", wrong_type),
         ],
     )
 }
 
 #[test]
-fn gate_stays_green_with_all_four_advisories_carrying_their_kind() {
-    let bundle = all_four_states();
+fn gate_stays_green_with_all_three_advisories_carrying_their_kind() {
+    let bundle = all_three_states();
     let (code, json) = check_json(&bundle);
     assert_eq!(code, Some(0), "advisories never fail check: {json}");
     assert_eq!(json["ok"], true, "{json}");
@@ -252,8 +262,8 @@ fn gate_stays_green_with_all_four_advisories_carrying_their_kind() {
 }
 
 #[test]
-fn gate_changed_files_naming_another_record_reports_none_of_the_four() {
-    let bundle = all_four_states();
+fn gate_changed_files_naming_another_record_reports_none_of_the_three() {
+    let bundle = all_three_states();
     write(
         &bundle,
         "adr/0004-x.md",
@@ -274,7 +284,7 @@ fn gate_changed_files_naming_another_record_reports_none_of_the_four() {
 }
 
 #[test]
-fn gate_help_lists_the_four_kinds_with_their_meanings() {
+fn gate_help_lists_the_three_kinds_with_their_meanings() {
     let output = living_docs()
         .args(["check", "--help", "--plain"])
         .output()

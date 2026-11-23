@@ -18,10 +18,8 @@ fn a_clean_adr_has_no_finding() {
 #[test]
 fn an_adr_with_every_defect_has_each_finding_once() {
     let contents = "---\ntype: BDR\nstatus: active\nsuperseded_by: 0002\n---\n";
-    assert_eq!(
-        kinds_found(Some("adr"), contents),
-        vec![kinds::RECORD_TYPE, kinds::STALE_SUCCESSOR]
-    );
+    assert_eq!(kinds_found(Some("adr"), contents), vec![kinds::RECORD_TYPE]);
+    assert!(successor_violation(None, contents, Some("active")).is_some());
 }
 
 #[test]
@@ -36,5 +34,7 @@ fn a_registry_type_outside_a_typed_directory_is_judged_by_its_declared_type() {
 #[test]
 fn a_type_outside_the_registry_only_gets_the_successor_rule() {
     let contents = "---\ntype: Concept\nstatus: active\nsuperseded_by: 0002\n---\n";
-    assert_eq!(kinds_found(None, contents), vec![kinds::STALE_SUCCESSOR]);
+    assert!(kinds_found(None, contents).is_empty());
+    let message = successor_violation(None, contents, Some("active")).expect("a violation");
+    assert!(message.contains("0002") && message.ends_with("(invariant 4)"));
 }

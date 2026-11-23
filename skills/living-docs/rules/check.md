@@ -4,7 +4,7 @@
 
 `living-docs check [docs/]` mechanically validates the invariants a machine checks better than
 prose: frontmatter/`type`, directory-index membership + root reachability, link resolution,
-supersede integrity, Mermaid fences, **unfilled `{{PLACEHOLDER}}` slots and a `description` still the template's placeholder** (a violation — a
+supersede integrity (including a `superseded_by` link on a record whose status is not Superseded, ADR 0098), Mermaid fences, **unfilled `{{PLACEHOLDER}}` slots and a `description` still the template's placeholder** (a violation — a
 scaffold left half-authored fails the gate), and **required sections** (ADR 0064): a live record
 missing a section its type requires fails with `missing required section '<name>'`. Retired
 records are exempt. *A constraint without an instrument is a vibe* — so
@@ -30,7 +30,6 @@ every advisory in full, and the JSON output always carries them all. The kinds:
 - `STATUS-VOCABULARY` — a record's status is neither in its type's vocabulary nor Superseded.
 - `RECORD-TYPE` — a record in a typed directory declares a different type than the directory's.
 - `TIMESTAMP` — a record of a registry type has no timestamp; `living-docs manage fmt` seeds it.
-- `STALE-SUCCESSOR` — a record names a successor in superseded_by but its status is not Superseded.
 - `PATH-MISSING` — a live record names, in inline code outside a fenced block, a repository path that
   does not exist (`src/gone.rs`, with an optional `:LINE`). A token counts as a path when it holds only
   letters, digits and `_ . / @ + ~ -`, contains a `/`, and its first segment is an entry of the repository
