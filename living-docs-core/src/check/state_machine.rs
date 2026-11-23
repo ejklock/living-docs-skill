@@ -16,9 +16,9 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::{Path, PathBuf};
 
 /// The `kind` of an architecture view whose diagrams are judged.
-const STATE_KIND: &str = "state";
+pub(crate) const STATE_KIND: &str = "state";
 /// The id merman gives the initial pseudo-state of the root scope.
-const ROOT_START: &str = "root_start";
+pub(crate) const ROOT_START: &str = "root_start";
 
 type Transitions<'a> = HashMap<&'a str, Vec<&'a str>>;
 
@@ -44,12 +44,12 @@ pub(crate) fn check_state_machine(
 }
 
 /// Whether `path` is an architecture view declaring `kind: state`.
-fn is_state_view(path: &Path, contents: &str) -> bool {
+pub(crate) fn is_state_view(path: &Path, contents: &str) -> bool {
     is_view(path, contents) && frontmatter_scalar(contents, "kind").as_deref() == Some(STATE_KIND)
 }
 
 /// The body of every closed ```mermaid``` fence in `text`.
-fn mermaid_fences(text: &str) -> Vec<String> {
+pub(crate) fn mermaid_fences(text: &str) -> Vec<String> {
     let mut fences = Vec::new();
     let mut open: Option<String> = None;
     for line in text.lines() {
@@ -73,14 +73,28 @@ fn mermaid_fences(text: &str) -> Vec<String> {
 /// Findings for one fence body; a body that is not a state diagram, or does
 /// not parse (the fence check reports that), has none.
 fn findings_in(engine: &Engine, body: &str) -> Vec<String> {
-    let parsed = engine.parse_diagram_for_render_model_sync(body, ParseOptions::strict());
-    match parsed {
-        Ok(Some(parsed)) => match parsed.model {
-            RenderSemanticModel::State(model) => findings(&model),
-            _ => Vec::new(),
-        },
-        _ => Vec::new(),
-    }
+    state_model(engine, body).map_or_else(Vec::new, |model| findings(&model))
+}
+
+/// The state model merman parses from a fence body, `None` when the body is
+/// not a state diagram or does not parse.
+pub(crate) fn state_model(engine: &Engine, body: &str) -> Option<StateDiagramRenderModel> {
+    parse_state_model(engine, body).ok().flatten()
+}
+
+/// Like [`state_model`], but a body that fails to parse is the parser's own
+/// message; `Ok(None)` is a body that parses as another diagram type.
+pub(crate) fn parse_state_model(
+    engine: &Engine,
+    body: &str,
+) -> Result<Option<StateDiagramRenderModel>, String> {
+    let parsed = engine
+        .parse_diagram_for_render_model_sync(body, ParseOptions::strict())
+        .map_err(|error| error.to_string())?;
+    Ok(parsed.and_then(|parsed| match parsed.model {
+        RenderSemanticModel::State(model) => Some(model),
+        _ => None,
+    }))
 }
 
 /// Whether a shape is a note's, which never takes part in the graph.
@@ -89,7 +103,7 @@ fn is_note(shape: &str) -> bool {
 }
 
 /// A node is a state unless it is a pseudo-state, a divider or a note.
-fn is_state(node: &StateDiagramRenderNode) -> bool {
+pub(crate) fn is_state(node: &StateDiagramRenderNode) -> bool {
     !matches!(node.shape.as_str(), "stateStart" | "stateEnd" | "divider") && !is_note(&node.shape)
 }
 

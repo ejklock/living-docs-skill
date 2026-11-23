@@ -1,5 +1,6 @@
 use args::{
-    CheckArgs, Command, InstallCmd, ManageCmd, NewRecordArgs, ReadCmd, UninstallCmd, WriteCmd,
+    CheckArgs, Command, ExportFormat, InstallCmd, ManageCmd, NewRecordArgs, ReadCmd, UninstallCmd,
+    WriteCmd,
 };
 use output::{ColorMode, OutputMode};
 use std::path::Path;
@@ -120,6 +121,11 @@ fn run_manage(docs_dir: &Path, operation: ManageCmd, mode: OutputMode, quiet: bo
         ManageCmd::Html { out, mermaid } => {
             commands::html::run_html(docs_dir, out, mermaid, mode, quiet)
         }
+        ManageCmd::View {
+            view,
+            export: Some(ExportFormat::Tla),
+            ..
+        } => commands::view::run_export_tla(docs_dir, &view),
         ManageCmd::View {
             view,
             inputs,

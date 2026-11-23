@@ -18,6 +18,7 @@ pub mod record;
 mod sections;
 pub mod store;
 pub mod templates;
+pub mod tla_export;
 
 #[cfg(test)]
 mod exhaustive;

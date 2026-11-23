@@ -180,10 +180,11 @@ pub(crate) const HTML_EXAMPLES: &[&str] = &[
 ];
 
 pub(crate) const VIEW_ABOUT: &str =
-    "Splices Mermaid text from standard input into an architecture view's generated region and stamps it with its input globs and their hash; a view with no region gets one at the end of its body, which needs --command.";
+    "Splices Mermaid text from standard input into an architecture view's generated region and stamps it with its input globs and their hash; a view with no region gets one at the end of its body, which needs --command. With --export tla it prints a flat state view's TLA+ module to standard output instead, writing no file.";
 pub(crate) const VIEW_EXAMPLES: &[&str] = &[
     "printf 'graph TD\\n a-->b\\n' | living-docs manage view view/crates --splice --inputs Cargo.toml --command \"cargo metadata | jq\"",
     "living-docs manage view architecture/crates --splice --inputs 'Cargo.toml' '*/Cargo.toml' < graph.mmd",
+    "living-docs manage view architecture/order-lifecycle --export tla > order_lifecycle.tla",
 ];
 
 pub(crate) const CHECK_ABOUT: &str = "Validates the bundle's mechanical invariants — the doc-gate.";

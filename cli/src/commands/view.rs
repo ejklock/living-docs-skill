@@ -7,6 +7,7 @@ use crate::commands::report::report_indexed;
 use crate::output::{self, OutputMode};
 use crate::store::build_store;
 use living_docs_core::commands::splice::{self, Request, Spliced};
+use living_docs_core::tla_export;
 use serde::Serialize;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -42,6 +43,21 @@ pub(crate) fn run_splice(
         Ok(spliced) => {
             print_spliced(&spliced, mode);
             report_indexed("manage view", &spliced.indexed, mode, quiet)
+        }
+        Err(message) => {
+            eprintln!("living-docs manage view: {message}");
+            ExitCode::from(2)
+        }
+    }
+}
+
+/// Prints the TLA+ module of the state view `view` to standard output; a
+/// refusal is a usage error (exit 2) and prints nothing to standard output.
+pub(crate) fn run_export_tla(docs_dir: &Path, view: &str) -> ExitCode {
+    match tla_export::export_view(build_store(docs_dir).as_ref(), docs_dir, view) {
+        Ok(module) => {
+            output::write_stdout_bytes(module.as_bytes());
+            ExitCode::SUCCESS
         }
         Err(message) => {
             eprintln!("living-docs manage view: {message}");

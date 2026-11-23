@@ -117,6 +117,16 @@ sequenceDiagram
 
 Include a sequence diagram only where it earns its place — a tool surface, a lifecycle with ordering, a non-obvious multi-step flow. Skip it for trivially linear calls.
 
+### Checking a lifecycle over time (TLA+)
+
+A flat `kind: state` view (no composite states, no `--` regions) can be model-checked in the project's own CI. The binary only prints the module; it never runs a checker.
+
+1. Generate the module in CI and never commit it: `living-docs manage view architecture/order-lifecycle --export tla > order_lifecycle.tla`. The module is named after the view slug with `-` as `_`, so the file name must match. The output is byte-stable for the same view.
+2. Write the properties in a separate module that `EXTENDS` the generated one, with its own `.cfg` (`SPECIFICATION Spec`, then your `INVARIANT` and `PROPERTY` lines). The names `States`, `Terminal`, `Init`, `Next`, `TypeOK` and `Spec` are a stable contract. The per-transition action names (`T1`, `T2`, …) are not: they follow source order, so inserting a transition renumbers them. Write properties over `state`, never over an action name; each state is the string constant of its Mermaid id (`state = "paid"`), and `[*]` gives `Init` and, as a target, a terminal state.
+3. Run TLC from a `tla2tools.jar` whose SHA-256 your CI pins and verifies before use, for example `java -cp tla2tools.jar tlc2.TLC -config Orders.cfg Orders`.
+
+The model over-approximates: guards (a transition's label is kept only as a comment) and data are not modelled, so a property that depends on them is yours to encode.
+
 ## Rules
 
 1. **Mermaid, in-repo, text.** No exported PNG/SVG that can silently drift from the code.

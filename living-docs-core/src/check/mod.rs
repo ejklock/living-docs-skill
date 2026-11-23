@@ -30,7 +30,7 @@ mod report;
 mod sections;
 mod size;
 mod stale_view;
-mod state_machine;
+pub(crate) mod state_machine;
 mod supersede_links;
 mod unparseable_frontmatter;
 
