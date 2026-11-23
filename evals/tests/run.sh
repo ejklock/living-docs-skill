@@ -5,7 +5,7 @@
 # is called and nothing leaves the machine. Scratch state lives under a directory made with
 # mktemp and is removed on exit.
 #
-# usage: run.sh [usage|score|isolation|scenarios]   (no argument runs every group)
+# usage: run.sh [usage|score|isolation|scenarios|scale]   (no argument runs every group)
 # Exit: 0 = all cases pass, 1 = at least one failed.
 
 set -uo pipefail
@@ -319,10 +319,13 @@ test_isolation() {
 	assert_eq "scratch directories are kept when asked" true "$(find "$TMP/tmp" -mindepth 1 -maxdepth 1 | grep -q . && echo true || echo false)"
 }
 
+. "$HERE/scale.sh"
+
 wanted usage && test_usage
 wanted score && test_score
 wanted scenarios && test_scenarios
 wanted isolation && test_isolation
+wanted scale && test_scale
 
 printf '%s cases\n' "$cases"
 ((fail == 0))

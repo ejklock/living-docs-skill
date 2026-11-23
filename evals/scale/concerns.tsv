@@ -1,0 +1,10 @@
+logging	structured JSON logs	emit structured JSON logs to standard output	plain-text log files	write plain-text logs to local files
+metrics	Prometheus metrics	export its metrics in the Prometheus format	StatsD metrics	push its metrics to a StatsD daemon
+retries	three retries with backoff	retry a failed outbound call three times with exponential backoff	no automatic retries	never retry a failed outbound call automatically
+API style	REST with JSON	expose its API as REST with JSON bodies	gRPC API	expose its API over gRPC
+deployment	containers on the shared cluster	deploy as a container on the shared cluster	dedicated virtual machines	deploy on its own dedicated virtual machines
+testing	a contract test per endpoint	require a contract test for every public endpoint	end-to-end suite only	rely on the nightly end-to-end suite alone
+schema changes	versioned SQL migrations	apply schema changes as versioned SQL migration files	ORM auto-migration	let the ORM migrate the schema automatically at startup
+configuration	configuration from environment variables	read its configuration from environment variables	a YAML configuration file	read its configuration from a YAML file baked into the image
+timeouts	a five-second outbound timeout	time out every outbound call after five seconds	a thirty-second outbound timeout	time out every outbound call after thirty seconds
+error reporting	errors to the error tracker	report unhandled errors to the error tracker	errors by email	email unhandled errors to the team list

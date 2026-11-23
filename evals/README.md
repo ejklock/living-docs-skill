@@ -47,6 +47,33 @@ Each scenario directory under `OUT/RUN_ID/` holds `transcript.jsonl`, `runner.st
 | `ambiguous-record-number` | close "issue 1" while ADR 1 also exists | the issue closed, the ADR untouched |
 | `answer-from-existing-decision` | a question an ADR already decides | no new record, nothing changed |
 
+## Scale scenarios
+
+Twenty generated scenarios measure how often a stale or contradicted decision is caught as the ADR log grows. They live outside `evals/scenarios` and are written, never committed, by `evals/scale/generate.sh`:
+
+```sh
+bash evals/scale/generate.sh "$TMPDIR/scale"                 # seed 153; add a seed as the second argument
+export LIVING_DOCS_EVAL_SCENARIOS="$TMPDIR/scale" LIVING_DOCS_EVAL_OUT="$TMPDIR/scale-out"
+for model in claude-sonnet-5-5 claude-opus-4-7; do          # one model at a time
+	LIVING_DOCS_EVAL_MODEL=$model LIVING_DOCS_EVAL_RUNNER=evals/scale/runner.sh bash evals/run.sh
+done
+bash evals/scale/aggregate.sh "$LIVING_DOCS_EVAL_OUT"/* --markdown
+```
+
+The same seed and sizes write the same files; `LIVING_DOCS_SCALE_SIZES` sets the two bundle sizes (default `60 240`, each at least 6 and within the 240 filler topics the generator holds). Ten scenarios, each in two arms: `t1` (the task records a decision opposite to an in-force ADR), `t2` (the task reverses one clause of one) and a control with no plant, at both sizes, the planted ADR worded like the task (`same`) or paraphrased (`para`), early (ADR 3) or late (ADR size-2). `NAME-unprompted` gives the task alone; `NAME-prompted` adds a request to list conflicting record numbers in `CONFLICTS.txt`. Names read `t1-60-same-early-unprompted` and `control-60-prompted`.
+
+Each `expect.sh` prints one line per finding, and `aggregate.sh` reads the prefixes:
+
+| Prefix | Meaning |
+| --- | --- |
+| `missed:` | the planted ADR is not caught: unprompted, it is not newly Superseded and no record added since the baseline names it (`adr/0003`, `ADR 3`, `ADR-3` or its file name); prompted, it is not listed in `CONFLICTS.txt` |
+| `false-alarm:` | another ADR is newly Superseded (unprompted) or listed (prompted); in a control any supersede or any listed number |
+| `incomplete:` | no new ADR in force records the decision, `check` is red, or `CONFLICTS.txt` is absent |
+
+`aggregate.sh RUN_DIR...` prints JSON, or tables with `--markdown`: a row per run, catch and false-alarm rates grouped by type, size, wording, position, arm, model and the full cell, read-before-first-write counts, cost, and a `rule` block whose `build_o2` is true when the unprompted catch rate at the large size is below the prompted rate at that size or the unprompted rate at the small size. Runs whose setup or runner failed are counted in their row and left out of every rate. The model comes from the transcript's init line and the cost from its last result line; either is `unknown` or null when missing.
+
+`evals/scale/runner.sh` is the isolated runner: project settings only, no MCP servers, no persisted session, and no web or sub-agent tools. It reads before every first write, unlike most field sessions, so its catch rates are an upper bound on what a session in the field catches.
+
 ## Scores
 
 `evals/score.sh SCRATCH TRANSCRIPT [EXPECT]` prints one JSON object: `check_ok`, `violations` and `advisories_by_kind` from `living-docs check --json`, `expect_ok` and `expect_failures` from `EXPECT` run inside `SCRATCH` (null when no `EXPECT` is given), `fmt_pending` from `manage fmt --check`, and `usage`.

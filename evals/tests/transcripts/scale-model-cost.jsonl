@@ -1,0 +1,4 @@
+{"type":"system","subtype":"init","model":"claude-sonnet-5-5","tools":["Bash"]}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"living-docs read records"}}]}}
+{"type":"result","subtype":"success","total_cost_usd":0.1}
+{"type":"result","subtype":"success","total_cost_usd":0.5}

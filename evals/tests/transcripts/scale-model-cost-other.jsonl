@@ -1,0 +1,3 @@
+{"type":"system","subtype":"init","model":"claude-haiku-4-5"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"living-docs write new adr X"}}]}}
+{"type":"result","subtype":"success","total_cost_usd":0.25}
