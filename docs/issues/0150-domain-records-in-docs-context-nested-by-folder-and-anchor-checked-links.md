@@ -2,7 +2,7 @@
 type: Issue
 title: Domain records in docs/context nested by folder, and anchor-checked links
 description: "Implements ADR 0099 and 0100: a domain registry type with write new domain --dir, a generated context index, nested records reached by every verb, and the anchor-missing advisory."
-status: open
+status: closed
 timestamp: 2026-11-23T02:28:27Z
 ---
 

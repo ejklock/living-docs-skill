@@ -2,7 +2,7 @@
 type: Issue
 title: "Living diagrams: stamped generated view regions, splice and stale-view"
 description: "Implements ADR 0101: manage view --splice stamps a generated region with its inputs hash, check advises stale-view, and a runner script regenerates; this repository dogfoods a crate-graph view."
-status: open
+status: closed
 timestamp: 2026-11-23T02:38:10Z
 ---
 

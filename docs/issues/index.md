@@ -12,11 +12,8 @@ one slice per fresh context, starting from the skeleton.
 * [0126 — Implement ADR 0093: the opt-in decision prompt Stop hook and its installation](0126-implement-adr-0083-the-opt-in-decision-prompt-stop-hook-and-its-installation.md) - open
 * [0132 — The HTML renderer duplicates the record reader and link graph of read records](0132-the-html-renderer-duplicates-the-record-reader-and-link-graph-of-read-records.md) - open
 * [0144 — Engineering-docs roadmap: domain language and rules, decision capture, issue waves, generated diagrams and a local HTML export](0144-engineering-docs-roadmap-domain-language-and-rules-decision-capture-issue-waves-generated-diagrams-and-a-local-html-export.md) - open
-* [0150 — Domain records in docs/context nested by folder, and anchor-checked links](0150-domain-records-in-docs-context-nested-by-folder-and-anchor-checked-links.md) - open
-* [0151 — Living diagrams: stamped generated view regions, splice and stale-view](0151-living-diagrams-stamped-generated-view-regions-splice-and-stale-view.md) - open
 * [0152 — Formal proofs of state and decision artifacts, model-checker export, and bounded model checking of the CLI](0152-formal-proofs-of-state-and-decision-artifacts-model-checker-export-and-bounded-model-checking-of-the-cli.md) - open
 * [0153 — Measure how often a stale or contradicted decision is caught as the log grows past 60 records](0153-measure-how-often-a-stale-or-contradicted-decision-is-caught-as-the-log-grows-past-60-records.md) - open
-* [0154 — Make the record lifecycle an explicit transition table and refuse illegal supersede transitions](0154-make-the-record-lifecycle-an-explicit-transition-table-and-refuse-illegal-supersede-transitions.md) - open
 
 ## Closed
 
@@ -164,3 +161,6 @@ one slice per fresh context, starting from the skeleton.
 * [0147 — write set refuses a purely numeric label](0147-write-set-refuses-a-purely-numeric-label.md) - closed
 * [0148 — manage index writes a link to a filename with a space that check cannot resolve](0148-manage-index-writes-a-link-to-a-filename-with-a-space-that-check-cannot-resolve.md) - closed
 * [0149 — Make the CLI deterministic across releases and close the paths that leave a bundle red or silently wrong](0149-make-the-cli-deterministic-across-releases-and-close-the-paths-that-leave-a-bundle-red-or-silently-wrong.md) - closed
+* [0150 — Domain records in docs/context nested by folder, and anchor-checked links](0150-domain-records-in-docs-context-nested-by-folder-and-anchor-checked-links.md) - closed
+* [0151 — Living diagrams: stamped generated view regions, splice and stale-view](0151-living-diagrams-stamped-generated-view-regions-splice-and-stale-view.md) - closed
+* [0154 — Make the record lifecycle an explicit transition table and refuse illegal supersede transitions](0154-make-the-record-lifecycle-an-explicit-transition-table-and-refuse-illegal-supersede-transitions.md) - closed

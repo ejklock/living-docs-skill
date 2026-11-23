@@ -2,7 +2,7 @@
 type: Issue
 title: Make the record lifecycle an explicit transition table and refuse illegal supersede transitions
 description: Three illegal supersede transitions pass today (re-supersede, cycle, retired successor); one transition table in the core, consulted by set and supersede, plus chain checks, closes them without any stateful component.
-status: open
+status: closed
 timestamp: 2026-11-23T12:37:08Z
 ---
 
