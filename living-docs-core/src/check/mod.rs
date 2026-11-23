@@ -103,7 +103,7 @@ fn run_all_checks(
     size::check_body_size(store, &all_md, reporter);
     sections::check_required_sections(store, &all_md, reporter);
     if check_placeholders {
-        placeholder::check_placeholders(store, &all_md, reporter);
+        placeholder::check_placeholders(store, bundle, &all_md, reporter);
     }
     liveness::check_liveness(store, bundle, &all_md, reporter);
     doc_count

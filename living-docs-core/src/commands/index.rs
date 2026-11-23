@@ -144,7 +144,8 @@ pub fn compute(
 }
 
 /// Renders `doc_type`'s listing body: a Named type delegates to
-/// [`named::render_body`] (kind-ranked view rows), a Numbered one collects
+/// [`named::render_body`] (kind-ranked view rows), a Nested one to the same
+/// renderer unranked (rows grouped by folder, at any depth), a Numbered one collects
 /// `NNNN-*.md` records along its registry partition axis. Records are read in
 /// their LF form, a mixed-ending one included.
 fn body_for(

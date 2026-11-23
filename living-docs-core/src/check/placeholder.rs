@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 
 pub(crate) fn check_placeholders(
     store: &dyn DocStore,
+    bundle: &Path,
     all_md: &[PathBuf],
     reporter: &mut Reporter,
 ) {
@@ -29,7 +30,7 @@ pub(crate) fn check_placeholders(
             reporter.report(f, "unfilled {{PLACEHOLDER}} — fill the slot or remove it");
         }
         if has_template_description(&contents) {
-            reporter.report(f, placeholder_description_message(f, &contents));
+            reporter.report(f, placeholder_description_message(bundle, f, &contents));
         }
     }
 }
@@ -48,8 +49,8 @@ fn has_template_description(contents: &str) -> bool {
     })
 }
 
-fn placeholder_description_message(path: &Path, contents: &str) -> String {
-    match record_reference(path, contents) {
+fn placeholder_description_message(bundle: &Path, path: &Path, contents: &str) -> String {
+    match record_reference(bundle, path, contents) {
         Some(reference) => format!(
             "description is still its template placeholder — run `living-docs write set {reference} description --from -`"
         ),
@@ -65,13 +66,14 @@ fn has_registered_type(contents: &str) -> bool {
 }
 
 /// The reference `write set` accepts for the record, by its doc type's
-/// identity: `TYPE/NNNN` for a numbered record, `TYPE/slug` for a named one
-/// and the bare token for a singleton, so the message's fix can be pasted as
-/// written. A record of no known type, or one outside the form `write new`
-/// gives its type (nested below the type directory, or a named record whose
-/// file stem is not a slug), has none: a `TYPE/…` reference for it would be
+/// identity: `TYPE/NNNN` for a numbered record, `TYPE/slug` for a named one,
+/// `TYPE/folder/…/slug` for a nested one and the bare token for a singleton,
+/// so the message's fix can be pasted as written. A record of no known type,
+/// or one outside the form `write new` gives its type (a numbered or named
+/// record nested below the type directory, or a named record whose file stem
+/// is not a slug), has none: a `TYPE/…` reference for it would be
 /// refused, or would reach another record.
-fn record_reference(path: &Path, contents: &str) -> Option<String> {
+fn record_reference(bundle: &Path, path: &Path, contents: &str) -> Option<String> {
     let spec = frontmatter::read_scalar_from_str(contents, "type")
         .and_then(|value| doc_type::spec_for_frontmatter(&value));
     let name = file_name_str(path);
@@ -83,14 +85,34 @@ fn record_reference(path: &Path, contents: &str) -> Option<String> {
         {
             Some(format!("{token}/{number}"))
         }
-        Some((token, doc_type::Identity::Named { dir } | doc_type::Identity::Nested { dir }))
+        Some((token, doc_type::Identity::Named { dir }))
             if sits_in(path, dir) && paths::slugify(stem) == stem =>
         {
             Some(format!("{token}/{stem}"))
         }
+        Some((token, doc_type::Identity::Nested { dir })) => {
+            nested_slug_path(bundle, path, dir, stem)
+                .map(|slug_path| format!("{token}/{slug_path}"))
+        }
         Some((token, doc_type::Identity::Singleton { .. })) => Some(token.to_string()),
         _ => None,
     }
+}
+
+/// The `/`-separated slug path of a record at any depth below the type
+/// directory `dir` at the top of the bundle, `None` when it lies elsewhere or
+/// a segment is not a slug.
+fn nested_slug_path(bundle: &Path, path: &Path, dir: &str, stem: &str) -> Option<String> {
+    let relative = path.strip_prefix(bundle).ok()?;
+    let parts: Vec<&str> = relative.iter().filter_map(|part| part.to_str()).collect();
+    let (first, rest) = parts.split_first()?;
+    if *first != dir {
+        return None;
+    }
+    let mut segments: Vec<&str> = rest.get(..rest.len().checked_sub(1)?)?.to_vec();
+    segments.push(stem);
+    let all_slugs = segments.iter().all(|part| paths::slugify(part) == *part);
+    all_slugs.then(|| segments.join("/"))
 }
 
 /// Whether `path` lies directly in a directory named `dir`.
