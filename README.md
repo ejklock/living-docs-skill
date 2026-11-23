@@ -107,9 +107,9 @@ task needs:
 | [`skills/okf-knowledge-format/`](skills/okf-knowledge-format/) | The **format** standard the docs use — Open Knowledge Format (OKF): markdown + YAML frontmatter, required `type`, reserved `index.md`/`log.md`, relative links. The OKF spec is **vendored verbatim** from Google Cloud Platform. |
 | [`skills/research-artifacts/`](skills/research-artifacts/) | The research-note format and source discipline that feeds ADRs (the `docs/research/` half of the trail). |
 | [`skills/living-docs-drift/`](skills/living-docs-drift/) | **Doc-to-code drift, advisory**: `scripts/drift.sh` resolves the code anchors live records cite, asks a configurable LLM judge (default `claude -p --tools ""`) whether the code still matches each record, and writes a dated report outside the bundle. Runs outside the binary and is never a gate (ADR 0075). |
-| [`cli/`](cli/) (authoring verbs) | **Deterministic authoring**: `write new` scaffolds a record with CLI-owned numbering, frontmatter and title heading, and every body section as a `{{SLOT: hint}}` the agent replaces with prose. `write new --body PATH|-` takes the body from a file or stdin. `write set` sets the lifecycle fields (`write set <ref> <key> --from PATH|-` reads any value from a file or stdin; `write set <ref> section "<heading>" --from PATH|-` replaces or appends one body section), `write set <path> number next` renumbers a record (the repair for two records sharing a number) with its heading, in-bundle links and index, `write supersede` wires both link directions and writes the retired-record callout; all three leave the index of every type they touched current, and `manage index` rebuilds every index as the repair for a hand-edited or merged bundle. `write new` also writes a missing bundle-root `index.md` (link-less when the first record is the constitution) and `manage index` writes one when a type index exists; both append one link line for each type index the root does not yet reach, never rewriting a line already there, so a bundle built only through the CLI passes `check` from its first record; `write new constitution "<title>"` seeds `status: Draft` and the given title as its heading, `manage fmt` canonicalizes frontmatter and repairs the CLI-owned fields of a hand-written record: it seeds a missing `timestamp` from the commit that added the file, seeds a missing required `owner` from git config, and aligns the title heading with the frontmatter title, changing no other prose (`manage fmt --check` lists the records it would change and writes nothing). Architecture is a first-class doc type: `write new view "<name>" --kind <context\|container\|component\|flow\|sequence\|state\|data-model\|deployment>` scaffolds one view per concern in `docs/architecture/`, and the generated index sorts them in C4/arc42 zoom order. `manage view <view> --splice --inputs <glob>...` writes Mermaid from standard input into the view's generated region, stamped with the command and a hash of its inputs, so `check` advises `stale-view` when an input changes; `skills/living-docs/scripts/regen-views.sh [--check]` reruns each marker's command and, with `--check`, fails in CI when a region would change. |
+| [`cli/`](cli/) (authoring verbs) | **Deterministic authoring**: `write new` scaffolds a record with CLI-owned numbering, frontmatter and title heading, and every body section as a `{{SLOT: hint}}` the agent replaces with prose. `write new --body PATH|-` takes the body from a file or stdin. `write set` sets the lifecycle fields (`write set <ref> <key> --from PATH|-` reads any value from a file or stdin; `write set <ref> section "<heading>" --from PATH|-` replaces or appends one body section), `write set <path> number next` renumbers a record (the repair for two records sharing a number) with its heading, in-bundle links and index, `write supersede` wires both link directions and writes the retired-record callout; all three leave the index of every type they touched current, and `manage index` rebuilds every index as the repair for a hand-edited or merged bundle. `write new` also writes a missing bundle-root `index.md` (link-less when the first record is the constitution) and `manage index` writes one when a type index exists; both append one link line for each type index the root does not yet reach, never rewriting a line already there, so a bundle built only through the CLI passes `check` from its first record; `write new constitution "<title>"` seeds `status: Draft` and the given title as its heading, `manage fmt` canonicalizes frontmatter and repairs the CLI-owned fields of a hand-written record: it seeds a missing `timestamp` from the commit that added the file, seeds a missing required `owner` from git config, and aligns the title heading with the frontmatter title, changing no other prose (`manage fmt --check` lists the records it would change and writes nothing). Architecture is a first-class doc type: `write new view "<name>" --kind <context\|container\|component\|flow\|sequence\|state\|data-model\|deployment>` scaffolds one view per concern in `docs/architecture/`, and the generated index sorts them in C4/arc42 zoom order. `manage view <view> --splice --inputs <glob>...` writes Mermaid from standard input into the view's generated region, stamped with the command and a hash of its inputs, so `check` advises `stale-view` when an input changes; `skills/living-docs/scripts/regen-views.sh [--check]` reruns each marker's command and, with `--check`, fails in CI when a region would change. `write new domain "<title>" --dir <a/b>` writes a domain record under `docs/context`, nested by bounded context at any depth (ADR 0099), and `manage view <view> --export tla` prints a flat state view as a TLA+ module for your own model checker (ADR 0103). A `write supersede` or `write set status` that would leave a record with two successors, close a supersede cycle, be made by a retired record, or change the status of a superseded one is refused with exit 2 and writes nothing (ADR 0104). |
 | [`cli/`](cli/) (`living-docs read records`) | **The agent-facing read**: active records only, supersede chains collapsed to the head with a one-line lineage, retired records withheld and counted. `--topic <term>` filters, `--contract` prints each record's contract sections (an issue's Scope and Acceptance, an ADR's Context, Decision and Consequences), `--full` prints whole bodies, `--links-to` and `--impact` list the live records that link a record directly or through a chain (the check before a supersede or an edit). An agent reads this, never `index.md`. |
-| [`cli/`](cli/) (`living-docs check`) | The **deterministic checker** for the mechanical invariants — frontmatter/`type`, indexing + reachability, link resolution, supersede integrity and the retired-record callout, unfilled `{{SLOT}}` placeholders and a `description` still left as the template placeholder, required sections on live records (each type's schema in the registry), and Mermaid fences (in-process via the pure-Rust [`merman-core`](https://crates.io/crates/merman-core) parser — no Docker, no daemon). A single self-contained binary: native `serde_yaml` frontmatter parsing and native `pulldown-cmark` link extraction — no host tools needed. *A constraint without an instrument is a vibe*; this is the instrument. It runs at commit and in CI. |
+| [`cli/`](cli/) (`living-docs check`) | The **deterministic checker** for the mechanical invariants — frontmatter/`type`, indexing + reachability, link resolution, supersede integrity and the retired-record callout, unfilled `{{SLOT}}` placeholders and a `description` still left as the template placeholder, required sections on live records (each type's schema in the registry), and Mermaid fences (in-process via the pure-Rust [`merman-core`](https://crates.io/crates/merman-core) parser — no Docker, no daemon). Every rule new in v0.32.0 is an **advisory** that never changes the exit code (ADR 0095): `anchor-missing` (a link to a heading anchor that does not exist), `stale-view` (a generated diagram whose inputs changed since it was stamped), `state-machine` (a state view with an unreachable state, a dead end, several initial transitions, or what it could not prove), `decision-table` (a marked table with a missing combination, a contradiction, a shadowed row, a value outside its domain, or a table too large to prove (over 4096 combinations)) and `supersede-cycle` (`superseded_by` links that loop back, so no record is in force). `--changed-inputs-from -` reads NUL-separated paths on stdin and matches them only against view inputs. A single self-contained binary: native `serde_yaml` frontmatter parsing and native `pulldown-cmark` link extraction — no host tools needed. *A constraint without an instrument is a vibe*; this is the instrument. It runs at commit and in CI. |
 | [`cli/`](cli/) (`living-docs read guide` / `manage install` / `manage uninstall`) | The skill corpus travels **inside the binary** and is served on demand (`read guide --list`, `read guide adr`); `manage install hooks` materializes the session-teaching hook and the pre-commit doc-gate into a project, `manage install skills` places the corpus into a harness's skills directory. |
 | [`references/prior-art-landscape.md`](references/prior-art-landscape.md) | The sourced prior-art analysis — every part of Living Docs mapped to its established originator, so every "credit, not invention" claim has a checkable citation. |
 | [`examples/linkly/`](examples/linkly/) | A worked, **lint-clean** end-to-end corpus (constitution → PRD → ADR → issue) for a fictional URL shortener — the discipline shown, not just described, and the fixture CI runs `living-docs check` against. |
@@ -117,6 +117,86 @@ task needs:
 Living Docs and OKF compose but do not overlap: **Living Docs governs *which* docs
 exist and the no-drift discipline; OKF governs *how* a knowledge bundle's markdown
 and frontmatter are shaped.**
+
+---
+
+## Examples
+
+Every command below was checked against the v0.32.0 binary in a scratch bundle.
+
+### A domain record
+
+Domain records live under `docs/context`, nested by bounded context (ADR 0099):
+
+```bash
+living-docs write new domain "Late fees" --dir billing/invoicing \
+  --description "When a late fee applies"
+# -> docs/context/billing/invoicing/late-fees.md, indexed
+```
+
+### A decision table and its advisory
+
+Mark a table in a domain record with `<!-- decision-table -->`. Header cells may declare a domain in parentheses, and `-` matches any value:
+
+```markdown
+### Late fee
+<!-- decision-table -->
+| tier (gold, basic) | late (yes, no) | fee |
+|---|---|---|
+| gold  | -   | 0 |
+| basic | yes | 5 |
+```
+
+`living-docs check --advisories docs` then lists the advisory, and `check` still exits 0:
+
+```text
+Late fee: no row covers tier=basic, late=no
+```
+
+### A generated diagram that tracks its code
+
+Create the view in a git repository, then splice the output of a generator into it; the region is stamped with the command, the input globs and a hash of those inputs, and `check` advises `stale-view` when an input changes afterwards. The command is recorded as written and rerun with `bash -c`, so `bash scripts/crate-graph.sh` works without the executable bit:
+
+```bash
+living-docs write new view "crates" --kind component
+bash scripts/crate-graph.sh | living-docs manage view architecture/crates --splice \
+  --command "bash scripts/crate-graph.sh" --inputs 'Cargo.toml' '*/Cargo.toml'
+bash skills/living-docs/scripts/regen-views.sh          # rerun every stamped command
+bash skills/living-docs/scripts/regen-views.sh --check  # in CI: exit 1 when a region would change
+```
+
+### A state view as TLA+
+
+A flat `kind: state` view becomes a byte-stable TLA+ module. The file name must match the module name (the view slug with `-` as `_`). The binary never runs a model checker; generate the module in your CI and check it with TLC there, following the recipe in [`architecture-diagrams.md`](skills/living-docs/rules/architecture-diagrams.md#checking-a-lifecycle-over-time-tla):
+
+```bash
+living-docs manage view architecture/order-lifecycle --export tla > order_lifecycle.tla
+```
+
+### The supersede refusals
+
+These calls now exit 2 and write nothing:
+
+| Call | Before v0.32.0 | Now |
+|---|---|---|
+| `write supersede adr/0001 adr/0002`, then `write supersede adr/0001 adr/0003` | rewrote the link | refused: 0001 already has a successor |
+| `write supersede adr/0001 adr/0002`, then `write supersede adr/0002 adr/0001` | accepted | refused: it would close a cycle |
+| `write supersede adr/0004 adr/0003` when 0003 is `Deprecated` or `Superseded` | accepted | refused: a retired record cannot supersede |
+| `write set adr/0001 status Accepted` when 0001 is `Superseded` | accepted | refused: undo the supersede first |
+
+Repeating the exact recorded supersede still exits 0 and changes nothing.
+
+### Pre-commit on what the commit touched
+
+```bash
+LIVING_DOCS_CHECK_CHANGED_ONLY=1 git commit -m "docs: update the crate graph"
+```
+
+The hook reports only the findings of the staged records, plus `stale-view` when a commit changes, deletes or renames a view's input; it prints nothing when `check` finds nothing. It runs on every commit with anything staged, so a missing bundle blocks the commit (the hook exits 2). The same filter is available to any script, with NUL-separated paths on stdin:
+
+```bash
+git diff --cached --name-only -z | living-docs check --changed-inputs-from - -- docs
+```
 
 ---
 
