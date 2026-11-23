@@ -31,9 +31,9 @@ Kept: the stateless CLI over the `.md` tree; every status vocabulary; `Deprecate
 
 ### Acceptance
 
-- The write-sequence test, with a third ADR as a supersede target in its alphabet and a contract part requiring that a supersede leaves its successor in force, is red on D1, D2 and D3 before the fix and green after.
-- `write supersede` refuses D1, D2 and D3 with exit 2 and changes no file; `write set status` consults the same table.
-- `check` reports a supersede cycle and a chain ending in a retired record.
+- The write-sequence test, with a third ADR as a supersede target in its alphabet, a step rule that a supersede leaves each existing successor link unchanged and its new record in force, and a state rule that every supersede chain is acyclic, is red on D1, D2 and D3 before the fix and green after.
+- `write supersede` refuses D1, D2 and D3 with exit 2 and changes no file; `write set status` consults the same table and refuses a `Superseded` record (ADR 0104).
+- `check` reports a supersede cycle as the `supersede-cycle` advisory; a chain ending in a retired record is not reported.
 
 ### Plan
 
