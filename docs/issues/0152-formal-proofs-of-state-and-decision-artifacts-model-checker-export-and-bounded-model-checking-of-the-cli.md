@@ -20,7 +20,12 @@ Kept: the determinism boundary (no model inside the binary, no external tool run
 
 ### Decision
 
+
 - Formal verification (owner, 2026-11-23): all three arms: proofs of state and decision-table artifacts in `check`; export of state views to a model-checker specification for the project's CI; bounded model checking of the CLI's own pure functions. Not taken: any one arm alone (the session recommended the `check` proofs first, the export only on demand).
+- Proofs Kani cannot reach as the code stands (owner, 2026-11-23): refactor production code so glob pruning soundness and hash order independence become provable: a segment matcher without `regex` beside the regex one, and the canonical byte stream split from the SHA-256 digest. Not taken: property tests with a random seed for those two (rejected for determinism in issue 0149); leaving them to today's example tests.
+- Export format (owner, 2026-11-23): TLA+ only; Alloy on demand. Not taken: TLA+ and Alloy, two output grammars to keep.
+- Materiality (design review, 2026-11-23): one ADR for the `check` proofs and the decision-table grammar, one ADR for the TLA+ export; the bounded model checking of the CLI is this issue's Decision, with no consumer contract. Not taken: one ADR per arm.
+- State checks (design review): unreachable state, dead end (a non-final state with no outgoing transition and no ancestor composite that has one), and more than one initial transition in a scope; "undeclared state" and "transition from a final state" are dropped, since Mermaid creates every named state and `[*]` on the right is always an end.
 
 ### Acceptance
 
@@ -28,4 +33,9 @@ Kept: the determinism boundary (no model inside the binary, no external tool run
 
 ### Plan
 
-- S1: design review of the three arms, then one ADR per arm | files: docs/adr | after: none
+- S1: the ADRs for the `check` proofs and decision-table grammar, and for the TLA+ export | files: docs/adr | after: none
+- S2: `state-machine` advisory over state views | files: living-docs-core/src/check (new module), check/kinds.rs, check/mermaid.rs, skills/living-docs/rules | after: S1, issue 0151 S3 (kinds.rs)
+- S3: Kani harnesses for slug, `--dir` validation, marker parser and newline normalisation, a manual-dispatch workflow and the `check-cfg` lint entry | files: living-docs-core/src/*/proofs.rs, Cargo.toml, .github/workflows | after: none
+- S4: `decision-table` advisory | files: living-docs-core/src/check (new modules), check/kinds.rs, skills/living-docs/templates/domain.md, skills/living-docs/rules | after: S2
+- S5: refactor for the glob-pruning and hash-order proofs, then their harnesses | files: living-docs-core/src/inputs_hash.rs | after: S3
+- S6: `manage view <view> --export tla` | files: cli/src/args/manage.rs, cli/src/commands, living-docs-core, skill recipe | after: S2, issue 0151 S2
