@@ -1,6 +1,6 @@
 # Architecture Docs & Diagrams
 
-Architecture documentation shows *how the system fits together* — the structure ADRs decide and the context index names, made visual. It is **living**: every diagram must match the code at all times, and a structural change updates its diagram in the same change (see `rules/maintenance-invariant.md`).
+Architecture documentation shows *how the system fits together* — the structure ADRs decide and the domain records (`rules/domain.md`) name, made visual. It is **living**: every diagram must match the code at all times, and a structural change updates its diagram in the same change (see `rules/maintenance-invariant.md`).
 
 Diagrams are authored in **Mermaid** so they live in version control as text, diff cleanly in PRs, and render in most viewers — no binary image drift.
 
@@ -96,7 +96,7 @@ Include a sequence diagram only where it earns its place — a tool surface, a l
 
 1. **Mermaid, in-repo, text.** No exported PNG/SVG that can silently drift from the code.
 2. **No-drift.** A change to schema, data flow, module layout, or a component relationship updates the relevant diagram(s) in the *same* change. A structural PR with a stale diagram is incomplete.
-3. **Use context-index vocabulary.** Name nodes and participants with the project's domain/module terms, not ad-hoc labels — diagrams and prose must agree.
+3. **Use the domain records' vocabulary** (`docs/context/`, generated index). Name nodes and participants with the project's domain/module terms, not ad-hoc labels — diagrams and prose must agree.
 4. **One view per diagram.** Don't cram the data model and the request flow into one graph. Split by concern; index each.
 5. **Indexed.** Every view file is listed in the architecture index, which is listed in the top-level Docs index.
 

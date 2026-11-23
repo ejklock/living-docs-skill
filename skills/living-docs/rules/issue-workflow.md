@@ -29,6 +29,8 @@ A good issue body states, in order:
 
 `living-docs write set <ref> status closed`, then `living-docs write set <ref> section Outcome --from PATH|-` for the Outcome text. Open an issue with its prose in one step: `living-docs write new issue "<title>" --body PATH|-`, the file carrying `### Scope` and `### Acceptance`.
 
+A rule decided in the issue's Decision moves to its domain record when the issue closes, and the issue links it (`read guide domain`).
+
 Two issues that share a number (two branches each ran `write new`) are repaired with `living-docs write set <path> number next` on the one to move, named by its path: it renames the file, rewrites the heading number and every in-bundle link, and regenerates the index.
 
 ## Rules

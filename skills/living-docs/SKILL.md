@@ -10,7 +10,7 @@ metadata:
 
 # Living Docs
 
-Living Docs is a **decision log with a gate**. It records the engineering decisions a future reader would pay to rediscover, traces each from its rationale to the code, and refuses to let a record exist unindexed, untyped, or silently rewritten. The spine — **every piece of knowledge has exactly one home, that home is indexed, and a material decision ships with its record** — carries a small set of record types: ADRs, issues, research, a constitution, an optional PRD, and living architecture views.
+Living Docs is a **decision log with a gate**. It records the engineering decisions a future reader would pay to rediscover, traces each from its rationale to the code, and refuses to let a record exist unindexed, untyped, or silently rewritten. The spine — **every piece of knowledge has exactly one home, that home is indexed, and a material decision ships with its record** — carries a small set of record types: ADRs, issues, research, a constitution, an optional PRD, living architecture views, and domain records.
 
 This skill is stack-agnostic. It governs *how* decisions are recorded and maintained, never *what* technology a project uses.
 
@@ -58,6 +58,7 @@ a record per layer.
 - Creating or editing an **issue/ticket** (the unit of work; it carries any cheap-to-reverse decision inline) → `living-docs read guide issue-workflow` (load `read guide procedure` first).
 - Recording **research** (technology evaluation, external trade-offs) → load the **`research-artifacts`** skill. It owns the OKF research-note format, the source discipline, and the research → decision → issue traceable chain, and links back here for the ADR/issue artifacts. Pairs with the `deep-research` skill.
 - Drawing or updating an **architecture, data-flow, or tool-calling diagram** → `living-docs read guide architecture-diagrams`.
+- Recording a **domain term or business rule** (`docs/context/`, `write new domain [--dir]`, a `###` heading per rule linked by anchor) → `living-docs read guide domain`.
 - A doc has grown too large or mixes concerns → **split into a semantic index** → `living-docs read guide semantic-index`.
 - **Reading the corpus as an agent** (what governs X *now*) → run `living-docs read records` (active records only, supersede chains collapsed; superseded, deprecated, closed and done records are withheld and counted in `withheld`, and `--all` includes them, in `--links-to` and `--impact` too; `--topic <term>` to filter, `--contract` for the contract sections, `--full` for whole bodies — ADRs 0050, 0064), **never `index.md` directly**. Before a supersede or an edit, run `living-docs read records --links-to <TYPE/NNNN>` (who links it) and `--impact <TYPE/NNNN>` (who reaches it through a chain, with distance) to see what to revisit. A raw record whose body opens with a `SUPERSEDED` or `DEPRECATED` callout is history — follow the successor link or discard it, never plan on it.
 - Handing the **search of the bundle and code** to a cheaper subagent (it returns `TYPE/NNNN` refs with quotes; the session reads them) → `living-docs read guide delegated-exploration`.
