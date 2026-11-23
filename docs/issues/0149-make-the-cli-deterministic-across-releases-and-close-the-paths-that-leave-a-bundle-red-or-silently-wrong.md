@@ -30,6 +30,7 @@ Kept: the verb surface, the registry, every existing violation, and the rule tha
 
 
 
+
 - Callout text (owner, 2026-11-20): verb-free text, one canonical form. Not taken: verb-free text plus accepting the earlier wordings; keeping the wording and accepting the earlier ones.
 - New rules (owner, 2026-11-20): born advisories, measured over the real bundles before any promotion. Not taken: violations at once; only `stale-successor` as a violation.
 - Code anchor (owner, 2026-11-20): a `path-missing` advisory in `check`. Not taken: the drift skill only; a `covers:` key.
@@ -48,6 +49,7 @@ Kept: the verb surface, the registry, every existing violation, and the rule tha
 - Undoing a supersede (owner, 2026-11-22): stays by hand, guided by the status refusal. Not taken: a `write unsupersede` verb, a public surface with no measured use.
 - Subproject-relative paths in path-missing (owner, 2026-11-22): a path still resolves from the repository root only, and those findings stay advisories. Not taken: accepting a path found under any first-level subdirectory, which hides a path gone from the root; a configured list of search roots, a new config contract.
 - Advisory promotion (owner, 2026-11-22): `stale-successor` becomes a violation by its own ADR, since it has 0 hits over the surveyed bundles; the other kinds stay advisories. Not taken: no promotion before release; promoting `status-vocabulary` too, with 319 hits.
+- Stale successor on a terminal record (2026-11-22, review of the promotion slice): a Deprecated record or a closed issue that carries `superseded_by` also fails `check`, as ADR 0098 states for any status other than Superseded, but its message says the status is not Superseded without claiming the record reads as in force, since `read records` already withholds it. Not taken: staying silent on terminal statuses, which leaves a link no verb wrote and `write supersede` would never write.
 
 ### Acceptance
 
@@ -84,11 +86,13 @@ Kept: the verb surface, the registry, every existing violation, and the rule tha
 ### Outcome
 
 - Retired-record callouts and the index history note name no command, and `manage fmt` plus `manage index` migrate every earlier wording idempotently (ADR 0094, S1 `67e2551`).
-- `write set status` refuses a record that carries `superseded_by`; the refusal names both hand edits that undo a supersede and ends with `living-docs manage fmt` and `living-docs manage index` (S2 `5f22ffe`, S10 `a83ba65`). No verb undoes a supersede; that stays open for the owner.
+- `write set status` refuses a record that carries `superseded_by`; the refusal names both hand edits that undo a supersede and ends with `living-docs manage fmt` and `living-docs manage index` (S2 `5f22ffe`, S10 `a83ba65`). No verb undoes a supersede; the owner kept that by hand.
 - `write supersede` refuses two records of different types and restores both records when a later write fails (S3 `054edba`). The atomic write (S4) was dropped by the owner; record writes stay a plain overwrite.
 - Advisories status-vocabulary, record-type, timestamp and stale-successor (S5 `42d6b0c`) and path-missing (S8 `98b44fa`, ADR 0096) are born advisories (ADR 0095). Changed-only scope takes in the type index of a staged or deleted record (S6 `040519f`, ADR 0097).
 - Counts over the surveyed bundles (42 measurable copies of `docs/`), new binary after `manage fmt` and `manage index`: status-vocabulary 319, timestamp 187 before `fmt` (0 after), record-type 7, stale-successor 0. Green bundles: 16 with v0.30.0 (1040 violations), 11 with the new binary before migrating (1088), 19 after migrating (553); what stays red is missing authorship, not CLI drift. path-missing over five repositories: 414 findings before refusing absolute and `..` tokens, 260 after, every sampled finding a path absent from disk; about 8% are paths relative to a subproject.
 - An exhaustive test runs every sequence of up to three of 17 write operations from three starting bundles (empty, two ADRs and an issue, a superseded pair), 5219 sequences each, and holds the contract; removing the status guard turns it red (S9 `874bd3c`). The whole file takes about 40 s on a quiet host; at a load average above 30 it took up to 165 s, over its 120 s budget, with or without the last change.
 - A terminal walkthrough (`.living-docs/qa/deterministic.walkthrough.json`, git-ignored, report in the owner's reports folder) replays the upgrade migration, the status refusal with its undo instructions, the cross-type refusal and the path-missing advisory.
 - Evals (S7 `e7446e0`) with an isolated runner holding only the installed hooks: Sonnet 5.5 passed 8 of 8 scenarios, Haiku 5.5 7 of 8. Across the 16 transcripts: 0 unknown subcommands, 0 bare-number references, a read before every first write, 1 hand edit of a CLI-owned field (Haiku, reviving a superseded ADR; `check` caught it, and S10 rewrote the refusal for it).
-- Open for the owner: a verb that undoes a supersede; path-missing for paths relative to a subproject; promoting an advisory kind to a violation (stale-successor has 0 hits, status-vocabulary 319); `read records` rejects an upper-case type name; the cross-type refusal reads "a ADR cannot be superseded by a Issue".
+- Before release (S11 `c8bff4d`, S12 `976dfdb`, S13 `785a6ce`, S14 `30b2efa`): a type token resolves in any ASCII case (`ADR/0001`, `write new Issue`) while a directory on disk and Unicode look-alikes still match exactly; the cross-type refusal names both types without an article; the sequence search fails when its call into the contract skips a part; the constitution names the shipped verbs.
+- `stale-successor` is a violation (ADR 0098, S15 `e28c9e3`): a record with `superseded_by` and a status other than Superseded fails `check` with an invariant-4 message, and a terminal record is told its status is not Superseded without being called in force. No committed bundle in this repository holds the state.
+- Owner decisions on the open points (2026-11-22): undoing a supersede stays by hand; path-missing keeps resolving from the repository root; only `stale-successor` was promoted.
