@@ -25,12 +25,14 @@ Kept: hand-drawn view kinds, the existing unstamped marker (still valid, never c
 
 
 
+
 - Living diagrams (owner, 2026-11-22, after the advisor's design review): the runner script plus an in-binary splice and a `stale-view` advisory (ADR 0101). Not taken: keeping the recipe alone; the runner script alone with the binary unchanged (the session's recommendation); an in-binary graph snapshot, which needs a parser per language.
 - Stamp only narrow inputs: the recipe tells authors to stamp a schema, migrations, compose, OpenAPI or manifests, and to leave import-graph views to the runner's `--check` in CI, since an inputs hash flags them on nearly every source commit. Not taken: refusing a stamp on an import-graph kind in the binary, which would make the binary judge a view's kind.
 - Measure over 20 pull requests on this repository: diff failures that were real drift versus noise, and seconds added to `make check`.
 - Input walk (2026-11-23): the walk starts at the repository root, prunes every folder no glob can match below, and never descends into `.git`; an unreadable folder no glob can reach is never visited, while one a glob could reach fails the hash loudly. Not taken: walking the whole repository per call (155 ms on this repository with a built `target/`, and one unreadable folder anywhere failed every hash).
 - Symlinks in the inputs (owner, 2026-11-23): a symlink is hashed as git stores it, its path and its target text, never followed; a checkout without symlink support writes that text as a plain file and gets the same hash. Not taken: following links that stay inside the repository, which read `.git` through a committed link; skipping symlinks, which misses a re-pointed link.
 - Ignored files (owner, 2026-11-23): the walk skips what `.gitignore` excludes, through the `ignore` crate, as git-aware build tools hash only tracked-or-trackable files. Not taken: narrow globs only, which still pull generated files into a `**` glob.
+- A glob that only names ignored paths (owner, 2026-11-23): `manage view --splice` refuses a glob whose every match `.gitignore` excludes, naming it, so a file force-added under an ignored folder is caught when stamping instead of silently hashing nothing; `check` keeps hashing what the walk finds. Not taken: leaving it silent; reading the git index to include tracked files, which reads `.git` against ADR 0101.
 
 ### Acceptance
 
