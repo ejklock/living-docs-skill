@@ -33,6 +33,7 @@ fn fitness_function_a_every_spec_matches_its_template_and_round_trips() {
             "{} did not round-trip to an identical spec",
             spec.token
         );
+        assert_eq!(spec_for(&spec.token.to_uppercase()), Some(spec));
     }
 }
 
@@ -40,6 +41,7 @@ fn fitness_function_a_every_spec_matches_its_template_and_round_trips() {
 fn spec_for_returns_none_for_an_unknown_token() {
     assert!(spec_for("glossary").is_none());
     assert!(spec_for("").is_none());
+    assert!(spec_for("adr ").is_none());
 }
 
 /// ADR 0029: every numbered type carries its own settable status values,
@@ -110,6 +112,7 @@ fn spec_for_dir_returns_none_for_an_unknown_directory() {
     assert!(spec_for_dir("constitution").is_none());
     assert!(spec_for_dir("issue").is_none());
     assert!(spec_for_dir("").is_none());
+    assert!(spec_for_dir("ADR").is_none());
 }
 
 #[test]
@@ -291,5 +294,7 @@ fn a_directory_name_resolves_to_the_row_of_its_token() {
         spec_for("architecture").map(|spec| spec.token),
         Some("view")
     );
+    assert_eq!(spec_for("ISSUES"), spec_for("issue"));
+    assert_eq!(spec_for("Adr"), spec_for("adr"));
     assert!(spec_for("notes").is_none());
 }
