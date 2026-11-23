@@ -70,6 +70,23 @@ fn a_table_with_a_missing_case_names_the_combination() {
 }
 
 #[test]
+fn a_table_inside_a_longer_fence_holding_a_shorter_fence_line_is_skipped() {
+    let contents = format!(
+        "---\ntype: Context\ntitle: Fees\ndescription: The fee rules.\ntimestamp: 2026-11-23T10:00:00Z\n---\n\n# Fees\n\n## Rules\n\n### Late fee\n\n````markdown\n```\n<!-- decision-table -->\n| tier (gold, basic) | late (yes, no) | fee |\n|---|---|---|\n{}\n````\n",
+        FULL[..3].join("\n")
+    );
+    let got = check_json(&bundle("longer-fence", &contents));
+    assert_eq!(got, (Some(0), vec![]));
+}
+
+#[test]
+fn a_marked_table_in_an_indented_fence_inside_a_list_item_is_skipped() {
+    let contents = "---\ntype: Context\ntitle: Fees\ndescription: The fee rules.\ntimestamp: 2026-11-23T10:00:00Z\n---\n\n# Fees\n\n## Rules\n\n### Late fee\n\n- An example:\n\n    ```markdown\n    <!-- decision-table -->\n    | tier (gold, basic) | late (yes, no) | fee |\n    |---|---|---|\n    | gold | yes | 5 |\n    ```\n";
+    let got = check_json(&bundle("indented-fence", contents));
+    assert_eq!(got, (Some(0), vec![]));
+}
+
+#[test]
 fn a_contradicting_table_names_both_rows() {
     let rows = [FULL[0], FULL[1], FULL[2], FULL[3], "| gold | yes | 7 |"];
     let (code, found) = check_json(&bundle("contradiction", &domain(&rows)));

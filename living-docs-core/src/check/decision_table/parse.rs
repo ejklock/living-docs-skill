@@ -2,6 +2,8 @@
 //! reads the marker line and the pipe table of a marked decision table. Every
 //! malformed input comes back as one `Err` naming the problem.
 
+use crate::fence::{toggle_fence, Fence};
+
 /// The level and text of a markdown ATX heading line.
 fn heading(line: &str) -> Option<(usize, &str)> {
     let level = line.chars().take_while(|c| *c == '#').count();
@@ -9,32 +11,21 @@ fn heading(line: &str) -> Option<(usize, &str)> {
     (1..=6).contains(&level).then_some((level, text.trim()))
 }
 
-/// The character of a code fence opened or closed by `line`, backtick or tilde.
-fn fence_mark(line: &str) -> Option<char> {
-    let line = line.trim_start();
-    [('`', "```"), ('~', "~~~")]
-        .into_iter()
-        .find_map(|(mark, run)| line.starts_with(run).then_some(mark))
-}
-
 /// The `###` rule and the open code fence while lines are read in order.
 #[derive(Default)]
 pub(super) struct Scope<'a> {
     rule: Option<&'a str>,
-    fence: Option<char>,
+    fence: Fence,
 }
 
 impl<'a> Scope<'a> {
     /// The rule `line` sits under; none for a heading, a fence line, a line
     /// inside a fence, or a line before the first `###` rule.
     pub(super) fn rule_of(&mut self, line: &'a str) -> Option<&'a str> {
-        let mark = fence_mark(line);
-        if self.fence.is_some() {
-            self.fence = self.fence.filter(|open| Some(*open) != mark);
+        if toggle_fence(line, &mut self.fence) || self.fence.is_some() {
             return None;
         }
-        self.fence = mark;
-        if let (None, Some((level, text))) = (mark, heading(line)) {
+        if let Some((level, text)) = heading(line) {
             self.rule = match level {
                 3 => Some(text),
                 1 | 2 => None,
@@ -42,7 +33,7 @@ impl<'a> Scope<'a> {
             };
             return None;
         }
-        self.rule.filter(|_| mark.is_none())
+        self.rule
     }
 }
 
@@ -80,8 +71,12 @@ pub(super) struct Table {
 const MARKER: &str = "<!-- decision-table";
 
 /// `None` when `line` is not a decision-table marker; otherwise its policy, or
-/// the problem with the marker.
+/// the problem with the marker. A line indented four or more spaces, or by a
+/// tab, is indented code, so its marker and the table below it are not read.
 pub(super) fn parse_marker(line: &str) -> Option<Result<Policy, String>> {
+    if line.starts_with('\t') || line.starts_with("    ") {
+        return None;
+    }
     let rest = line.trim().strip_prefix(MARKER)?.trim_start();
     if rest.starts_with("-->") {
         return Some(Ok(Policy::Unique));

@@ -7,6 +7,7 @@ pub mod callout;
 pub mod check;
 pub mod commands;
 pub mod doc_type;
+mod fence;
 pub mod frontmatter;
 pub mod generated_region;
 pub mod guide;
