@@ -8,8 +8,21 @@ const BODY: &str = "## Context\n\nWhy.\n\n## Decision\n\nWhat.\n\n## Consequence
 
 /// An ADR `adr/<number>-d.md` carrying the given extra frontmatter lines.
 fn adr(number: &str, extra: &str) -> (String, String) {
+    let successor = extra
+        .lines()
+        .find_map(|line| line.strip_prefix("superseded_by:"))
+        .map(|value| format!("{:0>4}", value.trim().trim_matches('"')));
+    let (status, callout) = match successor {
+        Some(n) => (
+            "Superseded",
+            format!(
+                "> **SUPERSEDED — do not act on this record.** Replaced by [{n}]({n}-d.md).\n\n"
+            ),
+        ),
+        None => ("Accepted", String::new()),
+    };
     let contents = format!(
-        "---\ntype: ADR\ntitle: Decision {number}\ndescription: A record\nowner: Someone\nstatus: Accepted\n{extra}timestamp: 2026-01-01T00:00:00Z\n---\n\n# {number}. Decision {number}\n\n{BODY}"
+        "---\ntype: ADR\ntitle: Decision {number}\ndescription: A record\nowner: Someone\nstatus: {status}\n{extra}timestamp: 2026-01-01T00:00:00Z\n---\n\n{callout}# {number}. Decision {number}\n\n{BODY}"
     );
     (format!("adr/{number}-d.md"), contents)
 }

@@ -30,6 +30,7 @@ fn dirty_bundle(label: &str) -> common::Scratch {
         "adr/0002-dirty.md",
         "---\ntype: ADR\ntitle: Dirty\ndescription: A record with debt.\nowner: a@b.c\nstatus: Accepted\n---\n\n# 0002. Dirty\n\n{{UNFILLED: legacy debt}}\n",
     );
+    common::index_bundle(&bundle);
     bundle
 }
 
@@ -205,6 +206,7 @@ fn linked_bundle(label: &str) -> common::Scratch {
         "issues/0001-work.md",
         "---\ntype: Issue\ntitle: Work\ndescription: Some work.\nowner: a@b.c\nstatus: open\ntimestamp: 2026-01-01T00:00:00Z\n---\n\n## Work\n\nDo it.\n\n### Acceptance\n\n- It works.\n",
     );
+    common::index_bundle(&bundle);
     bundle
 }
 

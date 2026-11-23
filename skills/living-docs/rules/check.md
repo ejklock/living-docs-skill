@@ -4,7 +4,7 @@
 
 `living-docs check [docs/]` mechanically validates the invariants a machine checks better than
 prose: frontmatter/`type`, directory-index membership + root reachability, link resolution,
-supersede integrity, Mermaid fences, **unfilled `{{PLACEHOLDER}}` slots and a `description` still the template's placeholder** (a violation — a
+supersede integrity (including a `superseded_by` link on a record whose status is not Superseded, ADR 0098), Mermaid fences, **unfilled `{{PLACEHOLDER}}` slots and a `description` still the template's placeholder** (a violation — a
 scaffold left half-authored fails the gate), and **required sections** (ADR 0064): a live record
 missing a section its type requires fails with `missing required section '<name>'`. Retired
 records are exempt. *A constraint without an instrument is a vibe* — so
@@ -27,6 +27,16 @@ every advisory in full, and the JSON output always carries them all. The kinds:
 - `LINK-STYLE` — a link or image written `/`-rooted (`/adr/0007-x.md`); the advisory names the
   relative form to write instead (`../adr/0007-x.md`). It fires whether or not the target exists
   and never moves the exit code.
+- `STATUS-VOCABULARY` — a record's status is neither in its type's vocabulary nor Superseded.
+- `RECORD-TYPE` — a record in a typed directory declares a different type than the directory's.
+- `TIMESTAMP` — a record of a registry type has no timestamp; `living-docs manage fmt` seeds it.
+- `PATH-MISSING` — a live record names, in inline code outside a fenced block, a repository path that
+  does not exist (`src/gone.rs`, with an optional `:LINE`). A token counts as a path when it holds only
+  letters, digits and `_ . / @ + ~ -`, contains a `/`, and its first segment is an entry of the repository
+  root (the nearest ancestor of the bundle holding `.git`); only existence is probed. An absolute token
+  (`/login`) and a token with a `..` segment are not paths, and neither is one that resolves outside
+  the repository (a symlink leaving it); none of them is advised. Without a repository the rule is skipped;
+  retired records and index files are not examined.
 - `LIVENESS` (`stale-proposed`, ADR 0049, ADR 0079) — an ADR still at its seed status (`Proposed`)
   that an issue already `closed`/`done`/`Superseded` declares it implements: the issue body
   holds `Implements` (any case) followed by a link to the ADR, so the work landed but the record

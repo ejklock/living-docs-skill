@@ -12,6 +12,7 @@ mod callout;
 pub(crate) mod canonical;
 mod dependencies;
 mod duplicate_numbers;
+mod frontmatter_advice;
 mod graph;
 pub(crate) use graph::{normpath, reachable_index_set};
 mod index_drift;
@@ -22,6 +23,7 @@ pub(crate) mod links;
 mod liveness;
 mod mermaid;
 mod moved_source;
+mod path_missing;
 mod placeholder;
 mod read_once;
 mod records;
@@ -94,6 +96,7 @@ fn run_all_checks(
     moved_source::check_moved_source(store, bundle, &all_md, reporter);
     records::check_owner_requirement(store, &all_md, require_owner, reporter);
     records::check_heading_matches_title(store, &all_md, reporter);
+    frontmatter_advice::check_frontmatter_advice(store, bundle, &all_md, reporter);
     canonical::check_canonical_frontmatter(store, bundle, &all_md, reporter);
     mermaid::check_bundle(&all_md, reporter);
     size::check_body_size(store, &all_md, reporter);
@@ -106,7 +109,8 @@ fn run_all_checks(
 }
 
 /// The checks on references between records: links resolve and are spelled
-/// relative, no record number is shared, and every issue dependency resolves.
+/// relative, no record number is shared, every issue dependency resolves, and
+/// a repository path named in inline code still exists.
 fn check_references(
     store: &dyn DocStore,
     bundle: &Path,
@@ -117,6 +121,7 @@ fn check_references(
     link_style::check_link_style(store, bundle, all_md, reporter);
     duplicate_numbers::check_duplicate_numbers(bundle, all_md, reporter);
     dependencies::check_dependencies(store, bundle, all_md, reporter);
+    path_missing::check_path_missing(store, all_md, reporter);
 }
 
 /// Runs the per-record frontmatter pass and returns `all_md` without the

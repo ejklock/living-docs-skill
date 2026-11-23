@@ -9,10 +9,8 @@ use crate::paths::link_destination;
 use super::Record;
 
 /// The reminder rendered above the `## Superseded` section's rows: a
-/// retired record is history, not something to act on — `living-docs
-/// read` is the read verb for what is currently in force.
-pub(super) const RETIRED_SECTION_NOTE: &str = "_History only. Do not act on these records — run \
-     `living-docs read records` for what is in force._";
+/// retired record is history, not something to act on.
+pub(super) const RETIRED_SECTION_NOTE: &str = "_History only. Do not act on these records._";
 
 /// Renders `records` along the partition axis `doc_type`'s registry spec
 /// declares: [`IndexPartition::OpenClosed`] for work-in-progress types,

@@ -104,8 +104,7 @@ fn supersede_writes_the_superseded_callout_on_the_old_record_naming_the_new_reco
 
     assert!(
         old.contains(
-            "> **SUPERSEDED — do not act on this record.** Replaced by [0002](0002-new.md). \
-             Run `living-docs read records` for what is in force.\n\n# Old"
+            "> **SUPERSEDED — do not act on this record.** Replaced by [0002](0002-new.md).\n\n# Old"
         ),
         "got: {old}"
     );

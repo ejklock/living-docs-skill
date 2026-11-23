@@ -9,9 +9,10 @@
 # is resolvable (CI still gates); never bypass a real failure with --no-verify.
 #
 # LIVING_DOCS_BUNDLE=<dir> sets the docs bundle (default docs).
-# LIVING_DOCS_CHECK_CHANGED_ONLY=1 narrows the verdict to the staged records,
-# so a bundle carrying legacy debt can arm this hook while it pays that debt
-# down; nothing staged in the bundle passes. CI still runs the full gate.
+# LIVING_DOCS_CHECK_CHANGED_ONLY=1 narrows the verdict to the staged records
+# plus the type index of a staged or deleted record, so a bundle carrying
+# legacy debt can arm this hook while it pays that debt down; nothing staged
+# in the bundle passes. CI still runs the full gate.
 # LIVING_DOCS_REQUIRE_OWNER=1 requires an owner on the records checked.
 
 set -u
@@ -45,6 +46,9 @@ if [ "${LIVING_DOCS_CHECK_CHANGED_ONLY:-0}" = "1" ]; then
   while IFS= read -r -d "" path; do
     STAGED+=("--changed-files=$path")
   done < <(git diff --cached --name-only -z --diff-filter=ACMR -- "$BUNDLE")
+  while IFS= read -r -d "" path; do
+    STAGED+=("--changed-files=$(dirname -- "$path")/index.md")
+  done < <(git diff --cached --name-only -z --diff-filter=D -- "$BUNDLE")
   if [ "${#STAGED[@]}" -eq 0 ]; then
     exit 0
   fi

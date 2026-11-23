@@ -10,7 +10,7 @@ This applies to any large doc — most commonly the domain/module **context** (v
 2. **Every file is reachable from an index, and from the bundle-root `docs/index.md`** linked by the project guide. No orphans.
 3. **One concept, one file.** Each group file owns a coherent slice of the vocabulary or content. A concept appears in exactly one group file; other files cross-reference it. Every group/concept file opens with OKF frontmatter carrying a non-empty `type`.
 4. **The index carries no content** — only intro framing + a table/list of pointers. Content lives in the group files, never duplicated into the index.
-5. **Links resolve.** Every pointer in an index points to a file that exists; write relative links (`../adr/0007-x.md`); `check` advises a `/`-rooted link with `link-style`. Check after every split or move.
+5. **Links resolve.** Every pointer in an index points to a file that exists; write relative links (`../adr/0007-x.md`); `check` advises a `/`-rooted link (`rules/check.md` lists every advisory kind). Check after every split or move.
 
 ## When and how to split a large doc
 
@@ -36,7 +36,7 @@ The corpus is append-only (supersede, never rewrite): right for history, wrong a
 
 `index.md` remains the generated on-disk artifact and the human/browser entry point; `read records` is the agent's read surface over the same records.
 
-A raw record opened directly still carries its own stop signal: a body that opens with a `SUPERSEDED` or `DEPRECATED` callout is history. Follow the successor link or discard the record; never plan on it; read `living-docs read records` for what is in force.
+A raw record opened directly still carries its own stop signal: a body that opens with a `SUPERSEDED` or `DEPRECATED` callout is history. Follow the successor link or discard the record; never plan on it; read `living-docs read records` to see what is in force.
 
 ## Heading discipline
 

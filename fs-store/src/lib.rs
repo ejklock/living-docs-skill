@@ -3,6 +3,7 @@
 //! `.md` files only, sorted, lenient on unreadable subdirectories.
 
 pub mod git;
+mod repository;
 
 use std::fs;
 use std::io;
@@ -56,6 +57,11 @@ impl DocStore for FsStore {
             fs::create_dir_all(parent)?;
         }
         fs::rename(from, to)
+    }
+
+    fn repository_entry_exists(&self, relative: &Path) -> Option<bool> {
+        let root = repository::repository_root(&self.root)?;
+        repository::entry_exists(&root, relative)
     }
 }
 

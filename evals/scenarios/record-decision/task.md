@@ -1,0 +1,1 @@
+We decided in today's meeting to keep the reporting store on PostgreSQL rather than moving it to SQLite, because three services write to it at the same time and SQLite's single writer would make them queue. Please get that decision into the project docs so nobody reopens it next quarter.

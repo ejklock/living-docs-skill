@@ -1,0 +1,1 @@
+We stopped keeping sessions in Redis: each app node now holds them in its own memory behind sticky routing, and the Redis cluster is gone. Our docs still say Redis. Write up the new approach and retire the old decision properly, so nobody follows the old one.

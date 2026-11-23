@@ -23,11 +23,9 @@ pub fn expected(status: Option<&str>, successor: Option<&str>) -> Option<String>
     let status = status?.to_lowercase();
     match status.as_str() {
         "superseded" => Some(superseded_callout(successor.unwrap_or_default())),
-        "deprecated" => Some(
-            "> **DEPRECATED — do not act on this record.** It has no successor. \
-             Run `living-docs read records` for what is in force."
-                .to_string(),
-        ),
+        "deprecated" => {
+            Some("> **DEPRECATED — do not act on this record.** It has no successor.".to_string())
+        }
         _ => None,
     }
 }
@@ -35,10 +33,7 @@ pub fn expected(status: Option<&str>, successor: Option<&str>) -> Option<String>
 fn superseded_callout(successor: &str) -> String {
     let number = number_prefix(successor);
     let destination = link_destination(successor);
-    format!(
-        "> **SUPERSEDED — do not act on this record.** Replaced by [{number}]({destination}). \
-         Run `living-docs read records` for what is in force."
-    )
+    format!("> **SUPERSEDED — do not act on this record.** Replaced by [{number}]({destination}).")
 }
 
 fn number_prefix(value: &str) -> &str {

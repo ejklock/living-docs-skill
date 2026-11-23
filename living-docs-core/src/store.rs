@@ -37,6 +37,17 @@ pub trait DocStore {
     /// tree, so the port asks the adapter for the move itself (ADR 0061).
     /// Callers refuse a destination collision before calling.
     fn rename(&self, from: &Path, to: &Path) -> io::Result<()>;
+
+    /// Whether `relative`, a path from the repository root, names an existing
+    /// entry. The answer is existence only, never contents. `Some(false)` is
+    /// for a path inside the repository that does not exist. `None` means
+    /// unknown: no repository root is known, or the store refuses the path
+    /// (absolute, a `..` segment, or resolving outside the repository), so
+    /// the caller reports nothing; the default knows no root.
+    fn repository_entry_exists(&self, relative: &Path) -> Option<bool> {
+        let _ = relative;
+        None
+    }
 }
 
 /// True when `error` is a store's own refusal of a path: kind

@@ -1,0 +1,2 @@
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Write","input":{"file_path":"docs/adr/0003-new.md","content":"---\ntype: ADR\ntitle: New\nstatus: Accepted\n---\n\n# 0003. New\n"}}]}}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"written","is_error":false}]}}

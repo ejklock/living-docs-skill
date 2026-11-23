@@ -1,5 +1,6 @@
 use crate::callout;
 use crate::commands::index::{refresh_for_records, Indexed};
+use crate::commands::journal::{named_write, rolled_back, Step};
 use crate::commands::reference::resolve_reference;
 use crate::frontmatter::{frontmatter_block, parse_frontmatter};
 use crate::line_ending::{refuse_mixed, LineEndingStore};
@@ -42,6 +43,7 @@ pub fn supersede(
             old_path.display()
         ));
     }
+    same_type::require_same_type(&old_path, &new_path)?;
     refuse_mixed(store, &old_path)?;
     refuse_mixed(store, &new_path)?;
     let store: &dyn DocStore = &LineEndingStore::new(store, false);
@@ -84,18 +86,33 @@ fn draft_link_pair(
 }
 
 /// Writes the retired record's draft and its callout, then the replacement's
-/// draft.
+/// draft, journaling each write. A write that fails undoes the earlier ones
+/// and names the record it failed on, followed by the paths the undo could
+/// not restore when it was incomplete.
 fn write_link_pair(
     store: &dyn DocStore,
     old_path: &Path,
     new_path: &Path,
     (old_draft, new_draft): (String, String),
 ) -> Result<(), String> {
-    store
-        .write(old_path, &old_draft)
-        .map_err(|e| e.to_string())?;
-    callout::reconcile(store, old_path)?;
-    store.write(new_path, &new_draft).map_err(|e| e.to_string())
+    let mut done = Vec::new();
+    let drafts = (
+        (old_path, old_draft.as_str()),
+        (new_path, new_draft.as_str()),
+    );
+    journal_link_pair(store, drafts, &mut done).map_err(|e| rolled_back(store, e, done))
+}
+
+fn journal_link_pair(
+    store: &dyn DocStore,
+    ((old_path, old_draft), (new_path, new_draft)): ((&Path, &str), (&Path, &str)),
+    done: &mut Vec<Step>,
+) -> Result<(), String> {
+    named_write(store, old_path, old_draft, done)?;
+    if let Some(callout) = callout::draft_reconciled(store, old_path, old_draft)? {
+        named_write(store, old_path, &callout, done)?;
+    }
+    named_write(store, new_path, new_draft, done)
 }
 
 /// The `supersedes` value to write on the replacing record at `path`: the
@@ -268,9 +285,12 @@ fn set_targeted_value(line: &str, prefix: &str, new_value: &str) -> String {
 }
 
 pub(crate) mod guard;
+mod same_type;
 #[cfg(test)]
 use guard::body_changed;
 use guard::{refusal_message, unread_key, unwritable_key};
+#[cfg(test)]
+mod rollback_tests;
 #[cfg(test)]
 mod store_tests;
 #[cfg(test)]

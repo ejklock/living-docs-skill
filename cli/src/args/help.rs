@@ -71,7 +71,7 @@ fn status_vocabularies() -> String {
 /// Help for `write set`'s `KEY`: the keys and the status values per type.
 pub(crate) fn set_key_help() -> String {
     format!(
-        "one of: {}. `status` takes the record's own type vocabulary ({}); Superseded is set only by `write supersede`. `number` takes NNNN or `next` and renumbers the record with its heading, links and index; `section` takes the section heading as VALUE and its text from --from",
+        "one of: {}. `status` takes the record's own type vocabulary ({}); Superseded is set only by `write supersede`, and a status change is refused on a record that carries `superseded_by`. `number` takes NNNN or `next` and renumbers the record with its heading, links and index; `section` takes the section heading as VALUE and its text from --from",
         SET_KEYS,
         status_vocabularies()
     )

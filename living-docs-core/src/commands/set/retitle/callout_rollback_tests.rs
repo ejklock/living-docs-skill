@@ -5,7 +5,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 const ADR_PATH: &str = "/bundle/adr/0001-a-decision.md";
-const STALE: &str = "---\ntype: ADR\ntitle: A Decision\ndescription: A decision.\nstatus: Proposed\n---\n\n> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.\n\n# 0001. A Decision\n\nBody.\n";
+const STALE: &str = "---\ntype: ADR\ntitle: A Decision\ndescription: A decision.\nstatus: Proposed\n---\n\n> **DEPRECATED — do not act on this record.** It has no successor.\n\n# 0001. A Decision\n\nBody.\n";
 const CLEAN: &str = "---\ntype: ADR\ntitle: A Decision\ndescription: A decision.\nstatus: Proposed\n---\n\n# 0001. A Decision\n\nBody.\n";
 const INDEX: &str = "# ADR index\n\n- [0001](0001-a-decision.md)\n";
 
@@ -117,7 +117,7 @@ fn a_retitle_that_keeps_its_filename_reconciles_the_callout() {
     assert_eq!(store.inner.contents(ADR_PATH), CLEAN);
 }
 
-const UNWRITABLE: &str = "---\ntype: ADR\ntitle: A Decision\ndescription: A decision.\nstatus: Proposed\ntags: [a, [b]]\n---\n\n> **DEPRECATED — do not act on this record.** It has no successor. Run `living-docs read records` for what is in force.\n\n# 0001. A Decision\n\nBody.\n";
+const UNWRITABLE: &str = "---\ntype: ADR\ntitle: A Decision\ndescription: A decision.\nstatus: Proposed\ntags: [a, [b]]\n---\n\n> **DEPRECATED — do not act on this record.** It has no successor.\n\n# 0001. A Decision\n\nBody.\n";
 
 fn assert_unwritable_refused(key: &str, value: &str) {
     let store = store(UNWRITABLE, false);

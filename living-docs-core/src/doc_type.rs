@@ -246,12 +246,14 @@ pub const DOC_TYPES: &[DocTypeSpec] = &[ADR, PRD, ISSUE, RESEARCH, VIEW, CONSTIT
 
 /// Looks up a doc type by its CLI token, or by its directory name as an
 /// alias of that token (`issues` resolves to the `issue` row). This is the
-/// one place the alias is defined, so every verb accepts it alike.
+/// one place the alias is defined, so every verb accepts it alike. ASCII case
+/// is ignored for both, so `ADR` and `Issues` resolve; a caller then uses the
+/// row's canonical token and directory, never the typed spelling.
 pub fn spec_for(token: &str) -> Option<&'static DocTypeSpec> {
     DOC_TYPES
         .iter()
-        .find(|spec| spec.token == token)
-        .or_else(|| spec_for_dir(token))
+        .find(|spec| spec.token.eq_ignore_ascii_case(token))
+        .or_else(|| spec_for_dir(&token.to_ascii_lowercase()))
 }
 
 /// Looks up a doc type by its `type:` frontmatter value. Returns the first

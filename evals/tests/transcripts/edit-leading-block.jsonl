@@ -1,0 +1,2 @@
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Edit","input":{"file_path":"docs/adr/0001-use-sqlite.md","old_string":"---\ntype: ADR\ntitle: Use sqlite\nstatus: Accepted\n---","new_string":"---\ntype: ADR\ntitle: Use sqlite\nstatus: Proposed\n---"}}]}}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"edited","is_error":false}]}}

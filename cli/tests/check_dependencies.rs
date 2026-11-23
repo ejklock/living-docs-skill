@@ -15,7 +15,7 @@ struct Issue {
 fn issue(number: &'static str, blocked_by: &'static str) -> Issue {
     Issue {
         number,
-        status: "Open",
+        status: "open",
         blocked_by: Some(blocked_by),
     }
 }

@@ -8,7 +8,7 @@ superseded_by: 0086
 timestamp: 2026-11-15T16:01:28Z
 ---
 
-> **SUPERSEDED — do not act on this record.** Replaced by [0086](0086-blocked-by-fails-check-only-on-a-dangling-issue-number-a-self-reference-or-a-cycle-other-items-are-advice.md). Run `living-docs read records` for what is in force.
+> **SUPERSEDED — do not act on this record.** Replaced by [0086](0086-blocked-by-fails-check-only-on-a-dangling-issue-number-a-self-reference-or-a-cycle-other-items-are-advice.md).
 
 # 0092. blocked_by names local issue numbers and check fails on a dangling dependency, a self-reference or a cycle
 

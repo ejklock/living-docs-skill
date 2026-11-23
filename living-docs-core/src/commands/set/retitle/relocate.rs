@@ -3,6 +3,7 @@
 
 use super::references::plan_references;
 use crate::callout::draft_reconciled;
+use crate::commands::journal::{journaled_write, rolled_back, Step};
 use crate::commands::supersede::draft_frontmatter_fields;
 use crate::store::DocStore;
 use std::io;
@@ -36,18 +37,9 @@ pub(in crate::commands::set) fn relocate(
     let moved = reconciled.as_deref().unwrap_or(moved);
     let mut done = Vec::new();
     if let Err(error) = apply_plan(store, (path, target), moved, &plan, &mut done) {
-        let stuck = undo(store, (path, target), done);
-        return Err(match stuck.is_empty() {
-            true => error,
-            false => format!("{error}; rollback incomplete, check: {}", join(&stuck)),
-        });
+        return Err(rolled_back(store, error, done));
     }
     Ok(plan.into_iter().map(|(planned, _)| planned).collect())
-}
-
-fn join(paths: &[PathBuf]) -> String {
-    let names: Vec<_> = paths.iter().map(|p| p.display().to_string()).collect();
-    names.join(", ")
 }
 
 /// A store that reads the drafted text of the records in `drafted` and the
@@ -101,12 +93,6 @@ fn with_blocked_by(
     Ok(plan)
 }
 
-/// A step of [`apply_plan`] that reached the store, with what undoes it.
-enum Step {
-    Wrote(PathBuf, String),
-    Renamed,
-}
-
 /// Writes the moved record at its old path, renames it, then writes every
 /// other planned record, journaling each step in `done` before it runs.
 fn apply_plan(
@@ -118,39 +104,9 @@ fn apply_plan(
 ) -> Result<(), String> {
     journaled_write(store, path, moved, done)?;
     store.rename(path, target).map_err(|e| e.to_string())?;
-    done.push(Step::Renamed);
+    done.push(Step::Renamed(path.to_path_buf(), target.to_path_buf()));
     for (planned, text) in plan.iter().filter(|(planned, _)| planned != target) {
         journaled_write(store, planned, text, done)?;
     }
     Ok(())
-}
-
-fn journaled_write(
-    store: &dyn DocStore,
-    path: &Path,
-    text: &str,
-    done: &mut Vec<Step>,
-) -> Result<(), String> {
-    let before = store.read(path).map_err(|e| e.to_string())?;
-    if before == text {
-        return Ok(());
-    }
-    done.push(Step::Wrote(path.to_path_buf(), before));
-    store.write(path, text).map_err(|e| e.to_string())
-}
-
-/// Reverses `done` newest first and returns the paths it could not restore,
-/// the target for a rename that would not go back.
-fn undo(store: &dyn DocStore, (path, target): (&Path, &Path), done: Vec<Step>) -> Vec<PathBuf> {
-    let mut stuck = Vec::new();
-    for step in done.into_iter().rev() {
-        let (restored, at) = match step {
-            Step::Wrote(written, before) => (store.write(&written, &before), written),
-            Step::Renamed => (store.rename(target, path), target.to_path_buf()),
-        };
-        if restored.is_err() {
-            stuck.push(at);
-        }
-    }
-    stuck
 }

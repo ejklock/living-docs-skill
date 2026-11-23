@@ -189,18 +189,24 @@ fn run_scoped(docs: &Path, changed: &Path) -> Output {
         .unwrap()
 }
 
+const ADR: &str = "---\ntype: ADR\ntitle: A\ndescription: A record.\nowner: a@b.c\nstatus: Accepted\n---\n\n# 0001. A\n\n## Context\n\nc.\n\n## Decision\n\nd.\n\n## Consequences\n\nq.\n";
+
 #[test]
-fn changed_files_reports_drift_only_when_the_drifted_index_is_among_them() {
+fn changed_files_reports_drift_when_the_index_or_a_record_of_its_type_is_among_them() {
     let docs = indexed_bundle("scoped");
+    common::write(&docs, "adr/0001-a.md", ADR);
+    common::index_bundle(&docs);
     edit_index(&docs, &|text| text.replace("- open", "- done"));
     let with_index = run_scoped(&docs, &index_of(&docs));
     assert_one_drift_violation(&with_index);
     let record = docs.join("issues").join("0001-first.md");
-    let without_index = run_scoped(&docs, &record);
+    let with_record = run_scoped(&docs, &record);
+    assert_one_drift_violation(&with_record);
+    let other_type = run_scoped(&docs, &docs.join("adr").join("0001-a.md"));
     assert_eq!(
-        without_index.status.code(),
+        other_type.status.code(),
         Some(0),
         "{}",
-        stdout_of(&without_index)
+        stdout_of(&other_type)
     );
 }
