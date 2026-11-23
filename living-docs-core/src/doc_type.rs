@@ -100,7 +100,9 @@ pub struct SectionSpec {
     pub tier: Tier,
 }
 
+mod description;
 mod domain;
+pub use description::is_template_description;
 mod sections;
 use domain::DOMAIN;
 use sections::{

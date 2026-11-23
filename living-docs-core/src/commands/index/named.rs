@@ -1,9 +1,12 @@
-//! Listing body for a Named-identity directory (ADR 0036): one row per
+//! Listing body for a Named-identity directory: one row per
 //! view file, sorted by the C4/arc42 zoom rank of its `kind` frontmatter
 //! (`doc_type::VIEW_KIND_ORDER`), then filename; an absent or unknown kind
 //! ranks after every listed one. A Nested directory lists its records at any
 //! depth by filename alone, with no kind: root-level rows first, then one
-//! `## <folder/path>` heading per subfolder, in path order.
+//! `## <folder/path>` heading per subfolder, in path order; each row ends with
+//! ` — <description>` when the record has a real one.
+
+mod description;
 
 use super::first_heading;
 use super::rows::single_line;
@@ -11,6 +14,7 @@ use crate::doc_type::VIEW_KIND_ORDER;
 use crate::frontmatter;
 use crate::paths::link_destination;
 use crate::store::DocStore;
+use description::real_description;
 use std::path::Path;
 
 struct View {
@@ -20,6 +24,9 @@ struct View {
     filename: String,
     title: String,
     kind: String,
+    /// The frontmatter description, empty when absent or still a doc type's
+    /// template sentence; only a Nested listing renders it.
+    description: String,
 }
 
 pub(super) fn render_body(
@@ -30,6 +37,7 @@ pub(super) fn render_body(
 ) -> Result<String, String> {
     let mut views = collect_views(store, docs_dir, type_dir, !ranked)?;
     if ranked {
+        views.iter_mut().for_each(|view| view.description.clear());
         views.sort_by(|a, b| (a.rank, &a.filename).cmp(&(b.rank, &b.filename)));
         return Ok(join_rows(&views));
     }
@@ -58,7 +66,8 @@ fn render_folders(views: &[View]) -> String {
     for view in views {
         if view.folder != current {
             current = &view.folder;
-            out.push_str(&format!("\n## {current}\n\n"));
+            let gap = if out.is_empty() { "" } else { "\n" };
+            out.push_str(&format!("{gap}## {current}\n\n"));
         }
         out.push_str(&render_row(view));
         out.push('\n');
@@ -100,6 +109,7 @@ fn view_from_path(store: &dyn DocStore, path: &Path, type_dir: &Path) -> Option<
         folder,
         rank: kind_rank(&kind),
         title: view_title(&contents, &filename),
+        description: real_description(&contents),
         kind,
         filename,
     })
@@ -125,6 +135,9 @@ fn render_row(view: &View) -> String {
         false => format!("{}/{}", view.folder, view.filename),
     };
     let destination = link_destination(&relative);
+    if !view.description.is_empty() {
+        return format!("* [{title}]({destination}) — {}", view.description);
+    }
     if view.kind.is_empty() {
         return format!("* [{title}]({destination})");
     }

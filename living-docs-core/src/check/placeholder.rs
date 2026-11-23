@@ -42,11 +42,7 @@ fn has_template_description(contents: &str) -> bool {
     let Some(description) = frontmatter::read_scalar_from_str(contents, "description") else {
         return false;
     };
-    let description = description.trim();
-    doc_type::DOC_TYPES.iter().any(|spec| {
-        frontmatter::read_scalar_from_str(spec.template, "description")
-            .is_some_and(|placeholder| placeholder.trim() == description)
-    })
+    doc_type::is_template_description(&description)
 }
 
 fn placeholder_description_message(bundle: &Path, path: &Path, contents: &str) -> String {

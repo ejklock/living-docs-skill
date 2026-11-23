@@ -43,14 +43,12 @@ pub struct Indexed {
     pub failures: Vec<IndexFailure>,
 }
 
-/// The type token whose directory directly holds `record`, `None` for a file
-/// at the bundle root (a singleton such as the constitution has no index).
+/// The type token whose directory holds `record` at any depth below it,
+/// `None` for a file at the bundle root (a singleton such as the constitution
+/// has no index).
 fn type_of_record(docs_dir: &Path, record: &Path) -> Option<&'static str> {
-    let dir = record.parent()?;
-    if dir.parent()? != docs_dir {
-        return None;
-    }
-    paths::doc_type_for_dir(dir.file_name()?.to_str()?)
+    let below = record.parent()?.strip_prefix(docs_dir).ok()?;
+    paths::doc_type_for_dir(below.iter().next()?.to_str()?)
 }
 
 /// Regenerates the index of the type `record` belongs to, writing only when
