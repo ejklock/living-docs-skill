@@ -30,6 +30,7 @@ Kept: the stateless CLI over the `.md` tree; every status vocabulary; `Deprecate
 - The chain rule binds `write supersede` only (owner, 2026-11-23): a supersede must not target a retired record nor rewrite an existing successor link nor close a cycle; `write set status Deprecated` on a record that succeeded another stays legal, since retiring a decision with no replacement is an ordinary move, and the check rule is narrowed to match. A Proposed successor counts as in force, as the core's `is_in_force` defines. Not taken: refusing `set status Deprecated` on a successor.
 - A `Superseded` record refuses `write set status` (owner, 2026-11-23, ADR 0104): a new status would leave its `superseded_by` link describing a replacement that no longer holds; undoing a supersede stays a hand edit of both records that `check` judges. Not taken: leaving `set status` free on a `Superseded` record.
 - S3 splits by file overlap (session, 2026-11-23): the table and the verb refusals start now; the `supersede-cycle` advisory waits for issue 0152 S4, which also edits `check/kinds.rs`.
+- An identical repeat of a recorded supersede stays legal (owner, 2026-11-23): same `old` and `new` as the existing link exits 0 and changes no file, as `cli/tests/supersede_keeps.rs` holds; only a different successor is a re-supersede. Not taken: refusing every supersede of a record that has a successor.
 
 ### Acceptance
 
