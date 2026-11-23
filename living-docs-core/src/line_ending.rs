@@ -99,6 +99,10 @@ impl DocStore for LineEndingStore<'_> {
     fn repository_entry_exists(&self, relative: &Path) -> Option<bool> {
         self.inner.repository_entry_exists(relative)
     }
+
+    fn repository_files(&self, globs: &[String]) -> Option<crate::store::RepositoryFiles> {
+        self.inner.repository_files(globs)
+    }
 }
 
 #[cfg(test)]

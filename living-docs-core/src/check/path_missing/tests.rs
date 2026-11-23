@@ -86,3 +86,47 @@ fn the_read_once_wrapper_passes_the_probe_through() {
     let wrapped = crate::check::read_once::ReadOnceStore::new(&inner);
     assert_eq!(answers(&wrapped), [Some(true), Some(false), None]);
 }
+
+struct Serving;
+
+impl DocStore for Serving {
+    fn list(&self, _root: &Path) -> std::io::Result<Vec<PathBuf>> {
+        Ok(Vec::new())
+    }
+
+    fn read(&self, _path: &Path) -> std::io::Result<String> {
+        Ok(String::new())
+    }
+
+    fn write(&self, _path: &Path, _contents: &str) -> std::io::Result<()> {
+        Ok(())
+    }
+
+    fn rename(&self, _from: &Path, _to: &Path) -> std::io::Result<()> {
+        Ok(())
+    }
+
+    fn repository_files(&self, _globs: &[String]) -> Option<crate::store::RepositoryFiles> {
+        Some(Ok(vec![(PathBuf::from("a.txt"), b"x".to_vec())]))
+    }
+}
+
+fn served(store: &dyn DocStore) -> Vec<PathBuf> {
+    let files = store.repository_files(&["*".to_owned()]);
+    let files = files.expect("the store serves files").unwrap();
+    files.into_iter().map(|(path, _)| path).collect()
+}
+
+#[test]
+fn the_line_ending_wrapper_passes_the_repository_files_through() {
+    let inner = Serving;
+    let wrapped = crate::line_ending::LineEndingStore::new(&inner, true);
+    assert_eq!(served(&wrapped), vec![PathBuf::from("a.txt")]);
+}
+
+#[test]
+fn the_read_once_wrapper_passes_the_repository_files_through() {
+    let inner = Serving;
+    let wrapped = crate::check::read_once::ReadOnceStore::new(&inner);
+    assert_eq!(served(&wrapped), vec![PathBuf::from("a.txt")]);
+}

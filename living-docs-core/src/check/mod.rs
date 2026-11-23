@@ -30,6 +30,7 @@ mod records;
 mod report;
 mod sections;
 mod size;
+mod stale_view;
 mod supersede_links;
 mod unparseable_frontmatter;
 
@@ -109,8 +110,8 @@ fn run_all_checks(
 }
 
 /// The checks on references between records: links resolve and are spelled
-/// relative, no record number is shared, every issue dependency resolves, and
-/// a repository path named in inline code still exists.
+/// relative, no record number is shared, every issue dependency resolves, a
+/// path named in inline code still exists, and a view's stamp matches its inputs.
 fn check_references(
     store: &dyn DocStore,
     bundle: &Path,
@@ -122,6 +123,7 @@ fn check_references(
     duplicate_numbers::check_duplicate_numbers(bundle, all_md, reporter);
     dependencies::check_dependencies(store, bundle, all_md, reporter);
     path_missing::check_path_missing(store, all_md, reporter);
+    stale_view::check_stale_view(store, all_md, reporter);
 }
 
 /// Runs the per-record frontmatter pass and returns `all_md` without the

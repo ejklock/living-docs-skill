@@ -20,6 +20,7 @@ pub const RECORD_TYPE: &str = "record-type";
 pub const TIMESTAMP: &str = "timestamp";
 pub const PATH_MISSING: &str = "path-missing";
 pub const ANCHOR_MISSING: &str = "anchor-missing";
+pub const STALE_VIEW: &str = "stale-view";
 
 /// Every kind an advisory can carry, in a stable order.
 pub const ALL: &[Kind] = &[
@@ -71,6 +72,10 @@ pub const ALL: &[Kind] = &[
     Kind {
         name: ANCHOR_MISSING,
         meaning: "a local markdown link's `#fragment` matches no heading of its markdown target",
+    },
+    Kind {
+        name: STALE_VIEW,
+        meaning: "an architecture view's stamped generated region records a hash that differs from the current hash of its inputs, or its stamp cannot be checked",
     },
 ];
 

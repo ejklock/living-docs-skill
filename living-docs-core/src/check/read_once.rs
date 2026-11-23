@@ -74,16 +74,18 @@ impl DocStore for ReadOnceStore<'_> {
         Err(read_only())
     }
 
+    fn repository_files(&self, globs: &[String]) -> Option<crate::store::RepositoryFiles> {
+        self.inner.repository_files(globs)
+    }
+
     fn repository_entry_exists(&self, relative: &Path) -> Option<bool> {
         self.inner.repository_entry_exists(relative)
     }
 }
 
 fn read_only() -> io::Error {
-    io::Error::new(
-        io::ErrorKind::PermissionDenied,
-        "a check run is read-only: it never writes or renames",
-    )
+    let why = "a check run is read-only: it never writes or renames";
+    io::Error::new(io::ErrorKind::PermissionDenied, why)
 }
 
 #[cfg(test)]
