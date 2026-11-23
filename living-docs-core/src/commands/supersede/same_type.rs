@@ -13,7 +13,7 @@ fn type_of(path: &Path) -> Option<&'static DocTypeSpec> {
 pub(super) fn require_same_type(old: &Path, new: &Path) -> Result<(), String> {
     match (type_of(old), type_of(new)) {
         (Some(a), Some(b)) if a.frontmatter != b.frontmatter => Err(format!(
-            "{}: a {} cannot be superseded by a {} ({}); supersede links records of one type",
+            "{}: {} cannot be superseded by {} {}; supersede links records of one type",
             old.display(),
             a.frontmatter,
             b.frontmatter,

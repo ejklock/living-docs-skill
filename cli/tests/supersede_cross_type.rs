@@ -42,11 +42,30 @@ fn assert_refused(label: &str, old: &str, new: &str, names: [&str; 2]) {
     for name in names {
         assert!(stderr.contains(name), "stderr names {name}: {stderr}");
     }
+    assert_message_shape(&stderr, old, new);
     assert_eq!(
         snapshot(&docs),
         before,
         "a refused supersede writes nothing"
     );
+}
+
+fn assert_message_shape(stderr: &str, old: &str, new: &str) {
+    for record in [old, new] {
+        assert!(stderr.contains(record), "stderr names {record}: {stderr}");
+    }
+    assert!(
+        stderr.contains("supersede links records of one type"),
+        "{stderr}"
+    );
+    assert_eq!(
+        stderr.trim_end().lines().count(),
+        1,
+        "the refusal is one line: {stderr}"
+    );
+    for article in [" a ADR", " a Issue", " a Research", " a PRD"] {
+        assert!(!stderr.contains(article), "no article {article}: {stderr}");
+    }
 }
 
 fn adr_text(docs: &Path, number: &str) -> String {
