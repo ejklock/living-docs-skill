@@ -2,7 +2,7 @@
 //! doubles backed by a `BTreeMap`, with no filesystem I/O, so every unit test
 //! reuses one store instead of carrying its own copy.
 
-use crate::store::DocStore;
+use crate::store::{DocStore, RepositoryFiles};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::io;
@@ -49,6 +49,25 @@ impl DocStore for MapStore {
 
     fn rename(&self, _from: &Path, _to: &Path) -> io::Result<()> {
         Ok(())
+    }
+
+    fn repository_files(&self, globs: &[String]) -> Option<RepositoryFiles> {
+        let compiled = match crate::inputs_hash::compile(globs) {
+            Ok(compiled) => compiled,
+            Err(error) => {
+                return Some(Err(io::Error::new(
+                    io::ErrorKind::PermissionDenied,
+                    error.to_string(),
+                )))
+            }
+        };
+        let matched = self
+            .files
+            .iter()
+            .filter(|(path, _)| crate::inputs_hash::matches_any(&compiled, &path.to_string_lossy()))
+            .map(|(path, body)| (path.clone(), body.clone().into_bytes()))
+            .collect();
+        Some(Ok(matched))
     }
 }
 

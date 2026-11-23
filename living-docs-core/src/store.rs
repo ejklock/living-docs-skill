@@ -6,6 +6,10 @@
 use std::io;
 use std::path::{Path, PathBuf};
 
+/// What [`DocStore::repository_files`] returns: each matched entry's path from
+/// the repository root and its content bytes.
+pub type RepositoryFiles = io::Result<Vec<(PathBuf, Vec<u8>)>>;
+
 /// Reads and writes the files of a bundle against a backing store rooted at a
 /// given directory: its doc records and its reserved files (`index.md`).
 /// `fs-store` implements this over `.md` files on disk; a future `db-store`
@@ -46,6 +50,20 @@ pub trait DocStore {
     /// the caller reports nothing; the default knows no root.
     fn repository_entry_exists(&self, relative: &Path) -> Option<bool> {
         let _ = relative;
+        None
+    }
+
+    /// The entries `globs` match under the repository root that the
+    /// repository's `.gitignore` files do not exclude, each as its
+    /// `/`-separated path from that root with its content bytes, in no
+    /// promised order. A regular file's content is its bytes; a symbolic link
+    /// is never followed and its content is its target text, as git stores it.
+    /// `None` means unknown: no repository root is known or the store does not
+    /// serve repository files; the default knows no root. `Some(Err)` is a
+    /// refusal ([`is_refusal`]) of an absolute glob or one with a `..`
+    /// segment, or a failed read. A store never reads `.git`.
+    fn repository_files(&self, globs: &[String]) -> Option<RepositoryFiles> {
+        let _ = globs;
         None
     }
 }

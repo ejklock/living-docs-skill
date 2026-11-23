@@ -1,8 +1,11 @@
-//! The repository probe: whether a repository-relative path exists, judged
-//! from the working tree alone. It never reads a file's contents and never
-//! follows a path out of the repository root.
+//! The repository reads: whether a repository-relative path exists, judged
+//! from the working tree alone without reading a file's contents, and the
+//! files that input globs match, read with their contents. Neither follows a
+//! path out of the repository root.
 
+use living_docs_core::inputs_hash::{self, Glob};
 use std::fs;
+use std::io;
 use std::path::{Component, Path, PathBuf};
 
 /// The nearest ancestor of `bundle` (itself included) that holds a `.git`
@@ -84,4 +87,97 @@ fn lies_inside(root: &Path, target: &Path) -> bool {
     flat.ancestors()
         .find_map(|dir| fs::canonicalize(dir).ok())
         .is_some_and(|found| found.starts_with(root))
+}
+
+/// The entries below `root` that `globs` match and `.gitignore` does not
+/// exclude, each as its `/`-separated path from `root` with its content: a
+/// regular file's bytes, or a symbolic link's target text, never followed. A
+/// glob that is absolute, holds `..` or is outside the supported syntax is
+/// refused with a store refusal. Every `.git` entry is skipped, and a
+/// directory no glob can match below is never entered. Only the repository's
+/// own `.gitignore` files apply: no global ignore file, no `.git/info/exclude`
+/// and no ignore file above `root`.
+pub(crate) fn matching_files(root: &Path, globs: &[String]) -> io::Result<Vec<(PathBuf, Vec<u8>)>> {
+    let compiled = inputs_hash::compile(globs)
+        .map_err(|error| io::Error::new(io::ErrorKind::PermissionDenied, error.to_string()))?;
+    let mut found = Vec::new();
+    for entry in walker(root, compiled.clone()) {
+        let entry = entry.map_err(into_io)?;
+        let Some(relative) = relative_text(root, entry.path()) else {
+            continue;
+        };
+        let Some(kind) = entry.file_type() else {
+            continue;
+        };
+        if !kind.is_dir() && inputs_hash::matches_any(&compiled, &relative) {
+            if let Some(content) = content_of(entry.path(), kind)? {
+                found.push((PathBuf::from(relative), content));
+            }
+        }
+    }
+    Ok(found)
+}
+
+/// A walk of `root` that honors `.gitignore` files only, skips `.git` and
+/// enters a directory only when a glob can match below it.
+fn walker(root: &Path, globs: Vec<Glob>) -> ignore::Walk {
+    let base = root.to_path_buf();
+    ignore::WalkBuilder::new(root)
+        .standard_filters(false)
+        .git_ignore(true)
+        .require_git(false)
+        .filter_entry(move |entry| {
+            let Some(relative) = relative_text(&base, entry.path()) else {
+                return false;
+            };
+            let is_dir = entry.file_type().is_some_and(|kind| kind.is_dir());
+            relative.is_empty()
+                || (entry.file_name() != ".git"
+                    && (!is_dir || inputs_hash::can_match_below(&globs, &relative)))
+        })
+        .build()
+}
+
+/// The `/`-separated path of `path` below `root`, empty for `root` itself, or
+/// `None` when it is not valid text.
+fn relative_text(root: &Path, path: &Path) -> Option<String> {
+    let below = path.strip_prefix(root).ok()?;
+    let parts: Option<Vec<&str>> = below
+        .components()
+        .map(|part| part.as_os_str().to_str())
+        .collect();
+    parts.map(|parts| parts.join("/"))
+}
+
+/// What a matched entry contributes: a regular file's bytes, a symbolic link's
+/// target text, nothing for any other kind.
+fn content_of(path: &Path, kind: fs::FileType) -> io::Result<Option<Vec<u8>>> {
+    if kind.is_symlink() {
+        link_text(path).map(Some)
+    } else if kind.is_file() {
+        fs::read(path).map(Some)
+    } else {
+        Ok(None)
+    }
+}
+
+/// The target of the symbolic link at `path` as git stores it: the raw link
+/// text with `/` separators, never resolved.
+fn link_text(path: &Path) -> io::Result<Vec<u8>> {
+    let target = fs::read_link(path)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::ffi::OsStrExt;
+        Ok(target.as_os_str().as_bytes().to_vec())
+    }
+    #[cfg(not(unix))]
+    {
+        Ok(target.to_string_lossy().replace('\\', "/").into_bytes())
+    }
+}
+
+fn into_io(error: ignore::Error) -> io::Error {
+    error
+        .into_io_error()
+        .unwrap_or_else(|| io::Error::other("the repository walk failed"))
 }
