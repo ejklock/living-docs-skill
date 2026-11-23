@@ -17,7 +17,7 @@ Counted over the 42 measurable bundles of the 2026-11-20 survey with the binary 
 
 ## Decision
 
-We will report `stale-successor` as a violation of `check`, under the same name, instead of an advisory. The other three kinds of ADR 0095 (`status-vocabulary`, `record-type`, `timestamp`) and `path-missing` stay advisories.
+We will report the `stale-successor` state as a violation of `check` instead of an advisory: a record with a non-empty `superseded_by` and a status other than Superseded fails the gate, with a message that names the successor and ends with `(invariant 4)`, like the other supersede-chain violations. The kind leaves the advisory list. The other three kinds of ADR 0095 (`status-vocabulary`, `record-type`, `timestamp`) and `path-missing` stay advisories.
 
 ## Consequences
 
