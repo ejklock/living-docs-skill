@@ -16,6 +16,7 @@ one slice per fresh context, starting from the skeleton.
 * [0151 — Living diagrams: stamped generated view regions, splice and stale-view](0151-living-diagrams-stamped-generated-view-regions-splice-and-stale-view.md) - open
 * [0152 — Formal proofs of state and decision artifacts, model-checker export, and bounded model checking of the CLI](0152-formal-proofs-of-state-and-decision-artifacts-model-checker-export-and-bounded-model-checking-of-the-cli.md) - open
 * [0153 — Measure how often a stale or contradicted decision is caught as the log grows past 60 records](0153-measure-how-often-a-stale-or-contradicted-decision-is-caught-as-the-log-grows-past-60-records.md) - open
+* [0154 — Make the record lifecycle an explicit transition table and refuse illegal supersede transitions](0154-make-the-record-lifecycle-an-explicit-transition-table-and-refuse-illegal-supersede-transitions.md) - open
 
 ## Closed
 
