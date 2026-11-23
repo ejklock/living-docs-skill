@@ -97,6 +97,9 @@ pub fn slugify(title: &str) -> String {
 }
 
 #[cfg(test)]
+mod exhaustive;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 

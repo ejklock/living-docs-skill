@@ -20,4 +20,6 @@ pub mod store;
 pub mod templates;
 
 #[cfg(test)]
+mod exhaustive;
+#[cfg(test)]
 mod test_support;

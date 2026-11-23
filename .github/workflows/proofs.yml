@@ -1,0 +1,25 @@
+name: Proofs
+
+# Runs the Kani model-checking harnesses of living-docs-core (the `cfg(kani)`
+# `proofs` modules). They are heavy, so the job runs only when dispatched by hand.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  kani:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Install Kani
+        run: |
+          cargo install --locked kani-verifier --version 0.68.0
+          cargo kani setup
+
+      - name: Run the harnesses
+        run: cargo kani -p living-docs-core

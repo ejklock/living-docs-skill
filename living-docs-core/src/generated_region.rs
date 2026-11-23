@@ -224,4 +224,6 @@ fn valid_hash(hash: &str, line: usize) -> Result<String, RegionError> {
 }
 
 #[cfg(test)]
+mod exhaustive;
+#[cfg(test)]
 mod tests;
