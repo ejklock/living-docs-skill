@@ -92,6 +92,7 @@ struct Run {
     reached: HashSet<(usize, Snapshot)>,
     nodes: usize,
     operations_run: BTreeSet<String>,
+    judgments_run: BTreeSet<Vec<&'static str>>,
     sequences: usize,
     states: usize,
 }
@@ -105,6 +106,7 @@ impl Run {
             reached: HashSet::new(),
             nodes: 0,
             operations_run: BTreeSet::new(),
+            judgments_run: BTreeSet::new(),
             sequences: 0,
             states: 0,
         }
@@ -151,7 +153,8 @@ fn judge(
         return Ok(());
     }
     run.states += 1;
-    contract::judge_state(child)?;
+    let ran = contract::judge_state(child)?;
+    run.judgments_run.insert(ran);
     if run.sequence.len() < MAX_LENGTH {
         explore(child, run);
     }
@@ -190,6 +193,23 @@ fn explore_from(start: Start, label: &str) {
     );
     assert_eq!(run.operations_run.len(), ops::alphabet().len());
     assert!(run.nodes >= ops::alphabet().len());
+    assert_every_judged_state_ran_every_judgment(&run);
+}
+
+/// Every bundle the search judged ran the whole ordered list of state
+/// judgments, so a judgment the search skips fails here instead of passing
+/// unnoticed.
+fn assert_every_judged_state_ran_every_judgment(run: &Run) {
+    let expected: Vec<&str> = contract::STATE_PARTS
+        .iter()
+        .map(|(name, _)| *name)
+        .collect();
+    assert_eq!(
+        run.judgments_run,
+        BTreeSet::from([expected.clone()]),
+        "from the {} every judged bundle must run {expected:?}",
+        run.start.name
+    );
 }
 
 #[test]
