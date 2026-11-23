@@ -3,6 +3,7 @@ use crate::commands::index::{refresh_for_records, Indexed};
 use crate::commands::journal::{named_write, rolled_back, Step};
 use crate::commands::reference::resolve_reference;
 use crate::frontmatter::{frontmatter_block, parse_frontmatter};
+use crate::lifecycle;
 use crate::line_ending::{refuse_mixed, LineEndingStore};
 use crate::record::{
     extract_record, format_flow_list, format_scalar, to_canonical_markdown, TailValue,
@@ -47,6 +48,7 @@ pub fn supersede(
     refuse_mixed(store, &old_path)?;
     refuse_mixed(store, &new_path)?;
     let store: &dyn DocStore = &LineEndingStore::new(store, false);
+    lifecycle::refuse_supersede_at(store, docs_dir, &old_path, &new_path)?;
 
     let drafts = draft_link_pair(store, (&old_path, old_number), (&new_path, new_number))?;
     write_link_pair(store, &old_path, &new_path, drafts)?;

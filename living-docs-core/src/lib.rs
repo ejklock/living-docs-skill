@@ -12,6 +12,7 @@ pub mod generated_region;
 pub mod guide;
 pub mod html;
 pub mod inputs_hash;
+mod lifecycle;
 mod line_ending;
 pub mod paths;
 pub mod record;
