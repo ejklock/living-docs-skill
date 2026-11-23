@@ -69,7 +69,7 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0101 — Generated view regions carry a hash of their inputs, stamped by manage view --splice and checked for staleness](0101-generated-view-regions-carry-a-hash-of-their-inputs-stamped-by-manage-view-splice-and-checked-for-staleness.md) - Proposed
 * [0102 — check proves state views and marked decision tables as advisories](0102-check-proves-state-views-and-marked-decision-tables-as-advisories.md) - Proposed
 * [0103 — manage view exports a flat state view as a TLA+ module for the project's model checker](0103-manage-view-exports-a-flat-state-view-as-a-tla-module-for-the-project-s-model-checker.md) - Proposed
-* [0104 — The record lifecycle is one transition table that set status and supersede consult before any write](0104-the-record-lifecycle-is-one-transition-table-that-set-status-and-supersede-consult-before-any-write.md) - Proposed
+* [0104 — The record lifecycle is one transition table that set status and supersede consult before any write](0104-the-record-lifecycle-is-one-transition-table-that-set-status-and-supersede-consult-before-any-write.md) - Accepted
 
 ## Superseded
 

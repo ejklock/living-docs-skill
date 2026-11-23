@@ -28,6 +28,8 @@ Kept: the stateless CLI over the `.md` tree; every status vocabulary; `Deprecate
 - Reopening stays legal (owner, 2026-11-23): `Deprecated → Accepted` for an ADR and `closed → open` for an issue are legal transitions. Not taken: only reopening an issue; terminal statuses as absorbing states.
 - The refusal changes a verb's exit-code contract (calls accepted today start failing), so the table and its refusals are decided by an ADR before code.
 - The chain rule binds `write supersede` only (owner, 2026-11-23): a supersede must not target a retired record nor rewrite an existing successor link nor close a cycle; `write set status Deprecated` on a record that succeeded another stays legal, since retiring a decision with no replacement is an ordinary move, and the check rule is narrowed to match. A Proposed successor counts as in force, as the core's `is_in_force` defines. Not taken: refusing `set status Deprecated` on a successor.
+- A `Superseded` record refuses `write set status` (owner, 2026-11-23, ADR 0104): a new status would leave its `superseded_by` link describing a replacement that no longer holds; undoing a supersede stays a hand edit of both records that `check` judges. Not taken: leaving `set status` free on a `Superseded` record.
+- S3 splits by file overlap (session, 2026-11-23): the table and the verb refusals start now; the `supersede-cycle` advisory waits for issue 0152 S4, which also edits `check/kinds.rs`.
 
 ### Acceptance
 
@@ -39,4 +41,5 @@ Kept: the stateless CLI over the `.md` tree; every status vocabulary; `Deprecate
 
 - S1: widen the write-sequence test so D1 to D3 are red | files: fs-store/tests/write_sequences | after: none
 - S2: the ADR for the transition table and its refusals | files: docs/adr | after: S1
-- S3: the transition table in the core, consulted by set and supersede, and the two check rules | files: living-docs-core/src/doc_type, commands/set, commands/supersede, check | after: S2
+- S3: the transition table in the core, consulted by set and supersede, with the held S1 test turned green | files: living-docs-core/src/doc_type, living-docs-core/src/commands/set, living-docs-core/src/commands/supersede, fs-store/tests/write_sequences | after: S2
+- S4: the `supersede-cycle` advisory in `check` | files: living-docs-core/src/check (new module), check/kinds.rs, skills/living-docs/rules/check.md | after: S3, issue 0152 S4 (kinds.rs)

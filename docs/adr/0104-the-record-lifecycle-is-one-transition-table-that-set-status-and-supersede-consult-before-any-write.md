@@ -3,7 +3,7 @@ type: ADR
 title: The record lifecycle is one transition table that set status and supersede consult before any write
 description: Set status and supersede consult one lifecycle table and refuse a re-supersede, a cycle, a retired successor and a status change on a superseded record.
 owner: Evaldo Klock
-status: Proposed
+status: Accepted
 timestamp: 2026-11-23T15:41:19Z
 ---
 
