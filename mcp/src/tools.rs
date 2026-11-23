@@ -63,6 +63,7 @@ fn run_new(docs_dir: &Path, args: &NewArgs) -> Written {
         kind: args.kind.as_deref(),
         owner: args.owner.as_deref().or(seeded.as_deref()),
         body: args.body.as_deref(),
+        dir: args.dir.as_deref(),
     };
     let created = new::write(
         &store(docs_dir),

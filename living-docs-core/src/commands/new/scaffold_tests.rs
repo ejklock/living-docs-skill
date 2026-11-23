@@ -228,3 +228,49 @@ fn scaffold_writes_a_named_view_at_its_slug_with_the_kind_filled() {
     assert!(contents.starts_with("---\ntype: Architecture View\n"));
     assert!(contents.contains("kind: container\n"));
 }
+
+#[test]
+fn scaffold_places_a_nested_record_under_its_dir() {
+    let store = MapStore::new();
+    let opts = NewOptions {
+        dir: Some("billing/invoices"),
+        ..Default::default()
+    };
+
+    let target = scaffold(
+        &store,
+        Path::new("/bundle"),
+        "domain",
+        "Billing Rules",
+        &opts,
+        "2026-07-17T00:00:00Z",
+    )
+    .expect("a slug dir is accepted");
+
+    assert_eq!(
+        target,
+        PathBuf::from("/bundle/context/billing/invoices/billing-rules.md")
+    );
+}
+
+#[test]
+fn scaffold_refuses_a_dir_with_a_parent_segment_and_writes_nothing() {
+    let store = MapStore::new();
+    let opts = NewOptions {
+        dir: Some("a/../b"),
+        ..Default::default()
+    };
+
+    let error = scaffold(
+        &store,
+        Path::new("/bundle"),
+        "domain",
+        "X",
+        &opts,
+        "2026-07-17T00:00:00Z",
+    )
+    .expect_err("a parent segment is refused");
+
+    assert!(error.contains(".."), "{error}");
+    assert!(store.read(Path::new("/bundle/context/b/x.md")).is_err());
+}

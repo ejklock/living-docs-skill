@@ -19,6 +19,7 @@ pub(crate) struct NewArgs<'a> {
     pub(crate) kind: Option<&'a str>,
     pub(crate) owner: Option<&'a str>,
     pub(crate) body: Option<&'a str>,
+    pub(crate) dir: Option<&'a str>,
 }
 
 #[derive(Serialize)]
@@ -68,6 +69,7 @@ pub(crate) fn run_new(
         kind: args.kind,
         owner: args.owner.or(seeded.as_deref()),
         body: body.as_deref(),
+        dir: args.dir,
     };
     let store = build_store(docs_dir);
     match commands::new::write(store.as_ref(), docs_dir, doc_type, title, &opts) {

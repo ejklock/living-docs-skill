@@ -58,6 +58,7 @@ fn run_write_new(docs_dir: &Path, args: NewRecordArgs, mode: OutputMode, quiet: 
         kind: args.kind.as_deref(),
         owner: args.owner.as_deref(),
         body: args.body.as_deref(),
+        dir: args.dir.as_deref(),
     };
     commands::new::run_new(docs_dir, &args.doc_type, &args.title, &fields, mode, quiet)
 }

@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Optional authoring inputs for `new` beyond the type and title:
-/// `--description`, `--kind` and `--owner`.
+/// `--description`, `--kind`, `--owner`, `--body` and `--dir`.
 #[derive(Default)]
 pub struct NewOptions<'a> {
     pub description: Option<&'a str>,
@@ -27,6 +27,10 @@ pub struct NewOptions<'a> {
     /// Replaces everything below the title heading — the template's slots —
     /// with this text. `None` keeps the scaffolded slots.
     pub body: Option<&'a str>,
+    /// A relative folder below the type's own folder, of slug segments joined
+    /// by `/`, that places a nested-type record at any depth. `None` keeps
+    /// the record directly in the type's folder; any other type refuses it.
+    pub dir: Option<&'a str>,
 }
 
 /// The point-of-use teaching line the CLI prints after `new`'s created path, and
@@ -96,7 +100,7 @@ fn plan_at(
     timestamp: &str,
 ) -> Result<(PathBuf, String), String> {
     let spec = doc_type::spec_for(doc_type).ok_or_else(|| unsupported_type_message(doc_type))?;
-    let target_path = target_path_for(store, docs_dir, spec, title)?;
+    let target_path = target_path_for(store, docs_dir, spec, title, opts.dir)?;
 
     if store.read(&target_path).is_ok() {
         return Err(format!("{} already exists", target_path.display()));
@@ -128,13 +132,26 @@ fn numbered_prefix_of(path: &Path) -> Option<u32> {
 /// allocates nothing and resolves straight to `docs_dir.join(file)` — no
 /// number, no slug. Everything after this call (the clobber guard, the
 /// frontmatter fill) is identity-blind, so only the path itself differs.
-/// A numbered or named type refuses a title that slugifies to nothing.
+/// A numbered or named type refuses a title that slugifies to nothing. A
+/// [`Identity::Nested`] type places the record under `dir` when one is given;
+/// every other type refuses a `dir`.
 fn target_path_for(
     store: &dyn DocStore,
     docs_dir: &Path,
     spec: &doc_type::DocTypeSpec,
     title: &str,
+    dir: Option<&str>,
 ) -> Result<PathBuf, String> {
+    if let (Some(dir), Identity::Nested { dir: base }) = (dir, spec.identity) {
+        let folder = docs_dir.join(base).join(validated_subdir(dir)?);
+        return Ok(folder.join(format!("{}.md", slug_of(title)?)));
+    }
+    if dir.is_some() {
+        return Err(format!(
+            "--dir applies only to nested record types, not '{}'",
+            spec.token
+        ));
+    }
     match spec.identity {
         Identity::Numbered { dir: dir_name } => {
             let number =
@@ -148,6 +165,39 @@ fn target_path_for(
             .join(dir_name)
             .join(format!("{}.md", slug_of(title)?))),
     }
+}
+
+/// The longest folder name a file system accepts; a longer segment is refused
+/// before any folder is created.
+const MAX_SEGMENT_BYTES: usize = 255;
+
+/// The relative folder `dir` names, or the refusal naming its first bad
+/// segment: every `/`-separated segment must be its own slug, which rules out
+/// an absolute path, `.` and `..`, an empty segment and a backslash.
+fn validated_subdir(dir: &str) -> Result<PathBuf, String> {
+    if dir.starts_with('/') {
+        return Err(format!(
+            "--dir '{dir}' is an absolute path; give a relative folder"
+        ));
+    }
+    let mut folder = PathBuf::new();
+    for segment in dir.split('/') {
+        if segment.len() > MAX_SEGMENT_BYTES {
+            return Err(format!(
+                "--dir segment '{segment}' is longer than {MAX_SEGMENT_BYTES} bytes"
+            ));
+        }
+        if segment.is_empty() {
+            return Err(format!("--dir '{dir}' has an empty segment"));
+        }
+        if paths::slugify(segment) != segment {
+            return Err(format!(
+                "--dir segment '{segment}' is not a slug (lowercase letters, digits and hyphens)"
+            ));
+        }
+        folder.push(segment);
+    }
+    Ok(folder)
 }
 
 /// `title`'s slug, or the error `set title` gives a title with no

@@ -140,6 +140,7 @@ pub(crate) const NEW_EXAMPLES: &[&str] = &[
     "living-docs write new issue \"Flaky upload test\" --owner alice@example.com",
     "living-docs write new issue \"Flaky upload test\" --body body.md",
     "cat body.md | living-docs write new issue \"Flaky upload test\" --body -",
+    "living-docs write new domain \"Billing rules\" --dir billing/invoices",
 ];
 
 pub(crate) const SET_ABOUT: &str =

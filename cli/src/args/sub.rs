@@ -29,6 +29,11 @@ pub(crate) struct NewRecordArgs {
     /// and never writes prose itself.
     #[arg(long, value_name = "PATH")]
     pub(crate) body: Option<String>,
+    /// Nested record types only (such as `domain`): places the record in
+    /// this folder below the type's own, `a/b` for `docs/context/a/b/`,
+    /// each segment a slug; an unsafe path is refused before any write.
+    #[arg(long, value_name = "PATH")]
+    pub(crate) dir: Option<String>,
 }
 
 /// Arguments for the `check` verb.

@@ -30,6 +30,8 @@ pub struct NewArgs {
     pub owner: Option<String>,
     /// The prose below the title heading; frontmatter is never part of it.
     pub body: Option<String>,
+    /// For the nested types (such as `domain`): the folder below the type's own, `a/b` for `docs/context/a/b/`, each segment a slug.
+    pub dir: Option<String>,
 }
 
 /// Field form: `reference`, `key`, `value`. Section form: `reference`, `heading`, `text`.
