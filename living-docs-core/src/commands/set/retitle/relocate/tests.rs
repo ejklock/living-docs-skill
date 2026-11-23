@@ -1,5 +1,5 @@
 use super::*;
-use crate::store::RepositoryFiles;
+use crate::store::{GlobReach, GlobReaches, RepositoryFiles};
 use crate::test_support::MapStore;
 
 /// A store answering both repository questions, to prove a wrapper forwards them.
@@ -24,6 +24,9 @@ impl DocStore for Probing {
     fn repository_files(&self, globs: &[String]) -> Option<RepositoryFiles> {
         self.0.repository_files(globs)
     }
+    fn repository_glob_reach(&self, _: &[String]) -> Option<GlobReaches> {
+        Some(Ok(vec![GlobReach::Nothing]))
+    }
 }
 
 #[test]
@@ -45,4 +48,15 @@ fn a_draft_store_passes_the_repository_files_through() {
     };
     let files = drafted.repository_files(&["*.txt".to_owned()]);
     assert_eq!(files.expect("served").unwrap().len(), 1);
+}
+
+#[test]
+fn a_draft_store_passes_the_glob_reach_through() {
+    let inner = Probing(MapStore::seeded(&[]).0);
+    let drafted = Drafted {
+        inner: &inner,
+        drafted: &[],
+    };
+    let reach = drafted.repository_glob_reach(&["*.txt".to_owned()]);
+    assert_eq!(reach.expect("served").unwrap(), vec![GlobReach::Nothing]);
 }

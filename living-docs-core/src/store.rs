@@ -10,6 +10,22 @@ use std::path::{Path, PathBuf};
 /// the repository root and its content bytes.
 pub type RepositoryFiles = io::Result<Vec<(PathBuf, Vec<u8>)>>;
 
+/// How one input glob reaches the repository's files, as
+/// [`DocStore::repository_glob_reach`] reports it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GlobReach {
+    /// At least one match survives `.gitignore`.
+    Matched,
+    /// Every match is excluded by `.gitignore`.
+    IgnoredOnly,
+    /// No path matches, ignored or not.
+    Nothing,
+}
+
+/// What [`DocStore::repository_glob_reach`] returns: one answer per glob, in
+/// the order given.
+pub type GlobReaches = io::Result<Vec<GlobReach>>;
+
 /// Reads and writes the files of a bundle against a backing store rooted at a
 /// given directory: its doc records and its reserved files (`index.md`).
 /// `fs-store` implements this over `.md` files on disk; a future `db-store`
@@ -63,6 +79,15 @@ pub trait DocStore {
     /// refusal ([`is_refusal`]) of an absolute glob or one with a `..`
     /// segment, or a failed read. A store never reads `.git`.
     fn repository_files(&self, globs: &[String]) -> Option<RepositoryFiles> {
+        let _ = globs;
+        None
+    }
+
+    /// Per glob of `globs`, in order, whether it matches a file under the
+    /// repository root, matches only what `.gitignore` excludes, or matches
+    /// nothing. `None` and `Some(Err)` mean what they do for
+    /// [`DocStore::repository_files`].
+    fn repository_glob_reach(&self, globs: &[String]) -> Option<GlobReaches> {
         let _ = globs;
         None
     }

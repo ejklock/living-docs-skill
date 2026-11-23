@@ -120,24 +120,31 @@ fn run_manage(docs_dir: &Path, operation: ManageCmd, mode: OutputMode, quiet: bo
         ManageCmd::Html { out, mermaid } => {
             commands::html::run_html(docs_dir, out, mermaid, mode, quiet)
         }
-        ManageCmd::Install {
-            action:
-                InstallCmd::Skills {
-                    harness,
-                    project,
-                    dir,
-                    dry_run,
-                },
-        } => commands::install::run_install_skills(harness, project, dir, dry_run),
-        ManageCmd::Install {
-            action: InstallCmd::Hooks { dir, dry_run },
-        } => commands::install::run_install_hooks(dir, dry_run, docs_dir, quiet),
-        ManageCmd::Install {
-            action: InstallCmd::Mermaid { dry_run },
-        } => commands::install::run_install_mermaid(dry_run),
+        ManageCmd::View {
+            view,
+            inputs,
+            command,
+            ..
+        } => commands::view::run_splice(docs_dir, &view, &inputs, command.as_deref(), mode, quiet),
+        ManageCmd::Install { action } => run_install(docs_dir, action, quiet),
         ManageCmd::Uninstall {
             action: UninstallCmd::Hooks { dir, dry_run },
         } => commands::uninstall::run_uninstall_hooks(dir, dry_run, docs_dir),
         ManageCmd::Completions { shell } => commands::completions::run_completions(shell),
+    }
+}
+
+fn run_install(docs_dir: &Path, action: InstallCmd, quiet: bool) -> ExitCode {
+    match action {
+        InstallCmd::Skills {
+            harness,
+            project,
+            dir,
+            dry_run,
+        } => commands::install::run_install_skills(harness, project, dir, dry_run),
+        InstallCmd::Hooks { dir, dry_run } => {
+            commands::install::run_install_hooks(dir, dry_run, docs_dir, quiet)
+        }
+        InstallCmd::Mermaid { dry_run } => commands::install::run_install_mermaid(dry_run),
     }
 }

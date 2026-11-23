@@ -4,6 +4,7 @@
 //! path out of the repository root.
 
 use living_docs_core::inputs_hash::{self, Glob};
+use living_docs_core::store::GlobReach;
 use std::fs;
 use std::io;
 use std::path::{Component, Path, PathBuf};
@@ -101,7 +102,7 @@ pub(crate) fn matching_files(root: &Path, globs: &[String]) -> io::Result<Vec<(P
     let compiled = inputs_hash::compile(globs)
         .map_err(|error| io::Error::new(io::ErrorKind::PermissionDenied, error.to_string()))?;
     let mut found = Vec::new();
-    for entry in walker(root, compiled.clone()) {
+    for entry in walker(root, compiled.clone(), true) {
         let entry = entry.map_err(into_io)?;
         let Some(relative) = relative_text(root, entry.path()) else {
             continue;
@@ -118,13 +119,54 @@ pub(crate) fn matching_files(root: &Path, globs: &[String]) -> io::Result<Vec<(P
     Ok(found)
 }
 
-/// A walk of `root` that honors `.gitignore` files only, skips `.git` and
-/// enters a directory only when a glob can match below it.
-fn walker(root: &Path, globs: Vec<Glob>) -> ignore::Walk {
+/// For each glob of `globs`, whether it matches a file or link below `root`
+/// that `.gitignore` leaves in, only ones it excludes, or none at all. A glob
+/// outside the supported syntax is refused with a store refusal.
+pub(crate) fn glob_reach(root: &Path, globs: &[String]) -> io::Result<Vec<GlobReach>> {
+    let refuse = |error: inputs_hash::InputsError| {
+        io::Error::new(io::ErrorKind::PermissionDenied, error.to_string())
+    };
+    globs
+        .iter()
+        .map(|glob| {
+            let compiled = inputs_hash::compile(std::slice::from_ref(glob)).map_err(refuse)?;
+            if any_match(root, &compiled, true)? {
+                Ok(GlobReach::Matched)
+            } else if any_match(root, &compiled, false)? {
+                Ok(GlobReach::IgnoredOnly)
+            } else {
+                Ok(GlobReach::Nothing)
+            }
+        })
+        .collect()
+}
+
+/// Whether `globs` match a regular file or a symbolic link below `root`,
+/// walking with or without the `.gitignore` files.
+fn any_match(root: &Path, globs: &[Glob], honor_ignore: bool) -> io::Result<bool> {
+    for entry in walker(root, globs.to_vec(), honor_ignore) {
+        let entry = entry.map_err(into_io)?;
+        let Some(relative) = relative_text(root, entry.path()) else {
+            continue;
+        };
+        let is_entry = entry
+            .file_type()
+            .is_some_and(|kind| kind.is_file() || kind.is_symlink());
+        if is_entry && inputs_hash::matches_any(globs, &relative) {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+/// A walk of `root` that honors `.gitignore` files only (or none, when
+/// `honor_ignore` is false), skips `.git` and enters a directory only when a
+/// glob can match below it.
+fn walker(root: &Path, globs: Vec<Glob>, honor_ignore: bool) -> ignore::Walk {
     let base = root.to_path_buf();
     ignore::WalkBuilder::new(root)
         .standard_filters(false)
-        .git_ignore(true)
+        .git_ignore(honor_ignore)
         .require_git(false)
         .filter_entry(move |entry| {
             let Some(relative) = relative_text(&base, entry.path()) else {

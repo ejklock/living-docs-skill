@@ -1,6 +1,6 @@
 use crate::args::{
     CheckArgs, GuideArgs, ManageArgs, NewArgs, ReadArgs, RecordsArgs, SetArgs, SupersedeArgs,
-    WriteArgs,
+    ViewArgs, WriteArgs,
 };
 use crate::BundleServer;
 use fs_store::{git, FsStore};
@@ -8,7 +8,7 @@ use living_docs_core::check;
 use living_docs_core::commands::effective::{self, Dependents};
 use living_docs_core::commands::fmt::{self, Outcome as FmtOutcome, Seeds};
 use living_docs_core::commands::index::Indexed;
-use living_docs_core::commands::{index, new, set, supersede};
+use living_docs_core::commands::{index, new, set, splice, supersede};
 use living_docs_core::guide;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{CallToolResult, ContentBlock};
@@ -176,13 +176,30 @@ fn run_read(docs_dir: &Path, args: &ReadArgs) -> Answer {
     serde_json::from_str(&reading.output).map_err(|error| error.to_string())
 }
 
-fn run_manage(docs_dir: &Path, args: &ManageArgs) -> Answer {
+fn run_view(docs_dir: &Path, args: &ViewArgs) -> Written {
+    let request = splice::Request {
+        view: &args.view,
+        inputs: &args.inputs,
+        command: args.command.as_deref(),
+        mermaid: &args.mermaid,
+    };
+    let done = splice::apply(&store(docs_dir), docs_dir, &request)?;
+    let written = json!({
+        "path": shown(&done.path),
+        "created": done.created,
+        "warnings": done.warnings,
+    });
+    indexed(written, &done.indexed)
+}
+
+fn run_manage(docs_dir: &Path, args: &ManageArgs) -> Written {
     let store = store(docs_dir);
     match args {
         ManageArgs::Index(args) => {
             let written = index::write(&store, docs_dir, args.doc_type.clone())?;
             Ok(json!({ "files": shown_all(&written) }))
         }
+        ManageArgs::View(args) => run_view(docs_dir, args),
         ManageArgs::Fmt(args) => {
             let seeds = Seeds {
                 owner: git::identity(docs_dir),
@@ -231,7 +248,7 @@ impl BundleServer {
 
     #[tool(
         name = "manage",
-        description = "Maintain the bundle. operation `index` regenerates indexes; `fmt` canonicalizes frontmatter (check_only reports instead of writing)."
+        description = "Maintain the bundle. operation `index` regenerates indexes; `fmt` canonicalizes frontmatter (check_only reports instead of writing); `view` splices Mermaid text (`mermaid`) into an architecture view's (`view`) generated region and stamps it with its input globs (`inputs`) and their hash, with the marker's `command` (required when the view has no region yet)."
     )]
     pub(crate) fn manage(&self, Parameters(args): Parameters<ManageArgs>) -> CallToolResult {
         shaped(run_manage(&self.docs_dir, &args))

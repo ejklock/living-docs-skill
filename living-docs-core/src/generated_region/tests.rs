@@ -138,3 +138,19 @@ fn a_doubled_sha256_key_names_the_line() {
     assert_eq!(error.line, 1);
     assert!(error.message.contains("twice"), "{error}");
 }
+
+#[test]
+fn a_backtick_fence_whose_info_string_holds_a_backtick_does_not_open_a_fence() {
+    let opening = stamped("c", HASH);
+    let body = format!("```mermaid`\n{opening}\nx\n<!-- end generated -->\n");
+    let regions = parse_regions(&body).unwrap();
+    assert_eq!(regions.len(), 1);
+    assert_eq!(regions[0].command, "c");
+}
+
+#[test]
+fn a_tilde_fence_whose_info_string_holds_a_backtick_still_opens_a_fence() {
+    let opening = stamped("c", HASH);
+    let body = format!("~~~a`b\n{opening}\nx\n<!-- end generated -->\n~~~\n");
+    assert_eq!(parse_regions(&body).unwrap(), vec![]);
+}

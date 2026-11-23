@@ -103,6 +103,10 @@ impl DocStore for LineEndingStore<'_> {
     fn repository_files(&self, globs: &[String]) -> Option<crate::store::RepositoryFiles> {
         self.inner.repository_files(globs)
     }
+
+    fn repository_glob_reach(&self, globs: &[String]) -> Option<crate::store::GlobReaches> {
+        self.inner.repository_glob_reach(globs)
+    }
 }
 
 #[cfg(test)]

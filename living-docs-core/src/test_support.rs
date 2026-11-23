@@ -2,7 +2,7 @@
 //! doubles backed by a `BTreeMap`, with no filesystem I/O, so every unit test
 //! reuses one store instead of carrying its own copy.
 
-use crate::store::{DocStore, RepositoryFiles};
+use crate::store::{DocStore, GlobReach, GlobReaches, RepositoryFiles};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::io;
@@ -76,6 +76,21 @@ impl DocStore for MapStore {
 /// behind a `RefCell` so the `DocStore` shared-reference contract holds.
 pub(crate) struct WritableMapStore {
     files: RefCell<BTreeMap<PathBuf, String>>,
+    repository: Option<RepositoryFixture>,
+}
+
+/// The repository files a [`WritableMapStore`] serves: those `.gitignore`
+/// keeps and those it excludes.
+struct RepositoryFixture {
+    kept: Vec<(PathBuf, String)>,
+    ignored: Vec<(PathBuf, String)>,
+}
+
+impl RepositoryFixture {
+    fn matching(files: &[(PathBuf, String)], globs: &[crate::inputs_hash::Glob]) -> Vec<usize> {
+        let hit = |path: &PathBuf| crate::inputs_hash::matches_any(globs, &path.to_string_lossy());
+        (0..files.len()).filter(|at| hit(&files[*at].0)).collect()
+    }
 }
 
 impl WritableMapStore {
@@ -92,7 +107,26 @@ impl WritableMapStore {
                     .map(|(path, contents)| (PathBuf::from(path), (*contents).to_string()))
                     .collect(),
             ),
+            repository: None,
         }
+    }
+
+    /// The same store serving a repository: `kept` files `.gitignore` leaves
+    /// in, `ignored` files it excludes.
+    pub(crate) fn with_repository(
+        mut self,
+        kept: &[(&str, &str)],
+        ignored: &[(&str, &str)],
+    ) -> Self {
+        let owned = |files: &[(&str, &str)]| {
+            let each = |(path, text): &(&str, &str)| (PathBuf::from(path), (*text).to_string());
+            files.iter().map(each).collect()
+        };
+        self.repository = Some(RepositoryFixture {
+            kept: owned(kept),
+            ignored: owned(ignored),
+        });
+        self
     }
 
     /// What the store holds at `path` — the empty string when it holds
@@ -141,4 +175,42 @@ impl DocStore for WritableMapStore {
         files.insert(to.to_path_buf(), contents);
         Ok(())
     }
+
+    fn repository_files(&self, globs: &[String]) -> Option<RepositoryFiles> {
+        let fixture = self.repository.as_ref()?;
+        let compiled = match crate::inputs_hash::compile(globs) {
+            Ok(compiled) => compiled,
+            Err(error) => return Some(Err(refusal(&error.to_string()))),
+        };
+        let found = RepositoryFixture::matching(&fixture.kept, &compiled);
+        let bytes = |at: usize| {
+            let (path, text) = &fixture.kept[at];
+            (path.clone(), text.clone().into_bytes())
+        };
+        Some(Ok(found.into_iter().map(bytes).collect()))
+    }
+
+    fn repository_glob_reach(&self, globs: &[String]) -> Option<GlobReaches> {
+        let fixture = self.repository.as_ref()?;
+        let mut reaches = Vec::new();
+        for glob in globs {
+            let compiled = match crate::inputs_hash::compile(std::slice::from_ref(glob)) {
+                Ok(compiled) => compiled,
+                Err(error) => return Some(Err(refusal(&error.to_string()))),
+            };
+            let reach = if !RepositoryFixture::matching(&fixture.kept, &compiled).is_empty() {
+                GlobReach::Matched
+            } else if !RepositoryFixture::matching(&fixture.ignored, &compiled).is_empty() {
+                GlobReach::IgnoredOnly
+            } else {
+                GlobReach::Nothing
+            };
+            reaches.push(reach);
+        }
+        Some(Ok(reaches))
+    }
+}
+
+fn refusal(message: &str) -> io::Error {
+    io::Error::new(io::ErrorKind::PermissionDenied, message)
 }

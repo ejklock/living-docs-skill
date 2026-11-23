@@ -76,6 +76,10 @@ impl DocStore for Drafted<'_> {
     fn repository_files(&self, patterns: &[String]) -> Option<crate::store::RepositoryFiles> {
         self.inner.repository_files(patterns)
     }
+
+    fn repository_glob_reach(&self, globs: &[String]) -> Option<crate::store::GlobReaches> {
+        self.inner.repository_glob_reach(globs)
+    }
 }
 
 /// `plan` with each `blocked` record's `blocked_by` drafted on top of its

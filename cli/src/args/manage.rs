@@ -35,6 +35,23 @@ pub(crate) enum ManageCmd {
         #[arg(long, value_name = "PATH")]
         mermaid: Option<PathBuf>,
     },
+    #[command(about = help::VIEW_ABOUT, long_about = None, after_help = help::with_exit_codes(help::VIEW_EXAMPLES))]
+    View {
+        /// The architecture view: `view/<slug>`, `architecture/<slug>` or its path.
+        view: String,
+        /// Write the Mermaid text read from standard input into the view's
+        /// generated region and stamp it.
+        #[arg(long, required = true)]
+        splice: bool,
+        /// The globs, from the repository root, whose files the region is
+        /// generated from; their hash goes into the stamp.
+        #[arg(long, num_args = 1.., required = true, value_name = "GLOB")]
+        inputs: Vec<String>,
+        /// The command that regenerates the text, recorded in the marker and
+        /// never run; required when the view has no region yet.
+        #[arg(long, value_name = "TEXT")]
+        command: Option<String>,
+    },
     #[command(about = help::INSTALL_ABOUT, long_about = None, after_help = help::with_exit_codes(help::INSTALL_EXAMPLES))]
     Install {
         #[command(subcommand)]

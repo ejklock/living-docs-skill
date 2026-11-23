@@ -45,6 +45,18 @@ impl fmt::Display for RegionError {
 
 impl std::error::Error for RegionError {}
 
+/// The opening marker line of a stamped region: parsing it gives back the
+/// command, the globs and the hash it was built from.
+pub fn render_opening(command: &str, inputs: &[String], hash: &str) -> String {
+    let globs = inputs.join(", ");
+    format!("{OPENING} {command}{INPUTS_KEY}{globs}{HASH_KEY}{hash} -->")
+}
+
+/// The closing marker line of a region.
+pub fn render_closing() -> &'static str {
+    CLOSING
+}
+
 /// Parses every generated region of `body`, in order. Markers inside a fenced
 /// code block are not markers; a fenced block inside a region is its content.
 /// Fails on a malformed stamped marker, an opening with no closing (naming the
@@ -108,7 +120,9 @@ fn error(line: usize, message: &str) -> RegionError {
     }
 }
 
-/// Updates `fence` for a fence line and reports whether `text` was one.
+/// Updates `fence` for a fence line and reports whether `text` was one. A
+/// backtick fence's info string holds no backtick, as in CommonMark, so such a
+/// line is no fence.
 fn toggle_fence(text: &str, fence: &mut Option<(char, usize)>) -> bool {
     let indent = text.len() - text.trim_start_matches(' ').len();
     let rest = &text[indent..];
@@ -120,6 +134,7 @@ fn toggle_fence(text: &str, fence: &mut Option<(char, usize)>) -> bool {
         return false;
     }
     match *fence {
+        None if mark == '`' && rest[run..].contains('`') => return false,
         None => *fence = Some((mark, run)),
         Some((open, width)) if open == mark && run >= width && rest[run..].trim().is_empty() => {
             *fence = None;

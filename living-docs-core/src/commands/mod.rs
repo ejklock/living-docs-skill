@@ -6,4 +6,5 @@ pub mod new;
 pub mod next;
 pub(crate) mod reference;
 pub mod set;
+pub mod splice;
 pub mod supersede;

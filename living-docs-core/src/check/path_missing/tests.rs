@@ -109,6 +109,10 @@ impl DocStore for Serving {
     fn repository_files(&self, _globs: &[String]) -> Option<crate::store::RepositoryFiles> {
         Some(Ok(vec![(PathBuf::from("a.txt"), b"x".to_vec())]))
     }
+
+    fn repository_glob_reach(&self, _globs: &[String]) -> Option<crate::store::GlobReaches> {
+        Some(Ok(vec![crate::store::GlobReach::IgnoredOnly]))
+    }
 }
 
 fn served(store: &dyn DocStore) -> Vec<PathBuf> {
@@ -129,4 +133,29 @@ fn the_read_once_wrapper_passes_the_repository_files_through() {
     let inner = Serving;
     let wrapped = crate::check::read_once::ReadOnceStore::new(&inner);
     assert_eq!(served(&wrapped), vec![PathBuf::from("a.txt")]);
+}
+
+fn reached(store: &dyn DocStore) -> Vec<crate::store::GlobReach> {
+    let reach = store.repository_glob_reach(&["*".to_owned()]);
+    reach.expect("the store serves files").unwrap()
+}
+
+#[test]
+fn the_line_ending_wrapper_passes_the_glob_reach_through() {
+    let inner = Serving;
+    let wrapped = crate::line_ending::LineEndingStore::new(&inner, true);
+    assert_eq!(
+        reached(&wrapped),
+        vec![crate::store::GlobReach::IgnoredOnly]
+    );
+}
+
+#[test]
+fn the_read_once_wrapper_passes_the_glob_reach_through() {
+    let inner = Serving;
+    let wrapped = crate::check::read_once::ReadOnceStore::new(&inner);
+    assert_eq!(
+        reached(&wrapped),
+        vec![crate::store::GlobReach::IgnoredOnly]
+    );
 }
