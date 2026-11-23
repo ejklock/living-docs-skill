@@ -57,6 +57,9 @@ every advisory in full, and the JSON output always carries them all. The kinds:
   combination (default policy), a row fully shadowed by earlier rows (`first`), a value outside its condition's domain, a
   malformed marker or header, or a table over 4096 combinations ("too large to prove"). An unmarked table is never read; the
   exit code stays put. The grammar is in `read guide domain`.
+- `SUPERSEDE-CYCLE` (ADR 0104) — records of one directory whose `superseded_by` links loop back on themselves (a hand edit; the
+  supersede verb refuses it), so no record of the chain is in force. One advisory per cycle names every member. A chain that
+  ends in a retired record or at a number naming no record is not reported; the exit code stays put.
 - `LIVENESS` (`stale-proposed`, ADR 0049, ADR 0079) — an ADR still at its seed status (`Proposed`)
   that an issue already `closed`/`done`/`Superseded` declares it implements: the issue body
   holds `Implements` (any case) followed by a link to the ADR, so the work landed but the record

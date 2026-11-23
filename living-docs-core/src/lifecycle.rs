@@ -7,9 +7,9 @@
 //! [`refuse_supersede_at`] reads a store, to gather those facts.
 
 use crate::doc_type::{spec_for_frontmatter, DocTypeSpec};
-use crate::record::extract_record;
+use crate::record::{extract_record, ExtractedRecord};
 use crate::store::DocStore;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::path::Path;
 
@@ -186,14 +186,44 @@ fn successors_beside(store: &dyn DocStore, docs_dir: &Path, path: &Path) -> BTre
             continue;
         };
         let record = extract_record(&other, &text);
-        let successor = record.superseded_by.as_deref();
-        if let (Some(number), Some(successor)) = (record.number, successor) {
-            if let Ok(successor) = successor.trim().parse() {
-                links.insert(number, successor);
-            }
+        if let (Some(number), Some(successor)) = (record.number, successor_number(&record)) {
+            links.insert(number, successor);
         }
     }
     links
+}
+
+/// The record number a record's `superseded_by` names, when it is one.
+pub(crate) fn successor_number(record: &ExtractedRecord) -> Option<i32> {
+    record.superseded_by.as_deref()?.trim().parse().ok()
+}
+
+/// The cycles of a successor map (record number to successor number): each
+/// is the sorted numbers of the records that name one another in a loop,
+/// reported once however many records it holds. A chain that ends at a record
+/// with no successor, or at a number with no record, is not a cycle.
+pub(crate) fn supersede_cycles(successor_of: &BTreeMap<i32, i32>) -> Vec<Vec<i32>> {
+    let mut seen = BTreeSet::new();
+    let mut cycles = Vec::new();
+    for &start in successor_of.keys() {
+        let mut walked = Vec::new();
+        let mut at = start;
+        while !seen.contains(&at) {
+            if let Some(from) = walked.iter().position(|&n| n == at) {
+                let mut members: Vec<i32> = walked[from..].to_vec();
+                members.sort_unstable();
+                cycles.push(members);
+                break;
+            }
+            walked.push(at);
+            let Some(&next) = successor_of.get(&at) else {
+                break;
+            };
+            at = next;
+        }
+        seen.extend(walked);
+    }
+    cycles
 }
 
 /// Refuses, before any write, a supersede of the record at `old` by the one

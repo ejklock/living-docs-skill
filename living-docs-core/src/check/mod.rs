@@ -1,8 +1,8 @@
 //! Native core of `living-docs check` — ports `skills/living-docs/scripts/lint-docs.sh`.
 //!
-//! Covers the mechanical invariants: OKF frontmatter/type, index-format, directory-index membership and drift,
-//! bundle-root reachability, supersede-chain integrity, duplicate record numbers, local link/image validity via `pulldown-cmark`,
-//! unfilled placeholders, and ```mermaid``` fence validation. Record liveness (`stale-proposed` only) is advisory.
+//! Covers the mechanical invariants: OKF frontmatter/type, index-format, directory-index membership and drift, bundle-root reachability,
+//! supersede-chain integrity, duplicate record numbers, local link/image validity via `pulldown-cmark`, unfilled placeholders, and
+//! ```mermaid``` fence validation. Record liveness (`stale-proposed` only) and supersede cycles are advisory.
 //!
 //! Every record's content (`records`, `links`) is read through `DocStore::read`, so `check` validates whichever backend
 //! `compile` is given. `index.md`/`log.md` sit outside the record domain by design; `check::graph` reads them from disk.
@@ -32,6 +32,7 @@ mod sections;
 mod size;
 mod stale_view;
 pub(crate) mod state_machine;
+mod supersede_cycle;
 mod supersede_links;
 mod unparseable_frontmatter;
 
@@ -109,7 +110,7 @@ fn run_all_checks(
     doc_count
 }
 
-/// The reference checks: links, record numbers, dependencies, inline-code paths, view stamps, state views, decision tables.
+/// The reference checks: links, record numbers, dependencies, inline-code paths, view stamps, state views, decision tables, supersede cycles.
 fn check_references(
     store: &dyn DocStore,
     bundle: &Path,
@@ -124,6 +125,7 @@ fn check_references(
     stale_view::check_stale_view(store, all_md, reporter);
     state_machine::check_state_machine(store, all_md, reporter);
     decision_table::check_decision_table(store, bundle, all_md, reporter);
+    supersede_cycle::check_supersede_cycle(store, bundle, all_md, reporter);
 }
 
 /// Runs the per-record frontmatter pass and returns `all_md` without the
@@ -187,13 +189,10 @@ fn walk_md_files(dir: &Path, out: &mut Vec<PathBuf>) {
 /// what a singleton is, so a second singleton row is handled without an
 /// edit here.
 ///
-/// The comparison is a plain path equality, not a filesystem lookup, so it
-/// only stays correct because every [`DocStore`] enumerates a bundle's paths
-/// rooted at the same `bundle` it was given (see [`collect_md_files`]) —
-/// `read_dir` never resolves symlinks, so this holds even when the caller
-/// reaches the bundle through one. Reach for `canonicalize` here instead and
-/// this pure predicate starts touching disk, breaking every `MapStore`
-/// fixture whose paths never exist on disk.
+/// The comparison is a plain path equality, not a filesystem lookup, so it only stays correct because every [`DocStore`]
+/// enumerates a bundle's paths rooted at the same `bundle` it was given (see [`collect_md_files`]) — `read_dir` never
+/// resolves symlinks, so this holds even when the caller reaches the bundle through one. Reach for `canonicalize` here
+/// instead and this pure predicate starts touching disk, breaking every `MapStore` fixture whose paths never exist on disk.
 pub(crate) fn is_bundle_singleton(bundle: &Path, path: &Path) -> bool {
     doc_type::DOC_TYPES.iter().any(|spec| match spec.identity {
         Identity::Singleton { file } => path == bundle.join(file),
