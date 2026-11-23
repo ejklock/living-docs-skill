@@ -23,10 +23,12 @@ Kept: every existing type, the `architecture` views and numbered types staying o
 ### Decision
 
 
+
 - Nested placement is a new `Identity::Nested { dir }` variant, not a flag on `Named`: every exhaustive match then decides the nested case explicitly instead of inheriting one-level behavior. Not taken: `Named { dir, nested: bool }`, which compiles through the same matches but hides the choice.
 - Domain records need no per-folder `index.md`: the one generated `docs/context/index.md` links every record, so a nested folder holds only records. Not taken: an index per folder, which multiplies generated files.
 - A `status:` key on an existing context file is left to its author, reported by the `status-vocabulary` advisory; `manage fmt` does not delete it. Not taken: dropping it in `fmt`, which rewrites author text.
 - Retired records and anchors (owner, 2026-11-23): `anchor-missing` also judges Superseded and Deprecated records, so a historical record linking a heading renamed later keeps the advisory. Not taken: exempting retired records, as `path-missing` does.
+- Links in an index row (2026-11-23, review of the context index rows): a markdown link in a record's description is written to the generated index as its link text only, since a relative link resolves from the record's folder and not the index's; the link stays in the record. Not taken: rebasing relative links per row; forbidding links in descriptions.
 
 ### Acceptance
 
