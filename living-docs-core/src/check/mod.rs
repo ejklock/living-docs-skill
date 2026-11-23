@@ -4,9 +4,8 @@
 //! bundle-root reachability, supersede-chain integrity, duplicate record numbers, local link/image validity via `pulldown-cmark`,
 //! unfilled placeholders, and ```mermaid``` fence validation. Record liveness (`stale-proposed` only) is advisory.
 //!
-//! Every record's content (`records`, `links`) is read through `DocStore::read`,
-//! so `check` validates whichever backend `compile` is given. `index.md`/`log.md`
-//! sit outside the record domain by design; `check::graph` reads them from disk.
+//! Every record's content (`records`, `links`) is read through `DocStore::read`, so `check` validates whichever backend
+//! `compile` is given. `index.md`/`log.md` sit outside the record domain by design; `check::graph` reads them from disk.
 
 mod callout;
 pub(crate) mod canonical;
@@ -31,6 +30,7 @@ mod report;
 mod sections;
 mod size;
 mod stale_view;
+mod state_machine;
 mod supersede_links;
 mod unparseable_frontmatter;
 
@@ -109,9 +109,8 @@ fn run_all_checks(
     doc_count
 }
 
-/// The checks on references between records: links resolve and are spelled
-/// relative, no record number is shared, every issue dependency resolves, a
-/// path named in inline code still exists, and a view's stamp matches its inputs.
+/// The checks on references between records: links resolve and are spelled relative, no record number is shared, every
+/// issue dependency resolves, an inline-code path still exists, a view's stamp matches its inputs, a state view is sound.
 fn check_references(
     store: &dyn DocStore,
     bundle: &Path,
@@ -124,6 +123,7 @@ fn check_references(
     dependencies::check_dependencies(store, bundle, all_md, reporter);
     path_missing::check_path_missing(store, all_md, reporter);
     stale_view::check_stale_view(store, all_md, reporter);
+    state_machine::check_state_machine(store, all_md, reporter);
 }
 
 /// Runs the per-record frontmatter pass and returns `all_md` without the

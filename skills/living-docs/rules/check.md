@@ -47,6 +47,11 @@ every advisory in full, and the JSON output always carries them all. The kinds:
   names the view, the opening marker's line and the globs. A malformed stamp or an unsupported glob is advised as a stamp that
   cannot be checked. An unstamped region is never judged, a retired view is, and the marker's command is never run. Without a
   repository the rule is skipped.
+- `STATE-MACHINE` (ADR 0102) — in each `stateDiagram` fence of an architecture view with `kind: state`: a state not reachable
+  from the root `[*]` (a composite entered directly takes its own `[*]`; entering an inner state also reaches its enclosing composites but not their `[*]`), a state that is not final, has no outgoing transition and
+  sits in no composite with one (a state whose only transition is to itself counts as having one; add `X --> [*]` if it is terminal), and a scope with more than one initial transition. Notes
+  are ignored; choice, fork and join are plain states. A diagram with concurrent regions (`--`) or no root `[*]` gets one
+  "not proved" advisory. Only state views are judged; the exit code stays put.
 - `LIVENESS` (`stale-proposed`, ADR 0049, ADR 0079) — an ADR still at its seed status (`Proposed`)
   that an issue already `closed`/`done`/`Superseded` declares it implements: the issue body
   holds `Implements` (any case) followed by a link to the ADR, so the work landed but the record

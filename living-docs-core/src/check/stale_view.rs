@@ -55,7 +55,7 @@ pub(crate) fn check_stale_view(store: &dyn DocStore, all_md: &[PathBuf], reporte
 }
 
 /// Whether `path` is a record of the architecture view type, in its directory.
-fn is_view(path: &Path, contents: &str) -> bool {
+pub(super) fn is_view(path: &Path, contents: &str) -> bool {
     let in_dir = path
         .parent()
         .and_then(Path::file_name)
