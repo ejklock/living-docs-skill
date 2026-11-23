@@ -38,13 +38,15 @@ Kept: hand-drawn view kinds, the existing unstamped marker (still valid, never c
 
 - `manage view <view> --splice --inputs 'Cargo.toml' '*/Cargo.toml' < graph.mmd` writes the region and the stamp; a second identical run writes no byte; the view still passes `check` and its Mermaid parses.
 - Changing a stamped input makes `check` report `stale-view` naming the view and its globs, exit 0; changing only the view's prose does not.
-- A glob that is absolute, holds `..`, or resolves through a symlink out of the repository root is refused by `--splice` and skipped by `check`.
+- A glob that is absolute, holds `..`, or resolves through a symlink out of the repository root is refused by `--splice` and reported by `check` as a stamp it cannot check.
 - The runner regenerates every generated region of the bundle and, with `--check`, exits non-zero when one would change.
 - This repository holds a `component` view of its crates, kept current by `make check`.
 
 ### Plan
 
+
 - S1: the marker grammar parser and the inputs hash (pure, in core), with the guarded file reads through the store port | files: living-docs-core (new module), fs-store/src | after: none
 - S2: `manage view --splice` in the CLI and the MCP `manage` tool | files: cli/src/args, cli/src/commands (new module), mcp/src | after: S1
 - S3: the `stale-view` advisory | files: living-docs-core/src/check (new module), check/kinds.rs, skills/living-docs/rules/check.md | after: S1 and issue 0150 S4 (both touch kinds.rs)
 - S4: the runner script, this repository's crate-graph view, `make check` wiring, and the rewritten skill rule with recipes | files: skills/living-docs/scripts (create), skills/living-docs/rules/architecture-diagrams.md, docs/architecture (create), Makefile | after: S2
+- S5: in changed-only mode a view is in scope when a changed path matches one of its stamped globs, and the pre-commit hook runs `check` when a staged path matches one, so a commit that only changes an input shows `stale-view` | files: living-docs-core/src/check/report.rs, cli/src/commands/check.rs, the distributed pre-commit hook | after: S3
