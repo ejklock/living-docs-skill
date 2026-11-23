@@ -159,7 +159,18 @@ pub(crate) fn find_settable_record(
     Err(format!("no record found for {reference}"))
 }
 
+/// The `DIR/slug` form of a `DIR/slug.md` path whose `DIR` holds a Nested
+/// record type, so a hand-kept record is addressed by the path it sits at.
+/// A Nested record may lie in subfolders, each segment a slug: `DIR/a/b/slug`.
+fn nested_record_reference(reference: &str) -> Option<&str> {
+    let (dir, _) = reference.split_once('/')?;
+    let nested = doc_type::spec_for_dir(dir)
+        .is_some_and(|spec| matches!(spec.identity, Identity::Nested { .. }));
+    nested.then(|| reference.strip_suffix(".md")).flatten()
+}
+
 fn named_target(reference: &str) -> Result<Option<(&'static DocTypeSpec, PathBuf)>, String> {
+    let reference = nested_record_reference(reference).unwrap_or(reference);
     if reference.ends_with(".md") {
         return Ok(None);
     }
@@ -173,11 +184,29 @@ fn named_target(reference: &str) -> Result<Option<(&'static DocTypeSpec, PathBuf
     match (spec.identity, slug) {
         (Identity::Singleton { file }, None) => Ok(Some((spec, PathBuf::from(file)))),
         (Identity::Singleton { .. }, Some(_)) => Err(invalid_type(token)),
-        (Identity::Named { dir }, Some(slug)) if paths::slugify(slug) == slug => {
-            Ok(Some((spec, Path::new(dir).join(format!("{slug}.md")))))
+        (Identity::Named { dir } | Identity::Nested { dir }, Some(slug)) => {
+            slug_path(spec, dir, slug).map(|path| Some((spec, path)))
         }
-        (Identity::Named { .. }, Some(slug)) => Err(format!("'{slug}' is not a view slug")),
         _ => Ok(None),
+    }
+}
+
+/// `dir/slug.md` for a reference whose slug is one segment, or for a Nested
+/// type each `/`-separated segment, all in slug form; the first segment that
+/// is not one (an empty one included) is refused by name.
+fn slug_path(spec: &DocTypeSpec, dir: &str, slug: &str) -> Result<PathBuf, String> {
+    let deep = matches!(spec.identity, Identity::Nested { .. });
+    let segments: Vec<&str> = if deep {
+        slug.split('/').collect()
+    } else {
+        vec![slug]
+    };
+    match segments
+        .into_iter()
+        .find(|seg| seg.is_empty() || paths::slugify(seg) != *seg)
+    {
+        Some(bad) => Err(format!("'{bad}' is not a {} slug", spec.token)),
+        None => Ok(Path::new(dir).join(format!("{slug}.md"))),
     }
 }
 
@@ -185,7 +214,9 @@ fn invalid_type(token: &str) -> String {
     let named = doc_type::DOC_TYPES
         .iter()
         .filter_map(|spec| match spec.identity {
-            Identity::Named { dir } => Some(format!("{}/<slug>, {dir}/<slug>", spec.token)),
+            Identity::Named { dir } | Identity::Nested { dir } => {
+                Some(format!("{}/<slug>, {dir}/<slug>", spec.token))
+            }
             Identity::Singleton { .. } => Some(spec.token.to_string()),
             Identity::Numbered { .. } => None,
         });

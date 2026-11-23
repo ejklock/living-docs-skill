@@ -3,6 +3,7 @@
 //! `strip_fences`/`links_in`/`resolve_link`/`normpath` from `lint-docs.sh`.
 
 use super::{file_name_str, is_bundle_singleton, records, Reporter};
+use crate::doc_type::{self, Identity};
 use crate::store::{is_refusal, DocStore};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::{Path, PathBuf};
@@ -22,6 +23,7 @@ enum Listing {
 /// the bundle root (e.g. `constitution.md`) is deliberately exempt: it is the
 /// bundle's own root of trace, and has no directory index to be listed in.
 /// Each directory index is read and parsed once, however many records share it.
+/// A record in a [`Identity::Nested`] subfolder is listed by the type's index.
 pub(crate) fn check_directory_membership(
     store: &dyn DocStore,
     bundle: &Path,
@@ -33,12 +35,21 @@ pub(crate) fn check_directory_membership(
         if records::is_reserved(&file_name_str(f)) || is_bundle_singleton(bundle, f) {
             continue;
         }
-        let dir = f.parent().unwrap_or_else(|| Path::new("."));
+        let own = f.parent().unwrap_or(bundle);
+        let dir = nested_root(bundle, own).unwrap_or_else(|| own.to_path_buf());
         let listed = listings
-            .entry(dir.to_path_buf())
+            .entry(dir.clone())
             .or_insert_with(|| listed_targets(store, bundle, &dir.join("index.md")));
-        report_if_unindexed(dir, listed, f, reporter);
+        report_if_unindexed(&dir, listed, f, reporter);
     }
+}
+
+/// The [`Identity::Nested`] type directory above its subfolder `dir`.
+fn nested_root(bundle: &Path, dir: &Path) -> Option<PathBuf> {
+    let mut parts = dir.strip_prefix(bundle).ok()?.iter();
+    let (first, _) = (parts.next()?.to_str()?, parts.next()?);
+    let nested = doc_type::spec_for_dir(first)?.identity;
+    matches!(nested, Identity::Nested { .. }).then(|| bundle.join(first))
 }
 
 fn report_if_unindexed(dir: &Path, listed: &Listing, f: &Path, reporter: &mut Reporter) {
@@ -85,7 +96,8 @@ fn listed_targets(store: &dyn DocStore, bundle: &Path, dir_index: &Path) -> List
 
 /// Every directory `index.md` must be reachable from the bundle-root `index.md`
 /// via BFS over index→index (and index→dir) links. A root index the store
-/// refuses skips the pass: the record pass already reports it once.
+/// refuses skips the pass: the record pass already reports it once. A Nested
+/// subfolder's `index.md` is reserved and never linked, so it is exempt.
 pub(crate) fn check_reachability(
     store: &dyn DocStore,
     bundle: &Path,
@@ -97,7 +109,11 @@ pub(crate) fn check_reachability(
         return;
     }
     let reached = reachable_index_set(store, bundle, root_index);
-    for idx in all_md.iter().filter(|f| file_name_str(f) == "index.md") {
+    let is_listed_index = |f: &&PathBuf| {
+        let nested = f.parent().and_then(|dir| nested_root(bundle, dir));
+        file_name_str(f) == "index.md" && nested.is_none()
+    };
+    for idx in all_md.iter().filter(is_listed_index) {
         let n = normpath(&idx.to_string_lossy());
         if !reached.contains(&n) {
             reporter.report(

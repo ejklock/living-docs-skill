@@ -15,3 +15,4 @@ pub(crate) mod report;
 pub(crate) mod set;
 pub(crate) mod supersede;
 pub(crate) mod uninstall;
+pub(crate) mod view;

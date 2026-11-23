@@ -1,6 +1,6 @@
 use crate::args::{
-    CheckArgs, GuideArgs, ManageArgs, NewArgs, ReadArgs, RecordsArgs, SetArgs, SupersedeArgs,
-    WriteArgs,
+    CheckArgs, ExportFormat, ExportViewArgs, FmtArgs, GuideArgs, IndexArgs, ManageArgs, NewArgs,
+    ReadArgs, RecordsArgs, SetArgs, SupersedeArgs, ViewArgs, WriteArgs,
 };
 use crate::BundleServer;
 use fs_store::{git, FsStore};
@@ -8,8 +8,9 @@ use living_docs_core::check;
 use living_docs_core::commands::effective::{self, Dependents};
 use living_docs_core::commands::fmt::{self, Outcome as FmtOutcome, Seeds};
 use living_docs_core::commands::index::Indexed;
-use living_docs_core::commands::{index, new, set, supersede};
+use living_docs_core::commands::{index, new, set, splice, supersede};
 use living_docs_core::guide;
+use living_docs_core::tla_export;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{CallToolResult, ContentBlock};
 use rmcp::{tool, tool_router};
@@ -63,6 +64,7 @@ fn run_new(docs_dir: &Path, args: &NewArgs) -> Written {
         kind: args.kind.as_deref(),
         owner: args.owner.as_deref().or(seeded.as_deref()),
         body: args.body.as_deref(),
+        dir: args.dir.as_deref(),
     };
     let created = new::write(
         &store(docs_dir),
@@ -175,25 +177,47 @@ fn run_read(docs_dir: &Path, args: &ReadArgs) -> Answer {
     serde_json::from_str(&reading.output).map_err(|error| error.to_string())
 }
 
-fn run_manage(docs_dir: &Path, args: &ManageArgs) -> Answer {
-    let store = store(docs_dir);
-    match args {
-        ManageArgs::Index(args) => {
-            let written = index::write(&store, docs_dir, args.doc_type.clone())?;
-            Ok(json!({ "files": shown_all(&written) }))
-        }
-        ManageArgs::Fmt(args) => {
-            let seeds = Seeds {
-                owner: git::identity(docs_dir),
-                added_at: Some(git::added_at),
-            };
-            let outcome = fmt::outcome(&store, docs_dir, args.check_only, &seeds)?;
-            Ok(match outcome {
-                FmtOutcome::Rewritten(paths) => json!({ "files": shown_all(&paths) }),
-                FmtOutcome::Pending(paths) => json!({ "pending": shown_all(&paths) }),
-            })
-        }
+fn run_view(docs_dir: &Path, args: &ViewArgs) -> Written {
+    let request = splice::Request {
+        view: &args.view,
+        inputs: &args.inputs,
+        command: args.command.as_deref(),
+        mermaid: &args.mermaid,
+    };
+    let done = splice::apply(&store(docs_dir), docs_dir, &request)?;
+    let written = json!({
+        "path": shown(&done.path),
+        "created": done.created,
+        "warnings": done.warnings,
+    });
+    indexed(written, &done.indexed)
+}
+
+/// The module of a state view as the tool's text, as `manage view --export tla`
+/// prints it; a refusal is an error result carrying the same message.
+fn run_export_view(docs_dir: &Path, args: &ExportViewArgs) -> CallToolResult {
+    let ExportFormat::Tla = args.format;
+    match tla_export::export_view(&store(docs_dir), docs_dir, &args.view) {
+        Ok(module) => CallToolResult::success(vec![ContentBlock::text(module)]),
+        Err(message) => CallToolResult::error(vec![ContentBlock::text(message)]),
     }
+}
+
+fn run_index(docs_dir: &Path, args: &IndexArgs) -> Written {
+    let written = index::write(&store(docs_dir), docs_dir, args.doc_type.clone())?;
+    Ok(json!({ "files": shown_all(&written) }))
+}
+
+fn run_fmt(docs_dir: &Path, args: &FmtArgs) -> Written {
+    let seeds = Seeds {
+        owner: git::identity(docs_dir),
+        added_at: Some(git::added_at),
+    };
+    let outcome = fmt::outcome(&store(docs_dir), docs_dir, args.check_only, &seeds)?;
+    Ok(match outcome {
+        FmtOutcome::Rewritten(paths) => json!({ "files": shown_all(&paths) }),
+        FmtOutcome::Pending(paths) => json!({ "pending": shown_all(&paths) }),
+    })
 }
 
 fn run_check(docs_dir: &Path, args: &CheckArgs) -> Answer {
@@ -230,10 +254,16 @@ impl BundleServer {
 
     #[tool(
         name = "manage",
-        description = "Maintain the bundle. operation `index` regenerates indexes; `fmt` canonicalizes frontmatter (check_only reports instead of writing)."
+        description = "Maintain the bundle. operation `index` regenerates indexes; `fmt` canonicalizes frontmatter (check_only reports instead of writing); `view` splices Mermaid text (`mermaid`) into an architecture view's (`view`) generated region and stamps it with its input globs (`inputs`) and their hash, with the marker's `command` (required when the view has no region yet); `export_view` returns a flat state view's (`view`) TLA+ module as text (`format`: `tla`), the text `manage view --export tla` prints, and refuses a composite or concurrent diagram, a non-state view or an unknown view with an error."
     )]
     pub(crate) fn manage(&self, Parameters(args): Parameters<ManageArgs>) -> CallToolResult {
-        shaped(run_manage(&self.docs_dir, &args))
+        let docs_dir = &self.docs_dir;
+        match &args {
+            ManageArgs::Index(args) => shaped(run_index(docs_dir, args)),
+            ManageArgs::Fmt(args) => shaped(run_fmt(docs_dir, args)),
+            ManageArgs::View(args) => shaped(run_view(docs_dir, args)),
+            ManageArgs::ExportView(args) => run_export_view(docs_dir, args),
+        }
     }
 
     #[tool(

@@ -1,12 +1,11 @@
 //! Native core of `living-docs check` — ports `skills/living-docs/scripts/lint-docs.sh`.
 //!
-//! Covers the mechanical invariants: OKF frontmatter/type, index-format, directory-index membership and drift,
-//! bundle-root reachability, supersede-chain integrity, duplicate record numbers, local link/image validity via `pulldown-cmark`,
-//! unfilled placeholders, and ```mermaid``` fence validation. Record liveness (`stale-proposed` only) is advisory.
+//! Covers the mechanical invariants: OKF frontmatter/type, index-format, directory-index membership and drift, bundle-root reachability,
+//! supersede-chain integrity, duplicate record numbers, local link/image validity via `pulldown-cmark`, unfilled placeholders, and
+//! ```mermaid``` fence validation. Record liveness (`stale-proposed` only) and supersede cycles are advisory.
 //!
-//! Every record's content (`records`, `links`) is read through `DocStore::read`,
-//! so `check` validates whichever backend `compile` is given. `index.md`/`log.md`
-//! sit outside the record domain by design; `check::graph` reads them from disk.
+//! Every record's content (`records`, `links`) is read through `DocStore::read`, so `check` validates whichever backend
+//! `compile` is given. `index.md`/`log.md` sit outside the record domain by design; `check::graph` reads them from disk.
 
 mod callout;
 pub(crate) mod canonical;
@@ -15,6 +14,7 @@ mod duplicate_numbers;
 mod frontmatter_advice;
 mod graph;
 pub(crate) use graph::{normpath, reachable_index_set};
+mod decision_table;
 mod index_drift;
 pub mod kinds;
 mod line_endings;
@@ -30,6 +30,9 @@ mod records;
 mod report;
 mod sections;
 mod size;
+mod stale_view;
+pub(crate) mod state_machine;
+mod supersede_cycle;
 mod supersede_links;
 mod unparseable_frontmatter;
 
@@ -45,9 +48,8 @@ pub use mermaid::{MermaidError, MermaidReport};
 pub(crate) use records::is_retired_record;
 pub use report::{Advisory, Report, Violation};
 
-/// `check --mermaid-only [paths...]` — validates ONLY the mermaid fences
-/// under `paths`, skipping every other invariant, without printing or
-/// choosing an exit code. See `mermaid::compile`.
+/// `check --mermaid-only [paths...]` — validates ONLY the mermaid fences under `paths`, skipping every other
+/// invariant, without printing or choosing an exit code. See `mermaid::compile`.
 pub fn compile_mermaid_only(paths: &[PathBuf]) -> MermaidReport {
     mermaid::compile(paths)
 }
@@ -102,15 +104,13 @@ fn run_all_checks(
     size::check_body_size(store, &all_md, reporter);
     sections::check_required_sections(store, &all_md, reporter);
     if check_placeholders {
-        placeholder::check_placeholders(store, &all_md, reporter);
+        placeholder::check_placeholders(store, bundle, &all_md, reporter);
     }
     liveness::check_liveness(store, bundle, &all_md, reporter);
     doc_count
 }
 
-/// The checks on references between records: links resolve and are spelled
-/// relative, no record number is shared, every issue dependency resolves, and
-/// a repository path named in inline code still exists.
+/// The reference checks: links, record numbers, dependencies, inline-code paths, view stamps, state views, decision tables, supersede cycles.
 fn check_references(
     store: &dyn DocStore,
     bundle: &Path,
@@ -122,6 +122,10 @@ fn check_references(
     duplicate_numbers::check_duplicate_numbers(bundle, all_md, reporter);
     dependencies::check_dependencies(store, bundle, all_md, reporter);
     path_missing::check_path_missing(store, all_md, reporter);
+    stale_view::check_stale_view(store, all_md, reporter);
+    state_machine::check_state_machine(store, all_md, reporter);
+    decision_table::check_decision_table(store, bundle, all_md, reporter);
+    supersede_cycle::check_supersede_cycle(store, bundle, all_md, reporter);
 }
 
 /// Runs the per-record frontmatter pass and returns `all_md` without the
@@ -185,17 +189,14 @@ fn walk_md_files(dir: &Path, out: &mut Vec<PathBuf>) {
 /// what a singleton is, so a second singleton row is handled without an
 /// edit here.
 ///
-/// The comparison is a plain path equality, not a filesystem lookup, so it
-/// only stays correct because every [`DocStore`] enumerates a bundle's paths
-/// rooted at the same `bundle` it was given (see [`collect_md_files`]) —
-/// `read_dir` never resolves symlinks, so this holds even when the caller
-/// reaches the bundle through one. Reach for `canonicalize` here instead and
-/// this pure predicate starts touching disk, breaking every `MapStore`
-/// fixture whose paths never exist on disk.
+/// The comparison is a plain path equality, not a filesystem lookup, so it only stays correct because every [`DocStore`]
+/// enumerates a bundle's paths rooted at the same `bundle` it was given (see [`collect_md_files`]) — `read_dir` never
+/// resolves symlinks, so this holds even when the caller reaches the bundle through one. Reach for `canonicalize` here
+/// instead and this pure predicate starts touching disk, breaking every `MapStore` fixture whose paths never exist on disk.
 pub(crate) fn is_bundle_singleton(bundle: &Path, path: &Path) -> bool {
     doc_type::DOC_TYPES.iter().any(|spec| match spec.identity {
         Identity::Singleton { file } => path == bundle.join(file),
-        Identity::Numbered { .. } | Identity::Named { .. } => false,
+        Identity::Numbered { .. } | Identity::Named { .. } | Identity::Nested { .. } => false,
     })
 }
 

@@ -7,15 +7,22 @@ pub mod callout;
 pub mod check;
 pub mod commands;
 pub mod doc_type;
+mod fence;
 pub mod frontmatter;
+pub mod generated_region;
 pub mod guide;
 pub mod html;
+pub mod inputs_hash;
+mod lifecycle;
 mod line_ending;
 pub mod paths;
 pub mod record;
 mod sections;
 pub mod store;
 pub mod templates;
+pub mod tla_export;
 
+#[cfg(test)]
+mod exhaustive;
 #[cfg(test)]
 mod test_support;

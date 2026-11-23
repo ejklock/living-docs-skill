@@ -3,9 +3,16 @@
 
 use super::help;
 use super::sub::{InstallCmd, UninstallCmd};
-use clap::Subcommand;
+use clap::{Subcommand, ValueEnum};
 use clap_complete::Shell;
 use std::path::PathBuf;
+
+/// The model-checker formats a state view can be exported to.
+#[derive(Clone, Copy, Debug, ValueEnum)]
+pub(crate) enum ExportFormat {
+    /// A TLA+ module.
+    Tla,
+}
 
 #[derive(Subcommand)]
 pub(crate) enum ManageCmd {
@@ -34,6 +41,33 @@ pub(crate) enum ManageCmd {
         /// used, else the pinned CDN script tag.
         #[arg(long, value_name = "PATH")]
         mermaid: Option<PathBuf>,
+    },
+    #[command(about = help::VIEW_ABOUT, long_about = None, after_help = help::with_exit_codes(help::VIEW_EXAMPLES))]
+    View {
+        /// The architecture view: `view/<slug>`, `architecture/<slug>` or its path.
+        view: String,
+        /// Write the Mermaid text read from standard input into the view's
+        /// generated region and stamp it.
+        #[arg(long, required_unless_present = "export", conflicts_with = "export")]
+        splice: bool,
+        /// The globs, from the repository root, whose files the region is
+        /// generated from; their hash goes into the stamp.
+        #[arg(
+            long,
+            num_args = 1..,
+            required_unless_present = "export",
+            conflicts_with = "export",
+            value_name = "GLOB"
+        )]
+        inputs: Vec<String>,
+        /// The command that regenerates the text, recorded in the marker and
+        /// never run; required when the view has no region yet.
+        #[arg(long, value_name = "TEXT", conflicts_with = "export")]
+        command: Option<String>,
+        /// Print the view's flat state diagram as a model-checker module on
+        /// standard output instead of splicing; writes no file.
+        #[arg(long, value_enum, value_name = "FORMAT")]
+        export: Option<ExportFormat>,
     },
     #[command(about = help::INSTALL_ABOUT, long_about = None, after_help = help::with_exit_codes(help::INSTALL_EXAMPLES))]
     Install {

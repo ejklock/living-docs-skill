@@ -2,7 +2,7 @@
 
 Documentation is organized by **meaning, not by accident of growth**. When a body of knowledge is large, it is split into semantically coherent files, each with a single concern, all reachable from one index. The index is the entry point; the group files are the content.
 
-This applies to any large doc — most commonly the domain/module **context** (vocabulary), but equally to research, ADR collections, or any directory that accumulates files.
+This applies to any large doc — most commonly the domain/module **context** (vocabulary, kept as domain records: `read guide domain`), but equally to research, ADR collections, or any directory that accumulates files.
 
 ## The indexing contract
 
@@ -19,7 +19,7 @@ Split when a doc passes ~200 lines or starts mixing unrelated concerns.
 1. **Map sections → groups.** Lay out a source map: each section of the old file → exactly one new group file. Decide group boundaries by *meaning* (write-path vs read-path, domain concepts vs storage shapes), not by length.
 2. **Content-preserving move.** Move vocabulary verbatim. Do not reword, add, or drop terms during a split — that conflates two changes and makes the diff unreviewable. Reword in a *separate* later change if needed.
 3. **One concept lands once.** If two sections discuss the same concept, pick its home and cross-reference from the other.
-4. **Build the index** — intro paragraph + a TOC table linking every group file with a one-line description. See `templates/context-index.md`.
+4. **Build the index** — for `docs/context/` run `living-docs manage index domain`, which generates it by folder from each record's title and description (never hand-kept; see `read guide domain`). For another directory, an intro paragraph + a TOC table linking every group file with a one-line description.
 5. **Cut over.** Repoint the live pointers (project guide's Docs index, maintenance rules) to the new index. Delete the old monolith. Leave *historical* mentions (in ADR/issue "Consequences") untouched — they are history.
 6. **Completeness review.** Diff the old content against the union of new files: every term present exactly once, nothing lost or duplicated, all index links resolve, old file removed.
 

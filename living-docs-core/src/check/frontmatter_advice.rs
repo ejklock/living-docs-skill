@@ -48,7 +48,7 @@ fn directory_spec(bundle: &Path, file: &Path) -> Option<&'static DocTypeSpec> {
     let name = file.file_name()?.to_str()?;
     let listed = match spec.identity {
         Identity::Numbered { .. } => numeric_prefix(name).is_some(),
-        Identity::Named { .. } | Identity::Singleton { .. } => true,
+        Identity::Named { .. } | Identity::Nested { .. } | Identity::Singleton { .. } => true,
     };
     listed.then_some(spec)
 }
@@ -71,6 +71,13 @@ fn status_finding(
     status: Option<&str>,
 ) -> Option<(&'static str, String)> {
     let (spec, status) = (spec?, status?);
+    if matches!(spec.identity, Identity::Nested { .. }) && spec.status_vocabulary.is_empty() {
+        let message = format!(
+            "{} records carry no status; remove `status: {status}`",
+            spec.frontmatter
+        );
+        return Some((kinds::STATUS_VOCABULARY, message));
+    }
     if spec.status_vocabulary.is_empty()
         || status.eq_ignore_ascii_case("superseded")
         || spec.status_vocabulary.contains(&status)

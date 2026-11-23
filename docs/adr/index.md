@@ -64,6 +64,12 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0096 — check advises on an inline-code repository path that no longer exists](0096-check-advises-on-an-inline-code-repository-path-that-no-longer-exists.md) - Accepted
 * [0097 — A stale type index is in scope of a changed record of its type](0097-a-stale-type-index-is-in-scope-of-a-changed-record-of-its-type.md) - Accepted
 * [0098 — stale-successor becomes a check violation after counting zero hits over real bundles](0098-stale-successor-becomes-a-check-violation-after-counting-zero-hits-over-real-bundles.md) - Accepted
+* [0099 — Domain records are a registry type in docs/context, nested in folders by bounded context](0099-domain-records-are-a-registry-type-in-docs-context-nested-in-folders-by-bounded-context.md) - Proposed
+* [0100 — check resolves a link's anchor against a heading of its target, as an advisory](0100-check-resolves-a-link-s-anchor-against-a-heading-of-its-target-as-an-advisory.md) - Proposed
+* [0101 — Generated view regions carry a hash of their inputs, stamped by manage view --splice and checked for staleness](0101-generated-view-regions-carry-a-hash-of-their-inputs-stamped-by-manage-view-splice-and-checked-for-staleness.md) - Proposed
+* [0102 — check proves state views and marked decision tables as advisories](0102-check-proves-state-views-and-marked-decision-tables-as-advisories.md) - Proposed
+* [0103 — manage view exports a flat state view as a TLA+ module for the project's model checker](0103-manage-view-exports-a-flat-state-view-as-a-tla-module-for-the-project-s-model-checker.md) - Proposed
+* [0104 — The record lifecycle is one transition table that set status and supersede consult before any write](0104-the-record-lifecycle-is-one-transition-table-that-set-status-and-supersede-consult-before-any-write.md) - Accepted
 
 ## Superseded
 

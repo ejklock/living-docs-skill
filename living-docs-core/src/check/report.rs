@@ -1,6 +1,8 @@
 //! The findings of `check` and their scoping: violations, advisories, and the
 //! full report, narrowed to the records a caller touched.
 
+use super::kinds;
+use crate::inputs_hash::{matches_any, Glob};
 use serde::Serialize;
 use std::path::PathBuf;
 
@@ -52,6 +54,15 @@ impl Report {
     /// narrows to nothing and reports nothing.
     #[must_use]
     pub fn scoped_to(self, paths: &[PathBuf]) -> Self {
+        self.scoped_to_changes(paths, &[])
+    }
+
+    /// [`Report::scoped_to`] that also keeps a `stale-view` advisory when one
+    /// of `inputs`, repository-relative paths with `/` separators, matches an
+    /// input glob stamped in its view. `inputs` reach no other finding, so a
+    /// path outside the bundle never brings a record's violation into scope.
+    #[must_use]
+    pub fn scoped_to_changes(self, paths: &[PathBuf], inputs: &[String]) -> Self {
         let scope: Vec<String> = paths
             .iter()
             .map(|path| path.display().to_string())
@@ -67,7 +78,7 @@ impl Report {
             advisories: self
                 .advisories
                 .into_iter()
-                .filter(|advisory| advisory.is_anchored_in(&scope))
+                .filter(|advisory| advisory.is_anchored_in(&scope) || advisory.reads_any(inputs))
                 .collect(),
             ..self
         }
@@ -88,9 +99,35 @@ fn anchors_in(file: &str, scope: &[String]) -> bool {
 }
 
 impl Advisory {
+    /// The records the advisory is anchored on. A `stale-view` advisory is
+    /// anchored on its view alone: the members after it are input globs.
+    fn record_anchors(&self) -> &[String] {
+        if self.kind == kinds::STALE_VIEW {
+            &self.anchors[..self.anchors.len().min(1)]
+        } else {
+            &self.anchors
+        }
+    }
+
     /// Whether the advisory's file or any member of its group is in `scope`.
     fn is_anchored_in(&self, scope: &[String]) -> bool {
-        anchors_in(&self.file, scope) || self.anchors.iter().any(|a| anchors_in(a, scope))
+        anchors_in(&self.file, scope) || self.record_anchors().iter().any(|a| anchors_in(a, scope))
+    }
+
+    /// Whether the advisory is a `stale-view` whose stamped input globs match
+    /// one of `inputs`, compared whole against repository-relative paths. A
+    /// glob that does not compile matches nothing.
+    fn reads_any(&self, inputs: &[String]) -> bool {
+        if self.kind != kinds::STALE_VIEW || inputs.is_empty() {
+            return false;
+        }
+        let globs: Vec<Glob> = self
+            .anchors
+            .iter()
+            .skip(1)
+            .filter_map(|glob| Glob::new(glob).ok())
+            .collect();
+        inputs.iter().any(|path| matches_any(&globs, path))
     }
 }
 

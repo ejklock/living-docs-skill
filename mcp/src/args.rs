@@ -30,6 +30,8 @@ pub struct NewArgs {
     pub owner: Option<String>,
     /// The prose below the title heading; frontmatter is never part of it.
     pub body: Option<String>,
+    /// For the nested types (such as `domain`): the folder below the type's own, `a/b` for `docs/context/a/b/`, each segment a slug.
+    pub dir: Option<String>,
 }
 
 /// Field form: `reference`, `key`, `value`. Section form: `reference`, `heading`, `text`.
@@ -96,7 +98,7 @@ pub struct RecordsArgs {
     pub impact: Option<String>,
 }
 
-/// Maintain the bundle: `index` or `fmt`.
+/// Maintain the bundle: `index`, `fmt`, `view` or `export_view`.
 #[derive(Deserialize, JsonSchema)]
 #[serde(tag = "operation", rename_all = "snake_case")]
 #[schemars(extend("type" = "object"))]
@@ -105,6 +107,38 @@ pub enum ManageArgs {
     Index(IndexArgs),
     /// Canonicalize record frontmatter, or only report what would change.
     Fmt(FmtArgs),
+    /// Splice Mermaid text into an architecture view's generated region and stamp it with its input globs and their hash.
+    View(ViewArgs),
+    /// Export a flat state view as a model-checker module, returned as text.
+    ExportView(ExportViewArgs),
+}
+
+/// The formats `export_view` can write.
+#[derive(Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ExportFormat {
+    /// A TLA+ module.
+    Tla,
+}
+
+#[derive(Deserialize, JsonSchema)]
+pub struct ExportViewArgs {
+    /// The state view: `view/<slug>`, `architecture/<slug>` or its path.
+    pub view: String,
+    /// The module format; only `tla`.
+    pub format: ExportFormat,
+}
+
+#[derive(Deserialize, JsonSchema)]
+pub struct ViewArgs {
+    /// The architecture view: `view/<slug>`, `architecture/<slug>` or its path.
+    pub view: String,
+    /// The globs, from the repository root, whose files the region is generated from; at least one.
+    pub inputs: Vec<String>,
+    /// The command that regenerates the text, recorded in the marker and never run. Required when the view has no region yet; omitted keeps the existing one.
+    pub command: Option<String>,
+    /// The Mermaid text; already fenced or not.
+    pub mermaid: String,
 }
 
 #[derive(Deserialize, JsonSchema)]

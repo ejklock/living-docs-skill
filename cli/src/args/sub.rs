@@ -29,6 +29,11 @@ pub(crate) struct NewRecordArgs {
     /// and never writes prose itself.
     #[arg(long, value_name = "PATH")]
     pub(crate) body: Option<String>,
+    /// Nested record types only (such as `domain`): places the record in
+    /// this folder below the type's own, `a/b` for `docs/context/a/b/`,
+    /// each segment a slug; an unsafe path is refused before any write.
+    #[arg(long, value_name = "PATH")]
+    pub(crate) dir: Option<String>,
 }
 
 /// Arguments for the `check` verb.
@@ -50,6 +55,14 @@ pub(crate) struct CheckArgs {
     /// invariant still runs over the whole bundle.
     #[arg(long, num_args = 1.., value_name = "PATH")]
     pub(crate) changed_files: Vec<PathBuf>,
+    /// Reads NUL-separated paths, each relative to the repository root (an
+    /// absolute path matches nothing), from this file, or
+    /// from standard input for `-`, and keeps a view's `stale-view` advisory
+    /// when one matches an input glob stamped in the view. These paths reach
+    /// no other finding, so any staged path can be listed without bringing a
+    /// record's violation into scope.
+    #[arg(long, value_name = "PATH")]
+    pub(crate) changed_inputs_from: Option<String>,
     /// Lists every advisory after the per-kind summary instead of the
     /// summary alone, and prints the arm-the-hooks hint on stderr when no
     /// pre-commit doc-gate is armed (also in JSON mode); the JSON output

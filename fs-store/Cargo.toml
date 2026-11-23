@@ -9,6 +9,7 @@ name = "fs_store"
 path = "src/lib.rs"
 
 [dependencies]
+ignore = "0.4.35"
 living-docs-core = { path = "../living-docs-core" }
 
 [lints]

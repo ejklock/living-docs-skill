@@ -24,7 +24,9 @@ pub(crate) enum NoTypeIndex {
 /// The directory a type's index lives in, `None` for a singleton.
 fn type_dir(spec: &DocTypeSpec) -> Option<&'static str> {
     match spec.identity {
-        Identity::Numbered { dir } | Identity::Named { dir } => Some(dir),
+        Identity::Numbered { dir } | Identity::Named { dir } | Identity::Nested { dir } => {
+            Some(dir)
+        }
         Identity::Singleton { .. } => None,
     }
 }

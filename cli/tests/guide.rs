@@ -121,12 +121,13 @@ fn explicit_skill_flag_treats_the_positional_as_a_topic() {
 }
 
 #[test]
-fn removed_topics_are_gone_and_kept_index_topics_still_print() {
+fn retired_topics_are_gone_and_the_domain_and_index_topics_print() {
     // Joined from parts so the repository-wide absence grep stays empty.
     let gone = [
         "glossary".to_owned(),
         ["architecture", "index"].join("-"),
         ["code", "comment", "hygiene"].join("-"),
+        ["context", "index"].join("-"),
     ];
     let list = stdout_of(&run_guide(&["--list", "--plain"]));
     for topic in &gone {
@@ -134,11 +135,19 @@ fn removed_topics_are_gone_and_kept_index_topics_still_print() {
         let output = run_guide(&[topic, "--plain"]);
         assert_eq!(output.status.code(), Some(2), "topic {topic}");
     }
-    for topic in ["semantic-index", "context-index"] {
-        let output = run_guide(&[topic, "--plain"]);
-        assert_eq!(output.status.code(), Some(0), "topic {topic}");
-        assert!(!stdout_of(&output).trim().is_empty(), "topic {topic}");
-    }
+    let output = run_guide(&["semantic-index", "--plain"]);
+    assert_eq!(output.status.code(), Some(0), "topic semantic-index");
+    assert!(
+        !stdout_of(&output).trim().is_empty(),
+        "topic semantic-index"
+    );
+    let output = run_guide(&["domain", "--plain"]);
+    assert_eq!(output.status.code(), Some(0), "topic domain");
+    let stdout = stdout_of(&output);
+    assert!(
+        stdout.contains("anchor-missing"),
+        "domain topic lacks the rule:\n{stdout}"
+    );
 }
 
 #[test]
@@ -225,7 +234,7 @@ fn json_list_keeps_the_topicless_skill_with_an_empty_topic_array() {
     let stdout = stdout_of(&output);
     assert_eq!(output.status.code(), Some(0), "got:\n{stdout}");
     let expected = serde_json::json!({"skills":[
-        {"name":"living-docs","topics":["adr","architecture-diagrams","architecture-view","check","claude-hard-rules","constitution","context-index","delegated-exploration","doc-trail","issue","issue-workflow","okf-format","prd","procedure","research","semantic-index","size-targets","spine"]},
+        {"name":"living-docs","topics":["adr","architecture-diagrams","architecture-view","check","claude-hard-rules","constitution","delegated-exploration","doc-trail","domain","issue","issue-workflow","okf-format","prd","procedure","research","semantic-index","size-targets","spine"]},
         {"name":"living-docs-drift","topics":[]},
         {"name":"okf-knowledge-format","topics":["about","concept","conformance","index","log","model","procedure"]},
         {"name":"research-artifacts","topics":["about","research-general-references","research-index","research-report","rules","structure"]}

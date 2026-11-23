@@ -77,6 +77,16 @@ fn a_section_without_children_is_replaced() {
 }
 
 #[test]
+fn a_heading_inside_a_longer_fence_holding_a_shorter_fence_line_is_not_a_child() {
+    let scope = "### Scope\n\ns\n\n````md\n```\n#### Not a child\n````\n\n";
+    let (docs, path) = issue_with_scope("longer-fence", scope);
+    let out = set_section(&docs, "Scope", "new text\n");
+    assert!(out.status.success(), "{out:?}");
+    let text = fs::read_to_string(path).unwrap();
+    assert!(text.contains("### Scope\n\nnew text\n"), "{text}");
+}
+
+#[test]
 fn an_absent_section_is_appended() {
     let (docs, path) = issue_with_children("append");
     let out = set_section(&docs, "Outcome", "done\n");

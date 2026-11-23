@@ -68,6 +68,18 @@ impl DocStore for Drafted<'_> {
     fn rename(&self, _: &Path, _: &Path) -> io::Result<()> {
         Err(io::Error::other("a draft store is read-only"))
     }
+
+    fn repository_entry_exists(&self, entry: &Path) -> Option<bool> {
+        self.inner.repository_entry_exists(entry)
+    }
+
+    fn repository_files(&self, patterns: &[String]) -> Option<crate::store::RepositoryFiles> {
+        self.inner.repository_files(patterns)
+    }
+
+    fn repository_glob_reach(&self, globs: &[String]) -> Option<crate::store::GlobReaches> {
+        self.inner.repository_glob_reach(globs)
+    }
 }
 
 /// `plan` with each `blocked` record's `blocked_by` drafted on top of its
@@ -110,3 +122,6 @@ fn apply_plan(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests;

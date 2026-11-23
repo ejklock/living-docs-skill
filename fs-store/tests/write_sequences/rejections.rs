@@ -148,7 +148,8 @@ fn contract_rejects_a_record_in_force_together_with_its_successor() {
     let scratch = Scratch::new("in-force");
     let healthy = two_adrs_one_superseding_the_other(&scratch);
     assert!(judged(&healthy, false).is_ok());
-    let bundle = bundle_with_record_in_force_beside_its_successor(&scratch);
+    let other = Scratch::new("in-force-broken");
+    let bundle = bundle_with_record_in_force_beside_its_successor(&other);
     let breach = contract::judge_from(&bundle, contract::IN_FORCE_WITHOUT_SUCCESSOR)
         .expect_err("a record in force with its successor is rejected");
     assert_eq!(breach.part, Part::InForceWithItsSuccessor);
@@ -187,7 +188,103 @@ fn the_main_path_runs_every_state_judgment_in_order() {
         [
             "check_report",
             "in_force_without_successor",
+            "successor_chains_are_acyclic",
             "canonical_after_fmt_and_index"
         ]
     );
+}
+
+fn second_adr(bundle: &Path) -> PathBuf {
+    let mut found: Vec<PathBuf> = fs::read_dir(bundle.join("adr"))
+        .expect("list adr directory")
+        .map(|entry| entry.expect("read entry").path())
+        .filter(|path| {
+            path.file_name()
+                .is_some_and(|n| n.to_string_lossy().starts_with("0002"))
+        })
+        .collect();
+    found.pop().expect("the second adr exists")
+}
+
+#[test]
+fn contract_rejects_a_supersede_chain_that_loops_back() {
+    let scratch = Scratch::new("cycle");
+    let bundle = two_adrs_one_superseding_the_other(&scratch);
+    rewrite(&second_adr(&bundle), |text| {
+        text.replacen(
+            "status: Proposed",
+            "status: Superseded\nsuperseded_by: 0001",
+            1,
+        )
+    });
+    let breach = contract::judge_from(&bundle, contract::SUCCESSOR_CHAINS_ARE_ACYCLIC)
+        .expect_err("a supersede cycle is rejected");
+    assert_eq!(breach.part, Part::SupersedeCycle);
+    assert!(breach.detail.contains("0001"), "{}", breach.detail);
+}
+
+#[test]
+fn contract_accepts_a_supersede_chain_that_ends_in_a_retired_record() {
+    let scratch = Scratch::new("retired");
+    let bundle = two_adrs_one_superseding_the_other(&scratch);
+    ops::apply(
+        Op::AdrStatus {
+            number: 2,
+            value: "Deprecated",
+        },
+        &bundle,
+        4,
+    )
+    .expect("a record that superseded another may be deprecated");
+    assert!(judged(&bundle, false).is_ok());
+}
+
+#[test]
+fn contract_rejects_a_status_taken_by_a_superseded_record() {
+    let scratch = Scratch::new("status-on-superseded");
+    let bundle = two_adrs_one_superseding_the_other(&scratch);
+    let before = snapshot::take(&bundle);
+    let breach = contract::status_step_is_legal(&before, "ADR", 1)
+        .expect_err("a status taken by a superseded record is rejected");
+    assert_eq!(breach.part, Part::StatusChangedOnSuperseded);
+    assert!(breach.detail.contains("0001"), "{}", breach.detail);
+    assert!(contract::status_step_is_legal(&before, "ADR", 2).is_ok());
+}
+
+#[test]
+fn contract_rejects_a_supersede_step_that_rewrote_an_existing_link() {
+    let scratch = Scratch::new("rewrote-link");
+    let bundle = built(&scratch, &[Op::NewAdr, Op::NewAdr, Op::NewAdr]);
+    ops::apply(supersede("adr/0001", "adr/0002"), &bundle, 4).expect("first supersede");
+    let before = snapshot::take(&bundle);
+    rewrite(&first_adr(&bundle), |text| {
+        text.replace("superseded_by: 0002", "superseded_by: 0003")
+    });
+    let breach = contract::supersede_step_is_legal(&before, &bundle, "adr/0003")
+        .expect_err("a rewritten successor link is rejected");
+    assert_eq!(breach.part, Part::SupersedeRewroteLink);
+    assert!(breach.detail.contains("0001"), "{}", breach.detail);
+}
+
+fn supersede(old: &'static str, new: &'static str) -> Op {
+    Op::Supersede { old, new }
+}
+
+#[test]
+fn contract_rejects_a_supersede_step_whose_new_record_is_already_retired() {
+    let scratch = Scratch::new("retired-new");
+    let bundle = built(&scratch, &[Op::NewAdr, Op::NewAdr, Op::NewAdr]);
+    ops::apply(supersede("adr/0001", "adr/0003"), &bundle, 4).expect("first supersede");
+    let before = snapshot::take(&bundle);
+    rewrite(&second_adr(&bundle), |text| {
+        text.replacen(
+            "status: Proposed",
+            "status: Superseded\nsuperseded_by: 0001",
+            1,
+        )
+    });
+    let breach = contract::supersede_step_is_legal(&before, &bundle, "adr/0001")
+        .expect_err("a retired new record is rejected");
+    assert_eq!(breach.part, Part::SupersedeEndsRetired);
+    assert!(breach.detail.contains("0001"), "{}", breach.detail);
 }

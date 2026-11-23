@@ -5,6 +5,7 @@
 use std::collections::HashMap;
 
 use crate::doc_type::{SectionSpec, Tier};
+use crate::fence::{toggle_fence, Fence};
 use crate::frontmatter::{frontmatter_block, read_scalar_strict};
 
 /// The heading names a record's body carries, in order, trimmed and in their
@@ -179,18 +180,13 @@ fn is_detail(schema: &[SectionSpec], name: &str) -> bool {
 /// Each line, terminator kept, paired with its heading level and text when it
 /// is a heading outside any fenced code block.
 fn classified(body: &str) -> Vec<(&str, Option<(usize, String)>)> {
-    let mut fence: Option<char> = None;
+    let mut fence: Fence = None;
     body.split_inclusive('\n')
         .map(|line| {
-            if let Some(marker) = fence_marker(line) {
-                fence = match fence {
-                    None => Some(marker),
-                    Some(open) if open == marker => None,
-                    still_open => still_open,
-                };
+            if toggle_fence(line, &mut fence) || fence.is_some() {
                 return (line, None);
             }
-            (line, fence.map_or_else(|| heading_of(line), |_| None))
+            (line, heading_of(line))
         })
         .collect()
 }
@@ -200,13 +196,6 @@ fn body_of(contents: &str) -> &str {
         Some(block) => &contents[("---\n".len() + block.len() + "\n---".len())..],
         None => contents,
     }
-}
-
-fn fence_marker(line: &str) -> Option<char> {
-    let trimmed = line.trim_start();
-    ['`', '~']
-        .into_iter()
-        .find(|marker| trimmed.starts_with(&marker.to_string().repeat(3)))
 }
 
 fn heading_of(line: &str) -> Option<(usize, String)> {

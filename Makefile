@@ -42,6 +42,7 @@ check: version filesize allow-inventory build test-fixtures test-drift-skill tes
 	bash -n scripts/tests/install/run.sh
 	bash -n scripts/tests/npm/run.sh
 	bash -n skills/living-docs-drift/scripts/drift.sh
+	bash -n skills/living-docs/scripts/regen-views.sh
 	bash -n skills/living-docs-drift/tests/run.sh
 	bash -n evals/run.sh
 	bash -n evals/score.sh
@@ -51,6 +52,7 @@ check: version filesize allow-inventory build test-fixtures test-drift-skill tes
 	cargo test --manifest-path cli/Cargo.toml
 	$(LIVING_DOCS_BIN) check --require-owner --plain examples/linkly/docs
 	$(LIVING_DOCS_BIN) check --require-owner --plain docs
+	LIVING_DOCS_BIN=$(LIVING_DOCS_BIN) bash skills/living-docs/scripts/regen-views.sh --check
 	$(LIVING_DOCS_BIN) check --mermaid-only
 	$(INSTALL) --dry-run
 

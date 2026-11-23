@@ -14,9 +14,12 @@
 //! point at a non-record asset (an image, say) that the `DocStore` port
 //! never models.
 
+mod anchors;
+
 use super::graph::{dirname_str, normpath};
 use super::Reporter;
 use crate::store::DocStore;
+use anchors::SlugCache;
 use pulldown_cmark::{Event, Parser, Tag};
 use std::path::{Path, PathBuf};
 
@@ -27,23 +30,31 @@ pub(crate) fn check_links(
     reporter: &mut Reporter,
 ) {
     let bundle_str = bundle.to_string_lossy();
+    let mut slugs = SlugCache::default();
     for f in all_md {
-        check_file_links(store, f, &bundle_str, reporter);
+        check_file_links(store, f, &bundle_str, &mut slugs, reporter);
     }
 }
 
-fn check_file_links(store: &dyn DocStore, f: &Path, bundle: &str, reporter: &mut Reporter) {
+fn check_file_links(
+    store: &dyn DocStore,
+    f: &Path,
+    bundle: &str,
+    slugs: &mut SlugCache,
+    reporter: &mut Reporter,
+) {
     let Ok(content) = store.read(f) else {
         return;
     };
     let file_str = f.to_string_lossy();
     for dest in link_destinations(&content) {
-        let Some(target) = resolve_destination(&file_str, &dest, bundle) else {
-            continue;
-        };
-        if !Path::new(&target).exists() {
+        let resolved = resolve_destination(&file_str, &dest, bundle);
+        if let Some(target) = resolved.as_deref().filter(|t| !Path::new(t).exists()) {
             reporter.report(f, format!("broken link -> {target}"));
+            continue;
         }
+        let target = resolved.as_deref().map(|target| (target, bundle));
+        slugs.check_anchor(store, f, &content, &dest, target, reporter);
     }
 }
 
@@ -134,6 +145,7 @@ mod tests {
             &store,
             Path::new("/bundle/adr/0001.md"),
             "/bundle",
+            &mut SlugCache::default(),
             &mut reporter,
         );
 
@@ -149,6 +161,7 @@ mod tests {
             &store,
             Path::new("/bundle/adr/0001.md"),
             "/bundle",
+            &mut SlugCache::default(),
             &mut reporter,
         );
 

@@ -1,15 +1,21 @@
 use super::*;
 
-/// ADR 0026 fitness function B (index half), extended by ADR 0036: the
-/// token set `index` regenerates with no explicit type equals the
-/// registry's Identity::Numbered plus Identity::Named token set, in the
-/// registry's own order.
+/// Fitness function: the token set `index` regenerates with no explicit type
+/// equals the registry's Identity::Numbered, Identity::Named and
+/// Identity::Nested token set, in the registry's own order.
 #[test]
-fn all_type_tokens_matches_every_numbered_and_named_registry_token_in_order() {
+fn all_type_tokens_matches_every_numbered_named_and_nested_registry_token_in_order() {
     assert_eq!(
         all_type_tokens(),
-        vec!["adr", "prd", "issue", "research", "view"]
+        vec!["adr", "prd", "issue", "research", "view", "domain"]
     );
+}
+
+#[test]
+fn a_nested_domain_type_is_listed_like_a_named_one() {
+    assert!(is_named("domain"));
+    assert!(is_named("view"));
+    assert!(!is_named("adr"));
 }
 
 /// The `constitution` row is a deliberate exclusion, not an oversight:

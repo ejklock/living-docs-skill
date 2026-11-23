@@ -9,7 +9,7 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use living_docs_core::store::DocStore;
+use living_docs_core::store::{DocStore, GlobReaches, RepositoryFiles};
 
 /// `DocStore` implementation backed by the local filesystem, built for one
 /// bundle directory.
@@ -62,6 +62,16 @@ impl DocStore for FsStore {
     fn repository_entry_exists(&self, relative: &Path) -> Option<bool> {
         let root = repository::repository_root(&self.root)?;
         repository::entry_exists(&root, relative)
+    }
+
+    fn repository_files(&self, globs: &[String]) -> Option<RepositoryFiles> {
+        let root = repository::repository_root(&self.root)?;
+        Some(repository::matching_files(&root, globs))
+    }
+
+    fn repository_glob_reach(&self, globs: &[String]) -> Option<GlobReaches> {
+        let root = repository::repository_root(&self.root)?;
+        Some(repository::glob_reach(&root, globs))
     }
 }
 

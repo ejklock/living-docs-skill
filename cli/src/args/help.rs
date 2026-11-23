@@ -81,7 +81,9 @@ fn directory_names() -> String {
     DOC_TYPES
         .iter()
         .filter_map(|spec| match spec.identity {
-            Identity::Numbered { dir } | Identity::Named { dir } => Some(dir),
+            Identity::Numbered { dir } | Identity::Named { dir } | Identity::Nested { dir } => {
+                Some(dir)
+            }
             Identity::Singleton { .. } => None,
         })
         .collect::<Vec<_>>()
@@ -138,6 +140,7 @@ pub(crate) const NEW_EXAMPLES: &[&str] = &[
     "living-docs write new issue \"Flaky upload test\" --owner alice@example.com",
     "living-docs write new issue \"Flaky upload test\" --body body.md",
     "cat body.md | living-docs write new issue \"Flaky upload test\" --body -",
+    "living-docs write new domain \"Billing rules\" --dir billing/invoices",
 ];
 
 pub(crate) const SET_ABOUT: &str =
@@ -176,6 +179,14 @@ pub(crate) const HTML_EXAMPLES: &[&str] = &[
     "living-docs manage html --mermaid ./mermaid.min.js",
 ];
 
+pub(crate) const VIEW_ABOUT: &str =
+    "Splices Mermaid text from standard input into an architecture view's generated region and stamps it with its input globs and their hash; a view with no region gets one at the end of its body, which needs --command. With --export tla it prints a flat state view's TLA+ module to standard output instead, writing no file.";
+pub(crate) const VIEW_EXAMPLES: &[&str] = &[
+    "printf 'graph TD\\n a-->b\\n' | living-docs manage view view/crates --splice --inputs Cargo.toml --command \"cargo metadata | jq\"",
+    "living-docs manage view architecture/crates --splice --inputs 'Cargo.toml' '*/Cargo.toml' < graph.mmd",
+    "living-docs manage view architecture/order-lifecycle --export tla > order_lifecycle.tla",
+];
+
 pub(crate) const CHECK_ABOUT: &str = "Validates the bundle's mechanical invariants — the doc-gate.";
 pub(crate) const CHECK_EXAMPLES: &[&str] = &[
     "living-docs check docs",
@@ -198,7 +209,7 @@ pub(crate) const READ_EXAMPLES: &[&str] = &[
 ];
 
 pub(crate) const MANAGE_ABOUT: &str =
-    "Maintains the bundle and its tooling: index, fmt, html, install, uninstall, completions.";
+    "Maintains the bundle and its tooling: index, fmt, html, view, install, uninstall, completions.";
 pub(crate) const MANAGE_EXAMPLES: &[&str] = &[
     "living-docs manage index adr",
     "living-docs manage fmt docs",
@@ -235,7 +246,7 @@ pub(crate) const MCP_EXAMPLES: &[&str] = &[
     "claude mcp add living-docs -- living-docs mcp --docs-dir docs",
 ];
 
-const EXAMPLES: [(&[&str], &[&str]); 20] = [
+const EXAMPLES: [(&[&str], &[&str]); 21] = [
     (&["write"], WRITE_EXAMPLES),
     (&["write", "new"], NEW_EXAMPLES),
     (&["write", "set"], SET_EXAMPLES),
@@ -249,6 +260,7 @@ const EXAMPLES: [(&[&str], &[&str]); 20] = [
     (&["manage", "index"], INDEX_EXAMPLES),
     (&["manage", "fmt"], FMT_EXAMPLES),
     (&["manage", "html"], HTML_EXAMPLES),
+    (&["manage", "view"], VIEW_EXAMPLES),
     (&["manage", "install"], INSTALL_EXAMPLES),
     (&["manage", "install", "skills"], INSTALL_SKILLS_EXAMPLES),
     (&["manage", "install", "hooks"], INSTALL_HOOKS_EXAMPLES),

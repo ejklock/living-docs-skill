@@ -74,28 +74,31 @@ impl DocStore for ReadOnceStore<'_> {
         Err(read_only())
     }
 
+    fn repository_glob_reach(&self, globs: &[String]) -> Option<crate::store::GlobReaches> {
+        self.inner.repository_glob_reach(globs)
+    }
+
+    fn repository_files(&self, globs: &[String]) -> Option<crate::store::RepositoryFiles> {
+        self.inner.repository_files(globs)
+    }
+
     fn repository_entry_exists(&self, relative: &Path) -> Option<bool> {
         self.inner.repository_entry_exists(relative)
     }
 }
 
 fn read_only() -> io::Error {
-    io::Error::new(
-        io::ErrorKind::PermissionDenied,
-        "a check run is read-only: it never writes or renames",
-    )
+    let why = "a check run is read-only: it never writes or renames";
+    io::Error::new(io::ErrorKind::PermissionDenied, why)
 }
 
 #[cfg(test)]
 mod tests {
     use super::super::{check_violations, run_all_checks, Advisory, Reporter};
     use super::*;
-    use crate::callout;
-    use crate::check::kinds;
     use crate::test_support::{MapStore, WritableMapStore};
-    use std::collections::BTreeMap;
-    use std::fs;
-    use std::io::ErrorKind::PermissionDenied;
+    use crate::{callout, check::kinds};
+    use std::{collections::BTreeMap, fs, io::ErrorKind::PermissionDenied};
 
     /// Counts reads per path and refuses one path the way a confined adapter
     /// refuses a record outside its bundle.
@@ -125,7 +128,6 @@ mod tests {
         fn write(&self, _path: &Path, _contents: &str) -> io::Result<()> {
             Err(io::ErrorKind::Unsupported.into())
         }
-
         fn rename(&self, _from: &Path, _to: &Path) -> io::Result<()> {
             Err(io::ErrorKind::Unsupported.into())
         }

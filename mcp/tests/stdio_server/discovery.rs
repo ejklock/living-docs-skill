@@ -30,7 +30,10 @@ async fn lists_the_four_tools_in_a_fixed_order_with_their_operations() {
         };
         assert_eq!(operations(&schema("write")), ["new", "set", "supersede"]);
         assert_eq!(operations(&schema("read")), ["records", "guide"]);
-        assert_eq!(operations(&schema("manage")), ["index", "fmt"]);
+        assert_eq!(
+            operations(&schema("manage")),
+            ["index", "fmt", "view", "export_view"]
+        );
         assert!(schema("check").is_object());
     }
 }

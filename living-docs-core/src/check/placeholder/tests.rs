@@ -13,7 +13,7 @@ fn store_of(files: &[(&str, &str)]) -> MapStore {
 fn violations(store: &MapStore) -> Vec<(String, String)> {
     let mut reporter = Reporter::new();
     let all: Vec<PathBuf> = store.files.keys().cloned().collect();
-    check_placeholders(store, &all, &mut reporter);
+    check_placeholders(store, Path::new(""), &all, &mut reporter);
     reporter.into_violations()
 }
 
