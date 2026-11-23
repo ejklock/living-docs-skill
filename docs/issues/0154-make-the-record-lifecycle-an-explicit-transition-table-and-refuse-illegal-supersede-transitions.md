@@ -27,6 +27,7 @@ Kept: the stateless CLI over the `.md` tree; every status vocabulary; `Deprecate
 - No stateful component (owner, 2026-11-23): the lifecycle becomes an explicit transition table in the core, with no daemon, actor or database. Not taken: keeping the implicit lifecycle; a persistent single-writer actor, which would supersede ADR 0059 and amend the constitution.
 - Reopening stays legal (owner, 2026-11-23): `Deprecated → Accepted` for an ADR and `closed → open` for an issue are legal transitions. Not taken: only reopening an issue; terminal statuses as absorbing states.
 - The refusal changes a verb's exit-code contract (calls accepted today start failing), so the table and its refusals are decided by an ADR before code.
+- The chain rule binds `write supersede` only (owner, 2026-11-23): a supersede must not target a retired record nor rewrite an existing successor link nor close a cycle; `write set status Deprecated` on a record that succeeded another stays legal, since retiring a decision with no replacement is an ordinary move, and the check rule is narrowed to match. A Proposed successor counts as in force, as the core's `is_in_force` defines. Not taken: refusing `set status Deprecated` on a successor.
 
 ### Acceptance
 
