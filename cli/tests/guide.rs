@@ -225,7 +225,7 @@ fn json_list_keeps_the_topicless_skill_with_an_empty_topic_array() {
     let stdout = stdout_of(&output);
     assert_eq!(output.status.code(), Some(0), "got:\n{stdout}");
     let expected = serde_json::json!({"skills":[
-        {"name":"living-docs","topics":["adr","architecture-diagrams","architecture-view","check","claude-hard-rules","constitution","context-index","delegated-exploration","doc-trail","issue","issue-workflow","okf-format","prd","procedure","research","semantic-index","size-targets","spine"]},
+        {"name":"living-docs","topics":["adr","architecture-diagrams","architecture-view","check","claude-hard-rules","constitution","context-index","delegated-exploration","doc-trail","domain","issue","issue-workflow","okf-format","prd","procedure","research","semantic-index","size-targets","spine"]},
         {"name":"living-docs-drift","topics":[]},
         {"name":"okf-knowledge-format","topics":["about","concept","conformance","index","log","model","procedure"]},
         {"name":"research-artifacts","topics":["about","research-general-references","research-index","research-report","rules","structure"]}

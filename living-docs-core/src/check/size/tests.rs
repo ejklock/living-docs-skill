@@ -102,11 +102,11 @@ fn research_is_exempt_regardless_of_length() {
 #[test]
 fn a_type_absent_from_the_registry_is_exempt_regardless_of_length() {
     assert!(
-        doc_type::spec_for_frontmatter("Context").is_none(),
-        "fixture premise broken: `Context` is now a registered frontmatter value — pick another unregistered type",
+        doc_type::spec_for_frontmatter("Glossary").is_none(),
+        "fixture premise broken: `Glossary` is now a registered frontmatter value — pick another unregistered type",
     );
     assert_eq!(
-        over_target_body_lines(&doc_with_body_lines("Context", 400)),
+        over_target_body_lines(&doc_with_body_lines("Glossary", 400)),
         None
     );
 }

@@ -1,7 +1,8 @@
 //! Listing body for a Named-identity directory (ADR 0036): one row per
 //! view file, sorted by the C4/arc42 zoom rank of its `kind` frontmatter
 //! (`doc_type::VIEW_KIND_ORDER`), then filename; an absent or unknown kind
-//! ranks after every listed one.
+//! ranks after every listed one. A Nested directory lists its records by
+//! filename alone, with no kind.
 
 use super::first_heading;
 use super::rows::single_line;
@@ -22,14 +23,24 @@ pub(super) fn render_body(
     store: &dyn DocStore,
     docs_dir: &Path,
     type_dir: &Path,
+    ranked: bool,
 ) -> Result<String, String> {
     let mut views = collect_views(store, docs_dir, type_dir)?;
-    views.sort_by(|a, b| (a.rank, &a.filename).cmp(&(b.rank, &b.filename)));
+    if ranked {
+        views.sort_by(|a, b| (a.rank, &a.filename).cmp(&(b.rank, &b.filename)));
+    } else {
+        views.sort_by(|a, b| a.filename.cmp(&b.filename));
+        views.iter_mut().for_each(|view| view.kind.clear());
+    }
+    Ok(join_rows(&views))
+}
+
+fn join_rows(views: &[View]) -> String {
     if views.is_empty() {
-        return Ok(String::new());
+        return String::new();
     }
     let rows: Vec<String> = views.iter().map(render_row).collect();
-    Ok(rows.join("\n") + "\n")
+    rows.join("\n") + "\n"
 }
 
 fn collect_views(
@@ -116,7 +127,7 @@ mod tests {
             ),
         ]);
 
-        let body = render_body(&store, Path::new("/d"), Path::new("/d/architecture"))
+        let body = render_body(&store, Path::new("/d"), Path::new("/d/architecture"), true)
             .expect("render must succeed");
 
         assert_eq!(
@@ -138,7 +149,7 @@ mod tests {
             ),
         ]);
 
-        let body = render_body(&store, Path::new("/d"), Path::new("/d/architecture"))
+        let body = render_body(&store, Path::new("/d"), Path::new("/d/architecture"), true)
             .expect("render must succeed");
 
         let lines: Vec<&str> = body.lines().collect();
@@ -155,7 +166,7 @@ mod tests {
                 .to_string(),
         )]);
 
-        let body = render_body(&store, Path::new("/d"), Path::new("/d/architecture"))
+        let body = render_body(&store, Path::new("/d"), Path::new("/d/architecture"), true)
             .expect("render must succeed");
 
         assert_eq!(body, "* [a b](context.md) - context\n");
@@ -168,7 +179,7 @@ mod tests {
             ("/d/architecture/context.md", view_doc("Context", "context")),
         ]);
 
-        let body = render_body(&store, Path::new("/d"), Path::new("/d/architecture"))
+        let body = render_body(&store, Path::new("/d"), Path::new("/d/architecture"), true)
             .expect("render must succeed");
 
         assert_eq!(body, "* [Context](context.md) - context\n");
@@ -180,5 +191,18 @@ mod tests {
             assert!(kind_rank(kind) < kind_rank("unlisted"));
         }
         assert_eq!(kind_rank(""), VIEW_KIND_ORDER.len());
+    }
+
+    #[test]
+    fn an_unranked_listing_sorts_by_filename_and_shows_no_kind() {
+        let store = store_with(vec![
+            ("/d/context/b.md", view_doc("B", "context")),
+            ("/d/context/a.md", view_doc("A", "component")),
+        ]);
+
+        let body = render_body(&store, Path::new("/d"), Path::new("/d/context"), false)
+            .expect("render must succeed");
+
+        assert_eq!(body, "* [A](a.md)\n* [B](b.md)\n");
     }
 }

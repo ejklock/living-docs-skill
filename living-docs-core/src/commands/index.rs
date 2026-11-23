@@ -29,7 +29,7 @@ fn all_type_tokens() -> Vec<String> {
         .filter(|spec| {
             matches!(
                 spec.identity,
-                Identity::Numbered { .. } | Identity::Named { .. }
+                Identity::Numbered { .. } | Identity::Named { .. } | Identity::Nested { .. }
             )
         })
         .map(|spec| spec.token.to_string())
@@ -154,8 +154,12 @@ fn body_for(
     type_dir: &Path,
 ) -> Result<String, String> {
     let view = LineEndingStore::new(store, true);
-    if is_named(doc_type) {
-        return named::render_body(&view, docs_dir, type_dir);
+    match doc_type::spec_for(doc_type).map(|spec| spec.identity) {
+        Some(Identity::Named { .. }) => return named::render_body(&view, docs_dir, type_dir, true),
+        Some(Identity::Nested { .. }) => {
+            return named::render_body(&view, docs_dir, type_dir, false)
+        }
+        _ => {}
     }
     let records = collect_records(&view, docs_dir, type_dir)?;
     Ok(rows::render_body(doc_type, &records))
@@ -186,7 +190,10 @@ fn warn_mixed_rows(store: &dyn DocStore, docs_dir: &Path, doc_type: &str) {
 
 fn is_named(doc_type: &str) -> bool {
     let spec = doc_type::spec_for(doc_type);
-    matches!(spec.map(|spec| spec.identity), Some(Identity::Named { .. }))
+    matches!(
+        spec.map(|spec| spec.identity),
+        Some(Identity::Named { .. } | Identity::Nested { .. })
+    )
 }
 
 /// Resolves the numbered-series directory `index` regenerates for
@@ -196,7 +203,7 @@ fn is_named(doc_type: &str) -> bool {
 fn numbered_dir_for(doc_type: &str) -> Result<&'static str, String> {
     let spec = doc_type::spec_for(doc_type).ok_or_else(|| unsupported_type_message(doc_type))?;
     match spec.identity {
-        Identity::Numbered { dir } | Identity::Named { dir } => Ok(dir),
+        Identity::Numbered { dir } | Identity::Named { dir } | Identity::Nested { dir } => Ok(dir),
         Identity::Singleton { file } => Err(format!(
             "'{doc_type}' has no directory index — it writes a single {file} at the bundle root, not a numbered series"
         )),

@@ -144,7 +144,7 @@ fn target_path_for(
                 .join(format!("{number:04}-{}.md", slug_of(title)?)))
         }
         Identity::Singleton { file } => Ok(docs_dir.join(file)),
-        Identity::Named { dir: dir_name } => Ok(docs_dir
+        Identity::Named { dir: dir_name } | Identity::Nested { dir: dir_name } => Ok(docs_dir
             .join(dir_name)
             .join(format!("{}.md", slug_of(title)?))),
     }

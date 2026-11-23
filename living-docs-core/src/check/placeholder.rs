@@ -83,7 +83,7 @@ fn record_reference(path: &Path, contents: &str) -> Option<String> {
         {
             Some(format!("{token}/{number}"))
         }
-        Some((token, doc_type::Identity::Named { dir }))
+        Some((token, doc_type::Identity::Named { dir } | doc_type::Identity::Nested { dir }))
             if sits_in(path, dir) && paths::slugify(stem) == stem =>
         {
             Some(format!("{token}/{stem}"))

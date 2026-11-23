@@ -99,7 +99,7 @@ fn target_path(spec: &DocTypeSpec, path: &Path, title: &str) -> Result<Option<Pa
     let dir = path.parent().unwrap_or(Path::new(""));
     let target = match spec.identity {
         Identity::Singleton { .. } => return Ok(None),
-        Identity::Named { .. } => dir.join(format!("{slug}.md")),
+        Identity::Named { .. } | Identity::Nested { .. } => dir.join(format!("{slug}.md")),
         Identity::Numbered { .. } => dir.join(format!("{}-{slug}.md", number_prefix(path)?)),
     };
     Ok((target.as_path() != path).then_some(target))

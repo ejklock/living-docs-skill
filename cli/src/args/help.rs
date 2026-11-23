@@ -81,7 +81,9 @@ fn directory_names() -> String {
     DOC_TYPES
         .iter()
         .filter_map(|spec| match spec.identity {
-            Identity::Numbered { dir } | Identity::Named { dir } => Some(dir),
+            Identity::Numbered { dir } | Identity::Named { dir } | Identity::Nested { dir } => {
+                Some(dir)
+            }
             Identity::Singleton { .. } => None,
         })
         .collect::<Vec<_>>()

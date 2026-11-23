@@ -24,7 +24,9 @@ fn anchors(store: &dyn DocStore, type_dir: PathBuf, index: PathBuf) -> Vec<PathB
 /// record of the type, so `--changed-files` naming one of them keeps it.
 pub(crate) fn check_index_drift(store: &dyn DocStore, bundle: &Path, reporter: &mut Reporter) {
     for spec in doc_type::DOC_TYPES {
-        let (Identity::Numbered { dir } | Identity::Named { dir }) = spec.identity else {
+        let (Identity::Numbered { dir } | Identity::Named { dir } | Identity::Nested { dir }) =
+            spec.identity
+        else {
             continue;
         };
         let index = bundle.join(dir).join("index.md");

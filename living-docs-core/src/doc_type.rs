@@ -18,6 +18,9 @@ pub enum Identity {
     /// its concern, updated in place, never numbered or superseded
     /// (ADR 0036).
     Named { dir: &'static str },
+    /// `<dir>/<slug>.md` like [`Identity::Named`], where a record kept by
+    /// hand in `dir` is also a record of the type.
+    Nested { dir: &'static str },
 }
 
 /// Whether a doc type's body is measured against the advisory 100/120-line
@@ -97,7 +100,9 @@ pub struct SectionSpec {
     pub tier: Tier,
 }
 
+mod domain;
 mod sections;
+use domain::DOMAIN;
 use sections::{
     ADR_SECTIONS, CONSTITUTION_SECTIONS, ISSUE_SECTIONS, PRD_SECTIONS, RESEARCH_SECTIONS,
 };
@@ -242,7 +247,7 @@ const CONSTITUTION: DocTypeSpec = DocTypeSpec {
 
 /// The sole enumeration of the doc-type taxonomy. Every consumer derives
 /// from this table instead of hand-syncing its own copy.
-pub const DOC_TYPES: &[DocTypeSpec] = &[ADR, PRD, ISSUE, RESEARCH, VIEW, CONSTITUTION];
+pub const DOC_TYPES: &[DocTypeSpec] = &[ADR, PRD, ISSUE, RESEARCH, VIEW, DOMAIN, CONSTITUTION];
 
 /// Looks up a doc type by its CLI token, or by its directory name as an
 /// alias of that token (`issues` resolves to the `issue` row). This is the
@@ -275,11 +280,15 @@ pub fn spec_for_dir(dir: &str) -> Option<&'static DocTypeSpec> {
 
 fn matches_dir(spec: &DocTypeSpec, dir: &str) -> bool {
     match spec.identity {
-        Identity::Numbered { dir: spec_dir } | Identity::Named { dir: spec_dir } => spec_dir == dir,
+        Identity::Numbered { dir: spec_dir }
+        | Identity::Named { dir: spec_dir }
+        | Identity::Nested { dir: spec_dir } => spec_dir == dir,
         Identity::Singleton { .. } => false,
     }
 }
 
+#[cfg(test)]
+mod domain_tests;
 #[cfg(test)]
 mod template_tests;
 #[cfg(test)]

@@ -9,7 +9,7 @@ use unicode_normalization::UnicodeNormalization;
 pub fn dir_for(token: &str) -> Option<&'static str> {
     match doc_type::spec_for(token)?.identity {
         Identity::Numbered { dir } => Some(dir),
-        Identity::Singleton { .. } | Identity::Named { .. } => None,
+        Identity::Singleton { .. } | Identity::Named { .. } | Identity::Nested { .. } => None,
     }
 }
 
