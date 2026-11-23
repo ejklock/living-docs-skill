@@ -37,6 +37,11 @@ every advisory in full, and the JSON output always carries them all. The kinds:
   (`/login`) and a token with a `..` segment are not paths, and neither is one that resolves outside
   the repository (a symlink leaving it); none of them is advised. Without a repository the rule is skipped;
   retired records and index files are not examined.
+- `ANCHOR-MISSING` — a local link to a markdown file in the bundle whose `#fragment` matches no heading of that
+  file, by GitHub's heading-anchor rule (lowercase, punctuation dropped, spaces as hyphens, `-1`, `-2` for a repeated
+  heading); a same-file `#fragment` is judged against the linking file. External links, non-markdown targets,
+  links with no fragment and a link to a missing file (already a violation) are not judged; an inline `<a id>`
+  is not read.
 - `LIVENESS` (`stale-proposed`, ADR 0049, ADR 0079) — an ADR still at its seed status (`Proposed`)
   that an issue already `closed`/`done`/`Superseded` declares it implements: the issue body
   holds `Implements` (any case) followed by a link to the ADR, so the work landed but the record

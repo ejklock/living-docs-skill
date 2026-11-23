@@ -19,6 +19,7 @@ pub const STATUS_VOCABULARY: &str = "status-vocabulary";
 pub const RECORD_TYPE: &str = "record-type";
 pub const TIMESTAMP: &str = "timestamp";
 pub const PATH_MISSING: &str = "path-missing";
+pub const ANCHOR_MISSING: &str = "anchor-missing";
 
 /// Every kind an advisory can carry, in a stable order.
 pub const ALL: &[Kind] = &[
@@ -66,6 +67,10 @@ pub const ALL: &[Kind] = &[
     Kind {
         name: PATH_MISSING,
         meaning: "a live record names, in inline code, a repository path that does not exist",
+    },
+    Kind {
+        name: ANCHOR_MISSING,
+        meaning: "a local markdown link's `#fragment` matches no heading of its markdown target",
     },
 ];
 
