@@ -23,11 +23,13 @@ Kept: hand-drawn view kinds, the existing unstamped marker (still valid, never c
 ### Decision
 
 
+
 - Living diagrams (owner, 2026-11-22, after the advisor's design review): the runner script plus an in-binary splice and a `stale-view` advisory (ADR 0101). Not taken: keeping the recipe alone; the runner script alone with the binary unchanged (the session's recommendation); an in-binary graph snapshot, which needs a parser per language.
 - Stamp only narrow inputs: the recipe tells authors to stamp a schema, migrations, compose, OpenAPI or manifests, and to leave import-graph views to the runner's `--check` in CI, since an inputs hash flags them on nearly every source commit. Not taken: refusing a stamp on an import-graph kind in the binary, which would make the binary judge a view's kind.
 - Measure over 20 pull requests on this repository: diff failures that were real drift versus noise, and seconds added to `make check`.
-- Symlinks in the inputs (2026-11-23, review of the hashing slice): a symlink is never hashed, since ADR 0101 hashes regular files; the store reports each symlink a glob matched, so `--splice` refuses and `check` skips. Not taken: following links that stay inside the repository, which read `.git` through a committed link and counted a file twice; hashing the link's target text, which matches git and checkouts without symlinks but needs ADR wording (open for the owner).
 - Input walk (2026-11-23): the walk starts at each glob's literal directory prefix and never descends into `.git`; an unreadable directory outside every prefix is not visited. Not taken: walking the whole repository per call (155 ms on this repository with a built `target/`, and one unreadable folder anywhere failed every hash).
+- Symlinks in the inputs (owner, 2026-11-23): a symlink is hashed as git stores it, its path and its target text, never followed; a checkout without symlink support writes that text as a plain file and gets the same hash. Not taken: following links that stay inside the repository, which read `.git` through a committed link; skipping symlinks, which misses a re-pointed link.
+- Ignored files (owner, 2026-11-23): the walk skips what `.gitignore` excludes, through the `ignore` crate, as git-aware build tools hash only tracked-or-trackable files. Not taken: narrow globs only, which still pull generated files into a `**` glob.
 
 ### Acceptance
 
