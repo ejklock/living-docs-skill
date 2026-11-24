@@ -28,6 +28,9 @@ Kept: `write supersede` and its chain checks; the determinism boundary (no model
 - V3 is built on V2 (owner, 2026-11-24): neither V1 (6/12) nor V2 (9/12) reached the fixed 11/12, so `write new adr` adds candidate in-force ADRs that share rare terms with the new title, description and body, on top of V2's question, by ADR before code, then measured as V1 and V2 were. Not taken: keeping V2 and stopping, which would change the rule after seeing the data; a full V2 rerun first; stopping O2.
 - The rule's over-link clause leaves the noise controls out (owner, 2026-11-24): in a noise control only a supersede fails a variant; a link to a record in force there is information. Elsewhere a link to a non-plant record still fails it. Not taken: the clause applying to the noise controls too, which every variant failed 6/6 by citing related context.
 - O2 closes on V3 (owner, 2026-11-24): V3 met the fixed rule (11/12, no false alarm, no over-link outside the noise controls), so ADR 0105 and ADR 0106 are accepted and V1, V2 and V3 ship together. Not taken: a full 120-run V3 rerun first; deciding O1 now (S9 stays open).
+- S9 follows a staged plan, measured before building (owner, 2026-11-24, after a design review): stage 0 fixes the scorer (the plant's successor must be a record added in the run; each surviving clause, seeded with a unique token, must stay in force) and adds cross-topic exception scenarios; stage 1 measures R0 (today), R1 (`read records` shows later in-force ADRs whose Decision links a record) and R2 (partial supersede) smallest first, and S9 closes unbuilt if R0 meets its rule; stage 2 counts, then measures, `read records --path` and the binding of a decision to the test that proves it (T3, T4); stage 3 measures an opt-in `revisit` date and a `Challenges [ADR]` convention (T5). Not taken: building the partial supersede first; pausing S9; a general relation model, RDF, a store, blanket review dates, `covers:` globs or git-history signals in the binary.
+- House rule for partial reversals (owner, 2026-11-24): a same-topic partial reversal is consolidated, the old record wholly superseded and the surviving clauses restated in the new one; a partial supersede, if built, is only for an exception opened by a record about another topic, with a required scope note, written to new fields (never `supersedes`/`superseded_by`). Not taken: a partial supersede for every partial reversal.
+- `check` may have one clock-dependent rule (owner, 2026-11-24): an opt-in `revisit: <date>` on a record that names an external premise raises an advisory once due, with `--as-of <date>` making the run reproducible; it ships only if stage 3's measurement keeps it. Not taken: no clock in `check`; deciding at stage 3.
 
 ### Acceptance
 
@@ -45,7 +48,10 @@ Kept: `write supersede` and its chain checks; the determinism boundary (no model
 - S6: the scorer counts only a supersede of the noise ADR as a false alarm, and V1 and V2 are rescored from their raw outputs | files: evals/scale, evals/tests, docs/issues | after: S5
 - S7: the ADR for V3 and V3 itself, candidate in-force ADRs sharing rare terms with the new ADR, on top of V2 | files: docs/adr, living-docs-core/src/commands/effective, cli, mcp | after: S5
 - S8: measure V3 as V1 and V2 were, against the fixed rule | files: docs/issues | after: S6, S7
-- S9: decide O1 (amend relation) from the T2 numbers, by ADR | files: docs/adr | after: S8
+- S9: stage 0, scorer checks the successor is new and surviving clauses stay in force; cross-topic exception scenarios; record the mis-targeted supersede S5/S8 missed | files: evals/scale, evals/tests, docs/issues | after: S8
+- S10: stage 1, measure R0, then R1, then R2 (partial supersede by ADR) against a rule fixed before running | files: evals/scale, living-docs-core, cli, mcp, docs/adr | after: S9
+- S11: stage 2, count then measure `read records --path` and decision-to-test binding (T3, T4) | files: to be planned | after: S10
+- S12: stage 3, measure an opt-in `revisit` date with `check --as-of` and the `Challenges [ADR]` convention (T5) | files: to be planned | after: S10
 
 ### Outcome
 
