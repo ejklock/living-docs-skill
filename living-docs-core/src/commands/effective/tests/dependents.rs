@@ -31,7 +31,7 @@ fn store_from(files: &[(String, String)]) -> MapStore {
 /// `(number, distance)` of every record the query returns, in output order.
 fn found(files: &[(String, String)], dependents: Dependents) -> Vec<(i32, Option<usize>)> {
     let store = store_from(files);
-    let (_, views) = collect(&store, Path::new(BUNDLE), &options_for(dependents));
+    let (_, _, views) = collect(&store, Path::new(BUNDLE), &options_for(dependents));
     views
         .iter()
         .map(|view| (view.number.unwrap(), view.distance))

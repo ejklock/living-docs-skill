@@ -50,18 +50,17 @@ pub(crate) struct View {
 type Entry = (PathBuf, ExtractedRecord);
 
 /// Selects and orders the in-force view's records — the pure core shared by
-/// [`compile`] (text) and [`compile_json`] (JSON) — returning the
-/// withheld count and the surviving [`View`]s in reading order.
+/// [`compile`] (text) and [`compile_json`] (JSON) — returning the in-force
+/// count, the withheld count and the surviving [`View`]s in reading order.
 pub(crate) fn collect(
     store: &dyn DocStore,
     bundle: &Path,
     options: &Options,
-) -> (usize, Vec<View>) {
+) -> (usize, usize, Vec<View>) {
     let records = read_records(store, &store.list(bundle).unwrap_or_default());
-    let withheld = records
-        .iter()
-        .filter(|(_, record)| !options.all && !is_in_force(record))
-        .count();
+    let in_force = records.iter().filter(|(_, r)| is_in_force(r)).count();
+    let retired = records.len() - in_force;
+    let withheld = if options.all { 0 } else { retired };
     let ranked = rank_in_force(&records, options);
     let selected = match &options.dependents {
         Some(query) => dependents::narrow(&records, bundle, query, ranked),
@@ -75,7 +74,7 @@ pub(crate) fn collect(
             ..view_of(&records[index].1, &by_key, options.contract)
         })
         .collect();
-    (withheld, views)
+    (in_force, withheld, views)
 }
 
 /// The indexes of the in-force records that match `topic`, best match first,
@@ -103,11 +102,23 @@ fn rank_in_force(records: &[Entry], options: &Options) -> Vec<usize> {
 }
 
 /// A compiled view plus the counts a front needs to explain an empty result
-/// without a second pass over the bundle.
+/// without a second pass; `in_force` counts the whole bundle, whatever the topic or `all`.
 pub struct Reading {
     pub output: String,
     pub matched: usize,
     pub withheld: usize,
+    pub in_force: usize,
+}
+
+/// What an empty topic answer tells the caller: how many records are in force,
+/// that a word match is not a conflict check, and the commands that list them.
+pub fn empty_topic_note(in_force: usize, topic: &str, bundle: &Path) -> String {
+    let quote = |text: &str| format!("'{}'", text.replace('\'', r"'\''"));
+    let (word, dir) = (quote(topic), quote(&bundle.display().to_string()));
+    let s = if in_force == 1 { "" } else { "s" };
+    format!(
+        "{in_force} record{s} in force and a word match is not a conflict check, as a record using other words may still govern the topic: list them with `living-docs read records`, or `grep -ril -e {word} {dir}`"
+    )
 }
 
 /// Compiles the effective view as a string — the pure core, so tests assert on
@@ -118,7 +129,7 @@ pub fn compile(store: &dyn DocStore, bundle: &Path, options: &Options) -> String
 
 /// Reads the bundle once and renders it as text, or as JSON when `json` is set.
 pub fn read(store: &dyn DocStore, bundle: &Path, options: &Options, json: bool) -> Reading {
-    let (withheld, views) = collect(store, bundle, options);
+    let (in_force, withheld, views) = collect(store, bundle, options);
     let matched = views.len();
     let output = if json {
         json_of(withheld, views, options)
@@ -129,6 +140,7 @@ pub fn read(store: &dyn DocStore, bundle: &Path, options: &Options, json: bool) 
         output,
         matched,
         withheld,
+        in_force,
     }
 }
 
