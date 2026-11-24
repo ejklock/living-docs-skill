@@ -66,18 +66,34 @@ fn run_new(docs_dir: &Path, args: &NewArgs) -> Written {
         body: args.body.as_deref(),
         dir: args.dir.as_deref(),
     };
-    let created = new::write(
-        &store(docs_dir),
-        docs_dir,
-        &args.doc_type,
-        &args.title,
-        &opts,
-    )?;
+    let store = store(docs_dir);
+    let query = effective::Query::new(&args.title, opts.description, opts.body);
+    let asked = effective::adr_asked(&store, docs_dir, &args.doc_type, &query);
+    let created = new::write(&store, docs_dir, &args.doc_type, &args.title, &opts)?;
     let written = json!({
         "path": shown(&created.path),
         "instruction": new::BODY_ONLY_INSTRUCTION,
     });
-    indexed(written, &created.indexed)
+    with_ask(indexed(written, &created.indexed), asked)
+}
+
+/// Appends an ADR's `in_force`, `ask` and, when any, `candidates` after the
+/// written fields, on success and on the refusal that names what was written.
+fn with_ask(result: Written, asked: Option<effective::Asked>) -> Written {
+    let Some(asked) = asked else { return result };
+    let add = |mut value: Value| {
+        value["in_force"] = json!(asked.in_force);
+        value["ask"] = json!(effective::adr_ask());
+        if !asked.candidates.is_empty() {
+            value["candidates"] = json!(asked.candidates);
+        }
+        value
+    };
+    match result {
+        Ok(value) => Ok(add(value)),
+        Err(Refusal::Written(value)) => Err(Refusal::Written(add(value))),
+        Err(other) => Err(other),
+    }
 }
 
 fn run_set(docs_dir: &Path, args: &SetArgs) -> Written {
@@ -174,7 +190,15 @@ fn run_read(docs_dir: &Path, args: &ReadArgs) -> Answer {
         dependents: dependents_of(docs_dir, args)?,
     };
     let reading = effective::read(&store(docs_dir), docs_dir, &options, true);
-    serde_json::from_str(&reading.output).map_err(|error| error.to_string())
+    let mut answer: Value = serde_json::from_str(&reading.output).map_err(|e| e.to_string())?;
+    if let (Some(topic), 0, Value::Object(fields)) =
+        (options.topic.as_deref(), reading.matched, &mut answer)
+    {
+        let note = effective::empty_topic_note(reading.in_force, topic, docs_dir);
+        fields.insert("in_force".to_string(), reading.in_force.into());
+        fields.insert("note".to_string(), note.into());
+    }
+    Ok(answer)
 }
 
 fn run_view(docs_dir: &Path, args: &ViewArgs) -> Written {

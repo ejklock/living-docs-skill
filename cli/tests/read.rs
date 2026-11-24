@@ -74,11 +74,14 @@ fn empty_topic_result_keeps_json_shape_and_explains_itself_on_stderr() {
         .expect("failed to run living-docs read");
 
     assert!(output.status.success());
-    assert_eq!(stdout_of(&output), "{\"withheld\":1,\"records\":[]}");
+    let json: serde_json::Value = serde_json::from_str(&stdout_of(&output)).expect("json");
+    assert_eq!(json["withheld"], 1);
+    assert_eq!(json["records"], serde_json::json!([]));
+    assert_eq!(json["in_force"], 1);
     assert_eq!(
         String::from_utf8_lossy(&output.stderr),
         format!(
-            "living-docs read records: no live record mentions 'zzqq' (1 retired withheld); try a broader term or `grep -ril 'zzqq' {dir}`\n"
+            "living-docs read records: no live record mentions 'zzqq' (1 retired withheld); 1 record in force and a word match is not a conflict check, as a record using other words may still govern the topic: list them with `living-docs read records`, or `grep -ril -e 'zzqq' '{dir}'`\n"
         )
     );
 }

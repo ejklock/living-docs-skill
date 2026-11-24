@@ -6,9 +6,15 @@
 # with the binary under test first on PATH.
 #
 # A scenario directory holds manifest.tsv (see manifest.awk) and scenario.env (TYPE, SIZE,
-# WORDING, POSITION, ARM, PLANT: the planted record's number, 0 for the control).
+# WORDING, POSITION, ARM, PLANT: the planted record's number, 0 for a control). A noise control
+# (WORDING=noise) holds a non-conflicting record at POSITION that shares rare words with the task.
 #
 # expect prints one line per finding, each with a prefix the aggregator reads:
+#   outcome:     how the plant was caught in the unprompted arm: superseded (by a new record) or
+#                named (only mentioned by one); a catch either way
+#   over-linked: a record in force at the baseline, other than the plant and any record newly
+#                superseded, is named by a new record; only information, in a noise control
+#                too (a noise record newly superseded is a false-alarm)
 #   missed:      the planted record is not caught
 #   false-alarm: another record is newly superseded, or listed in CONFLICTS.txt (prompted)
 #   incomplete:  the decision is not recorded, check is red, or CONFLICTS.txt is absent
@@ -95,6 +101,25 @@ scale_linked() { # scale_linked <number>: a record added since the baseline name
 	return 1
 }
 
+scale_in_force_at_baseline() { # prints the number of every ADR that was neither Superseded nor Deprecated at the baseline
+	local file status
+	for file in "$SCALE_ADR_DIR"/[0-9][0-9][0-9][0-9]-*.md; do
+		[[ -f "$file" ]] || continue
+		status="$(scale_status_at_baseline "$file")"
+		[[ -n "$status" && "$status" != Superseded && "$status" != Deprecated ]] || continue
+		basename "$file" | cut -c1-4 | sed -E 's/^0+([0-9])/\1/'
+	done
+}
+
+scale_over_linked() { # scale_over_linked <plant number>: prints each record in force at the baseline, other than the plant and any record newly superseded, that a new record names
+	local n superseded
+	superseded=" $(scale_newly_superseded | tr '\n' ' ')"
+	for n in $(scale_in_force_at_baseline); do
+		[[ "$n" == "$1" || "$superseded" == *" $n "* ]] && continue
+		scale_linked "$n" && echo "$n"
+	done
+}
+
 scale_listed() { # prints the record number each CONFLICTS.txt line starts with, after an optional bullet and adr/ or ADR prefix; a line starting with text lists nothing
 	[[ -f CONFLICTS.txt ]] || return 0
 	sed -n -E 's/^[[:space:]]*([-*][[:space:]]+)?([Aa][Dd][Rr][ \/#-]*)?([0-9]+).*/\3/p' CONFLICTS.txt | sed -E 's/^0+([0-9])/\1/' | sort -un
@@ -115,8 +140,22 @@ scale_judge_unprompted() { # scale_judge_unprompted <plant number>
 	for n in $(scale_newly_superseded); do
 		if [[ "$n" == "$plant" ]]; then caught=1; else eval_fail "false-alarm: adr/$(scale_padded "$n") was superseded"; fi
 	done
-	((plant == 0 || caught == 1)) && return
-	scale_linked "$plant" || eval_fail "missed: adr/$(scale_padded "$plant") is neither superseded nor named by a new record"
+	((plant == 0)) && return
+	if ((caught == 1)); then
+		echo "outcome: superseded"
+	elif scale_linked "$plant"; then
+		echo "outcome: named"
+	else
+		eval_fail "missed: adr/$(scale_padded "$plant") is neither superseded nor named by a new record"
+	fi
+}
+
+scale_judge_over_links() { # scale_judge_over_links <plant number>: reports each over-link, for information only
+	local n
+	for n in $(scale_over_linked "$1"); do
+		echo "over-linked: adr/$(scale_padded "$n") is named by a new record"
+	done
+	return 0
 }
 
 scale_judge_prompted() { # scale_judge_prompted <plant number>
@@ -135,6 +174,7 @@ scale_expect() { # scale_expect <scenario dir>
 	local TYPE SIZE WORDING POSITION ARM PLANT
 	. "$1/scenario.env"
 	if [[ "$ARM" == prompted ]]; then scale_judge_prompted "$PLANT"; else scale_judge_unprompted "$PLANT"; fi
+	scale_judge_over_links "$PLANT"
 	scale_new_adr_in_force || eval_fail "incomplete: no new ADR in force records the decision"
 	eval_check_green || eval_fail "incomplete: living-docs check is red"
 	eval_finish

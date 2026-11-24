@@ -13,7 +13,7 @@
 # environment:
 #   LIVING_DOCS_BIN             binary under test (default: target/release/living-docs of this checkout)
 #   LIVING_DOCS_EVAL_RUNNER     runner command line (default: claude -p, stream-json, acceptEdits)
-#   LIVING_DOCS_EVAL_OUT        output directory (default: .living-docs/evals); results go to OUT/RUN_ID/NAME/
+#   LIVING_DOCS_EVAL_OUT        output directory (default: ${XDG_DATA_HOME:-$HOME/.local/share}/living-docs-evals, outside any worktree); results go to OUT/RUN_ID/NAME/
 #   LIVING_DOCS_EVAL_TIMEOUT    seconds allowed per runner call (default: 900; needs timeout(1) to apply)
 #   LIVING_DOCS_EVAL_KEEP       1 keeps the scratch directories
 #   LIVING_DOCS_EVAL_SCENARIOS  scenarios directory (default: evals/scenarios)
@@ -33,7 +33,7 @@ SCENARIOS="${LIVING_DOCS_EVAL_SCENARIOS:-$HERE/scenarios}"
 RUNNER="${LIVING_DOCS_EVAL_RUNNER:-$DEFAULT_RUNNER}"
 TIMEOUT="${LIVING_DOCS_EVAL_TIMEOUT:-900}"
 KEEP="${LIVING_DOCS_EVAL_KEEP:-0}"
-OUT="${LIVING_DOCS_EVAL_OUT:-.living-docs/evals}"
+OUT="${LIVING_DOCS_EVAL_OUT:-${XDG_DATA_HOME:-${HOME:-/tmp}/.local/share}/living-docs-evals}"
 RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$$"
 SCRATCH=""
 CLEANUP=()
