@@ -19,6 +19,7 @@ Kept: `write supersede` and its chain checks; the determinism boundary (no model
 
 ### Decision
 
+
 - Failure taxonomy (design review, 2026-11-23): T1 contradicted by a newer decision with no supersede; T2 partially reversed with no supersede (supersede retires a whole record, so a partial reversal is written as prose, as ADR 0099 did against ADR 0027); T3 contradicted by code; T4 never implemented; T5 premise invalidated by the world. Today `check` catches part of T3 and T4 (`path-missing`, `stale-view`) and none of T1, T2 or T5. Supersede closes a declared, whole replacement only.
 - Measure first (owner, 2026-11-23): the scale eval (O4) runs before any build; then candidates at `write new adr` (O2) and a declared amend relation (O1) as the measurement decides. Not taken: building O2 and O1 at once; adding the `verification-unbound` advisory (O3) now; a scope-overlap advisory (O6, the DUPLICATE pass ADR 0057 cut); a `reviewed:` date on every record (O7).
 - Decision rule, fixed before running: if the unprompted catch rate at 240 ADRs is below the prompted arm's, or below the unprompted rate at 60 ADRs, build O2 and rerun the same scenarios against it; then decide O1 from the T2 numbers.
@@ -32,6 +33,7 @@ Kept: `write supersede` and its chain checks; the determinism boundary (no model
 - House rule for partial reversals (owner, 2026-11-24): a same-topic partial reversal is consolidated, the old record wholly superseded and the surviving clauses restated in the new one; a partial supersede, if built, is only for an exception opened by a record about another topic, with a required scope note, written to new fields (never `supersedes`/`superseded_by`). Not taken: a partial supersede for every partial reversal.
 - `check` may have one clock-dependent rule (owner, 2026-11-24): an opt-in `revisit: <date>` on a record that names an external premise raises an advisory once due, with `--as-of <date>` making the run reproducible; it ships only if stage 3's measurement keeps it. Not taken: no clock in `check`; deciding at stage 3.
 - Larger samples and intervals for S9 (owner, 2026-11-24): every S9 measurement runs 10 repetitions per scenario and decides on 95% Wilson intervals; a variant meets a rate threshold only when the interval's lower bound clears it, and two variants differ only when their intervals do not overlap. Stage 1's rule, fixed before running: on the exception scenarios (x1 at 60 and 240 ADRs, 20 runs; controls xcontext and xnone, 40 runs), Sonnet unprompted, keep the smallest of R0, R1, R2 whose rate of following the exception has a Wilson lower bound of at least 0.75 (19 of 20 or better) with no control departing from the original limit; if R0 meets it, S9 closes without building. Not taken: three repetitions with point rates.
+- Stages 2 and 3 start by counting (owner, 2026-11-24, after S10): a deterministic script counts T3, T4 and T5 candidates in real bundles before any model run or feature, and S11/S12 build only what the count shows is frequent. If built, S11's first feature is `read records --path` (a lookup, `check` unchanged) and S12 measures the opt-in `revisit` date with `check --as-of`. Not taken: calibrating lab rates against field sessions first; building S11 and S12 as planned; closing the issue here; the decision-to-test binding in `check` first, or both S11 features at once; only the `Challenges [ADR]` convention, both T5 mechanisms, or leaving T5 out.
 
 ### Acceptance
 
@@ -40,6 +42,7 @@ Kept: `write supersede` and its chain checks; the determinism boundary (no model
 - The scenario generator is seeded and deterministic; the binary is not changed.
 
 ### Plan
+
 
 - S1: the scale eval — seeded generator, T1/T2/control scenarios, prompted and unprompted arms, scorer, aggregator, and one recorded run | files: evals/ | after: none
 - S2: scorer separates superseded from named-only and counts over-links; noise-control scenarios whose task shares rare words with a non-conflicting record; raw run outputs kept outside any worktree | files: evals/scale, evals/tests | after: S1
@@ -51,8 +54,8 @@ Kept: `write supersede` and its chain checks; the determinism boundary (no model
 - S8: measure V3 as V1 and V2 were, against the fixed rule | files: docs/issues | after: S6, S7
 - S9: stage 0, scorer checks the successor is new and surviving clauses stay in force; cross-topic exception scenarios; record the mis-targeted supersede S5/S8 missed | files: evals/scale, evals/tests, docs/issues | after: S8
 - S10: stage 1, measure R0, then R1, then R2 (partial supersede by ADR) against a rule fixed before running | files: evals/scale, living-docs-core, cli, mcp, docs/adr | after: S9
-- S11: stage 2, count then measure `read records --path` and decision-to-test binding (T3, T4) | files: to be planned | after: S10
-- S12: stage 3, measure an opt-in `revisit` date with `check --as-of` and the `Challenges [ADR]` convention (T5) | files: to be planned | after: S10
+- S11: stage 2, count T3, T4 and T5 candidates in real bundles with a deterministic script, under a rule fixed before counting; then build `read records --path` only if T3 is frequent (T4 only recorded) | files: to be planned | after: S10
+- S12: stage 3, only if S11 counts T5 as frequent: measure an opt-in `revisit` date with `check --as-of` | files: to be planned | after: S11
 
 ### Outcome
 
