@@ -7,7 +7,7 @@
 
 SCALE="$EVALS/scale"
 readonly SCALE_KIND=adr
-readonly SCALE_NAMES="control-240 control-60 t1-240-para-early t1-240-same-late t1-60-para-late t1-60-same-early t2-240-para-late t2-240-same-early t2-60-para-early t2-60-same-late"
+readonly SCALE_NAMES="control-240 control-240-noise-late control-60 control-60-noise-early t1-240-para-early t1-240-same-late t1-60-para-late t1-60-same-early t2-240-para-late t2-240-same-early t2-60-para-early t2-60-same-late"
 
 scale_generate() { # scale_generate <dir> [seed]; sets RC and STDERR
 	STDERR="$(bash "$SCALE/generate.sh" "$@" 2>&1 >/dev/null)"
@@ -40,10 +40,10 @@ test_scale_generator() {
 	cmp -s "$a/t1-60-same-early-unprompted/manifest.tsv" "$c/t1-60-same-early-unprompted/manifest.tsv"
 	assert_eq "another seed writes another manifest" 1 "$?"
 	for name in $SCALE_NAMES; do for arm in prompted unprompted; do expected+="$name-$arm"$'\n'; done; done
-	assert_eq "twenty scenario directories with the planned names" "$(LC_ALL=C sort <<<"${expected%$'\n'}")" "$(find "$a" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | LC_ALL=C sort)"
-	assert_eq "every scenario has its five files" 100 \
+	assert_eq "twenty-four scenario directories with the planned names" "$(LC_ALL=C sort <<<"${expected%$'\n'}")" "$(find "$a" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | LC_ALL=C sort)"
+	assert_eq "every scenario has its five files" 120 \
 		"$(find "$a" -mindepth 2 -maxdepth 2 \( -name task.md -o -name setup.sh -o -name expect.sh -o -name manifest.tsv -o -name scenario.env \) | wc -l | tr -d ' ')"
-	assert_eq "ten prompted scenarios are written" 10 "$(scale_names "$a" prompted | wc -l | tr -d ' ')"
+	assert_eq "twelve prompted scenarios are written" 12 "$(scale_names "$a" prompted | wc -l | tr -d ' ')"
 	assert_eq "only prompted tasks ask for CONFLICTS.txt" "$(scale_names "$a" prompted)" \
 		"$(grep -l CONFLICTS.txt "$a"/*/task.md | xargs -n1 dirname | xargs -n1 basename | LC_ALL=C sort)"
 }
@@ -258,7 +258,7 @@ test_scale_prompted() {
 	assert_eq "a control listing nothing is clean" "0 0" "$(scale_count false-alarm:) $(scale_count incomplete:)"
 }
 
-scale_modes() { # scale_modes <arm> <mode> <out>: runs the ten scenarios of an arm through the stand-in
+scale_modes() { # scale_modes <arm> <mode> <out>: runs the twelve scenarios of an arm through the stand-in
 	local dir="$TMP/modes-scenarios" names
 	[[ -d "$dir" ]] || scale_small "$dir"
 	mapfile -t names < <(scale_names "$dir" "$1")
@@ -323,14 +323,14 @@ test_scale_modes() {
 	for arm in unprompted prompted; do
 		out="$TMP/mode-catch-$arm"
 		scale_modes "$arm" catch "$out"
-		assert_eq "catch passes all ten $arm scenarios" 10 "$(jq -s '[.[] | select(.expect_ok)] | length' "$out"/*/*/score.json)"
+		assert_eq "catch passes all twelve $arm scenarios" 12 "$(jq -s '[.[] | select(.expect_ok)] | length' "$out"/*/*/score.json)"
 		out="$TMP/mode-miss-$arm"
 		scale_modes "$arm" miss "$out"
 		assert_eq "miss fails the eight planted $arm scenarios with missed:" 8 "$(scale_expect_summary "$out" missed: planted)"
-		assert_eq "miss passes both $arm controls" 2 "$(jq -s '[.[] | select(.scenario | startswith("control")) | select(.expect_ok)] | length' "$out"/*/*/score.json)"
+		assert_eq "miss passes all four $arm controls" 4 "$(jq -s '[.[] | select(.scenario | startswith("control")) | select(.expect_ok)] | length' "$out"/*/*/score.json)"
 		out="$TMP/mode-wrong-$arm"
 		scale_modes "$arm" wrong "$out"
-		assert_eq "wrong prints false-alarm: in all ten $arm scenarios" 10 "$(scale_expect_summary "$out" false-alarm: all)"
+		assert_eq "wrong prints false-alarm: in all twelve $arm scenarios" 12 "$(scale_expect_summary "$out" false-alarm: all)"
 	done
 }
 
@@ -357,7 +357,7 @@ test_scale_aggregate_rates() {
 	assert_eq "the row carries its dimensions" '["t1",12,"same","early","unprompted","unknown"]' \
 		"$(jq -c '.rows[0] | [.type, .size, .wording, .position, .arm, .model]' <<<"$json")"
 	assert_eq "a caught row says so and a missed row says so" "[true,false]" "$(jq -c '[.rows[].caught] | sort | reverse' <<<"$json")"
-	assert_eq "the row fields are all present" '["arm","caught","cost_usd","false_alarm","incomplete","model","position","read_before_first_write","runner_failed","setup_failed","size","type","unscored","wording"]' \
+	assert_eq "the row fields are all present" '["arm","caught","cost_usd","false_alarm","incomplete","model","outcome","over_linked","position","read_before_first_write","runner_failed","setup_failed","size","type","unscored","wording"]' \
 		"$(jq -c '.rows[0] | del(.scenario, .scratch) | keys' <<<"$json")"
 	assert_eq "the groups exist by every dimension" '["arm","cell","model","position","size","type","wording"]' "$(jq -c '.groups | keys' <<<"$json")"
 	assert_eq "runs that wrote before reading are counted" '{"true":0,"false":2,"null":0}' "$(jq -c '.groups.arm[0].read_before_first_write' <<<"$json")"
@@ -465,7 +465,170 @@ test_scale_aggregate_cost() {
 	assert_eq "no run directory exits 2" 2 "$?"
 }
 
+test_scale_link_outcomes() {
+	echo "scale unprompted scoring: superseded, named and over-linked"
+	local dir="$TMP/unp-scenarios" name=t1-12-same-early-unprompted scratch new
+	scale_small "$dir"
+	scratch="$(scale_case "$dir" "$name")"
+	new="$(scale_add_adr "$scratch" "Nothing else.")"
+	scale_ld "$scratch" write supersede adr/0003 "adr/$new"
+	scale_score "$dir" "$name" "$scratch"
+	assert_eq "superseding the plant scores superseded and nothing over-linked" "1 0 0" \
+		"$(scale_count 'outcome: superseded') $(scale_count 'outcome: named') $(scale_count over-linked:)"
+	scratch="$(scale_case "$dir" "$name")"
+	scale_add_adr "$scratch" "See adr/0003." >/dev/null
+	scale_score "$dir" "$name" "$scratch"
+	assert_eq "only naming the plant scores named, passes and nothing over-linked" "0 1 0 0" \
+		"$(scale_count 'outcome: superseded') $(scale_count 'outcome: named') $(scale_count over-linked:) $RC"
+	scratch="$(scale_case "$dir" "$name")"
+	scale_add_adr "$scratch" "See adr/0003 and adr/0004." >/dev/null
+	scale_score "$dir" "$name" "$scratch"
+	assert_eq "naming the plant and another record in force scores named and over-linked" "0 1 1" \
+		"$(scale_count 'outcome: superseded') $(scale_count 'outcome: named') $(scale_count over-linked:)"
+	assert_true "the over-linked line carries the other record's number" grep -q '^over-linked: adr/0004 ' <<<"$OUTPUT"
+	assert_eq "an over-link beside a catch is not a failure line" 0 "$(scale_count false-alarm:)"
+	scratch="$(scale_case "$dir" "$name")"
+	scale_add_adr "$scratch" "See adr/0004." >/dev/null
+	scale_score "$dir" "$name" "$scratch"
+	assert_eq "naming only another record is a miss with no outcome and one over-link" "1 0 0 1" \
+		"$(scale_count missed:) $(scale_count 'outcome: superseded') $(scale_count 'outcome: named') $(scale_count over-linked:)"
+	scratch="$(scale_case "$dir" control-12-unprompted)"
+	scale_add_adr "$scratch" "See adr/0004." >/dev/null
+	scale_score "$dir" control-12-unprompted "$scratch"
+	assert_eq "a plain control reports an over-link without failing" "1 0 0" "$(scale_count over-linked:) $(scale_count false-alarm:) $RC"
+}
+
+scale_noise() { # scale_noise <name> <mention text> [superseded number] [CONFLICTS.txt content]: scores a noise control with a new ADR; sets OUTPUT and RC
+	local dir="$TMP/unp-scenarios" scratch new
+	scratch="$(scale_case "$dir" "$1")"
+	new="$(scale_add_adr "$scratch" "$2")"
+	[[ -z "${3:-}" ]] || scale_ld "$scratch" write supersede "adr/$3" "adr/$new"
+	[[ -z "${4+set}" ]] || printf '%s' "$4" >"$scratch/CONFLICTS.txt"
+	scale_score "$dir" "$1" "$scratch"
+}
+
+scale_other_in_force() { # scale_other_in_force <name> <number to avoid>: the padded number of the first Accepted ADR of the scenario's bundle other than that one
+	local file
+	scale_base "$TMP/unp-scenarios" "$1"
+	for file in $(scale_adr_files "$TMP/base-$1"); do
+		[[ "$(basename "$file" | cut -c1-4)" == "$2" ]] && continue
+		grep -q '^status: Accepted$' "$file" && { basename "$file" | cut -c1-4; return; }
+	done
+}
+
+test_scale_noise_controls() {
+	echo "scale noise controls"
+	local row name neighbor arm extra
+	scale_small "$TMP/unp-scenarios"
+	for row in "control-12-noise-early:0003" "control-24-noise-late:0022"; do
+		for arm in unprompted prompted; do
+			name="${row%%:*}-$arm"
+			neighbor="${row##*:}"
+			extra=()
+			[[ "$arm" == prompted ]] && extra=("")
+			scale_noise "$name" "Nothing else." "" ${extra[@]+"${extra[@]}"}
+			assert_eq "$name passes when the new ADR links nothing" "0 0" "$(scale_count false-alarm:) $RC"
+			scale_noise "$name" "Nothing else." 0004 ${extra[@]+"${extra[@]}"}
+			assert_eq "$name fails on a supersede" "1 1" "$(scale_count false-alarm:) $RC"
+			scale_noise "$name" "See adr/$neighbor." "" ${extra[@]+"${extra[@]}"}
+			assert_eq "$name fails on a link to the record it shares words with" "1 1 1" "$(scale_count false-alarm:) $(scale_count over-linked:) $RC"
+			assert_true "$name names the over-linked record" grep -q "^over-linked: adr/$neighbor " <<<"$OUTPUT"
+			scale_noise "$name" "See adr/$(scale_other_in_force "$name" "$neighbor")." "" ${extra[@]+"${extra[@]}"}
+			assert_eq "$name fails on a link to any other record in force" "1 1" "$(scale_count false-alarm:) $RC"
+		done
+	done
+}
+
+test_scale_noise_vocabulary() {
+	echo "scale noise vocabulary"
+	local dir="$TMP/noise-vocab" name word shared position holders
+	scale_generate "$dir"
+	for name in control-60-noise-early-unprompted control-240-noise-late-unprompted; do
+		shared=0
+		position="$(grep '^SIZE=' "$dir/$name/scenario.env" | cut -d= -f2)"
+		[[ "$name" == *-early-* ]] && position=3 || position=$((position - 2))
+		for word in $(tr -c 'a-z' '\n' <"$dir/$name/task.md" | LC_ALL=C sort -u); do
+			((${#word} >= 5)) || continue
+			[[ "$(grep -c -i -w "$word" "$dir/$name/manifest.tsv")" == 1 ]] || continue
+			holders="$(grep -i -w "$word" "$dir/$name/manifest.tsv" | cut -f1,2,3)"
+			[[ "$holders" == "adr	$position	Reconcile the settlement ledger every night" ]] && shared=$((shared + 1))
+		done
+		assert_true "$name task shares two or more words found in exactly one record, the noise ADR at its position" test "$shared" -ge 2
+		assert_eq "$name noise ADR is never superseded or deprecated" 0 \
+			"$(awk -F'\t' -v n="$position" '($1 == "supersede" && ($2 == n || $3 == n)) || ($1 == "deprecate" && $2 == n)' "$dir/$name/manifest.tsv" | wc -l | tr -d ' ')"
+		assert_eq "$name has no planted record" "PLANT=0" "$(grep '^PLANT=' "$dir/$name/scenario.env")"
+		assert_eq "$name task asks for no supersede" 0 "$(grep -c -i supersede "$dir/$name/task.md")"
+	done
+	assert_eq "the noise manifest at 240 holds 240 ADRs" 240 "$(grep -c '^adr' "$dir/control-240-noise-late-unprompted/manifest.tsv")"
+}
+
+test_scale_output_root() {
+	echo "scale output root"
+	local data="$TMP/data-home"
+	mkdir -p "$data"
+	scale_small "$TMP/root-scenarios"
+	(cd "$TMP" && XDG_DATA_HOME="$data" LIVING_DOCS_EVAL_SCENARIOS="$TMP/root-scenarios" LIVING_DOCS_EVAL_RUNNER="$HERE/runners/noop.sh" TMPDIR="$TMP/tmp" \
+		bash "$EVALS/run.sh" control-12-unprompted >/dev/null 2>&1)
+	assert_eq "the default output root is under the data home" 1 "$(find "$data/living-docs-evals" -name score.json 2>/dev/null | wc -l | tr -d ' ')"
+	mkdir -p "$TMP/home-fallback"
+	(cd "$TMP" && env -u XDG_DATA_HOME HOME="$TMP/home-fallback" LIVING_DOCS_EVAL_SCENARIOS="$TMP/root-scenarios" LIVING_DOCS_EVAL_RUNNER="$HERE/runners/noop.sh" TMPDIR="$TMP/tmp" \
+		bash "$EVALS/run.sh" control-12-unprompted >/dev/null 2>&1)
+	assert_eq "without a data home the root is under HOME/.local/share" 1 \
+		"$(find "$TMP/home-fallback/.local/share/living-docs-evals" -name score.json 2>/dev/null | wc -l | tr -d ' ')"
+	(cd "$TMP" && XDG_DATA_HOME="$data" LIVING_DOCS_EVAL_OUT="$TMP/chosen-out" LIVING_DOCS_EVAL_SCENARIOS="$TMP/root-scenarios" LIVING_DOCS_EVAL_RUNNER="$HERE/runners/noop.sh" TMPDIR="$TMP/tmp" \
+		bash "$EVALS/run.sh" control-12-unprompted >/dev/null 2>&1)
+	assert_eq "the existing variable overrides the root" 1 "$(find "$TMP/chosen-out" -name score.json | wc -l | tr -d ' ')"
+}
+
+test_scale_aggregate_links() {
+	echo "scale aggregate: superseded, named and over-linked"
+	local dir="$TMP/agg-links" json
+	scale_run_dir "$dir" t1-12-same-early-unprompted '["outcome: superseded"]'
+	scale_run_dir "$dir" t1-12-para-late-unprompted '["outcome: named", "over-linked: adr/0004 is named by a new record", "over-linked: adr/0007 is named by a new record"]'
+	scale_run_dir "$dir" t2-12-same-late-unprompted '["missed: x"]'
+	scale_run_dir "$dir" control-12-noise-early-unprompted '["over-linked: adr/0003 is named by a new record", "false-alarm: adr/0003 is named by a new record"]'
+	json="$(scale_agg "$dir")"
+	assert_eq "a superseding row has the outcome and no over-link" '["superseded",[]]' \
+		"$(jq -c '.rows[] | select(.scenario == "t1-12-same-early-unprompted") | [.outcome, .over_linked]' <<<"$json")"
+	assert_eq "a naming row has the outcome and its over-linked numbers" '["named",[4,7]]' \
+		"$(jq -c '.rows[] | select(.scenario == "t1-12-para-late-unprompted") | [.outcome, .over_linked]' <<<"$json")"
+	assert_eq "a missed row has no outcome" '[null,[]]' \
+		"$(jq -c '.rows[] | select(.scenario == "t2-12-same-late-unprompted") | [.outcome, .over_linked]' <<<"$json")"
+	assert_eq "a noise control row has its own type, no outcome and its over-link, counted as a false alarm" '["noise-control",null,[3],true]' \
+		"$(jq -c '.rows[] | select(.scenario | startswith("control-12-noise")) | [.type, .outcome, .over_linked, .false_alarm]' <<<"$json")"
+	assert_eq "the arm group counts the plain scenarios' superseded, named and over-linked runs" '[1,1,1]' \
+		"$(jq -c '.groups.arm[0] | [.superseded, .named, .over_linked]' <<<"$json")"
+	assert_eq "caught stays caught for both outcomes" 2 "$(jq -c '.groups.arm[0].catches' <<<"$json")"
+	assert_eq "every markdown table has the split columns" 7 "$(scale_agg --markdown "$dir" | grep -c '| superseded | named | over-linked |')"
+}
+
+test_scale_aggregate_noise_population() {
+	echo "scale aggregate: noise controls stay out of the pooled rates"
+	local plain="$TMP/agg-plain" mixed="$TMP/agg-mixed" before after dimension
+	scale_run_dir "$plain" t1-12-same-early-unprompted '["outcome: superseded"]'
+	scale_run_dir "$plain" control-12-unprompted '[]'
+	scale_run_dir "$mixed" t1-12-same-early-unprompted '["outcome: superseded"]'
+	scale_run_dir "$mixed" control-12-unprompted '[]'
+	scale_run_dir "$mixed" control-12-noise-early-unprompted '["over-linked: adr/0003 is named by a new record", "false-alarm: adr/0003 is named by a new record"]'
+	before="$(scale_agg "$plain")"
+	after="$(scale_agg "$mixed")"
+	assert_eq "the control group's false alarm rate is unchanged by a noise control" "$(jq -c '.groups.type[] | select(.key == "control") | [.runs, .false_alarms, .false_alarm_rate]' <<<"$before")" \
+		"$(jq -c '.groups.type[] | select(.key == "control") | [.runs, .false_alarms, .false_alarm_rate]' <<<"$after")"
+	for dimension in size wording position arm model; do
+		assert_eq "the $dimension groups are unchanged by a noise control" "$(jq -c ".groups.$dimension" <<<"$before")" "$(jq -c ".groups.$dimension" <<<"$after")"
+	done
+	assert_eq "the noise control has a type group of its own" '[1,1,1]' \
+		"$(jq -c '.groups.type[] | select(.key == "noise-control") | [.runs, .false_alarms, .over_linked]' <<<"$after")"
+	assert_eq "the total still counts every run" 3 "$(jq -c .total.runs <<<"$after")"
+}
+
 test_scale() {
+	test_scale_aggregate_noise_population
+	test_scale_link_outcomes
+	test_scale_noise_controls
+	test_scale_noise_vocabulary
+	test_scale_output_root
+	test_scale_aggregate_links
 	test_scale_generator
 	test_scale_generator_usage
 	test_scale_bundle
