@@ -4,8 +4,9 @@ npm wrapper, published as `@ejklock/living-docs` (the installed command stays `l
 for the [`living-docs`](https://github.com/ejklock/living-docs-skill) CLI, the deterministic
 layer of Living Docs authoring (`write`, `read`, `manage`, `check` and `mcp`).
 
-The package has no dependencies. It downloads the release binary for your platform from the
-GitHub release matching the package version and verifies its sha256 before using it.
+The package has no dependencies and runs no install script. The first run downloads the
+release binary for your platform from the GitHub release matching the package version,
+verifies its sha256 and starts it; later runs start the saved binary with no network request.
 
 ## Install
 
@@ -20,7 +21,10 @@ Supported platforms: macOS and Linux on x64 and arm64 (the four release targets
 `aarch64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-unknown-linux-gnu`,
 `aarch64-unknown-linux-gnu`).
 
-With `--ignore-scripts`, the binary is downloaded and verified on the first run instead.
+The binary is saved in the package's `vendor/` directory when the user running the command can
+write to it, otherwise (for example a global install owned by root) in the user cache at
+`$XDG_CACHE_HOME/living-docs/<version>/living-docs`, or `~/.cache/living-docs/<version>/living-docs`
+when `XDG_CACHE_HOME` is unset or not an absolute path. The first run needs network access to GitHub.
 
 ## Use it from an MCP client
 
@@ -75,6 +79,8 @@ in either form:
 
 - `LIVING_DOCS_DOWNLOAD_BASE`: replaces `https://github.com/ejklock/living-docs-skill/releases/download/`
   (a mirror holding `v<version>/living-docs-<target>` and its `.sha256`).
+- `LIVING_DOCS_PLATFORM`: replaces the detected `<platform>-<arch>` key, such as `linux-x64`.
+- `XDG_CACHE_HOME`: the cache root used when the package directory is read-only.
 
 ## Fallback
 
