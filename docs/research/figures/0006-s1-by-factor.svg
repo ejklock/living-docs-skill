@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="690" height="488" viewBox="0 0 690 488" font-family="sans-serif" font-size="12">
+<rect width="100%" height="100%" fill="white"/>
+<text x="10" y="22" font-size="14" font-weight="bold">S1 catch rate by factor (120 runs, no variant)</text>
+<line x1="220.0" y1="38" x2="220.0" y2="450" stroke="#ddd"/>
+<text x="220.0" y="466" text-anchor="middle" fill="#555">0.00</text>
+<line x1="310.0" y1="38" x2="310.0" y2="450" stroke="#ddd"/>
+<text x="310.0" y="466" text-anchor="middle" fill="#555">0.25</text>
+<line x1="400.0" y1="38" x2="400.0" y2="450" stroke="#ddd"/>
+<text x="400.0" y="466" text-anchor="middle" fill="#555">0.50</text>
+<line x1="490.0" y1="38" x2="490.0" y2="450" stroke="#ddd"/>
+<text x="490.0" y="466" text-anchor="middle" fill="#555">0.75</text>
+<line x1="580.0" y1="38" x2="580.0" y2="450" stroke="#ddd"/>
+<text x="580.0" y="466" text-anchor="middle" fill="#555">1.00</text>
+<text x="10" y="52" font-weight="bold">Plant type</text>
+<text x="24" y="74">T1 contradicted</text>
+<line x1="509.6" y1="70" x2="568.2" y2="70" stroke="#333" stroke-width="2"/>
+<line x1="509.6" y1="66" x2="509.6" y2="74" stroke="#333"/>
+<line x1="568.2" y1="66" x2="568.2" y2="74" stroke="#333"/>
+<circle cx="550.0" cy="70" r="4" fill="#1f6feb"/>
+<text x="590" y="74" fill="#555">44/48 [0.80–0.97]</text>
+<text x="24" y="96">T2 partly reversed</text>
+<line x1="491.1" y1="92" x2="558.9" y2="92" stroke="#333" stroke-width="2"/>
+<line x1="491.1" y1="88" x2="491.1" y2="96" stroke="#333"/>
+<line x1="558.9" y1="88" x2="558.9" y2="96" stroke="#333"/>
+<circle cx="535.0" cy="92" r="4" fill="#1f6feb"/>
+<text x="590" y="96" fill="#555">42/48 [0.75–0.94]</text>
+<text x="10" y="118" font-weight="bold">Bundle size</text>
+<text x="24" y="140">60 ADRs</text>
+<line x1="500.2" y1="136" x2="563.7" y2="136" stroke="#333" stroke-width="2"/>
+<line x1="500.2" y1="132" x2="500.2" y2="140" stroke="#333"/>
+<line x1="563.7" y1="132" x2="563.7" y2="140" stroke="#333"/>
+<circle cx="542.5" cy="136" r="4" fill="#1f6feb"/>
+<text x="590" y="140" fill="#555">43/48 [0.78–0.95]</text>
+<text x="24" y="162">240 ADRs</text>
+<line x1="500.2" y1="158" x2="563.7" y2="158" stroke="#333" stroke-width="2"/>
+<line x1="500.2" y1="154" x2="500.2" y2="162" stroke="#333"/>
+<line x1="563.7" y1="154" x2="563.7" y2="162" stroke="#333"/>
+<circle cx="542.5" cy="158" r="4" fill="#1f6feb"/>
+<text x="590" y="162" fill="#555">43/48 [0.78–0.95]</text>
+<text x="10" y="184" font-weight="bold">Position</text>
+<text x="24" y="206">early (ADR 3)</text>
+<line x1="500.2" y1="202" x2="563.7" y2="202" stroke="#333" stroke-width="2"/>
+<line x1="500.2" y1="198" x2="500.2" y2="206" stroke="#333"/>
+<line x1="563.7" y1="198" x2="563.7" y2="206" stroke="#333"/>
+<circle cx="542.5" cy="202" r="4" fill="#1f6feb"/>
+<text x="590" y="206" fill="#555">43/48 [0.78–0.95]</text>
+<text x="24" y="228">late (size−2)</text>
+<line x1="500.2" y1="224" x2="563.7" y2="224" stroke="#333" stroke-width="2"/>
+<line x1="500.2" y1="220" x2="500.2" y2="228" stroke="#333"/>
+<line x1="563.7" y1="220" x2="563.7" y2="228" stroke="#333"/>
+<circle cx="542.5" cy="224" r="4" fill="#1f6feb"/>
+<text x="590" y="228" fill="#555">43/48 [0.78–0.95]</text>
+<text x="10" y="250" font-weight="bold">Wording</text>
+<text x="24" y="272">same as the task</text>
+<line x1="553.3" y1="268" x2="580.0" y2="268" stroke="#333" stroke-width="2"/>
+<line x1="553.3" y1="264" x2="553.3" y2="272" stroke="#333"/>
+<line x1="580.0" y1="264" x2="580.0" y2="272" stroke="#333"/>
+<circle cx="580.0" cy="268" r="4" fill="#1f6feb"/>
+<text x="590" y="272" fill="#555">48/48 [0.93–1.00]</text>
+<text x="24" y="294">paraphrased</text>
+<line x1="456.7" y1="290" x2="537.8" y2="290" stroke="#333" stroke-width="2"/>
+<line x1="456.7" y1="286" x2="456.7" y2="294" stroke="#333"/>
+<line x1="537.8" y1="286" x2="537.8" y2="294" stroke="#333"/>
+<circle cx="505.0" cy="290" r="4" fill="#1f6feb"/>
+<text x="590" y="294" fill="#555">38/48 [0.66–0.88]</text>
+<text x="10" y="316" font-weight="bold">Arm</text>
+<text x="24" y="338">prompted</text>
+<line x1="553.3" y1="334" x2="580.0" y2="334" stroke="#333" stroke-width="2"/>
+<line x1="553.3" y1="330" x2="553.3" y2="338" stroke="#333"/>
+<line x1="580.0" y1="330" x2="580.0" y2="338" stroke="#333"/>
+<circle cx="580.0" cy="334" r="4" fill="#1f6feb"/>
+<text x="590" y="338" fill="#555">48/48 [0.93–1.00]</text>
+<text x="24" y="360">unprompted</text>
+<line x1="456.7" y1="356" x2="537.8" y2="356" stroke="#333" stroke-width="2"/>
+<line x1="456.7" y1="352" x2="456.7" y2="360" stroke="#333"/>
+<line x1="537.8" y1="352" x2="537.8" y2="360" stroke="#333"/>
+<circle cx="505.0" cy="356" r="4" fill="#1f6feb"/>
+<text x="590" y="360" fill="#555">38/48 [0.66–0.88]</text>
+<text x="10" y="382" font-weight="bold">Model</text>
+<text x="24" y="404">Haiku 5.5</text>
+<line x1="553.3" y1="400" x2="580.0" y2="400" stroke="#333" stroke-width="2"/>
+<line x1="553.3" y1="396" x2="553.3" y2="404" stroke="#333"/>
+<line x1="580.0" y1="396" x2="580.0" y2="404" stroke="#333"/>
+<circle cx="580.0" cy="400" r="4" fill="#1f6feb"/>
+<text x="590" y="404" fill="#555">48/48 [0.93–1.00]</text>
+<text x="24" y="426">Sonnet 5.5</text>
+<line x1="456.7" y1="422" x2="537.8" y2="422" stroke="#333" stroke-width="2"/>
+<line x1="456.7" y1="418" x2="456.7" y2="426" stroke="#333"/>
+<line x1="537.8" y1="418" x2="537.8" y2="426" stroke="#333"/>
+<circle cx="505.0" cy="422" r="4" fill="#1f6feb"/>
+<text x="590" y="426" fill="#555">38/48 [0.66–0.88]</text>
+<text x="220" y="484" fill="#555">rate with 95% Wilson interval</text>
+</svg>

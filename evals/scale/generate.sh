@@ -36,10 +36,10 @@ plant_fields() { # plant_fields <t1|t2> <same|para>: title, description, context
 		"hold the login state of every visitor in one central key-value cluster that all web servers share" ;;
 	t2-same) printf '%s\t%s\t%s\t%s' "Store uploads in S3 and serve them through the CDN" "Uploaded files are stored in S3 and served to users through the CDN." \
 		"Users upload files that other users download, and downloads come from every region." \
-		"store every uploaded file in S3 and serve uploaded files to users through the CDN" ;;
+		"store every uploaded file in the S3 bucket ld-uploads-153 and serve uploaded files to users through the CDN" ;;
 	t2-para) printf '%s\t%s\t%s\t%s' "Object storage and edge delivery for user files" "Files people send us live in the object store bucket and reach readers from the edge cache network." \
 		"People send us files that others then fetch, and those fetches come from every region." \
-		"keep every file people send us in the object store bucket and deliver those files to readers from the edge cache network" ;;
+		"keep every file people send us in the object store bucket ld-uploads-153 and deliver those files to readers from the edge cache network" ;;
 	control-noise) printf '%s\t%s\t%s\t%s' "Reconcile the settlement ledger every night" "The settlement ledger is reconciled against the bank statements every night." \
 		"Finance needs the settlement ledger to match the bank statements before the morning." \
 		"reconcile the settlement ledger against the bank statements every night" ;;

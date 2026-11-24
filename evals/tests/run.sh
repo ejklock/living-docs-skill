@@ -3,7 +3,8 @@
 # run.sh — tests for the eval harness (run.sh, score.sh, score-transcript.sh), driven only by
 # the scripted runners under runners/ and the fixture transcripts under transcripts/. No model
 # is called and nothing leaves the machine. Scratch state lives under a directory made with
-# mktemp and is removed on exit.
+# mktemp and is removed on exit; the suite runs its own copy of the binary, so a rebuild during a
+# run cannot change it.
 #
 # usage: run.sh [usage|score|isolation|scenarios|scale]   (no argument runs every group)
 # LIVING_DOCS_EVAL_ONLY=<test function> runs only that function of the scale group (unset: every test).
@@ -36,6 +37,13 @@ LIVING_DOCS_BIN="$(resolve_living_docs)" || {
 	echo "evals tests: no living-docs binary (set LIVING_DOCS_BIN or run make build)" >&2
 	exit 2
 }
+LIVING_DOCS_SOURCE_BIN="$LIVING_DOCS_BIN"
+mkdir -p "$TMP/bin"
+cp "$LIVING_DOCS_SOURCE_BIN" "$TMP/bin/living-docs" || {
+	echo "evals tests: cannot copy the living-docs binary from $LIVING_DOCS_SOURCE_BIN" >&2
+	exit 2
+}
+LIVING_DOCS_BIN="$TMP/bin/living-docs"
 export LIVING_DOCS_BIN
 
 fail=0
@@ -320,8 +328,16 @@ test_isolation() {
 	assert_eq "scratch directories are kept when asked" true "$(find "$TMP/tmp" -mindepth 1 -maxdepth 1 | grep -q . && echo true || echo false)"
 }
 
+test_binary_snapshot() {
+	echo "binary snapshot"
+	assert_true "the suite runs a copy of the binary inside its scratch directory" test "${LIVING_DOCS_BIN#"$TMP"/}" != "$LIVING_DOCS_BIN"
+	assert_true "the copy matches the binary it was taken from" cmp -s "$LIVING_DOCS_BIN" "$LIVING_DOCS_SOURCE_BIN"
+	assert_true "the copy is executable" test -x "$LIVING_DOCS_BIN"
+}
+
 . "$HERE/scale.sh"
 
+test_binary_snapshot
 wanted usage && test_usage
 wanted score && test_score
 wanted scenarios && test_scenarios

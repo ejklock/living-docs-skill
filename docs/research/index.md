@@ -9,3 +9,4 @@ spawns implementation slices.
 * [0003 — Provenance-aware knowledge graph for living-docs](0003-provenance-aware-knowledge-graph-for-living-docs.md) - Draft
 * [0004 — Model-based architecture views distilled from the knowledge graph](0004-model-based-architecture-views-distilled-from-the-knowledge-graph.md) - Draft
 * [0005 — Engineering documentation in AI-assisted development: living architecture, domain language and rules, decision capture, issue waves and a local HTML view](0005-engineering-documentation-in-ai-assisted-development-living-architecture-domain-language-and-rules-decision-capture-issue-waves-and-a-local-html-view.md) - Draft
+* [0006 — How decision-drift catch rates are measured](0006-how-decision-drift-catch-rates-are-measured.md) - Draft

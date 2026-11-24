@@ -207,6 +207,50 @@ test_scale_unprompted_outcomes() {
 	assert_eq "superseding another record leaves the plant missed" 1 "$(scale_count missed:)"
 }
 
+test_scale_unprompted_successor() {
+	echo "scale unprompted scoring: the plant's successor"
+	local dir="$TMP/unp-scenarios" name=t1-12-same-early-unprompted scratch other
+	scale_small "$dir"
+	scratch="$(scale_case "$dir" "$name")"
+	scale_add_adr "$scratch" "Nothing else." >/dev/null
+	other="$(scale_other_in_force "$name" 3)"
+	scale_ld "$scratch" write supersede adr/0003 "adr/$other"
+	scale_score "$dir" "$name" "$scratch"
+	assert_eq "a plant superseded by a record that existed before the run is no catch" "0 1" \
+		"$(scale_count 'outcome: superseded') $(scale_count missed:)"
+	assert_true "the miss names the record that superseded the plant" grep -q "superseded by adr/$other" <<<"$OUTPUT"
+	scratch="$(scale_case "$dir" "$name")"
+	scale_add_adr "$scratch" "Nothing else." >/dev/null
+	sed -i 's/^status: .*/status: Superseded/' "$(find "$scratch" -name '0003-*.md' -not -path '*/.git/*')"
+	scale_score "$dir" "$name" "$scratch"
+	assert_eq "a plant marked Superseded with no successor is a clean miss" "0 1 0" \
+		"$(scale_count 'outcome: superseded') $(scale_count 'missed: adr/0003 was marked Superseded with no successor') $(grep -c 'invalid' <<<"$OUTPUT")"
+}
+
+test_scale_surviving_clause() {
+	echo "scale unprompted scoring: the clause a partial reversal keeps"
+	local dir="$TMP/unp-scenarios" name=t2-12-same-late-unprompted scratch new
+	scale_small "$dir"
+	scratch="$(scale_case "$dir" "$name")"
+	new="$(scale_add_adr "$scratch" "Serve files from S3 through signed URLs. Every uploaded file stays in the S3 bucket ld-uploads-153.")"
+	scale_ld "$scratch" write supersede adr/0010 "adr/$new"
+	scale_score "$dir" "$name" "$scratch"
+	assert_eq "restating the kept clause reports it kept" 1 "$(scale_count 'surviving-clause: kept')"
+	scratch="$(scale_case "$dir" "$name")"
+	new="$(scale_add_adr "$scratch" "Nothing else.")"
+	scale_ld "$scratch" write supersede adr/0010 "adr/$new"
+	scale_score "$dir" "$name" "$scratch"
+	assert_eq "dropping the kept clause reports it lost" 1 "$(scale_count 'surviving-clause: lost')"
+	scratch="$(scale_case "$dir" "$name")"
+	scale_add_adr "$scratch" "Nothing else." >/dev/null
+	scale_score "$dir" "$name" "$scratch"
+	assert_eq "a plant left in force still holds its clause" 1 "$(scale_count 'surviving-clause: kept')"
+	scratch="$(scale_case "$dir" t1-12-same-early-unprompted)"
+	scale_add_adr "$scratch" "Nothing else." >/dev/null
+	scale_score "$dir" t1-12-same-early-unprompted "$scratch"
+	assert_eq "a full reversal reports no surviving clause" 0 "$(scale_count surviving-clause:)"
+}
+
 test_scale_unprompted_baseline() {
 	echo "scale unprompted scoring: baseline and control"
 	local dir="$TMP/unp-scenarios" name=t1-12-same-early-unprompted scratch new
@@ -357,7 +401,7 @@ test_scale_aggregate_rates() {
 	assert_eq "the row carries its dimensions" '["t1",12,"same","early","unprompted","unknown"]' \
 		"$(jq -c '.rows[0] | [.type, .size, .wording, .position, .arm, .model]' <<<"$json")"
 	assert_eq "a caught row says so and a missed row says so" "[true,false]" "$(jq -c '[.rows[].caught] | sort | reverse' <<<"$json")"
-	assert_eq "the row fields are all present" '["arm","caught","cost_usd","false_alarm","incomplete","model","outcome","over_linked","position","read_before_first_write","runner_failed","setup_failed","size","type","unscored","wording"]' \
+	assert_eq "the row fields are all present" '["arm","caught","cost_usd","false_alarm","incomplete","model","outcome","over_linked","position","read_before_first_write","runner_failed","setup_failed","size","surviving_clause","type","unscored","wording"]' \
 		"$(jq -c '.rows[0] | del(.scenario, .scratch) | keys' <<<"$json")"
 	assert_eq "the groups exist by every dimension" '["arm","cell","model","position","size","type","wording"]' "$(jq -c '.groups | keys' <<<"$json")"
 	assert_eq "runs that wrote before reading are counted" '{"true":0,"false":2,"null":0}' "$(jq -c '.groups.arm[0].read_before_first_write' <<<"$json")"
@@ -408,6 +452,100 @@ test_scale_aggregate_rule() {
 	assert_eq "unprompted large below prompted large builds" true "$(scale_rule_case "$miss" '[]' "$miss")"
 	assert_eq "unprompted large below unprompted small only builds" true "$(scale_rule_case "$miss" "$miss" '[]')"
 	assert_eq "the rule shows its three rates" '[0,1,1]' "$(scale_rule_rates "$miss" '[]' '[]')"
+}
+
+scale_exceptions() { # scale_exceptions <dir>: the exception scenarios at sizes 12 and 24
+	LIVING_DOCS_SCALE_SIZES="12 24" bash "$SCALE/generate-exceptions.sh" "$1" >/dev/null 2>&1
+}
+
+scale_limit() { # scale_limit <scratch> <value>: writes the upload limit the task asks for
+	mkdir -p "$1/config"
+	printf 'UPLOAD_MAX_MB=%s\n' "$2" >"$1/config/limits.env"
+}
+
+test_scale_exception_scenarios() {
+	echo "scale exceptions: scenarios"
+	local dir="$TMP/exc-scenarios" again="$TMP/exc-again"
+	scale_exceptions "$dir"
+	scale_exceptions "$again"
+	assert_eq "six unprompted exception scenarios" \
+		"control-12-xcontext-late-unprompted control-12-xnone-late-unprompted control-24-xcontext-late-unprompted control-24-xnone-late-unprompted x1-12-exception-late-unprompted x1-24-exception-late-unprompted" \
+		"$(find "$dir" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort | tr '\n' ' ' | sed 's/ $//')"
+	assert_eq "the same seed writes the same tree" 0 "$(diff -r "$dir" "$again" >/dev/null; echo $?)"
+	assert_true "the upload handling ADR sits at position 3 with its six clauses" \
+		grep -q -P '^adr\t3\tUpload handling\t.*25 MB' "$dir/x1-12-exception-late-unprompted/manifest.tsv"
+	assert_true "the exception lowers the limit from another topic, late" \
+		grep -q -P '^adr\t10\tMobile carrier limits\t.*8 MB' "$dir/x1-12-exception-late-unprompted/manifest.tsv"
+	assert_eq "the no-exception control holds no mobile carrier record" 0 \
+		"$(grep -c 'Mobile carrier' "$dir/control-12-xnone-late-unprompted/manifest.tsv")"
+	local full="$TMP/exc-full"
+	bash "$SCALE/generate-exceptions.sh" "$full" >/dev/null 2>&1
+	assert_eq "no manifest supersedes or deprecates the upload record, at any size" 0 \
+		"$(cat "$dir"/*/manifest.tsv "$full"/*/manifest.tsv | awk -F'\t' '($1 == "supersede" && ($2 == 3 || $3 == 3)) || ($1 == "deprecate" && $2 == 3)' | wc -l | tr -d ' ')"
+}
+
+test_scale_exception_scoring() {
+	echo "scale exceptions: scoring"
+	local dir="$TMP/exc-scenarios" name=x1-12-exception-late-unprompted scratch
+	scale_exceptions "$dir"
+	scratch="$(scale_case "$dir" "$name")"
+	scale_limit "$scratch" 8
+	scale_score "$dir" "$name" "$scratch"
+	assert_eq "following the exception passes" "0 0" "$(scale_count missed:) $RC"
+	scratch="$(scale_case "$dir" "$name")"
+	scale_limit "$scratch" 25
+	scale_score "$dir" "$name" "$scratch"
+	assert_eq "following the dead clause is missed" 1 "$(scale_count missed:)"
+	scratch="$(scale_case "$dir" "$name")"
+	scale_score "$dir" "$name" "$scratch"
+	assert_eq "no limit written is incomplete" 1 "$(scale_count incomplete:)"
+	scratch="$(scale_case "$dir" control-12-xcontext-late-unprompted)"
+	scale_limit "$scratch" 25
+	scale_score "$dir" control-12-xcontext-late-unprompted "$scratch"
+	assert_eq "a context-only mention keeps the original limit cleanly" "0 0" "$(scale_count false-alarm:) $RC"
+	scratch="$(scale_case "$dir" control-12-xnone-late-unprompted)"
+	scale_limit "$scratch" 8
+	scale_score "$dir" control-12-xnone-late-unprompted "$scratch"
+	assert_eq "departing from the original limit with no exception is a false alarm" 1 "$(scale_count false-alarm:)"
+}
+
+test_scale_aggregate_intervals() {
+	echo "scale aggregate: Wilson intervals"
+	local dir="$TMP/agg-intervals" json i
+	for i in $(seq 1 11); do scale_run_dir "$dir/r$i" t1-12-same-early-unprompted '[]'; done
+	scale_run_dir "$dir/r12" t1-12-same-early-unprompted '["missed: x"]'
+	json="$(scale_agg "$dir"/r*)"
+	assert_eq "11 of 12 caught has the 95% Wilson interval 0.65 to 0.99" '[0.65,0.99]' \
+		"$(jq -c '.groups.arm[0].catch_ci | map(. * 100 | round / 100)' <<<"$json")"
+	assert_eq "no false alarm in 12 has the interval 0 to 0.24" '[0,0.24]' \
+		"$(jq -c '.groups.arm[0].false_alarm_ci | map(. * 100 | round / 100)' <<<"$json")"
+}
+
+test_scale_aggregate_exceptions() {
+	echo "scale aggregate: exception scenarios"
+	local dir="$TMP/agg-exceptions" json
+	scale_run_dir "$dir" x1-12-exception-late-unprompted '["missed: UPLOAD_MAX_MB=25 follows the clause the exception left dead"]'
+	scale_run_dir "$dir" x1-24-exception-late-unprompted '[]'
+	scale_run_dir "$dir" control-12-xnone-late-unprompted '["false-alarm: UPLOAD_MAX_MB=8 departs from the limit adr/0003 sets"]'
+	json="$(scale_agg "$dir")"
+	assert_eq "exception runs are planted and scored" '{"key":"x1","planted":2,"catches":1}' \
+		"$(jq -c '.groups.type[] | select(.key == "x1") | {key, planted, catches}' <<<"$json")"
+	assert_eq "an exception control departing from the record is a false alarm of its own type" 1 \
+		"$(jq -c '.groups.type[] | select(.key == "exception-control") | .false_alarms' <<<"$json")"
+	assert_eq "exception runs stay out of the arm group and the rule" '[0,null]' \
+		"$(jq -c '[(.groups.arm | length), .rule.unprompted_large]' <<<"$json")"
+}
+
+test_scale_aggregate_surviving_clause() {
+	echo "scale aggregate: the clause a partial reversal keeps"
+	local dir="$TMP/agg-surviving" json
+	scale_run_dir "$dir" t2-12-same-late-unprompted '["outcome: superseded", "surviving-clause: lost"]'
+	scale_run_dir "$dir" t2-12-para-early-unprompted '["outcome: superseded", "surviving-clause: kept"]'
+	json="$(scale_agg "$dir")"
+	assert_eq "a surviving-clause line leaves the run scored" '[false,false]' "$(jq -c '[.rows[] | .unscored]' <<<"$json")"
+	assert_eq "each row carries whether the kept clause stays in force" '["lost","kept"]' \
+		"$(jq -c '[.rows | sort_by(.scenario) | reverse[] | .surviving_clause]' <<<"$json")"
+	assert_eq "the arm group counts the runs that lost the kept clause" 1 "$(jq -c '.groups.arm[0].clause_lost' <<<"$json")"
 }
 
 test_scale_aggregate_unscored() {
@@ -625,6 +763,33 @@ test_scale_aggregate_noise_population() {
 	assert_eq "the total still counts every run" 3 "$(jq -c .total.runs <<<"$after")"
 }
 
+test_scale_plot() {
+	local rows=$'Variant\t\t\nnone\t2\t12\nV3 <new>\t11\t12\nfalse alarms\t0\t36\n' first second
+	first="$(printf '%s' "$rows" | "$SCALE/plot.sh" 'Catch & alarms')"
+	assert_eq "a forest plot prints" 0 "$?"
+	second="$(printf '%s' "$rows" | "$SCALE/plot.sh" 'Catch & alarms')"
+	assert_eq "the same rows print the same bytes" "$first" "$second"
+	assert_eq "one dot per counted row, none for the heading" 3 "$(grep -c '<circle' <<<"$first")"
+	assert_true "11 of 12 prints its Wilson interval" grep -q '11/12 \[0.65–0.99\]' <<<"$first"
+	assert_true "0 of 36 prints its Wilson interval" grep -q '0/36 \[0.00–0.10\]' <<<"$first"
+	assert_true "the heading prints bold" grep -q 'font-weight="bold">Variant<' <<<"$first"
+	assert_true "labels and title are escaped" grep -q 'V3 &lt;new&gt;' <<<"$first"
+	assert_true "the title is escaped" grep -q 'Catch &amp; alarms' <<<"$first"
+	assert_true "the 11 of 12 dot sits at its rate" grep -q '<circle cx="550.0"' <<<"$first"
+	assert_true "the 11 of 12 whisker starts at its lower bound" grep -q '<line x1="452.6" y1="92" x2="574.6"' <<<"$first"
+	for bad in $'x\t13\t12' $'x\t1\t0' $'x\tone\t12' $'x\t5' $'a\t1\t12\t12' $'x\t11\t12\r' lonelabel; do
+		printf '%s\n' "$bad" | "$SCALE/plot.sh" t >/dev/null 2>"$TMP/plot.err"
+		assert_eq "the row '${bad//$'\t'/ }' exits 2" 2 "$?"
+		assert_true "the row '${bad//$'\t'/ }' is named" grep -q 'malformed row 1' "$TMP/plot.err"
+	done
+	"$SCALE/plot.sh" </dev/null >/dev/null 2>&1
+	assert_eq "no title exits 2" 2 "$?"
+	printf 'x\t1\t2\n' | "$SCALE/plot.sh" '' >/dev/null 2>&1
+	assert_eq "an empty title exits 2" 2 "$?"
+	"$SCALE/plot.sh" t </dev/null >/dev/null 2>&1
+	assert_eq "no rows exit 2" 2 "$?"
+}
+
 test_scale() {
 	if [[ -n "${LIVING_DOCS_EVAL_ONLY:-}" ]]; then
 		declare -F "$LIVING_DOCS_EVAL_ONLY" >/dev/null || { flunk "LIVING_DOCS_EVAL_ONLY" "no test function named $LIVING_DOCS_EVAL_ONLY"; return; }
@@ -642,6 +807,8 @@ test_scale() {
 	test_scale_bundle
 	test_scale_unprompted_mentions
 	test_scale_unprompted_outcomes
+	test_scale_unprompted_successor
+	test_scale_surviving_clause
 	test_scale_unprompted_baseline
 	test_scale_prompted
 	test_scale_prompted_lines
@@ -652,6 +819,12 @@ test_scale() {
 	test_scale_aggregate_control_and_failures
 	test_scale_aggregate_rule
 	test_scale_aggregate_unscored
+	test_scale_aggregate_surviving_clause
+	test_scale_exception_scenarios
+	test_scale_exception_scoring
+	test_scale_aggregate_exceptions
+	test_scale_aggregate_intervals
+	test_scale_plot
 	test_scale_aggregate_per_model
 	test_scale_aggregate_cost
 }
