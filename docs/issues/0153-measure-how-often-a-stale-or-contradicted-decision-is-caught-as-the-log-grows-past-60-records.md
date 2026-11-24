@@ -52,6 +52,7 @@ Kept: `write supersede` and its chain checks; the determinism boundary (no model
 
 
 
+
 - S1: the scale eval — seeded generator, T1/T2/control scenarios, prompted and unprompted arms, scorer, aggregator, and one recorded run | files: evals/ | after: none
 - S2: scorer separates superseded from named-only and counts over-links; noise-control scenarios whose task shares rare words with a non-conflicting record; raw run outputs kept outside any worktree | files: evals/scale, evals/tests | after: S1
 - S3: V1, the empty `read records --topic` answer names the records in force, says no word match is not evidence of no conflict, and points at `read records` | files: living-docs-core/src/commands/effective, cli/tests | after: S1
@@ -62,11 +63,12 @@ Kept: `write supersede` and its chain checks; the determinism boundary (no model
 - S8: measure V3 as V1 and V2 were, against the fixed rule | files: docs/issues | after: S6, S7
 - S9: stage 0, scorer checks the successor is new and surviving clauses stay in force; cross-topic exception scenarios; record the mis-targeted supersede S5/S8 missed | files: evals/scale, evals/tests, docs/issues | after: S8
 - S10: stage 1, measure R0, then R1, then R2 (partial supersede by ADR) against a rule fixed before running | files: evals/scale, living-docs-core, cli, mcp, docs/adr | after: S9
-- S11: stage 2, count T3, T4 and T5 candidates in real bundles with a deterministic script, under a rule fixed before counting; then build `read records --path` only if T3 is frequent (T4 only recorded) | files: to be planned | after: S10
-- S12: stage 3, only if S11 counts T5 as frequent: measure an opt-in `revisit` date with `check --as-of` | files: to be planned | after: S11
+- S11: stage 2, count T3, T4 and T5 candidates in real bundles with a deterministic script, under a rule fixed before counting; then build `read records --path` only if T3 is frequent (T4 only recorded) | files: to be planned | after: S10 | done: counted, no type frequent, nothing built
+- S12: stage 3, only if S11 counts T5 as frequent: measure an opt-in `revisit` date with `check --as-of` | files: to be planned | after: S11 | not triggered: S11 found T5 not frequent
 - S13: offline retrieval replay of candidate rankers (ADR 0106, BM25, potion-base-8M, MiniLM ceiling) on seeded paraphrased plants, rule fixed in the Decision | files: evals/ | after: none
 
 ### Outcome
+
 
 
 
@@ -96,3 +98,7 @@ Kept: `write supersede` and its chain checks; the determinism boundary (no model
 - x1, a record about another topic lowering the upload limit with no supersede: 20/20 runs wrote the exception's 8 MB, Wilson 95% [0.84–1.00]. Controls (xcontext names ADR 3 as context only, xnone adds nothing): 0/40 departed from the original 25 MB, false alarms [0.00–0.09]. From the transcripts, every x1 and xcontext run (40/40) called `read records` and read the "Mobile carrier limits" record before writing.
 - Rule fixed before running (x1 lower bound at least 0.75 with no control departing): R0 meets it (lower bound 0.84), so R1 and R2 (partial supersede by ADR) are not built, as the Decision says. The reader side of a cross-topic exception holds with today's binary in this setting; the upper-bound caveat of the isolated runner (it reads before every first write) applies here too.
 - S11 pilot, 2026-11-24, not a counted run: the first, uncommitted count script over this repository only gave 56 ADRs in force, 11 with no impact path, T3 10, T4 1, T5 10. A review found the impact field read from its first line only, brace groups and crate-relative paths counted as zero commits (the one T4, ADR 0030, is false: a file it names has 14 commits after its date), and a version pattern that flags timings and section numbers. These numbers are discarded; this repository was seen before the instrument fixes.
+- S11 counted, 2026-11-24, from the committed script `08a9184` (`evals/drift-count/count.sh --sample 10 --seed 153`), over this repository and two private bundles (reported only in aggregate): 171 ADRs in force (56 here, 66 and 49 in the private bundles); 64 with no impact path (9 here, 26 and 29 in the private bundles), 1 with no timestamp, 4 whose impact tokens all fail to resolve; candidates T3 40, T4 0, T5 59. Raw output and the rule computation are kept outside the repository (`~/.local/share/living-docs-evals/0153-s11/`).
+- Precision, read by the session on the seeded sample of 10 per type: T3 1/10 true (a file changed in a way that contradicts the ADR with no newer record: the one true case is an ADR still in force describing "ten verbs" after the CLI was regrouped under write, read and manage, a partial reversal written as a new ADR without a supersede, so a T2 seen through code); the other nine are ordinary evolution, release bumps, refactors or the implementing commit. T5 4/10 true (a premise outside the project that can change: a database version, a vector extension version, a model's size against a size target, an external CLI version); the other six are the project's own release numbers, internal "v2" labels, a findings label and a list name.
+- Rule fixed before counting (candidates × the Wilson lower bound of precision at least 10% of 171, i.e. 17.1): T3 40 × 0.018 = 0.7, T4 0, T5 59 × 0.168 = 9.9; no type is frequent, so neither `read records --path` (S11) nor the `revisit` date (S12) is built. A point estimate would have kept T5 (59 × 0.4 = 23.6); the lower bound, decided before counting, does not.
+- Limits: 37% of the ADRs in force (64 of 171, mostly in the private bundles) name no impact path, so T3 and T4 are blind there; one reader judged the sample; the implementing commit counts towards T3 by the rule; this repository's T3 numbers were seen under three naming readings before the naming rule was chosen, the private bundles were not.
