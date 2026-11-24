@@ -6,7 +6,7 @@
 # mktemp and is removed on exit; the suite runs its own copy of the binary, so a rebuild during a
 # run cannot change it.
 #
-# usage: run.sh [usage|score|isolation|scenarios|scale]   (no argument runs every group)
+# usage: run.sh [usage|score|isolation|scenarios|scale|drift]   (no argument runs every group)
 # LIVING_DOCS_EVAL_ONLY=<test function> runs only that function of the scale group (unset: every test).
 # Exit: 0 = all cases pass, 1 = at least one failed.
 
@@ -336,6 +336,7 @@ test_binary_snapshot() {
 }
 
 . "$HERE/scale.sh"
+. "$HERE/drift-count.sh"
 
 test_binary_snapshot
 wanted usage && test_usage
@@ -343,6 +344,7 @@ wanted score && test_score
 wanted scenarios && test_scenarios
 wanted isolation && test_isolation
 wanted scale && test_scale
+wanted drift && test_drift_count
 
 printf '%s cases\n' "$cases"
 ((fail == 0))
