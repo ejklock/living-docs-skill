@@ -11,16 +11,12 @@
   "bin": {
     "living-docs": "bin/living-docs.js"
   },
-  "scripts": {
-    "postinstall": "node scripts/postinstall.js"
-  },
   "engines": {
     "node": ">=18"
   },
   "files": [
     "bin",
     "lib",
-    "scripts",
     "README.md"
   ]
 }

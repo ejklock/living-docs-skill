@@ -76,13 +76,44 @@ function verifySha256(bytes, checksumText, assetName) {
   }
 }
 
-function writeExecutableAtomically(bytes) {
-  fs.mkdirSync(VENDOR_DIR, { recursive: true });
-  const partial = path.join(VENDOR_DIR, `.living-docs.${process.pid}.partial`);
+/**
+ * The per-version binary path under the user's cache directory.
+ * XDG_CACHE_HOME is used only when absolute, as the XDG Base Directory spec requires.
+ * @returns {string}
+ * @throws {Error} when there is no absolute XDG_CACHE_HOME and no HOME
+ */
+function cacheBinaryPath() {
+  const home = process.env.HOME;
+  const xdg = process.env.XDG_CACHE_HOME;
+  const root = xdg && path.isAbsolute(xdg) ? xdg : home ? path.join(home, '.cache') : '';
+  if (!root) throw new Error('Cannot locate a cache directory: no absolute XDG_CACHE_HOME and no HOME.');
+  return path.join(root, 'living-docs', packageVersion(), 'living-docs');
+}
+
+/** @returns {boolean} true when the package's vendor directory exists or can be created, and is writable */
+function vendorIsWritable() {
+  try {
+    fs.mkdirSync(VENDOR_DIR, { recursive: true });
+    fs.accessSync(VENDOR_DIR, fs.constants.W_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Where a fresh download goes: the package's vendor directory when writable, else the user cache. */
+function installPath() {
+  return vendorIsWritable() ? BINARY_PATH : cacheBinaryPath();
+}
+
+function writeExecutableAtomically(bytes, target) {
+  const dir = path.dirname(target);
+  fs.mkdirSync(dir, { recursive: true });
+  const partial = path.join(dir, `.living-docs.${process.pid}.partial`);
   try {
     fs.writeFileSync(partial, bytes, { mode: 0o755 });
     fs.chmodSync(partial, 0o755);
-    fs.renameSync(partial, BINARY_PATH);
+    fs.renameSync(partial, target);
   } finally {
     fs.rmSync(partial, { force: true });
   }
@@ -96,22 +127,33 @@ function writeExecutableAtomically(bytes) {
 async function download() {
   const assetName = `living-docs-${resolveTarget()}`;
   const url = `${releaseUrl()}${assetName}`;
+  const target = installPath();
   const [bytes, checksum] = await Promise.all([
     fetchBytes(url),
     fetchBytes(`${url}.sha256`).then((buffer) => buffer.toString('utf8')),
   ]);
   verifySha256(bytes, checksum, assetName);
-  writeExecutableAtomically(bytes);
-  return BINARY_PATH;
+  writeExecutableAtomically(bytes, target);
+  return target;
 }
 
 /**
- * The binary path, downloading it first when it is missing.
+ * The binary path: the package's vendor binary, else this version's cached binary, else a fresh download.
  * @returns {Promise<string>}
  */
 async function ensureBinary() {
   if (fs.existsSync(BINARY_PATH)) return BINARY_PATH;
+  const cached = cacheBinaryPathOrNone();
+  if (cached && fs.existsSync(cached)) return cached;
   return download();
+}
+
+function cacheBinaryPathOrNone() {
+  try {
+    return cacheBinaryPath();
+  } catch {
+    return undefined;
+  }
 }
 
 module.exports = { FALLBACK_HINT, TARGETS, BINARY_PATH, resolveTarget, releaseUrl, download, ensureBinary };
