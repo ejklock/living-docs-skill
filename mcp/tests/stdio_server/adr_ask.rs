@@ -70,6 +70,41 @@ async fn a_new_adr_whose_index_refresh_fails_still_carries_the_count_and_questio
     assert_eq!(answer["ask"], adr_ask());
 }
 
+fn add_sharing_record(scratch: &Scratch) {
+    let text = "---\ntype: ADR\ntitle: Shared key-value store for login state\ndescription: d\nstatus: Accepted\n---\n\n# 0006. Shared key-value store for login state\n\nabout widgets\n";
+    fs::write(scratch.bundle().join("adr/0006-s.md"), text).expect("sharing record");
+}
+
+#[tokio::test]
+async fn candidates_follow_the_question_on_success_and_on_the_index_refusal() {
+    let scratch = bundle();
+    add_sharing_record(&scratch);
+    let client = connect(&scratch.bundle(), Era::Initialize).await;
+    let args = json!({
+        "operation": "new", "type": "adr", "title": "Sticky routing", "owner": "Eve",
+        "body": "Route through the shared state store.\n",
+    });
+
+    let result = call(&client, "write", args.clone()).await;
+
+    let answer = data(&result);
+    assert_eq!(answer["candidates"][0]["number"], 6);
+    assert_eq!(
+        answer["candidates"][0]["shared"],
+        json!(["shared", "state", "store"])
+    );
+    let keys: Vec<&String> = answer.as_object().unwrap().keys().collect();
+    assert_eq!(keys.last().map(|k| k.as_str()), Some("candidates"));
+
+    let refused = bundle();
+    add_sharing_record(&refused);
+    fs::create_dir(refused.bundle().join("adr/index.md")).expect("index as directory");
+    let client = connect(&refused.bundle(), Era::Initialize).await;
+    let result = call(&client, "write", args).await;
+    assert!(is_error(&result), "{result:?}");
+    assert_eq!(data(&result)["candidates"][0]["number"], 6);
+}
+
 #[tokio::test]
 async fn a_new_issue_has_no_count_or_question() {
     let scratch = bundle();

@@ -67,24 +67,26 @@ fn run_new(docs_dir: &Path, args: &NewArgs) -> Written {
         dir: args.dir.as_deref(),
     };
     let store = store(docs_dir);
-    let in_force = effective::adr_in_force(&store, docs_dir, &args.doc_type);
+    let query = effective::Query::new(&args.title, opts.description, opts.body);
+    let asked = effective::adr_asked(&store, docs_dir, &args.doc_type, &query);
     let created = new::write(&store, docs_dir, &args.doc_type, &args.title, &opts)?;
     let written = json!({
         "path": shown(&created.path),
         "instruction": new::BODY_ONLY_INSTRUCTION,
     });
-    with_ask(indexed(written, &created.indexed), in_force)
+    with_ask(indexed(written, &created.indexed), asked)
 }
 
-/// Appends an ADR's `in_force` and `ask` after the written fields, on the
-/// refusal that still names what was written as well as on success.
-fn with_ask(result: Written, in_force: Option<usize>) -> Written {
-    let Some(count) = in_force else {
-        return result;
-    };
+/// Appends an ADR's `in_force`, `ask` and, when any, `candidates` after the
+/// written fields, on success and on the refusal that names what was written.
+fn with_ask(result: Written, asked: Option<effective::Asked>) -> Written {
+    let Some(asked) = asked else { return result };
     let add = |mut value: Value| {
-        value["in_force"] = json!(count);
+        value["in_force"] = json!(asked.in_force);
         value["ask"] = json!(effective::adr_ask());
+        if !asked.candidates.is_empty() {
+            value["candidates"] = json!(asked.candidates);
+        }
         value
     };
     match result {

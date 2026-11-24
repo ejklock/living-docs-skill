@@ -12,7 +12,8 @@
 use crate::record::{self, ExtractedRecord};
 use crate::store::DocStore;
 use crate::{doc_type, sections};
-pub use ask::{adr_ask, adr_ask_line, adr_in_force};
+pub use ask::{adr_ask, adr_ask_line, adr_asked, candidate_line, Asked, Query};
+pub use candidates::Candidate;
 pub use dependents::{resolve_dependents, Dependents};
 use json::json_of;
 pub use render::empty_topic_note;
@@ -20,6 +21,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 mod ask;
+mod candidates;
 mod dependents;
 mod json;
 mod render;

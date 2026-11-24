@@ -7,7 +7,7 @@ use crate::output::{self, OutputMode};
 use crate::store::build_store;
 use fs_store::git::seeded_owner;
 use living_docs_core::commands;
-use living_docs_core::commands::effective;
+use living_docs_core::commands::effective::{self, Asked, Candidate, Query};
 use living_docs_core::commands::new::{NewOptions, BODY_ONLY_INSTRUCTION};
 use serde::Serialize;
 use std::path::{Path, PathBuf};
@@ -32,17 +32,21 @@ struct NewJson<'a> {
     in_force: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     ask: Option<&'a str>,
+    #[serde(skip_serializing_if = "<[_]>::is_empty")]
+    candidates: &'a [Candidate],
 }
 
-/// Prints the created path as JSON or text; `in_force` is the count of records
-/// in force when the new record is an ADR, which adds the question to both:
-/// a JSON field, or one stderr line that `quiet` silences.
+/// Prints the created path as JSON or text; `asked` is the count and the
+/// candidates when the new record is an ADR, which adds the question to both:
+/// JSON fields, or stderr lines that `quiet` silences.
 fn print_created(
     created: &commands::new::Created,
     mode: OutputMode,
-    in_force: Option<usize>,
+    asked: Option<&Asked>,
     quiet: bool,
 ) {
+    let in_force = asked.map(|asked| asked.in_force);
+    let candidates = asked.map_or(&[][..], |asked| asked.candidates.as_slice());
     if mode.is_json() {
         output::outln!(
             "{}",
@@ -52,6 +56,7 @@ fn print_created(
                 indexed: &created.indexed.written,
                 in_force,
                 ask: in_force.map(|_| effective::adr_ask()),
+                candidates,
             })
         );
     } else {
@@ -59,6 +64,9 @@ fn print_created(
         output::outln!("{BODY_ONLY_INSTRUCTION}");
         if let (Some(count), false) = (in_force, quiet) {
             eprintln!("{}", effective::adr_ask_line(count));
+            for candidate in candidates {
+                eprintln!("{}", effective::candidate_line(candidate));
+            }
         }
     }
 }
@@ -110,16 +118,18 @@ struct Report {
     quiet: bool,
 }
 
-/// Writes the record and reports it; an ADR's count of records in force is
-/// read before the write, so the new record is not counted.
+/// Writes the record and reports it; an ADR's count of records in force and
+/// its candidates are read before the write, so the new record is neither
+/// counted nor listed.
 fn create(docs_dir: &Path, record: &Record, opts: &NewOptions, report: Report) -> ExitCode {
     let Record { doc_type, title } = *record;
     let Report { mode, quiet } = report;
     let store = build_store(docs_dir);
-    let in_force = effective::adr_in_force(store.as_ref(), docs_dir, doc_type);
+    let query = Query::new(title, opts.description, opts.body);
+    let asked = effective::adr_asked(store.as_ref(), docs_dir, doc_type, &query);
     match commands::new::write(store.as_ref(), docs_dir, doc_type, title, opts) {
         Ok(created) => {
-            print_created(&created, mode, in_force, quiet);
+            print_created(&created, mode, asked.as_ref(), quiet);
             report_indexed("write new", &created.indexed, mode, quiet)
         }
         Err(message) => {
