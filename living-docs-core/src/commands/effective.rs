@@ -12,11 +12,14 @@
 use crate::record::{self, ExtractedRecord};
 use crate::store::DocStore;
 use crate::{doc_type, sections};
+pub use ask::{adr_ask, adr_ask_line, adr_in_force};
 pub use dependents::{resolve_dependents, Dependents};
 use json::json_of;
+pub use render::empty_topic_note;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+mod ask;
 mod dependents;
 mod json;
 mod render;
@@ -108,17 +111,6 @@ pub struct Reading {
     pub matched: usize,
     pub withheld: usize,
     pub in_force: usize,
-}
-
-/// What an empty topic answer tells the caller: how many records are in force,
-/// that a word match is not a conflict check, and the commands that list them.
-pub fn empty_topic_note(in_force: usize, topic: &str, bundle: &Path) -> String {
-    let quote = |text: &str| format!("'{}'", text.replace('\'', r"'\''"));
-    let (word, dir) = (quote(topic), quote(&bundle.display().to_string()));
-    let s = if in_force == 1 { "" } else { "s" };
-    format!(
-        "{in_force} record{s} in force and a word match is not a conflict check, as a record using other words may still govern the topic: list them with `living-docs read records`, or `grep -ril -e {word} {dir}`"
-    )
 }
 
 /// Compiles the effective view as a string — the pure core, so tests assert on

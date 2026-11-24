@@ -1,9 +1,21 @@
-//! Rendering for the effective view (ADR 0050, simplified by ADR 0057): a
+//! Rendering for the effective view: a
 //! one-line index entry per record by default, or the body under `--full`
 //! and `--contract`; a contract body arrives already filtered to its tier.
 //! No token budget — the view is the active set, read whole.
 
 use super::View;
+use std::path::Path;
+
+/// What an empty topic answer tells the caller: how many records are in force,
+/// that a word match is not a conflict check, and the commands that list them.
+pub fn empty_topic_note(in_force: usize, topic: &str, bundle: &Path) -> String {
+    let quote = |text: &str| format!("'{}'", text.replace('\'', r"'\''"));
+    let (word, dir) = (quote(topic), quote(&bundle.display().to_string()));
+    let s = if in_force == 1 { "" } else { "s" };
+    format!(
+        "{in_force} record{s} in force and a word match is not a conflict check, as a record using other words may still govern the topic: list them with `living-docs read records`, or `grep -ril -e {word} {dir}`"
+    )
+}
 
 pub(super) fn render(views: &[View], full: bool, withheld: usize) -> String {
     let prefix = withheld_line(withheld);

@@ -66,18 +66,32 @@ fn run_new(docs_dir: &Path, args: &NewArgs) -> Written {
         body: args.body.as_deref(),
         dir: args.dir.as_deref(),
     };
-    let created = new::write(
-        &store(docs_dir),
-        docs_dir,
-        &args.doc_type,
-        &args.title,
-        &opts,
-    )?;
+    let store = store(docs_dir);
+    let in_force = effective::adr_in_force(&store, docs_dir, &args.doc_type);
+    let created = new::write(&store, docs_dir, &args.doc_type, &args.title, &opts)?;
     let written = json!({
         "path": shown(&created.path),
         "instruction": new::BODY_ONLY_INSTRUCTION,
     });
-    indexed(written, &created.indexed)
+    with_ask(indexed(written, &created.indexed), in_force)
+}
+
+/// Appends an ADR's `in_force` and `ask` after the written fields, on the
+/// refusal that still names what was written as well as on success.
+fn with_ask(result: Written, in_force: Option<usize>) -> Written {
+    let Some(count) = in_force else {
+        return result;
+    };
+    let add = |mut value: Value| {
+        value["in_force"] = json!(count);
+        value["ask"] = json!(effective::adr_ask());
+        value
+    };
+    match result {
+        Ok(value) => Ok(add(value)),
+        Err(Refusal::Written(value)) => Err(Refusal::Written(add(value))),
+        Err(other) => Err(other),
+    }
 }
 
 fn run_set(docs_dir: &Path, args: &SetArgs) -> Written {
