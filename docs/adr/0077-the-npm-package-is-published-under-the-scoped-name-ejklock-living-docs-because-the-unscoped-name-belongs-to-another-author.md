@@ -3,10 +3,13 @@ type: ADR
 title: The npm package is published under the scoped name @ejklock/living-docs because the unscoped name belongs to another author
 description: living-docs on npm was claimed by another author after ADR 0067; the wrapper ships as @ejklock/living-docs with the same living-docs bin.
 owner: Evaldo Klock
-status: Accepted
+status: Superseded
 supersedes: 0067
+superseded_by: 0107
 timestamp: 2026-11-09T23:40:02Z
 ---
+
+> **SUPERSEDED — do not act on this record.** Replaced by [0107](0107-the-npm-package-installs-with-no-install-script-and-the-shim-downloads-the-verified-binary-on-first-run.md).
 
 # 0077. The npm package is published under the scoped name @ejklock/living-docs because the unscoped name belongs to another author
 
