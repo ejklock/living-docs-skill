@@ -34,3 +34,16 @@ Kept: `write supersede` and its chain checks; the determinism boundary (no model
 - S1: the scale eval — seeded generator, T1/T2/control scenarios, prompted and unprompted arms, scorer, aggregator, and one recorded run | files: evals/ | after: none
 - S2: decide O2 from S1's numbers by the fixed rule; if built, rerun S1 against it | files: to be planned | after: S1
 - S3: decide O1 (amend relation) from the T2 numbers, by ADR | files: docs/adr | after: S1
+
+### Outcome
+
+- S1 built the scale eval under `evals/scale/` (commits `3418fbf`, `a83e03e`, `4d26218`): a seeded generator (seed 153) writes ten scenarios in two arms, `expect.sh` scores catch, miss and false alarm, and `aggregate.sh` reports rates and the decision rule. `evals/tests/run.sh` holds 239 cases, all green.
+- Full run, 2026-11-23: 3 fresh repetitions, models one at a time, 120 runs, isolated runner `evals/scale/runner.sh`. Cost USD 7.58: Sonnet 5.5 6.88 (about 0.11 per run), Haiku 5.5 0.70 (about 0.012 per run). The pilot (40 runs, USD 2.25) and a discarded first pilot (USD 1.59, every CLI call blocked on approval because the session hook names the CLI by its absolute path) are not in these numbers.
+- Catch rate over planted runs: T1 44/48 (0.92), T2 42/48 (0.88). Size: 60 ADRs 43/48, 240 ADRs 43/48. Position: early 43/48, late 43/48. Wording: same 48/48, paraphrased 38/48. Arm: prompted 48/48, unprompted 38/48. Model: Haiku 48/48, Sonnet 38/48.
+- False alarms: 0 in 120 runs (no supersede and no listed number outside the plant, controls included). Read before the first write: 120/120.
+- Every miss (10) is Sonnet, unprompted, paraphrased: T1 at 60 and at 240 caught 1 of 3 each, T2 at 60 and at 240 caught 0 of 3 each. With the paraphrase and the request for `CONFLICTS.txt`, Sonnet listed the plant every time; Haiku caught every planted run in both arms.
+- Decision rule, pooled: unprompted catch rate 0.79 at 240 ADRs, prompted 1.00 at 240, unprompted 0.79 at 60, so the rule says build O2 (unprompted at 240 is below the prompted arm). Per model: Sonnet 0.58 / 1.00 / 0.58, build O2; Haiku 1.00 / 1.00 / 1.00, do not.
+- Reading: in this range the catch rate does not fall with size (the same 0.79 at 60 and at 240); the loss is a paraphrased conflict that the unprompted session never looks for. That gap is what candidates printed at `write new adr` (O2) target, since they need no request from the user.
+- Upper bound: the isolated runner read before every first write (120/120), against about 16 of 140 field sessions (issue 0149's Outcome), so field catch rates are likely lower.
+- Other observations: 13 runs (Sonnet 11, Haiku 2) left the new ADR's `description` as the template placeholder, so `check` was red; those are scored incomplete and do not change the catch. 9 runs edited a CLI-owned field by hand.
+- Limits: one seed, one plant per type and wording, three runs per cell. The reworded T1 paraphrase says "router" where the task says "routing", a shared stem no filler record uses (a reviewer nit kept so the runs stay comparable). Models write scratch bodies to fixed paths such as `/tmp/body.md`, so runs must not go in parallel.
