@@ -530,11 +530,14 @@ test_scale_noise_controls() {
 			assert_eq "$name passes when the new ADR links nothing" "0 0" "$(scale_count false-alarm:) $RC"
 			scale_noise "$name" "Nothing else." 0004 ${extra[@]+"${extra[@]}"}
 			assert_eq "$name fails on a supersede" "1 1" "$(scale_count false-alarm:) $RC"
+			scale_noise "$name" "Nothing else." "$neighbor" ${extra[@]+"${extra[@]}"}
+			assert_eq "$name fails when the noise ADR is superseded" "1 1" "$(scale_count false-alarm:) $RC"
+			assert_true "$name names the superseded noise ADR" grep -q "^false-alarm: adr/$neighbor was superseded" <<<"$OUTPUT"
 			scale_noise "$name" "See adr/$neighbor." "" ${extra[@]+"${extra[@]}"}
-			assert_eq "$name fails on a link to the record it shares words with" "1 1 1" "$(scale_count false-alarm:) $(scale_count over-linked:) $RC"
+			assert_eq "$name passes and reports a link that leaves the noise ADR in force" "0 1 0" "$(scale_count false-alarm:) $(scale_count over-linked:) $RC"
 			assert_true "$name names the over-linked record" grep -q "^over-linked: adr/$neighbor " <<<"$OUTPUT"
 			scale_noise "$name" "See adr/$(scale_other_in_force "$name" "$neighbor")." "" ${extra[@]+"${extra[@]}"}
-			assert_eq "$name fails on a link to any other record in force" "1 1" "$(scale_count false-alarm:) $RC"
+			assert_eq "$name passes and reports a link to any other record in force" "0 1 0" "$(scale_count false-alarm:) $(scale_count over-linked:) $RC"
 		done
 	done
 }
@@ -586,7 +589,7 @@ test_scale_aggregate_links() {
 	scale_run_dir "$dir" t1-12-same-early-unprompted '["outcome: superseded"]'
 	scale_run_dir "$dir" t1-12-para-late-unprompted '["outcome: named", "over-linked: adr/0004 is named by a new record", "over-linked: adr/0007 is named by a new record"]'
 	scale_run_dir "$dir" t2-12-same-late-unprompted '["missed: x"]'
-	scale_run_dir "$dir" control-12-noise-early-unprompted '["over-linked: adr/0003 is named by a new record", "false-alarm: adr/0003 is named by a new record"]'
+	scale_run_dir "$dir" control-12-noise-early-unprompted '["over-linked: adr/0003 is named by a new record"]'
 	json="$(scale_agg "$dir")"
 	assert_eq "a superseding row has the outcome and no over-link" '["superseded",[]]' \
 		"$(jq -c '.rows[] | select(.scenario == "t1-12-same-early-unprompted") | [.outcome, .over_linked]' <<<"$json")"
@@ -594,7 +597,7 @@ test_scale_aggregate_links() {
 		"$(jq -c '.rows[] | select(.scenario == "t1-12-para-late-unprompted") | [.outcome, .over_linked]' <<<"$json")"
 	assert_eq "a missed row has no outcome" '[null,[]]' \
 		"$(jq -c '.rows[] | select(.scenario == "t2-12-same-late-unprompted") | [.outcome, .over_linked]' <<<"$json")"
-	assert_eq "a noise control row has its own type, no outcome and its over-link, counted as a false alarm" '["noise-control",null,[3],true]' \
+	assert_eq "a noise control row has its own type, no outcome and its over-link, not counted as a false alarm" '["noise-control",null,[3],false]' \
 		"$(jq -c '.rows[] | select(.scenario | startswith("control-12-noise")) | [.type, .outcome, .over_linked, .false_alarm]' <<<"$json")"
 	assert_eq "the arm group counts the plain scenarios' superseded, named and over-linked runs" '[1,1,1]' \
 		"$(jq -c '.groups.arm[0] | [.superseded, .named, .over_linked]' <<<"$json")"
@@ -609,7 +612,7 @@ test_scale_aggregate_noise_population() {
 	scale_run_dir "$plain" control-12-unprompted '[]'
 	scale_run_dir "$mixed" t1-12-same-early-unprompted '["outcome: superseded"]'
 	scale_run_dir "$mixed" control-12-unprompted '[]'
-	scale_run_dir "$mixed" control-12-noise-early-unprompted '["over-linked: adr/0003 is named by a new record", "false-alarm: adr/0003 is named by a new record"]'
+	scale_run_dir "$mixed" control-12-noise-early-unprompted '["false-alarm: adr/0003 was superseded"]'
 	before="$(scale_agg "$plain")"
 	after="$(scale_agg "$mixed")"
 	assert_eq "the control group's false alarm rate is unchanged by a noise control" "$(jq -c '.groups.type[] | select(.key == "control") | [.runs, .false_alarms, .false_alarm_rate]' <<<"$before")" \
@@ -617,12 +620,17 @@ test_scale_aggregate_noise_population() {
 	for dimension in size wording position arm model; do
 		assert_eq "the $dimension groups are unchanged by a noise control" "$(jq -c ".groups.$dimension" <<<"$before")" "$(jq -c ".groups.$dimension" <<<"$after")"
 	done
-	assert_eq "the noise control has a type group of its own" '[1,1,1]' \
+	assert_eq "the noise control has a type group of its own" '[1,1,0]' \
 		"$(jq -c '.groups.type[] | select(.key == "noise-control") | [.runs, .false_alarms, .over_linked]' <<<"$after")"
 	assert_eq "the total still counts every run" 3 "$(jq -c .total.runs <<<"$after")"
 }
 
 test_scale() {
+	if [[ -n "${LIVING_DOCS_EVAL_ONLY:-}" ]]; then
+		declare -F "$LIVING_DOCS_EVAL_ONLY" >/dev/null || { flunk "LIVING_DOCS_EVAL_ONLY" "no test function named $LIVING_DOCS_EVAL_ONLY"; return; }
+		"$LIVING_DOCS_EVAL_ONLY"
+		return
+	fi
 	test_scale_aggregate_noise_population
 	test_scale_link_outcomes
 	test_scale_noise_controls

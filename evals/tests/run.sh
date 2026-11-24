@@ -6,6 +6,7 @@
 # mktemp and is removed on exit.
 #
 # usage: run.sh [usage|score|isolation|scenarios|scale]   (no argument runs every group)
+# LIVING_DOCS_EVAL_ONLY=<test function> runs only that function of the scale group (unset: every test).
 # Exit: 0 = all cases pass, 1 = at least one failed.
 
 set -uo pipefail

@@ -13,8 +13,8 @@
 #   outcome:     how the plant was caught in the unprompted arm: superseded (by a new record) or
 #                named (only mentioned by one); a catch either way
 #   over-linked: a record in force at the baseline, other than the plant and any record newly
-#                superseded, is named by a new record; only information, except in a noise
-#                control, where it is also a false-alarm
+#                superseded, is named by a new record; only information, in a noise control
+#                too (a noise record newly superseded is a false-alarm)
 #   missed:      the planted record is not caught
 #   false-alarm: another record is newly superseded, or listed in CONFLICTS.txt (prompted)
 #   incomplete:  the decision is not recorded, check is red, or CONFLICTS.txt is absent
@@ -150,11 +150,10 @@ scale_judge_unprompted() { # scale_judge_unprompted <plant number>
 	fi
 }
 
-scale_judge_over_links() { # scale_judge_over_links <plant number> <wording>: reports each over-link; in a noise control it is also a false alarm
+scale_judge_over_links() { # scale_judge_over_links <plant number>: reports each over-link, for information only
 	local n
 	for n in $(scale_over_linked "$1"); do
 		echo "over-linked: adr/$(scale_padded "$n") is named by a new record"
-		[[ "$2" == noise ]] && eval_fail "false-alarm: adr/$(scale_padded "$n") is named by a new record"
 	done
 	return 0
 }
@@ -175,7 +174,7 @@ scale_expect() { # scale_expect <scenario dir>
 	local TYPE SIZE WORDING POSITION ARM PLANT
 	. "$1/scenario.env"
 	if [[ "$ARM" == prompted ]]; then scale_judge_prompted "$PLANT"; else scale_judge_unprompted "$PLANT"; fi
-	scale_judge_over_links "$PLANT" "$WORDING"
+	scale_judge_over_links "$PLANT"
 	scale_new_adr_in_force || eval_fail "incomplete: no new ADR in force records the decision"
 	eval_check_green || eval_fail "incomplete: living-docs check is red"
 	eval_finish
