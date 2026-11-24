@@ -24,6 +24,8 @@ Kept: `write supersede` and its chain checks; the determinism boundary (no model
 - Decision rule, fixed before running: if the unprompted catch rate at 240 ADRs is below the prompted arm's, or below the unprompted rate at 60 ADRs, build O2 and rerun the same scenarios against it; then decide O1 from the T2 numbers.
 - After the measurement (owner, 2026-11-23): the rule says build O2, so an advisor designs how `write new adr` finds candidates deterministically before an ADR; O1 waits. Not taken: deciding O1 now; stopping at the measurement.
 - O2 is measured in variants, smallest first (owner, 2026-11-23, after a design review): the transcripts show unprompted sessions already ran `read records --topic`, got an empty answer on a paraphrased conflict and read it as no conflict. V1 rewords the empty `--topic` answer (records in force, no word match is not evidence of no conflict, `read records` lists them); V2 adds one fixed line to `write new adr` asking whether the decision contradicts or partly reverses a record in force; V3 (candidates by rare shared terms) is built only if V1 and V2 fall short. Rule fixed before running: keep the smallest variant whose Sonnet unprompted paraphrased catch reaches 11/12 with no false alarm and no over-link. The scorer first separates superseded from merely named and counts a non-plant link as over-linked, and noise controls are added. Not taken: V1 alone; V3 directly (candidates on 84 to 94 of 94 writes over this repository's ADRs); pausing O2.
+- After measuring V1 and V2 (owner, 2026-11-24): only a supersede of the noise ADR is a false alarm in a noise control; a new record that names it as context and leaves it in force is reported as over-linked, for information. The scorer changes before V3, and V1 and V2 are rescored from their raw outputs with no new model run. Not taken: counting any citation as a false alarm.
+- V3 is built on V2 (owner, 2026-11-24): neither V1 (6/12) nor V2 (9/12) reached the fixed 11/12, so `write new adr` adds candidate in-force ADRs that share rare terms with the new title, description and body, on top of V2's question, by ADR before code, then measured as V1 and V2 were. Not taken: keeping V2 and stopping, which would change the rule after seeing the data; a full V2 rerun first; stopping O2.
 
 ### Acceptance
 
@@ -38,7 +40,10 @@ Kept: `write supersede` and its chain checks; the determinism boundary (no model
 - S3: V1, the empty `read records --topic` answer names the records in force, says no word match is not evidence of no conflict, and points at `read records` | files: living-docs-core/src/commands/effective, cli/tests | after: S1
 - S4: the ADR for V2 and V2 itself, one fixed ask line and `in_force` on `write new adr` and the MCP `write` tool | files: docs/adr, living-docs-core/src/commands/new, cli, mcp | after: S3
 - S5: measure V1 and V2 (Sonnet, unprompted, 30 runs each) against the fixed rule, then the chosen variant over the full 120 runs, and record the numbers | files: docs/issues | after: S2, S4
-- S6: decide O1 (amend relation) from the T2 numbers, by ADR | files: docs/adr | after: S5
+- S6: the scorer counts only a supersede of the noise ADR as a false alarm, and V1 and V2 are rescored from their raw outputs | files: evals/scale, evals/tests, docs/issues | after: S5
+- S7: the ADR for V3 and V3 itself, candidate in-force ADRs sharing rare terms with the new ADR, on top of V2 | files: docs/adr, living-docs-core/src/commands/effective, cli, mcp | after: S5
+- S8: measure V3 as V1 and V2 were, against the fixed rule | files: docs/issues | after: S6, S7
+- S9: decide O1 (amend relation) from the T2 numbers, by ADR | files: docs/adr | after: S8
 
 ### Outcome
 
