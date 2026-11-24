@@ -1,5 +1,6 @@
 use args::{
-    CheckArgs, Command, InstallCmd, ManageCmd, NewRecordArgs, ReadCmd, UninstallCmd, WriteCmd,
+    CheckArgs, Command, ExportFormat, InstallCmd, ManageCmd, NewRecordArgs, ReadCmd, UninstallCmd,
+    WriteCmd,
 };
 use output::{ColorMode, OutputMode};
 use std::path::Path;
@@ -42,7 +43,10 @@ fn run_check(
         docs_dir,
         args.paths,
         args.require_owner,
-        &args.changed_files,
+        &commands::check::Changes {
+            files: &args.changed_files,
+            inputs_from: args.changed_inputs_from.as_deref(),
+        },
         mode,
         color,
         &commands::check::Verbosity {
@@ -120,6 +124,11 @@ fn run_manage(docs_dir: &Path, operation: ManageCmd, mode: OutputMode, quiet: bo
         ManageCmd::Html { out, mermaid } => {
             commands::html::run_html(docs_dir, out, mermaid, mode, quiet)
         }
+        ManageCmd::View {
+            view,
+            export: Some(ExportFormat::Tla),
+            ..
+        } => commands::view::run_export_tla(docs_dir, &view),
         ManageCmd::View {
             view,
             inputs,

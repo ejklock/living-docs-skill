@@ -8,6 +8,7 @@ use crate::output::{self, ColorMode, OutputMode, Style};
 use crate::store::build_store;
 use living_docs_core::check::{self, MermaidReport, Report};
 use living_docs_core::doc_type::{self, Identity};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -17,17 +18,31 @@ pub(crate) struct Verbosity {
     pub(crate) quiet: bool,
 }
 
+/// The paths `check` narrows its report to: records, and where to read the
+/// repository paths that only keep a stale view in scope.
+pub(crate) struct Changes<'a> {
+    pub(crate) files: &'a [PathBuf],
+    pub(crate) inputs_from: Option<&'a str>,
+}
+
 pub(crate) fn run_check(
     docs_dir: &Path,
     paths: Vec<PathBuf>,
     require_owner: bool,
-    changed_files: &[PathBuf],
+    changes: &Changes,
     mode: OutputMode,
     color: ColorMode,
     verbosity: &Verbosity,
 ) -> ExitCode {
-    let (bundle, scope) = resolve_target(check_bundle(docs_dir, paths), docs_dir, changed_files);
-    let Some(report) = compile_scoped(&bundle, require_owner, &scope) else {
+    let inputs = match read_inputs(changes.inputs_from) {
+        Ok(inputs) => inputs,
+        Err(error) => {
+            eprintln!("living-docs check: cannot read --changed-inputs-from: {error}");
+            return ExitCode::from(2);
+        }
+    };
+    let (bundle, scope) = resolve_target(check_bundle(docs_dir, paths), docs_dir, changes.files);
+    let Some(report) = compile_scoped(&bundle, require_owner, &scope, inputs.as_deref()) else {
         return exit_bundle_root_not_found(&bundle);
     };
     if mode.is_json() {
@@ -138,14 +153,41 @@ pub(crate) fn bundle_root_of(record: &Path, docs_dir: &Path) -> Option<PathBuf> 
     None
 }
 
-/// The bundle's report, narrowed to `changed_files` when the caller named
-/// any. An empty list is the unscoped gate, not an empty scope.
-fn compile_scoped(bundle: &Path, require_owner: bool, changed_files: &[PathBuf]) -> Option<Report> {
+/// The NUL-separated paths in `source`, a file or `-` for standard input, as
+/// text; `None` when no source was named. An empty entry is dropped.
+fn read_inputs(source: Option<&str>) -> std::io::Result<Option<Vec<String>>> {
+    let Some(source) = source else {
+        return Ok(None);
+    };
+    let mut bytes = Vec::new();
+    if source == "-" {
+        std::io::stdin().read_to_end(&mut bytes)?;
+    } else {
+        bytes = std::fs::read(source)?;
+    }
+    let paths = bytes
+        .split(|byte| *byte == 0)
+        .filter(|path| !path.is_empty())
+        .map(|path| String::from_utf8_lossy(path).into_owned())
+        .collect();
+    Ok(Some(paths))
+}
+
+/// The bundle's report, narrowed to `changed_files` and to the stale views
+/// `inputs` reach when the caller named either. With neither it is the
+/// unscoped gate, not an empty scope; an `inputs` source naming no path
+/// narrows to nothing.
+fn compile_scoped(
+    bundle: &Path,
+    require_owner: bool,
+    changed_files: &[PathBuf],
+    inputs: Option<&[String]>,
+) -> Option<Report> {
     let report = check::compile(build_store(bundle).as_ref(), bundle, require_owner)?;
-    if changed_files.is_empty() {
+    if changed_files.is_empty() && inputs.is_none() {
         return Some(report);
     }
-    Some(report.scoped_to(changed_files))
+    Some(report.scoped_to_changes(changed_files, inputs.unwrap_or_default()))
 }
 
 /// `check --mermaid-only [paths...]`: compiles the mermaid-fence report

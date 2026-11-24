@@ -9,6 +9,7 @@ use std::path::Path;
 
 const FIRST_ADR: &str = "adr/0001";
 const SECOND_ADR: &str = "adr/0002";
+const THIRD_ADR: &str = "adr/0003";
 const FIRST_ISSUE: &str = "issue/0001";
 const ADR_BODY: &str = "## Context\n\nThe cache grows without a bound.\n\n## Decision\n\nWe evict the oldest entry first.\n\n## Consequences\n\nMemory stays flat under load.\n";
 const ISSUE_BODY: &str =
@@ -35,6 +36,18 @@ pub enum Op {
     Index,
 }
 
+impl Op {
+    /// The record type and number of the record whose status the operation
+    /// sets, when it sets one.
+    pub fn status_target(&self) -> Option<(&'static str, u32)> {
+        match self {
+            Op::AdrStatus { number, .. } => Some(("ADR", u32::from(*number))),
+            Op::IssueStatus(_) => Some(("Issue", 1)),
+            _ => None,
+        }
+    }
+}
+
 /// Every operation a sequence step may pick.
 pub fn alphabet() -> Vec<Op> {
     let mut ops = vec![Op::NewAdr, Op::NewIssue];
@@ -46,6 +59,7 @@ pub fn alphabet() -> Vec<Op> {
     ops.push(Op::IssueStatus("closed"));
     for (old, new) in [
         (FIRST_ADR, SECOND_ADR),
+        (FIRST_ADR, THIRD_ADR),
         (SECOND_ADR, FIRST_ADR),
         (FIRST_ADR, FIRST_ISSUE),
     ] {

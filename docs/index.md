@@ -14,3 +14,4 @@ and its tooling live here, under the same trail the skill teaches.
 * [PRDs](prd/) - product requirement docs for larger feature surfaces
 * [Issues](issues/) - the vertical, demoable slices that build the living-docs system
 * [Research](research/) - external, sourced evidence backing the decisions
+* [Architecture](architecture/) - living views of the system, the crate graph generated from the workspace manifests

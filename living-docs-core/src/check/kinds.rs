@@ -21,6 +21,9 @@ pub const TIMESTAMP: &str = "timestamp";
 pub const PATH_MISSING: &str = "path-missing";
 pub const ANCHOR_MISSING: &str = "anchor-missing";
 pub const STALE_VIEW: &str = "stale-view";
+pub const STATE_MACHINE: &str = "state-machine";
+pub const DECISION_TABLE: &str = "decision-table";
+pub const SUPERSEDE_CYCLE: &str = "supersede-cycle";
 
 /// Every kind an advisory can carry, in a stable order.
 pub const ALL: &[Kind] = &[
@@ -76,6 +79,18 @@ pub const ALL: &[Kind] = &[
     Kind {
         name: STALE_VIEW,
         meaning: "an architecture view's stamped generated region records a hash that differs from the current hash of its inputs, or its stamp cannot be checked",
+    },
+    Kind {
+        name: STATE_MACHINE,
+        meaning: "a state view's diagram has an unreachable state, a dead end, a scope with several initial transitions, or is not proved",
+    },
+    Kind {
+        name: DECISION_TABLE,
+        meaning: "a marked decision table in a domain record has a combination no row covers, a contradiction, a shadowed row under `first`, a value outside its domain, or is too large to prove",
+    },
+    Kind {
+        name: SUPERSEDE_CYCLE,
+        meaning: "records name one another in a cycle through superseded_by, so none of them is in force",
     },
 ];
 

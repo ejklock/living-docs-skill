@@ -98,7 +98,7 @@ pub struct RecordsArgs {
     pub impact: Option<String>,
 }
 
-/// Maintain the bundle: `index`, `fmt` or `view`.
+/// Maintain the bundle: `index`, `fmt`, `view` or `export_view`.
 #[derive(Deserialize, JsonSchema)]
 #[serde(tag = "operation", rename_all = "snake_case")]
 #[schemars(extend("type" = "object"))]
@@ -109,6 +109,24 @@ pub enum ManageArgs {
     Fmt(FmtArgs),
     /// Splice Mermaid text into an architecture view's generated region and stamp it with its input globs and their hash.
     View(ViewArgs),
+    /// Export a flat state view as a model-checker module, returned as text.
+    ExportView(ExportViewArgs),
+}
+
+/// The formats `export_view` can write.
+#[derive(Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ExportFormat {
+    /// A TLA+ module.
+    Tla,
+}
+
+#[derive(Deserialize, JsonSchema)]
+pub struct ExportViewArgs {
+    /// The state view: `view/<slug>`, `architecture/<slug>` or its path.
+    pub view: String,
+    /// The module format; only `tla`.
+    pub format: ExportFormat,
 }
 
 #[derive(Deserialize, JsonSchema)]

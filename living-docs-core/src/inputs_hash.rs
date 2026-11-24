@@ -204,4 +204,10 @@ fn normalise_newlines(content: &[u8]) -> Vec<u8> {
 }
 
 #[cfg(test)]
+mod exhaustive;
+
+#[cfg(kani)]
+mod proofs;
+
+#[cfg(test)]
 mod tests;

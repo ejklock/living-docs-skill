@@ -22,7 +22,7 @@ pub(crate) mod split_reference;
 mod sub;
 #[path = "args/write.rs"]
 mod write;
-pub(crate) use manage::ManageCmd;
+pub(crate) use manage::{ExportFormat, ManageCmd};
 use std::path::PathBuf;
 pub(crate) use sub::{
     CheckArgs, GuideArgs, InstallCmd, NewRecordArgs, ReadArgs, ReadCmd, UninstallCmd,

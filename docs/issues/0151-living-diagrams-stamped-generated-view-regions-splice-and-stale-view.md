@@ -2,7 +2,7 @@
 type: Issue
 title: "Living diagrams: stamped generated view regions, splice and stale-view"
 description: "Implements ADR 0101: manage view --splice stamps a generated region with its inputs hash, check advises stale-view, and a runner script regenerates; this repository dogfoods a crate-graph view."
-status: open
+status: closed
 timestamp: 2026-11-23T02:38:10Z
 ---
 
@@ -22,10 +22,6 @@ Kept: hand-drawn view kinds, the existing unstamped marker (still valid, never c
 
 ### Decision
 
-
-
-
-
 - Living diagrams (owner, 2026-11-22, after the advisor's design review): the runner script plus an in-binary splice and a `stale-view` advisory (ADR 0101). Not taken: keeping the recipe alone; the runner script alone with the binary unchanged (the session's recommendation); an in-binary graph snapshot, which needs a parser per language.
 - Stamp only narrow inputs: the recipe tells authors to stamp a schema, migrations, compose, OpenAPI or manifests, and to leave import-graph views to the runner's `--check` in CI, since an inputs hash flags them on nearly every source commit. Not taken: refusing a stamp on an import-graph kind in the binary, which would make the binary judge a view's kind.
 - Measure over 20 pull requests on this repository: diff failures that were real drift versus noise, and seconds added to `make check`.
@@ -33,6 +29,8 @@ Kept: hand-drawn view kinds, the existing unstamped marker (still valid, never c
 - Symlinks in the inputs (owner, 2026-11-23): a symlink is hashed as git stores it, its path and its target text, never followed; a checkout without symlink support writes that text as a plain file and gets the same hash. Not taken: following links that stay inside the repository, which read `.git` through a committed link; skipping symlinks, which misses a re-pointed link.
 - Ignored files (owner, 2026-11-23): the walk skips what `.gitignore` excludes, through the `ignore` crate, as git-aware build tools hash only tracked-or-trackable files. Not taken: narrow globs only, which still pull generated files into a `**` glob.
 - A glob that only names ignored paths (owner, 2026-11-23): `manage view --splice` refuses a glob whose every match `.gitignore` excludes, naming it, so a file force-added under an ignored folder is caught when stamping instead of silently hashing nothing; `check` keeps hashing what the walk finds. Not taken: leaving it silent; reading the git index to include tracked files, which reads `.git` against ADR 0101.
+- Paths outside the bundle reach changed-only scope through stdin, for view globs only (owner, 2026-11-23): a new `check --changed-inputs-from -` reads NUL-separated paths and matches them only against the input globs stamped in views; `--changed-files` keeps carrying bundle paths, so an outside path never brings a record's violations into scope and no argument list can overflow. Not taken: the hook passing every staged path as `--changed-files` (pulled legacy violations into scope through suffix matching and hit ARG_MAX on large commits); the hook staying bundle-only; a capped list.
+- The pre-commit hook stays silent when check finds nothing (owner, 2026-11-23): it prints check's output only when a finding exists or the exit is non-zero. Not taken: printing the header and OK line on every commit.
 
 ### Acceptance
 

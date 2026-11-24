@@ -4,6 +4,7 @@ use crate::commands::reference::find_settable_record;
 use crate::commands::supersede::set_frontmatter_fields_expecting;
 use crate::doc_type::{self, DocTypeSpec, Identity};
 use crate::frontmatter::{has_unparseable_frontmatter, UNPARSEABLE_MESSAGE};
+use crate::lifecycle;
 use crate::line_ending::{refuse_mixed, LineEndingStore};
 use crate::record::{extract_record, format_scalar, TailValue};
 use crate::sections;
@@ -51,7 +52,8 @@ pub struct Applied {
 /// and does the same for the record's number on any status, refusing a number
 /// a record of the type holds and a record in a supersede link
 /// ([`renumber`]). A `status` change is refused, with nothing written, on a
-/// record whose `superseded_by` names a successor. Nothing is written when
+/// superseded record: one whose `superseded_by` names a successor or whose
+/// status is `Superseded`. Nothing is written when
 /// the reference is unresolvable or the value fails validation. Returns what
 /// was written — the CLI front renders it as colored text or JSON.
 pub fn apply(
@@ -200,7 +202,7 @@ fn resolve_field(
             let contents = store.read(path).map_err(|e| e.to_string())?;
             let spec = resolve_spec(path, &contents)?;
             validate_status(value, spec)?;
-            refuse_superseded(path, &contents)?;
+            refuse_superseded(spec, path, &contents)?;
             plain("status", value.to_string())
         }
         "description" => plain("description", format_scalar(value)),
@@ -237,17 +239,18 @@ fn resolve_spec(path: &Path, contents: &str) -> Result<&'static DocTypeSpec, Str
     })
 }
 
-/// Refuses a status change on a record that names a successor in
-/// `superseded_by`, so no status can be set that would contradict the link.
-/// The message names the by-hand edits that undo a supersede.
-fn refuse_superseded(path: &Path, contents: &str) -> Result<(), String> {
-    match extract_record(path, contents).superseded_by {
-        Some(successor) if !successor.trim().is_empty() => Err(format!(
-            "{}: superseded_by is {successor}, so its status is not changed; to undo the supersede, by hand remove superseded_by from this record and set its status, remove this record's number from supersedes on {successor}, then run `living-docs manage fmt` and `living-docs manage index`",
-            path.display()
-        )),
-        _ => Ok(()),
-    }
+/// Refuses a status change on a superseded record, with nothing written, as
+/// the lifecycle table decides ([`lifecycle::refuse_set_status`]). The
+/// message names the by-hand edits that undo a supersede.
+fn refuse_superseded(spec: &DocTypeSpec, path: &Path, contents: &str) -> Result<(), String> {
+    let record = extract_record(path, contents);
+    let facts = lifecycle::Facts {
+        number: record.number.unwrap_or_default(),
+        status: record.status,
+        successor: record.superseded_by,
+    };
+    lifecycle::refuse_set_status(spec, &facts)
+        .map_err(|refusal| format!("{}: {refusal}", path.display()))
 }
 
 fn validate_status(new_status: &str, spec: &DocTypeSpec) -> Result<(), String> {

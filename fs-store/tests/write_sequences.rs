@@ -11,10 +11,10 @@ mod rejections;
 #[path = "write_sequences/snapshot.rs"]
 mod snapshot;
 
-use contract::Breach;
+use contract::{Breach, Part};
 use ops::Op;
 use snapshot::Snapshot;
-use std::collections::{BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -63,7 +63,7 @@ const SUPERSEDE_FIRST_BY_SECOND: Op = Op::Supersede {
     new: "adr/0002",
 };
 
-const STARTS: [Start; 3] = [
+const STARTS: [Start; 4] = [
     Start {
         name: "empty bundle",
         steps: &[],
@@ -81,6 +81,10 @@ const STARTS: [Start; 3] = [
             Op::NewIssue,
         ],
     },
+    Start {
+        name: "three ADRs and an issue",
+        steps: &[Op::NewAdr, Op::NewAdr, Op::NewAdr, Op::NewIssue],
+    },
 ];
 
 /// One exploration: where it runs, the sequence being extended, the bundles
@@ -95,6 +99,7 @@ struct Run {
     judgments_run: BTreeSet<Vec<&'static str>>,
     sequences: usize,
     states: usize,
+    findings: BTreeMap<String, String>,
 }
 
 impl Run {
@@ -109,6 +114,7 @@ impl Run {
             judgments_run: BTreeSet::new(),
             sequences: 0,
             states: 0,
+            findings: BTreeMap::new(),
         }
     }
 }
@@ -129,7 +135,10 @@ fn explore(parent: &Path, run: &mut Run) {
         let after = snapshot::take(&child);
         run.sequences += 1;
         if let Err(breach) = judge(refused, &before, after, &child, run) {
-            panic!("{}", failure_message(&run.start, &run.sequence, &breach));
+            let message = failure_message(&run.start, &run.sequence, &breach);
+            run.findings
+                .entry(format!("{:?}", breach.part))
+                .or_insert(message);
         }
         run.sequence.pop();
         let _ = fs::remove_dir_all(&child);
@@ -147,6 +156,10 @@ fn judge(
 ) -> Result<(), Breach> {
     if refused {
         contract::refused_step_left_bundle_alone(before, &after)?;
+    } else if let Some(Op::Supersede { new, .. }) = run.sequence.last() {
+        contract::supersede_step_is_legal(before, child, new)?;
+    } else if let Some((doc_type, number)) = run.sequence.last().and_then(Op::status_target) {
+        contract::status_step_is_legal(before, doc_type, number)?;
     }
     if !run.reached.insert((run.sequence.len(), after)) {
         run.sequences += descendants(MAX_LENGTH - run.sequence.len());
@@ -167,9 +180,21 @@ fn descendants(remaining: usize) -> usize {
     (1..=remaining).map(|steps| width.pow(steps as u32)).sum()
 }
 
+/// The shape of the illegal supersede transition a part catches, when it
+/// catches one.
+fn defect_of(part: Part) -> Option<&'static str> {
+    match part {
+        Part::SupersedeRewroteLink => Some("re-supersede"),
+        Part::SupersedeCycle => Some("cycle"),
+        Part::SupersedeEndsRetired => Some("retired successor"),
+        _ => None,
+    }
+}
+
 fn failure_message(start: &Start, sequence: &[Op], breach: &Breach) -> String {
+    let shape = defect_of(breach.part).map_or(String::new(), |d| format!("{d}: "));
     format!(
-        "from the {} the sequence {sequence:?} broke the contract at {:?}: {}",
+        "{shape}from the {} the sequence {sequence:?} broke the contract at {:?}: {}",
         start.name, breach.part, breach.detail
     )
 }
@@ -194,6 +219,13 @@ fn explore_from(start: Start, label: &str) {
     assert_eq!(run.operations_run.len(), ops::alphabet().len());
     assert!(run.nodes >= ops::alphabet().len());
     assert_every_judged_state_ran_every_judgment(&run);
+    let findings: Vec<&str> = run.findings.values().map(String::as_str).collect();
+    assert!(
+        findings.is_empty(),
+        "{} breaches:\n{}",
+        findings.len(),
+        findings.join("\n")
+    );
 }
 
 /// Every bundle the search judged ran the whole ordered list of state
@@ -228,7 +260,13 @@ fn every_sequence_from_a_superseded_pair_keeps_the_contract() {
 }
 
 #[test]
+fn every_sequence_from_three_adrs_keeps_the_contract() {
+    explore_from(STARTS[3], "explore-three-adrs");
+}
+
+#[test]
 fn the_search_bound_matches_the_alphabet() {
     assert_eq!(descendants(1), ops::alphabet().len());
-    assert_eq!(descendants(MAX_LENGTH), 17 + 17 * 17 + 17 * 17 * 17);
+    assert_eq!(ops::alphabet().len(), 18);
+    assert_eq!(descendants(MAX_LENGTH), 18 + 18 * 18 + 18 * 18 * 18);
 }

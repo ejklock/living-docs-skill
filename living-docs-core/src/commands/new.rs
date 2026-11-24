@@ -287,6 +287,8 @@ fn civil_date_from_unix_days(days: i64) -> (i64, u32, u32) {
 }
 
 #[cfg(test)]
+mod exhaustive;
+#[cfg(test)]
 mod scaffold_tests;
 #[cfg(test)]
 mod tests;

@@ -10,9 +10,11 @@
 #
 # LIVING_DOCS_BUNDLE=<dir> sets the docs bundle (default docs).
 # LIVING_DOCS_CHECK_CHANGED_ONLY=1 narrows the verdict to the staged records
-# plus the type index of a staged or deleted record, so a bundle carrying
-# legacy debt can arm this hook while it pays that debt down; nothing staged
-# in the bundle passes. CI still runs the full gate.
+# plus the type index of a staged or deleted record, and the stamped views
+# whose input globs match any staged path, so a bundle carrying legacy debt
+# can arm this hook while it pays that debt down. A stale view is only
+# advised, never a reason to fail the commit, and a commit with no finding
+# prints nothing. CI still runs the full gate.
 # LIVING_DOCS_REQUIRE_OWNER=1 requires an owner on the records checked.
 
 set -u
@@ -39,7 +41,6 @@ ARGS=(check)
 if [ "${LIVING_DOCS_REQUIRE_OWNER:-0}" = "1" ]; then
   ARGS+=(--require-owner)
 fi
-ARGS+=(--plain)
 
 if [ "${LIVING_DOCS_CHECK_CHANGED_ONLY:-0}" = "1" ]; then
   STAGED=()
@@ -49,10 +50,27 @@ if [ "${LIVING_DOCS_CHECK_CHANGED_ONLY:-0}" = "1" ]; then
   while IFS= read -r -d "" path; do
     STAGED+=("--changed-files=$(dirname -- "$path")/index.md")
   done < <(git diff --cached --name-only -z --diff-filter=D -- "$BUNDLE")
-  if [ "${#STAGED[@]}" -eq 0 ]; then
+  # Every staged path goes to the CLI on standard input, which matches it
+  # against the input globs stamped in the views and nothing else, so a path
+  # outside the bundle never reaches a record and a large commit never grows
+  # the argument list.
+  LIST="$(mktemp)" || { echo "living-docs pre-commit: no temporary file — doc-gate skipped, CI will enforce it." >&2; exit 0; }
+  trap 'rm -f "$LIST"' EXIT
+  git diff --cached --name-only -z --no-renames > "$LIST"
+  if [ "${#STAGED[@]}" -eq 0 ] && [ ! -s "$LIST" ]; then
     exit 0
   fi
-  exec "$BIN" "${ARGS[@]}" "${STAGED[@]}" -- "$BUNDLE"
+  # A commit with no finding prints nothing: the report is shown only when
+  # check names a violation or an advisory, or exits non-zero.
+  REPORT="$("$BIN" "${ARGS[@]}" --json ${STAGED[@]+"${STAGED[@]}"} --changed-inputs-from - -- "$BUNDLE" < "$LIST" 2>/dev/null)"
+  STATUS=$?
+  if [ "$STATUS" -eq 0 ]; then
+    case "$REPORT" in
+      *'"violations":[],"advisories":[]'*) exit 0 ;;
+    esac
+  fi
+  "$BIN" "${ARGS[@]}" --plain ${STAGED[@]+"${STAGED[@]}"} --changed-inputs-from - -- "$BUNDLE" < "$LIST"
+  exit $?
 fi
 
-exec "$BIN" "${ARGS[@]}" "$BUNDLE"
+exec "$BIN" "${ARGS[@]}" --plain "$BUNDLE"
