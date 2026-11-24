@@ -22,6 +22,7 @@ Kept: `write supersede` and its chain checks; the determinism boundary (no model
 - Failure taxonomy (design review, 2026-11-23): T1 contradicted by a newer decision with no supersede; T2 partially reversed with no supersede (supersede retires a whole record, so a partial reversal is written as prose, as ADR 0099 did against ADR 0027); T3 contradicted by code; T4 never implemented; T5 premise invalidated by the world. Today `check` catches part of T3 and T4 (`path-missing`, `stale-view`) and none of T1, T2 or T5. Supersede closes a declared, whole replacement only.
 - Measure first (owner, 2026-11-23): the scale eval (O4) runs before any build; then candidates at `write new adr` (O2) and a declared amend relation (O1) as the measurement decides. Not taken: building O2 and O1 at once; adding the `verification-unbound` advisory (O3) now; a scope-overlap advisory (O6, the DUPLICATE pass ADR 0057 cut); a `reviewed:` date on every record (O7).
 - Decision rule, fixed before running: if the unprompted catch rate at 240 ADRs is below the prompted arm's, or below the unprompted rate at 60 ADRs, build O2 and rerun the same scenarios against it; then decide O1 from the T2 numbers.
+- After the measurement (owner, 2026-11-23): the rule says build O2, so an advisor designs how `write new adr` finds candidates deterministically before an ADR; O1 waits. Not taken: deciding O1 now; stopping at the measurement.
 
 ### Acceptance
 
