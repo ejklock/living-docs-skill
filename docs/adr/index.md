@@ -70,6 +70,7 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0102 — check proves state views and marked decision tables as advisories](0102-check-proves-state-views-and-marked-decision-tables-as-advisories.md) - Proposed
 * [0103 — manage view exports a flat state view as a TLA+ module for the project's model checker](0103-manage-view-exports-a-flat-state-view-as-a-tla-module-for-the-project-s-model-checker.md) - Proposed
 * [0104 — The record lifecycle is one transition table that set status and supersede consult before any write](0104-the-record-lifecycle-is-one-transition-table-that-set-status-and-supersede-consult-before-any-write.md) - Accepted
+* [0105 — Write new adr asks whether the decision contradicts a record in force](0105-write-new-adr-asks-whether-the-decision-contradicts-a-record-in-force.md) - Proposed
 
 ## Superseded
 
