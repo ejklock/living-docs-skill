@@ -3,7 +3,7 @@ type: ADR
 title: Write new adr asks whether the decision contradicts a record in force
 description: write new adr prints a fixed question with the count of records in force and how to list them, in text, JSON and MCP, without naming any record.
 owner: Evaldo Klock
-status: Proposed
+status: Accepted
 timestamp: 2026-11-24T03:13:12Z
 ---
 

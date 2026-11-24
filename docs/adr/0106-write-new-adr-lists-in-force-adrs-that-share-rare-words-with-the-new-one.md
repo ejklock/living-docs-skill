@@ -3,7 +3,7 @@ type: ADR
 title: Write new adr lists in-force ADRs that share rare words with the new one
 description: write new adr lists up to three in-force ADRs sharing two or more rare words with the new title, description and body, beside the fixed question, without judging a conflict.
 owner: Evaldo Klock
-status: Proposed
+status: Accepted
 timestamp: 2026-11-24T09:52:55Z
 ---
 

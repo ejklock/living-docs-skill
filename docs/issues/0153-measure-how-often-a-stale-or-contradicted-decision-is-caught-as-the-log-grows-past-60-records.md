@@ -27,6 +27,7 @@ Kept: `write supersede` and its chain checks; the determinism boundary (no model
 - After measuring V1 and V2 (owner, 2026-11-24): only a supersede of the noise ADR is a false alarm in a noise control; a new record that names it as context and leaves it in force is reported as over-linked, for information. The scorer changes before V3, and V1 and V2 are rescored from their raw outputs with no new model run. Not taken: counting any citation as a false alarm.
 - V3 is built on V2 (owner, 2026-11-24): neither V1 (6/12) nor V2 (9/12) reached the fixed 11/12, so `write new adr` adds candidate in-force ADRs that share rare terms with the new title, description and body, on top of V2's question, by ADR before code, then measured as V1 and V2 were. Not taken: keeping V2 and stopping, which would change the rule after seeing the data; a full V2 rerun first; stopping O2.
 - The rule's over-link clause leaves the noise controls out (owner, 2026-11-24): in a noise control only a supersede fails a variant; a link to a record in force there is information. Elsewhere a link to a non-plant record still fails it. Not taken: the clause applying to the noise controls too, which every variant failed 6/6 by citing related context.
+- O2 closes on V3 (owner, 2026-11-24): V3 met the fixed rule (11/12, no false alarm, no over-link outside the noise controls), so ADR 0105 and ADR 0106 are accepted and V1, V2 and V3 ship together. Not taken: a full 120-run V3 rerun first; deciding O1 now (S9 stays open).
 
 ### Acceptance
 
