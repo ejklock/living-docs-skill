@@ -8,6 +8,8 @@
 # A scenario directory holds manifest.tsv (see manifest.awk) and scenario.env (TYPE, SIZE,
 # WORDING, POSITION, ARM, PLANT: the planted record's number, 0 for a control). A noise control
 # (WORDING=noise) holds a non-conflicting record at POSITION that shares rare words with the task.
+# An exception scenario (generate-exceptions.sh) adds EXPECTED_LIMIT and is judged by
+# scale_expect_exception from the upload limit written to config/limits.env.
 #
 # expect prints one line per finding, each with a prefix the aggregator reads:
 #   outcome:     how the plant was caught in the unprompted arm: superseded (by a new record) or
@@ -15,7 +17,10 @@
 #   over-linked: a record in force at the baseline, other than the plant and any record newly
 #                superseded, is named by a new record; only information, in a noise control
 #                too (a noise record newly superseded is a false-alarm)
-#   missed:      the planted record is not caught
+#   surviving-clause: kept or lost, for a partial reversal (t2): whether the plant is still in
+#                force or a record added in the run names the plant's seeded bucket
+#   missed:      the planted record is not caught, or it was superseded by a record that existed
+#                before the run or by no record
 #   false-alarm: another record is newly superseded, or listed in CONFLICTS.txt (prompted)
 #   incomplete:  the decision is not recorded, check is red, or CONFLICTS.txt is absent
 
@@ -135,13 +140,29 @@ scale_new_adr_in_force() {
 	return 1
 }
 
+scale_successor_of() { # scale_successor_of <number>: the first record number its superseded_by names
+	local file
+	for file in "$SCALE_ADR_DIR/$(scale_padded "$1")"-*.md; do
+		[[ -f "$file" ]] && eval_field "$file" superseded_by | grep -o -E '[0-9]+' | head -1 | sed -E 's/^0+([0-9])/\1/'
+	done
+}
+
+scale_is_new_adr() { # scale_is_new_adr <number>: the ADR with that number was added since the baseline
+	scale_new_records | grep -q -E "^$SCALE_ADR_DIR/$(scale_padded "$1")-"
+}
+
 scale_judge_unprompted() { # scale_judge_unprompted <plant number>
-	local plant="$1" n caught=0
+	local plant="$1" n caught=0 successor
 	for n in $(scale_newly_superseded); do
 		if [[ "$n" == "$plant" ]]; then caught=1; else eval_fail "false-alarm: adr/$(scale_padded "$n") was superseded"; fi
 	done
 	((plant == 0)) && return
-	if ((caught == 1)); then
+	successor="$(scale_successor_of "$plant")"
+	if ((caught == 1)) && [[ -z "$successor" ]]; then
+		eval_fail "missed: adr/$(scale_padded "$plant") was marked Superseded with no successor"
+	elif ((caught == 1)) && ! scale_is_new_adr "$successor"; then
+		eval_fail "missed: adr/$(scale_padded "$plant") was superseded by adr/$(scale_padded "$successor"), a record that existed before the run"
+	elif ((caught == 1)); then
 		echo "outcome: superseded"
 	elif scale_linked "$plant"; then
 		echo "outcome: named"
@@ -170,11 +191,50 @@ scale_judge_prompted() { # scale_judge_prompted <plant number>
 	((plant == 0 || caught == 1)) || eval_fail "missed: adr/$(scale_padded "$plant") is not listed in CONFLICTS.txt"
 }
 
+SCALE_KEPT_TOKEN="ld-uploads-153"
+
+scale_judge_surviving_clause() { # reports, for a partial reversal, whether the clause it keeps stays in force: the plant itself, or a record added in the run naming the plant's seeded bucket
+	local file status
+	[[ "$TYPE" == t2 ]] || return 0
+	for file in "$SCALE_ADR_DIR/$(scale_padded "$PLANT")"-*.md; do
+		[[ -f "$file" ]] || continue
+		status="$(eval_field "$file" status)"
+		[[ "$status" != Superseded && "$status" != Deprecated ]] && { echo "surviving-clause: kept"; return 0; }
+	done
+	while IFS= read -r file; do
+		[[ "$file" == "$SCALE_ADR_DIR"/* && -f "$file" ]] || continue
+		status="$(eval_field "$file" status)"
+		[[ "$status" != Superseded && "$status" != Deprecated ]] || continue
+		grep -q -F "$SCALE_KEPT_TOKEN" "$file" && { echo "surviving-clause: kept"; return 0; }
+	done < <(scale_new_records)
+	echo "surviving-clause: lost"
+}
+
+scale_written_limit() { # prints the UPLOAD_MAX_MB value config/limits.env sets, if any
+	[[ -f config/limits.env ]] || return 0
+	sed -n -E "s/^[[:space:]]*(export[[:space:]]+)?UPLOAD_MAX_MB[[:space:]]*=[[:space:]]*[\"']?([0-9]+).*/\\2/p" config/limits.env | head -1
+}
+
+scale_expect_exception() { # scale_expect_exception <scenario dir>: the limit written follows the record in force
+	local TYPE SIZE WORDING POSITION ARM PLANT EXPECTED_LIMIT limit
+	. "$1/scenario.env"
+	limit="$(scale_written_limit)"
+	if [[ -z "$limit" ]]; then
+		eval_fail "incomplete: config/limits.env sets no UPLOAD_MAX_MB"
+	elif ((10#$limit != EXPECTED_LIMIT)) && [[ "$TYPE" == control ]]; then
+		eval_fail "false-alarm: UPLOAD_MAX_MB=$limit departs from the limit adr/0003 sets"
+	elif ((10#$limit != EXPECTED_LIMIT)); then
+		eval_fail "missed: UPLOAD_MAX_MB=$limit follows the clause the exception left dead"
+	fi
+	eval_finish
+}
+
 scale_expect() { # scale_expect <scenario dir>
 	local TYPE SIZE WORDING POSITION ARM PLANT
 	. "$1/scenario.env"
 	if [[ "$ARM" == prompted ]]; then scale_judge_prompted "$PLANT"; else scale_judge_unprompted "$PLANT"; fi
 	scale_judge_over_links "$PLANT"
+	scale_judge_surviving_clause
 	scale_new_adr_in_force || eval_fail "incomplete: no new ADR in force records the decision"
 	eval_check_green || eval_fail "incomplete: living-docs check is red"
 	eval_finish

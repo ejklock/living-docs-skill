@@ -1,0 +1,18 @@
+Plant type		
+T1 contradicted	44	48
+T2 partly reversed	42	48
+Bundle size		
+60 ADRs	43	48
+240 ADRs	43	48
+Position		
+early (ADR 3)	43	48
+late (size−2)	43	48
+Wording		
+same as the task	48	48
+paraphrased	38	48
+Arm		
+prompted	48	48
+unprompted	38	48
+Model		
+Haiku 5.5	48	48
+Sonnet 5.5	38	48
