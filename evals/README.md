@@ -132,3 +132,7 @@ Each result holds `repo`, `head`, `docs_dir`, `adrs_in_force`, `no_impact_paths`
 ## Tests
 
 `make test-evals` runs `evals/tests/run.sh` with scripted runners from `evals/tests/runners` (`bash evals/tests/run.sh drift` runs the drift count tests alone) and fixture transcripts from `evals/tests/transcripts`. It needs no model and no network.
+
+## Retrieval fixture
+
+`evals/retrieval/` holds an offline fixture for measuring whether a ranker finds a stale or contradicted ADR when the new decision shares no rare word with it: 40 paraphrased plant pairs and 40 controls, written as JSON Lines, and the checks that keep them honest. `make test-retrieval` lints the fixture and runs the pytest suite under `uv`; it needs `make build` first, a one-time network resolve of the pinned `pytest`, and no model. It is not part of `make check`. See `evals/retrieval/README.md`.

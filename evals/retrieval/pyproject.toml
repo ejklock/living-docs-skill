@@ -1,0 +1,13 @@
+[project]
+name = "retrieval-eval"
+version = "0.0.0"
+description = "Offline fixture and rare-word finder checks for the stale-decision retrieval eval"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest==8.4.2"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
