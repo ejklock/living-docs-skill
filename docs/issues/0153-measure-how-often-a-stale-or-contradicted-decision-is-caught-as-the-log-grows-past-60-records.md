@@ -19,10 +19,6 @@ Kept: `write supersede` and its chain checks; the determinism boundary (no model
 
 ### Decision
 
-
-
-
-
 - Failure taxonomy (design review, 2026-11-23): T1 contradicted by a newer decision with no supersede; T2 partially reversed with no supersede (supersede retires a whole record, so a partial reversal is written as prose, as ADR 0099 did against ADR 0027); T3 contradicted by code; T4 never implemented; T5 premise invalidated by the world. Today `check` catches part of T3 and T4 (`path-missing`, `stale-view`) and none of T1, T2 or T5. Supersede closes a declared, whole replacement only.
 - Measure first (owner, 2026-11-23): the scale eval (O4) runs before any build; then candidates at `write new adr` (O2) and a declared amend relation (O1) as the measurement decides. Not taken: building O2 and O1 at once; adding the `verification-unbound` advisory (O3) now; a scope-overlap advisory (O6, the DUPLICATE pass ADR 0057 cut); a `reviewed:` date on every record (O7).
 - Decision rule, fixed before running: if the unprompted catch rate at 240 ADRs is below the prompted arm's, or below the unprompted rate at 60 ADRs, build O2 and rerun the same scenarios against it; then decide O1 from the T2 numbers.
@@ -41,6 +37,7 @@ Kept: `write supersede` and its chain checks; the determinism boundary (no model
 - S11 rule clarified before any counted run (owner, 2026-11-24, after a review and an advisor read of the pilot): a directory or glob named in Implementation impact expands to its files and the rule applies per file; precision comes from a seeded sample of up to 10 candidates per type read by the session, and a type is frequent when candidates × the Wilson lower bound of that precision reach 10% of the ADRs in force pooled over the three bundles; the implementing commit counting towards T3 and clearing T4 stays as written and is reported as a limit. Instrument fixes that only make the script read what the rule says (the whole Implementation impact field, brace expansion, crate-relative paths resolved by unique suffix or reported unresolved, commit filtering that does not stop at skewed dates, timestamps compared as instants with a missing one excluded and counted, a recall-biased version pattern) land with tests, and the count runs only from a committed script named by hash. Not taken: a directory or glob as one unit, or excluding them; the point estimate; per-bundle thresholds.
 - A local classifier is measured offline before any ADR (owner, 2026-11-24, after an advisor read): the CLI keeps ADR 0106's lexical candidates; an eval-only replay under `evals/` ranks in-force ADRs for at least 40 seeded paraphrased plants with no shared rare word (plus controls) with ADR 0106, BM25, a static embedding table (potion-base-8M, integer arithmetic) and all-MiniLM-L6-v2 as a ceiling; an ADR for the static table is written only if its recall at 3 has a 95% Wilson interval wholly above the lexical one with no more candidates per write on the controls. An in-process encoder or NLI judge is out under any result, since it would make the tool decide (ADR 0001). Not taken: writing the static-table ADR now; an encoder or NLI inside the CLI; dropping the idea.
 - What "a newer record names that file" means for T3 (owner, 2026-11-24, after a second review showed this repository's T3 at 4, 28 or 5 under three readings, so this repository's numbers were seen before the choice; the two private bundles were not): the exact file path anywhere in a newer record's body names it; a directory or glob names the files under it only when it appears in the newer record's own Implementation impact field; globs follow git's pathspec semantics (`*` does not cross `/`), and a crate-relative token resolves by unique suffix on both sides. Not taken: exact path only; a directory or glob mentioned anywhere in the body.
+- How S13's fixed rule is run (owner, 2026-11-25, before any S13 code or run): each ranker that scores every record (BM25, potion-base-8M, all-MiniLM-L6-v2) gets a score cut chosen on a calibration seed so that its candidates per write on the controls match the lexical finder's (ADR 0106), and recall at 3 is measured on a separate test seed with that cut frozen; the replay is Python run by `uv` under `evals/` with pinned dependencies, outside the workspace crates, and fetches the two models from Hugging Face on its first run; the 40 or more plants are a committed fixture of pairs (new ADR text, paraphrased plant) written by the session and reviewed before any run, with a script proving no pair shares a rare word under ADR 0106's tokenizer, inserted into the seed 153 bundles of 60 and 240 ADRs, and their model authorship is reported as a limit. Not taken: a score threshold fixed a priori; top 3 for every ranker, which drops the controls clause; a Rust eval binary; plants expanded from templates in `concerns.tsv`.
 
 ### Acceptance
 
@@ -49,9 +46,6 @@ Kept: `write supersede` and its chain checks; the determinism boundary (no model
 - The scenario generator is seeded and deterministic; the binary is not changed.
 
 ### Plan
-
-
-
 
 - S1: the scale eval — seeded generator, T1/T2/control scenarios, prompted and unprompted arms, scorer, aggregator, and one recorded run | files: evals/ | after: none
 - S2: scorer separates superseded from named-only and counts over-links; noise-control scenarios whose task shares rare words with a non-conflicting record; raw run outputs kept outside any worktree | files: evals/scale, evals/tests | after: S1
@@ -65,7 +59,9 @@ Kept: `write supersede` and its chain checks; the determinism boundary (no model
 - S10: stage 1, measure R0, then R1, then R2 (partial supersede by ADR) against a rule fixed before running | files: evals/scale, living-docs-core, cli, mcp, docs/adr | after: S9
 - S11: stage 2, count T3, T4 and T5 candidates in real bundles with a deterministic script, under a rule fixed before counting; then build `read records --path` only if T3 is frequent (T4 only recorded) | files: to be planned | after: S10 | done: counted, no type frequent, nothing built
 - S12: stage 3, only if S11 counts T5 as frequent: measure an opt-in `revisit` date with `check --as-of` | files: to be planned | after: S11 | not triggered: S11 found T5 not frequent
-- S13: offline retrieval replay of candidate rankers (ADR 0106, BM25, potion-base-8M, MiniLM ceiling) on seeded paraphrased plants, rule fixed in the Decision | files: evals/ | after: none
+- S13: a committed fixture of 40 paraphrased plant pairs (all measured, test half) and 40 controls (20 calibration, 20 test), with a lint proving no plant shares a rare word (ADR 0106's tokenizer, rare in both the 60- and the 240-ADR bundle) with its query, and a tokenizer whose shared words match `write new adr --json` | files: evals/retrieval/ | after: none | done: fixture, lint and tokenizer parity under `evals/retrieval/`, `make test-retrieval` 49 passed
+- S14: offline replay of the lexical finder (the real binary), BM25, potion-base-8M (int8, integer dot product) and all-MiniLM-L6-v2 over the fixture placed in the generator's bundles of 60 and 240 ADRs: score cuts calibrated on the calibration half (seed 154 filler), recall at 3 with 95% Wilson intervals and candidates per write on the controls measured on the test half (seed 153 filler), and the fixed rule's verdict printed | files: evals/retrieval/, Makefile | after: S13
+- S15: run S14, record the numbers and the verdict in the Outcome, and write the static-table ADR only if the rule says so | files: docs/ | after: S14
 
 ### Outcome
 
