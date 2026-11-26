@@ -23,7 +23,7 @@ DOCKER_CARGO = docker run --rm \
 LIVING_DOCS_BIN := target/release/living-docs
 
 .DEFAULT_GOAL := help
-.PHONY: help check lint test-fixtures test-drift-skill test-evals test-retrieval \
+.PHONY: help check lint test-fixtures test-drift-skill test-evals test-retrieval retrieval-replay \
         test-release-gate test-version-gate version \
         test-filesize-gate filesize \
         allow-inventory test-allow-inventory-gate test-install-gate test-npm-gate \
@@ -68,6 +68,9 @@ test-evals: build ## Run the eval harness tests, scripted runners only, no model
 test-retrieval: ## Lint the retrieval fixture and run its pytest suite with uv (needs `make build`)
 	cd evals/retrieval && uv run --locked python lint_fixture.py
 	cd evals/retrieval && LIVING_DOCS_BIN=$(abspath $(LIVING_DOCS_BIN)) uv run --locked pytest -q
+
+retrieval-replay: ## Replay the four rankers over the retrieval fixture into ~/.local/share/living-docs-evals/0153-s14 (downloads two models once)
+	uv run --locked --project evals/retrieval python evals/retrieval/replay.py --out "$${XDG_DATA_HOME:-$$HOME/.local/share}/living-docs-evals/0153-s14"
 
 test-release-gate: ## Run the verify-release-assets.sh fixtures (ADR 0024), stubbed gh
 	./scripts/tests/verify-release-assets/run.sh

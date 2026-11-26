@@ -9,7 +9,7 @@ make build            # the parity test runs the binary
 make test-retrieval   # the fixture lint, then the pytest suite
 ```
 
-`uv` runs everything from `pyproject.toml` and `uv.lock` with `pytest` pinned; nothing is installed beyond it. `LIVING_DOCS_BIN` names the binary (default `target/release/living-docs`); a missing binary fails the parity test with a message naming `make build`.
+`uv` runs everything from `pyproject.toml` and `uv.lock`, every dependency pinned exactly (`torch` from the CPU-only index on Linux). The offline tests stub or fake every model and download nothing. `LIVING_DOCS_BIN` names the binary (default `target/release/living-docs`); a missing binary fails the parity test with a message naming `make build`.
 
 ## Fixture
 
@@ -35,3 +35,15 @@ Exit 0 when clean; 1 with one line per failure (`p07: shares rare word 'x' in th
 
 - `rare_words.py`: the finder, ported from `living-docs-core/src/commands/effective/candidates.rs`. A parity test holds it equal to the binary.
 - `bundle.py`: `bundle_records` composes the in-force ADRs of a seed bundle from the scale manifest; `scale_setup_records` builds the same bundle with `scale_setup` and the real CLI, and a test holds the two equal.
+- `rankers.py`: the four rankers, each `score(query, adrs) -> [(record number, score)]`: the lexical finder (its own list, no cut), BM25 (`bm25s`, English stop words, no stemmer), the potion-base-8M table in integer arithmetic (int8 rows under one symmetric scale, int64 sums and dot products, one float division by the norms), and all-MiniLM-L6-v2 cosine through `sentence-transformers`. Both models are pinned by revision hash in the code.
+- `calibrate.py`: the Wilson interval, the candidate set (at or above the cut, at most 3, by score then record number), the cut (the lowest score whose mean candidates per write over the calibration controls is at most the lexical mean) and the verdict clauses.
+- `replay.py`: calibrates each scoring ranker on the calibration controls (seed 154 filler), measures recall at 3 and candidates per write on the plants and test controls (seed 153 filler) at sizes 60 and 240, writes `results.json` and prints a Markdown table with the static table's verdict at each size and overall (both sizes must pass).
+
+## Replay
+
+```sh
+make retrieval-replay                    # the full run, into ${XDG_DATA_HOME:-$HOME/.local/share}/living-docs-evals/0153-s14/
+uv run --locked --project evals/retrieval python evals/retrieval/replay.py --out DIR --limit 2   # smoke run
+```
+
+The first run downloads the two models into `${XDG_DATA_HOME:-$HOME/.local/share}/living-docs-evals/models` (`HF_HOME`, unless you have already set `HF_HOME`, which then wins); later runs work offline. `--limit N` keeps the first N plants and N controls of each split.

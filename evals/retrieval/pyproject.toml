@@ -1,12 +1,25 @@
 [project]
 name = "retrieval-eval"
 version = "0.0.0"
-description = "Offline fixture and rare-word finder checks for the stale-decision retrieval eval"
+description = "Fixture checks and the offline ranker replay for the stale-decision retrieval eval"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+  "bm25s==0.3.16",
+  "model2vec==0.10.0",
+  "sentence-transformers==6.3.0",
+  "torch==2.15.0",
+]
 
 [dependency-groups]
 dev = ["pytest==8.4.2"]
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
