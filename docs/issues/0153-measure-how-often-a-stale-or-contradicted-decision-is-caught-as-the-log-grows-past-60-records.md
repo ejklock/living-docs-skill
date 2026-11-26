@@ -2,7 +2,7 @@
 type: Issue
 title: Measure how often a stale or contradicted decision is caught as the log grows past 60 records
 description: A seeded eval plants contradictions in 60- and 240-ADR bundles and measures how often agents catch them, before building candidates at write new or an amend relation.
-status: open
+status: closed
 timestamp: 2026-11-23T12:14:02Z
 ---
 
