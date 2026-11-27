@@ -39,6 +39,11 @@ jobs:
       - name: Version consistency (VERSION ↔ every SKILL.md)
         run: ./scripts/check-version.sh
 
+      - name: Claude Code plugin and marketplace manifests
+        run: |
+          npm install --global @anthropic-ai/claude-code@2.1.332
+          claude plugin validate .
+
       - name: File-size ratchet (300-line cap + grandfather baseline)
         run: ./scripts/check-file-size.sh
 

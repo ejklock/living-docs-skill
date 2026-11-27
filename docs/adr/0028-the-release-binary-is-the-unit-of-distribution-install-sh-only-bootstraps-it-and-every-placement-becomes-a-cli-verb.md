@@ -42,6 +42,8 @@ ever taught to come out of it.
 We will make the released binary the unit of distribution. Nothing installs by copying out
 of a checked-out tree.
 
+> Amended by [ADR 0108](0108-a-claude-code-plugin-and-marketplace-at-the-repository-root-ship-the-skills-the-mcp-server-and-the-session-hook.md): the Claude Code plugin installs from a copy of the tree, an exception for that one channel.
+
 **One bootstrap.** `install.sh` keeps exactly one job: detect the platform triple,
 download `living-docs-<triple>` from a GitHub release, verify its published `.sha256`,
 place it in `~/.local/bin` (overridable), and stop. No harness modes, no file copying, no

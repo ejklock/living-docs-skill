@@ -11,10 +11,12 @@ const BETA: &str = "---\ntype: ADR\ntitle: Beta\nstatus: proposed\n---\n\n# 0002
 const GAMMA: &str =
     "---\ntype: Issue\ntitle: Gamma\nstatus: open\n---\n\n## 0001. Gamma\n\nBody.\n";
 
-/// What the binary wrote for the all-LF bundle below before CRLF support.
+/// What the binary writes for the all-LF bundle below; the root constant is
+/// the root as the binary leaves it, marker block included.
 const ADR_INDEX: &str = "# ADRs\n\n## Active\n\n* [0001 — Alpha](0001-alpha.md) - accepted\n* [0002 — Beta](0002-beta.md) - proposed\n";
 const ISSUES_INDEX: &str = "# Issues\n\n## Open\n\n* [0001 — Gamma](0001-gamma.md) - open\n";
-const ROOT_INDEX: &str = "# Docs\n* [ADRs](adr/)\n* [Issues](issues/)\n";
+const ROOT_INDEX: &str =
+    "---\nokf_version: \"0.1\"\n---\n\n# Docs\n* [ADRs](adr/)\n* [Issues](issues/)\n";
 
 fn bundle(label: &str, crlf: bool) -> common::Scratch {
     let docs = temp_bundle("index-crlf", label);

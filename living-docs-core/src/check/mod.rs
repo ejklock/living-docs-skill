@@ -8,6 +8,7 @@
 //! `compile` is given. `index.md`/`log.md` sit outside the record domain by design; `check::graph` reads them from disk.
 
 mod callout;
+mod cancellable;
 pub(crate) mod canonical;
 mod dependencies;
 mod duplicate_numbers;
@@ -37,13 +38,14 @@ mod supersede_links;
 mod unparseable_frontmatter;
 
 use crate::doc_type::{self, Identity};
-use crate::line_ending::LineEndingStore;
 use crate::store::DocStore;
 use std::fs;
 use std::path::{Path, PathBuf};
 #[cfg(test)]
 use std::process::ExitCode;
 
+use cancellable::run_all_checks;
+pub use cancellable::{compile_cancellable, Checked};
 pub use mermaid::{MermaidError, MermaidReport};
 pub(crate) use records::is_retired_record;
 pub use report::{Advisory, Report, Violation};
@@ -64,83 +66,6 @@ pub fn compile(store: &dyn DocStore, bundle: &Path, require_owner: bool) -> Opti
     let mut reporter = Reporter::new();
     let doc_count = run_all_checks(store, bundle, &mut reporter, require_owner, true);
     Some(reporter.into_report(bundle, doc_count))
-}
-
-/// Every invariant `check` validates, without the `bundle.is_dir()` guard,
-/// header, or verdict rendering — shared by [`compile`] (the full
-/// [`Report`]) and [`check_violations`] (the raw list, for a caller like
-/// `db_store::DbDocStore::write_checked` that gates a write on the same
-/// invariants). Records are judged in LF form, mixed endings flagged from `raw`.
-fn run_all_checks(
-    backing: &dyn DocStore,
-    bundle: &Path,
-    reporter: &mut Reporter,
-    require_owner: bool,
-    check_placeholders: bool,
-) -> usize {
-    let raw: &dyn DocStore = &read_once::ReadOnceStore::new(backing);
-    let store: &dyn DocStore = &LineEndingStore::new(raw, true);
-    let all_md = store.list(bundle).unwrap_or_default();
-    line_endings::check_line_endings(raw, &all_md, reporter);
-    let root_index = bundle.join("index.md");
-    if !root_index.is_file() {
-        reporter.report(&root_index, "missing bundle-root index.md (invariant 3)");
-    }
-    let doc_count = all_md.len();
-    let all_md = judge_records(store, all_md, &root_index, reporter);
-    graph::check_directory_membership(raw, bundle, &all_md, reporter);
-    graph::check_reachability(raw, bundle, &root_index, &all_md, reporter);
-    index_drift::check_index_drift(raw, bundle, reporter);
-    check_references(store, bundle, &all_md, reporter);
-    records::check_supersede_chain(store, &all_md, reporter);
-    supersede_links::check_supersede_links(store, bundle, &all_md, reporter);
-    callout::check_callouts(store, &all_md, reporter);
-    moved_source::check_moved_source(store, bundle, &all_md, reporter);
-    records::check_owner_requirement(store, &all_md, require_owner, reporter);
-    records::check_heading_matches_title(store, &all_md, reporter);
-    frontmatter_advice::check_frontmatter_advice(store, bundle, &all_md, reporter);
-    canonical::check_canonical_frontmatter(store, bundle, &all_md, reporter);
-    mermaid::check_bundle(&all_md, reporter);
-    size::check_body_size(store, &all_md, reporter);
-    sections::check_required_sections(store, &all_md, reporter);
-    if check_placeholders {
-        placeholder::check_placeholders(store, bundle, &all_md, reporter);
-    }
-    liveness::check_liveness(store, bundle, &all_md, reporter);
-    doc_count
-}
-
-/// The reference checks: links, record numbers, dependencies, inline-code paths, view stamps, state views, decision tables, supersede cycles.
-fn check_references(
-    store: &dyn DocStore,
-    bundle: &Path,
-    all_md: &[PathBuf],
-    reporter: &mut Reporter,
-) {
-    links::check_links(store, bundle, all_md, reporter);
-    link_style::check_link_style(store, bundle, all_md, reporter);
-    duplicate_numbers::check_duplicate_numbers(bundle, all_md, reporter);
-    dependencies::check_dependencies(store, bundle, all_md, reporter);
-    path_missing::check_path_missing(store, all_md, reporter);
-    stale_view::check_stale_view(store, all_md, reporter);
-    state_machine::check_state_machine(store, all_md, reporter);
-    decision_table::check_decision_table(store, bundle, all_md, reporter);
-    supersede_cycle::check_supersede_cycle(store, bundle, all_md, reporter);
-}
-
-/// Runs the per-record frontmatter pass and returns `all_md` without the
-/// records the store refused, which every later check leaves out.
-fn judge_records(
-    store: &dyn DocStore,
-    all_md: Vec<PathBuf>,
-    root_index: &Path,
-    reporter: &mut Reporter,
-) -> Vec<PathBuf> {
-    let refused = records::check_frontmatter_and_format(store, &all_md, root_index, reporter);
-    all_md
-        .into_iter()
-        .filter(|f| !refused.contains(f))
-        .collect()
 }
 
 /// The invariants [`compile`] validates, minus the unfilled-placeholder pass, returned as a plain violation list

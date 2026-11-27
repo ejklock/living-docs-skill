@@ -19,6 +19,36 @@ pub const DEFAULT_SKILL: &str = "living-docs";
 #[folder = "../skills/"]
 struct SkillAssets;
 
+/// The files of one skill that `install skills` places on a harness and the
+/// MCP server serves: the slim-stub `SKILL.md` and whatever it links to or
+/// runs by relative path.
+pub struct SkillAssetSpec {
+    /// The skill's directory name under `skills/`.
+    pub skill: &'static str,
+    /// Paths relative to the skill's directory; every one is an embedded asset.
+    pub relative_paths: &'static [&'static str],
+}
+
+/// Every skill with the installable files it ships, in install order.
+pub const SKILL_ASSET_SPECS: [SkillAssetSpec; 4] = [
+    SkillAssetSpec {
+        skill: "living-docs-drift",
+        relative_paths: &["SKILL.md", "scripts/drift.sh", "prompt.md"],
+    },
+    SkillAssetSpec {
+        skill: "living-docs",
+        relative_paths: &["SKILL.md"],
+    },
+    SkillAssetSpec {
+        skill: "okf-knowledge-format",
+        relative_paths: &["SKILL.md", "reference/SPEC.md", "reference/SPEC.source.md"],
+    },
+    SkillAssetSpec {
+        skill: "research-artifacts",
+        relative_paths: &["SKILL.md"],
+    },
+];
+
 const RULES_DIR: &str = "rules";
 const TEMPLATES_DIR: &str = "templates";
 const CONVENTIONS_SUFFIX: &str = "-conventions";
@@ -169,6 +199,15 @@ fn read_asset(path: &str) -> Result<String, String> {
 /// when `path` has no embedded asset.
 pub fn asset(path: &str) -> Option<Cow<'static, [u8]>> {
     SkillAssets::get(path).map(|file| file.data)
+}
+
+/// The frontmatter of the embedded `SKILL.md` of skill `name` as a JSON value.
+/// None when the skill is unknown or its entry has no frontmatter mapping.
+pub fn skill_frontmatter(name: &str) -> Option<serde_json::Value> {
+    let entry = read_asset(&format!("{name}/SKILL.md")).ok()?;
+    let block = crate::frontmatter::frontmatter_block(&entry)?;
+    let parsed = crate::frontmatter::parse_frontmatter(block)?;
+    serde_json::to_value(parsed).ok()
 }
 
 /// The names of every embedded skill, sorted.

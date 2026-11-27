@@ -1,10 +1,11 @@
-//! Materializes the embedded skills corpus (ADR 0014/0017) into a harness's
-//! skills directory (ADR 0028) — no working tree involved, ever. Mirrors
+//! Materializes the embedded skills corpus into a harness's skills
+//! directory — no working tree involved, ever. Mirrors
 //! `crate::hooks`'s embedded-asset materialization: the corpus is the only
 //! source, placement is idempotent, and `--dry-run` writes nothing.
 
 use crate::output::outln;
 use clap::ValueEnum;
+use living_docs_core::guide::SKILL_ASSET_SPECS;
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -12,8 +13,7 @@ use std::{fs, io};
 
 /// The AI harnesses `install skills` places the corpus for natively — every
 /// one auto-discovers `SKILL.md` files under its own skills directory, so
-/// placement never needs a generated pointer file (unlike `cursor`/`copilot`,
-/// slice S2 of ADR 0028).
+/// placement never needs a generated pointer file (unlike `cursor`/`copilot`).
 #[derive(Clone, Copy, Debug, ValueEnum)]
 pub(crate) enum Harness {
     Claude,
@@ -21,30 +21,6 @@ pub(crate) enum Harness {
     Codex,
     Pi,
 }
-
-struct SkillAssetSpec {
-    skill: &'static str,
-    relative_paths: &'static [&'static str],
-}
-
-const SKILL_ASSET_SPECS: [SkillAssetSpec; 4] = [
-    SkillAssetSpec {
-        skill: "living-docs-drift",
-        relative_paths: &["SKILL.md", "scripts/drift.sh", "prompt.md"],
-    },
-    SkillAssetSpec {
-        skill: "living-docs",
-        relative_paths: &["SKILL.md"],
-    },
-    SkillAssetSpec {
-        skill: "okf-knowledge-format",
-        relative_paths: &["SKILL.md", "reference/SPEC.md", "reference/SPEC.source.md"],
-    },
-    SkillAssetSpec {
-        skill: "research-artifacts",
-        relative_paths: &["SKILL.md"],
-    },
-];
 
 struct Placement {
     dest: PathBuf,

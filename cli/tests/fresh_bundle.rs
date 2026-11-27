@@ -155,14 +155,13 @@ fn hostile_unreadable_root_fails_new_naming_it_and_deletes_nothing() {
 }
 
 #[test]
-fn hostile_empty_root_is_present_and_only_gains_the_missing_link() {
+fn hostile_empty_root_is_present_and_gains_the_marker_and_the_missing_link() {
     let docs = git_bundle("hostile-empty");
     common::write(&docs, "index.md", "");
 
     assert_new_ok(&docs, "adr", "A");
     let root = root_of(&docs);
-    assert_eq!(root.lines().count(), 1, "got:\n{root}");
-    assert!(root.contains("](adr/)"), "got:\n{root}");
+    assert_eq!(root, "---\nokf_version: \"0.1\"\n---\n\n* [ADRs](adr/)\n");
 }
 
 #[test]

@@ -72,6 +72,12 @@ repo teaches. The decision *log* is this listing plus each record's `status` /
 * [0105 — Write new adr asks whether the decision contradicts a record in force](0105-write-new-adr-asks-whether-the-decision-contradicts-a-record-in-force.md) - Accepted
 * [0106 — Write new adr lists in-force ADRs that share rare words with the new one](0106-write-new-adr-lists-in-force-adrs-that-share-rare-words-with-the-new-one.md) - Accepted
 * [0107 — The npm package installs with no install script and the shim downloads the verified binary on first run](0107-the-npm-package-installs-with-no-install-script-and-the-shim-downloads-the-verified-binary-on-first-run.md) - Accepted
+* [0108 — A Claude Code plugin and marketplace at the repository root ship the skills, the MCP server and the session hook](0108-a-claude-code-plugin-and-marketplace-at-the-repository-root-ship-the-skills-the-mcp-server-and-the-session-hook.md) - Accepted
+* [0109 — living-docs mcp starts without a bundle and resolves it per tool call](0109-living-docs-mcp-starts-without-a-bundle-and-resolves-it-per-tool-call.md) - Accepted
+* [0110 — The MCP server publishes the embedded skills over the MCP skills extension with skill resources as fallback](0110-the-mcp-server-publishes-the-embedded-skills-over-the-mcp-skills-extension-with-skill-resources-as-fallback.md) - Accepted
+* [0111 — Records are MCP resources and change events reach subscribers from server writes and a bundle file watcher](0111-records-are-mcp-resources-and-change-events-reach-subscribers-from-server-writes-and-a-bundle-file-watcher.md) - Accepted
+* [0112 — The MCP check tool runs as a task on a bundle above a measured record threshold](0112-the-mcp-check-tool-runs-as-a-task-on-a-bundle-above-a-measured-record-threshold.md) - Accepted
+* [0113 — Verbs that ensure the bundle root add okf_version to a root that lacks it](0113-verbs-that-ensure-the-bundle-root-add-okf-version-to-a-root-that-lacks-it.md) - Accepted
 
 ## Superseded
 

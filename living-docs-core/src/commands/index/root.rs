@@ -1,15 +1,18 @@
 //! The bundle-root `index.md`: written once when missing, then only ever
-//! extended with one link line per type index it does not yet reach. An
-//! existing line is never rewritten or reordered, so hand framing survives.
+//! extended with one link line per type index it does not yet reach and, when
+//! it lacks one, the `okf_version` marker. An existing line is never rewritten
+//! or reordered, so hand framing survives.
 
 use crate::check::{normpath, reachable_index_set};
 use crate::doc_type::{self, DocTypeSpec, Identity};
+use crate::frontmatter::{frontmatter_block, has_unparseable_frontmatter};
 use crate::store::{is_refusal, DocStore};
 use std::fs;
 use std::io::{self, ErrorKind};
 use std::path::{Path, PathBuf};
 
 const ROOT_FRONTMATTER: &str = "---\nokf_version: \"0.1\"\n---\n\n# Documentation\n\n## Trail\n\n";
+const MARKER_LINE: &str = "okf_version: \"0.1\"";
 
 /// What to do about a missing root when no type index exists yet to link.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -49,7 +52,8 @@ fn present_types<'a>(
 
 /// Makes the bundle root reach every type index in `touched` (every present
 /// type index when the root is missing): creates a missing root, appends one
-/// link line per unreached index to a present one, and returns the root's
+/// link line per unreached index to a present one, adds the `okf_version`
+/// marker to a present one that lacks it, and returns the root's
 /// path only when it wrote. The root is read and written through `store`, so
 /// one the store refuses is an error naming it. A root that is not a regular
 /// file, or cannot be read, is an error naming it; nothing already on disk is
@@ -116,6 +120,34 @@ fn appended_text(existing: &str, missing: &str) -> String {
     }
 }
 
+/// `existing` with the `okf_version` marker added, `None` when its frontmatter
+/// already holds the key (whatever the value). A file with no closed
+/// frontmatter, or whose `---` block does not parse as a YAML mapping (a
+/// horizontal rule over prose), gets a whole block above its unchanged bytes; one with
+/// frontmatter gets the key as its first line. Inserted lines take the file's
+/// line ending. One leading byte order mark is set aside before deciding and
+/// stays the file's first bytes.
+fn with_marker(existing: &str) -> Option<String> {
+    let (bom, text) = match existing.strip_prefix('\u{feff}') {
+        Some(rest) => ("\u{feff}", rest),
+        None => ("", existing),
+    };
+    let plain = text.replace("\r\n", "\n");
+    let eol = if text.contains("\r\n") { "\r\n" } else { "\n" };
+    let block = frontmatter_block(&plain).filter(|_| !has_unparseable_frontmatter(&plain));
+    match block {
+        Some(block) if block.lines().any(|line| line.starts_with("okf_version:")) => None,
+        Some(_) => {
+            let at = text.find('\n')? + 1;
+            let (fence, rest) = text.split_at(at);
+            Some(format!("{bom}{fence}{MARKER_LINE}{eol}{rest}"))
+        }
+        None => Some(format!(
+            "{bom}---{eol}{MARKER_LINE}{eol}---{eol}{eol}{text}"
+        )),
+    }
+}
+
 fn append_unreached(
     store: &dyn DocStore,
     docs_dir: &Path,
@@ -133,12 +165,18 @@ fn append_unreached(
         })
         .map(|(spec, dir)| link_line(spec, dir))
         .collect();
-    if missing.is_empty() {
+    let marked = with_marker(&existing);
+    if missing.is_empty() && marked.is_none() {
         return Ok(None);
     }
-    let addition = appended_text(&existing, &missing);
+    let base = marked.unwrap_or(existing);
+    let addition = if missing.is_empty() {
+        String::new()
+    } else {
+        appended_text(&base, &missing)
+    };
     store
-        .write(root, &format!("{existing}{addition}"))
+        .write(root, &format!("{base}{addition}"))
         .map_err(|e| failure(root, &e))?;
     Ok(Some(root.to_path_buf()))
 }

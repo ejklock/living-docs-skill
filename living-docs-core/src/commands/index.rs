@@ -272,6 +272,8 @@ fn title_for_record(contents: &str, path: &Path) -> String {
 }
 
 #[cfg(test)]
+mod root_marker_tests;
+#[cfg(test)]
 mod root_tests;
 #[cfg(test)]
 mod store_tests;

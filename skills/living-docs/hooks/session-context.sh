@@ -8,6 +8,14 @@
 # binary, so every session receives it at t=0.
 # Also points core.hooksPath at .githooks/ when the repo ships one, arming the
 # pre-commit doc-gate. Always exits 0.
+#
+# With LIVING_DOCS_PLUGIN=1 (the Claude Code plugin, whose hook fires in every
+# project the user opens) it acts only where the docs bundle root
+# ($LIVING_DOCS_BUNDLE, default docs) has an index.md whose frontmatter holds an
+# okf_version: line, so a MkDocs, Docusaurus or plain-notes docs/ gets no
+# output; it leaves git configuration alone
+# (a plugin must not edit a user's repository settings), and, when no binary is
+# found, points at the npm and install.sh installs instead of a source build.
 
 set -u
 
@@ -26,11 +34,35 @@ arm_githooks() {
   git -C "$ROOT" config core.hooksPath .githooks 2>/dev/null || true
 }
 
-arm_githooks
+# True when $1 starts with a --- frontmatter block holding an okf_version: line
+# before the closing ---. Reads only the first lines; tolerates CRLF and one
+# leading UTF-8 byte order mark.
+has_okf_marker() {
+  [ -f "$1" ] || return 1
+  head -n 50 "$1" 2>/dev/null | awk '
+    { sub(/\r$/, "") }
+    NR == 1 { sub(/^\357\273\277/, "") }
+    NR == 1 { if ($0 != "---") exit; next }
+    $0 == "---" { exit }
+    /^okf_version:/ { found = 1; exit }
+    END { exit !found }'
+}
+
+PLUGIN=0
+[ "${LIVING_DOCS_PLUGIN:-0}" = "1" ] && PLUGIN=1
+
+if [ "$PLUGIN" = 1 ]; then
+  BUNDLE="${LIVING_DOCS_BUNDLE:-docs}"
+  has_okf_marker "$ROOT/${BUNDLE%/}/index.md" || exit 0
+else
+  arm_githooks
+fi
 
 BIN="$(resolve_bin)"
 if [ -n "$BIN" ]; then
   BIN_NOTE="CLI: $BIN"
+elif [ "$PLUGIN" = 1 ]; then
+  BIN_NOTE="CLI not installed — run \`npm install -g @ejklock/living-docs\` or \`install.sh\` from https://github.com/ejklock/living-docs-skill before authoring docs"
 else
   BIN_NOTE="CLI not built — run \`make build\` (or \`cargo build --release --manifest-path cli/Cargo.toml\`) before authoring docs"
 fi

@@ -113,6 +113,48 @@ check_npm_package_version() { # check_npm_package_version <file>
 
 check_npm_package_version "$root/npm/package.json"
 
+# The Claude Code plugin declares its own top-level "version" and pins the npm binary its MCP
+# server runs (`@ejklock/living-docs@<v>`); both must equal the release version, so a plugin
+# can never ship pointing at another binary. A missing file, key or pin reads as empty and fails.
+# The "version" read is the one at brace depth 1 (the manifest's own top level), so a nested
+# object's "version" never counts and key order does not matter; string contents are blanked
+# before braces are counted. Every pin is checked, not only the first.
+check_plugin_version() { # check_plugin_version <file>
+	local f="$1" rel v pin pins
+	rel="${f#"$root"/}"
+	v=""
+	pins=""
+	if [[ -e "$f" ]]; then
+		v="$(awk '
+			{
+				line = $0
+				bare = line
+				gsub(/"([^"\\]|\\.)*"/, "", bare)
+				if (depth == 1 && match(line, /^[ \t]*"version"[ \t]*:[ \t]*"[^"]+"/)) {
+					s = substr(line, RSTART, RLENGTH)
+					sub(/^[ \t]*"version"[ \t]*:[ \t]*"/, "", s)
+					sub(/"$/, "", s)
+					print s
+					exit
+				}
+				n = gsub(/[{[]/, "", bare)
+				m = gsub(/[}\]]/, "", bare)
+				depth += n - m
+			}' "$f")"
+		pins="$(sed -nE 's/.*"@ejklock\/living-docs@([^"]+)".*/\1/p' "$f")"
+	fi
+	check "$rel" "$v"
+	if [[ -z "$pins" ]]; then
+		check "$rel @ejklock/living-docs@ pin" ""
+		return
+	fi
+	while IFS= read -r pin; do
+		check "$rel @ejklock/living-docs@ pin" "$pin"
+	done <<<"$pins"
+}
+
+check_plugin_version "$root/.claude-plugin/plugin.json"
+
 skill_mds=("$root"/skills/*/SKILL.md)
 if [[ ! -e "${skill_mds[0]}" ]]; then
 	echo "ERROR: no skills/*/SKILL.md files found" >&2

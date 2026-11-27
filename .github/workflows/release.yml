@@ -2,7 +2,9 @@ name: Release
 
 # Automated release. Push a semver tag that matches VERSION and every SKILL.md, e.g.:
 #
-#   1. bump VERSION + each skills/*/SKILL.md `version:` to X.Y.Z (kept in sync; gated below)
+#   1. bump VERSION, each skills/*/SKILL.md `version:`, cli/Cargo.toml, mcp/Cargo.toml and
+#      npm/package.json to X.Y.Z, and the `version` and the `@ejklock/living-docs@X.Y.Z` npx pin
+#      in .claude-plugin/plugin.json (kept in sync; gated below)
 #   2. git commit -am "chore: release vX.Y.Z" && git tag vX.Y.Z && git push --tags
 #
 # The workflow verifies the tag agrees with the declared version, lints (which now builds

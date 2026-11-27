@@ -46,6 +46,14 @@ const CHECK: &[&str] = &[
     r#"check unfilled slot | check | check | {} | report,shows="ok":false,shows=unfilled"#,
 ];
 
+const MISSING: &[&str] = &[
+    r#"read records on a missing bundle | read records | read | {"operation":"records"} | missing,untouched,shows="records":[]"#,
+    r#"manage index on a missing bundle | manage index | manage | {"operation":"index"} | missing,untouched,shows="files":[]"#,
+    r#"check on a missing bundle | check | check | {} | missing,fails"#,
+    r#"manage fmt on a missing bundle | manage fmt | manage | {"operation":"fmt"} | missing,fails"#,
+    r#"write new adr creates the bundle | write new adr First --owner o --description d | write | {"operation":"new","type":"adr","title":"First","owner":"o","description":"d"} | missing,shows=adr/0001-first.md"#,
+];
+
 #[cfg(unix)]
 const WRITE_WITH_UNWRITABLE_INDEX: &[&str] = &[
     r#"write new adr keeps the record when the index refresh fails | write new adr Two --owner o --description d | write | {"operation":"new","type":"adr","title":"Two","owner":"o","description":"d"} | readonly,partial"#,
@@ -80,6 +88,11 @@ fn manage_operations_match_the_cli() {
 #[test]
 fn check_operations_match_the_cli() {
     assert_parity(&parse(CHECK));
+}
+
+#[test]
+fn operations_on_a_missing_bundle_match_the_cli() {
+    assert_parity(&parse(MISSING));
 }
 
 fn write_retired_bundle(docs: &std::path::Path) {

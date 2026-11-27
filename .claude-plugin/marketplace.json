@@ -1,0 +1,12 @@
+{
+  "name": "living-docs",
+  "description": "Living Docs plugin marketplace.",
+  "owner": { "name": "Evaldo Klock" },
+  "plugins": [
+    {
+      "name": "living-docs",
+      "source": "./",
+      "description": "Living Docs: skills, MCP server and session line for a project's decision log."
+    }
+  ]
+}

@@ -38,10 +38,14 @@ We will add an MCP front: a workspace crate `mcp` that depends on `living-docs-c
 - **Parity with the CLI.** Each tool calls the same `core` entry point as its CLI path, so an MCP call and the equivalent CLI command leave the same bytes on disk and return the same JSON shape. Record prose arrives as a string parameter, which is how [ADR 0066](0066-record-prose-enters-through-a-file-or-stdin-new-body-and-set-from-replace-argv-for-body-and-field-values.md) keeps it out of argv in a protocol with no argv.
 - **The gate reports as data.** `check` returns its report (`ok`, violations, advisories) as a result, not as a tool error; `check` at commit and in CI stays the only enforcement.
 - **The bundle comes from the launch.** `living-docs mcp --docs-dir <path>` fixes one bundle per server entry, rooted as [ADR 0073](0073-the-filesystem-store-is-rooted-at-the-bundle-and-refuses-any-read-write-or-rename-that-resolves-outside-it.md) roots the store; no tool takes a path to another bundle.
+
+  > Amended by [ADR 0109](0109-living-docs-mcp-starts-without-a-bundle-and-resolves-it-per-tool-call.md): the server starts without the bundle and resolves it per tool call.
 - **The server teaches at discovery.** The `instructions` field carries the authoring contract and the read-before-deciding rule in the ADR 0076 vocabulary, so every MCP client receives what `session-context.sh` gives Claude Code; that hook gains the read verbs in the same change.
 - **Dual-era protocol.** The server serves revision 2026-07-28 and answers the 2025-11-25 `initialize` handshake, so clients that have not moved to the stateless revision still connect.
 - **Order.** The front ships after [issue 0109](../issues/0109-regroup-the-cli-under-write-read-and-manage-with-check-top-level-and-move-every-surface-that-teaches-a-command.md) implements ADR 0076, so the CLI, the tools, the instructions and the hook share one vocabulary.
 - **Out of the front.** `install`, `uninstall` and `completions` place files on a host and stay CLI-only. The Streamable HTTP transport, the Tasks extension and `subscriptions/listen` are not part of this decision.
+
+  > Amended by [ADR 0110](0110-the-mcp-server-publishes-the-embedded-skills-over-the-mcp-skills-extension-with-skill-resources-as-fallback.md) (skills), [ADR 0111](0111-records-are-mcp-resources-and-change-events-reach-subscribers-from-server-writes-and-a-bundle-file-watcher.md) (resources and `subscriptions/listen`) and [ADR 0112](0112-the-mcp-check-tool-runs-as-a-task-on-a-bundle-above-a-measured-record-threshold.md) (Tasks for a large `check`).
 
 Rejected alternatives:
 

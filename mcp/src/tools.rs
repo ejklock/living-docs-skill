@@ -34,7 +34,7 @@ fn shown_all(paths: &[PathBuf]) -> Vec<String> {
 
 /// Why a call is an error result: a plain message, or a write that landed but
 /// whose index refresh failed, so the result still names what was written.
-enum Refusal {
+pub(crate) enum Refusal {
     Message(String),
     Written(Value),
 }
@@ -250,7 +250,7 @@ fn run_check(docs_dir: &Path, args: &CheckArgs) -> Answer {
     serde_json::to_value(&report).map_err(|error| error.to_string())
 }
 
-fn shaped<E: Into<Refusal>>(answer: Result<Value, E>) -> CallToolResult {
+pub(crate) fn shaped<E: Into<Refusal>>(answer: Result<Value, E>) -> CallToolResult {
     match answer.map_err(Into::into) {
         Ok(data) => CallToolResult::structured(data),
         Err(Refusal::Written(data)) => CallToolResult::structured_error(data),

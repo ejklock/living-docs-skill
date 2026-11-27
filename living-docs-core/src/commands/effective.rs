@@ -9,7 +9,8 @@
 //! same minus detail-tier sections. Derived, never committed: the records
 //! stay the SSOT.
 
-use crate::record::{self, ExtractedRecord};
+use crate::commands::in_force::{is_in_force, typed_records};
+use crate::record::ExtractedRecord;
 use crate::store::DocStore;
 use crate::{doc_type, sections};
 pub use ask::{adr_ask, adr_ask_line, adr_asked, candidate_line, Asked, Query};
@@ -62,7 +63,7 @@ pub(crate) fn collect(
     bundle: &Path,
     options: &Options,
 ) -> (usize, usize, Vec<View>) {
-    let records = read_records(store, &store.list(bundle).unwrap_or_default());
+    let records = typed_records(store, &store.list(bundle).unwrap_or_default());
     let in_force = records.iter().filter(|(_, r)| is_in_force(r)).count();
     let retired = records.len() - in_force;
     let withheld = if options.all { 0 } else { retired };
@@ -145,34 +146,6 @@ pub fn read(store: &dyn DocStore, bundle: &Path, options: &Options, json: bool) 
 /// `distance` appears only under `Dependents::Impact`.
 pub fn compile_json(store: &dyn DocStore, bundle: &Path, options: &Options) -> String {
     read(store, bundle, options, true).output
-}
-
-fn read_records(store: &dyn DocStore, all_md: &[PathBuf]) -> Vec<(PathBuf, ExtractedRecord)> {
-    all_md
-        .iter()
-        .filter(|path| !is_reserved(path))
-        .filter_map(|path| {
-            let contents = store.read(path).ok()?;
-            let record = record::extract_record(path, &contents);
-            (!record.doc_type.is_empty()).then(|| (path.clone(), record))
-        })
-        .collect()
-}
-
-fn is_reserved(path: &Path) -> bool {
-    matches!(
-        path.file_name().and_then(|n| n.to_str()),
-        Some("index.md") | Some("log.md")
-    )
-}
-
-/// Whether the record's doc type retires its status; an unregistered type or
-/// a missing status is live.
-fn is_in_force(record: &ExtractedRecord) -> bool {
-    let retired = record.status.as_deref().is_some_and(|status| {
-        doc_type::spec_for_frontmatter(&record.doc_type).is_some_and(|spec| spec.is_retired(status))
-    });
-    !retired
 }
 
 fn view_of(record: &ExtractedRecord, by_key: &RecordsByKey, contract: bool) -> View {
