@@ -306,6 +306,75 @@ invoke "$repo" v0.9.1
 assert_exit    "27-exit-1"     1
 assert_out_has "27-names-file" "MISMATCH: .claude-plugin/plugin.json"
 
+write_plugin_two_pins() { # write_plugin_two_pins <dir> <first-pin-version> <second-pin-version>
+  mkdir -p "$1/.claude-plugin"
+  cat >"$1/.claude-plugin/plugin.json" <<JSON
+{
+  "name": "fixture",
+  "version": "0.9.0",
+  "mcpServers": {
+    "living-docs": {
+      "command": "npx",
+      "args": ["-y", "@ejklock/living-docs@$2", "mcp"]
+    },
+    "living-docs-again": {
+      "command": "npx",
+      "args": ["-y", "@ejklock/living-docs@$3", "mcp"]
+    }
+  }
+}
+JSON
+}
+
+write_plugin_nested_version() { # write_plugin_nested_version <dir> <nested-version> <top-level-version>
+  mkdir -p "$1/.claude-plugin"
+  cat >"$1/.claude-plugin/plugin.json" <<JSON
+{
+  "name": "fixture",
+  "author": {
+    "name": "someone",
+    "version": "$2"
+  },
+  "version": "$3",
+  "mcpServers": {
+    "living-docs": {
+      "command": "npx",
+      "args": ["-y", "@ejklock/living-docs@0.9.0", "mcp"]
+    }
+  }
+}
+JSON
+}
+
+echo "case 28: plugin with a second npx pin at another version"
+repo="$(new_repo case28)"
+write_plugin_two_pins "$repo" "0.9.0" "0.0.1"
+invoke "$repo"
+assert_exit    "28-exit-1"    1
+assert_out_has "28-names-pin" "@ejklock/living-docs@ pin"
+assert_out_has "28-names-got" "'0.0.1'"
+
+echo "case 29: plugin with two npx pins that both agree"
+repo="$(new_repo case29)"
+write_plugin_two_pins "$repo" "0.9.0" "0.9.0"
+invoke "$repo"
+assert_exit    "29-exit-0"     0
+assert_out_has "29-version-ok" "Version OK"
+
+echo "case 30: nested version equal to the release before a wrong top-level version"
+repo="$(new_repo case30)"
+write_plugin_nested_version "$repo" "0.9.0" "0.0.1"
+invoke "$repo"
+assert_exit    "30-exit-1"     1
+assert_out_has "30-names-file" "MISMATCH: .claude-plugin/plugin.json"
+
+echo "case 31: nested version that differs while the top-level version agrees"
+repo="$(new_repo case31)"
+write_plugin_nested_version "$repo" "0.0.1" "0.9.0"
+invoke "$repo"
+assert_exit    "31-exit-0"     0
+assert_out_has "31-version-ok" "Version OK"
+
 echo
 if ((fail == 0)); then
   echo "All check-version fixtures passed."
