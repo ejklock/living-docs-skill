@@ -2,11 +2,12 @@
 //!
 //! While a listener asks for a resource notification, one task keeps the
 //! fingerprints of the records in force. Two things wake it: a server write
-//! (`Events::wrote`) and a file watcher on the bundle, coalesced by the
-//! debouncer over [`WINDOW`]. Each wake rescans the bundle and reports only
-//! the difference from the last scan, so a change seen by both is reported
-//! once, and a file that is not a record reports nothing. With no such
-//! listener there is no task and no watcher.
+//! (`Events::wrote`) and a file watcher on the bundle. Both coalesce over
+//! [`WINDOW`]: the debouncer for the watcher, a wait in the task for a write.
+//! Each wake rescans the bundle and reports only the difference from the last
+//! scan, so a change seen by both is reported once, and a file that is not a
+//! record reports nothing. With no such listener there is no task and no
+//! watcher.
 
 use crate::records;
 use notify_debouncer_mini::notify::{RecommendedWatcher, RecursiveMode};
@@ -93,9 +94,17 @@ impl Listener {
     }
 }
 
+/// Why the task woke. A watcher result has already waited out [`WINDOW`] in
+/// the debouncer; a server write has not, so the task waits it out before it
+/// scans and a burst of writes is reported once.
+enum Wake {
+    Write,
+    Watched,
+}
+
 /// The running task and the way to wake it.
 struct Running {
-    wake: UnboundedSender<()>,
+    wake: UnboundedSender<Wake>,
     task: JoinHandle<()>,
 }
 
@@ -159,16 +168,29 @@ impl Events {
     /// Wakes the task after a call that may have written to the bundle.
     pub(crate) fn wrote(&self) {
         if let Some(running) = &locked(&self.shared).running {
-            let _ = running.wake.send(());
+            let _ = running.wake.send(Wake::Write);
         }
     }
 
+    /// Registers the listener and, for the first one, starts the task. The
+    /// first scan runs with the lock released, so a second listener never
+    /// waits on it, and without yielding, so the baseline is taken before the
+    /// client's next request is served; a blocking-pool scan would race an
+    /// edit made right after the listen is acknowledged and miss it.
     fn join(&self, listener: Listener) -> Registration {
         let id = listener.id.clone();
-        let mut shared = locked(&self.shared);
-        shared.listeners.push(listener);
-        if shared.running.is_none() {
-            shared.running = Some(self.start());
+        let first = {
+            let mut shared = locked(&self.shared);
+            shared.listeners.push(listener);
+            shared.running.is_none()
+        };
+        if first {
+            let running = self.start();
+            let mut shared = locked(&self.shared);
+            match shared.running {
+                None => shared.running = Some(running),
+                Some(_) => running.task.abort(),
+            }
         }
         Registration {
             id,
@@ -176,13 +198,16 @@ impl Events {
         }
     }
 
+    /// Builds the watcher before the first scan, so an edit between the two
+    /// is still reported.
     fn start(&self) -> Running {
         let (wake, woken) = unbounded_channel();
+        let watcher = watcher(&self.docs_dir, &wake);
         let watch = Watch {
             docs_dir: self.docs_dir.clone(),
             shared: self.shared.clone(),
             seen: scan(&self.docs_dir),
-            watcher: watcher(&self.docs_dir, &wake),
+            watcher,
             wake: wake.clone(),
         };
         Running {
@@ -195,13 +220,13 @@ impl Events {
 /// A watcher on the bundle whose every result, an error included, wakes the
 /// task; `None` while the bundle does not exist or the watcher cannot start,
 /// when only server writes are seen.
-fn watcher(docs_dir: &Path, wake: &UnboundedSender<()>) -> Option<Debouncer<RecommendedWatcher>> {
+fn watcher(docs_dir: &Path, wake: &UnboundedSender<Wake>) -> Option<Debouncer<RecommendedWatcher>> {
     if !docs_dir.is_dir() {
         return None;
     }
     let wake = wake.clone();
     let on_result = move |_: DebounceEventResult| {
-        let _ = wake.send(());
+        let _ = wake.send(Wake::Watched);
     };
     let mut debouncer = new_debouncer(WINDOW, on_result).ok()?;
     debouncer
@@ -216,12 +241,15 @@ struct Watch {
     shared: Arc<Mutex<Shared>>,
     seen: Seen,
     watcher: Option<Debouncer<RecommendedWatcher>>,
-    wake: UnboundedSender<()>,
+    wake: UnboundedSender<Wake>,
 }
 
 impl Watch {
-    async fn run(mut self, mut woken: UnboundedReceiver<()>) {
-        while woken.recv().await.is_some() {
+    async fn run(mut self, mut woken: UnboundedReceiver<Wake>) {
+        while let Some(wake) = woken.recv().await {
+            if matches!(wake, Wake::Write) {
+                tokio::time::sleep(WINDOW).await;
+            }
             while woken.try_recv().is_ok() {}
             if self.watcher.is_none() {
                 self.watcher = watcher(&self.docs_dir, &self.wake);

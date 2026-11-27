@@ -3,7 +3,8 @@
 //! with the new one: the same text for the CLI and the MCP front.
 
 use super::candidates::{candidates, AdrText};
-use super::{is_in_force, read_records, Candidate};
+use super::Candidate;
+use crate::commands::in_force::in_force_records;
 use crate::doc_type;
 use crate::record::ExtractedRecord;
 use crate::store::DocStore;
@@ -69,12 +70,8 @@ pub fn adr_asked(
 /// Reads the bundle once: the in-force count covers every type, the
 /// candidates only the in-force ADRs.
 fn asked(store: &dyn DocStore, bundle: &Path, query: &Query) -> Asked {
-    let records = read_records(store, &store.list(bundle).unwrap_or_default());
-    let live: Vec<&ExtractedRecord> = records
-        .iter()
-        .map(|(_, record)| record)
-        .filter(|record| is_in_force(record))
-        .collect();
+    let records = in_force_records(store, bundle);
+    let live: Vec<&ExtractedRecord> = records.iter().map(|(_, record)| record).collect();
     let adr_type = doc_type::spec_for("adr").map(|spec| spec.frontmatter);
     let adrs: Vec<AdrText> = live
         .iter()

@@ -2,15 +2,18 @@
 //!
 //! A record's URI is its reference as `write set` accepts it (`record://adr/0108`,
 //! `record://view/crates`, `record://constitution`); a record with no number
-//! or slug identity uses its bundle-relative path. A requested URI is matched
-//! against the URIs of the records that exist, never turned into a path, so a
-//! `..` segment, an encoded escape or an unknown record can only miss. Files
-//! are read through the rooted store, which refuses a link leaving the bundle.
+//! or slug identity uses its bundle-relative path, each segment
+//! percent-encoded. A requested URI is matched against the URIs of the
+//! records that exist, never turned into a path, so a `..` segment, an
+//! encoded escape or an unknown record can only miss. Files are read through
+//! the rooted store, which refuses a link leaving the bundle.
 
 use fs_store::FsStore;
+use living_docs_core::commands::in_force::in_force_records;
 use living_docs_core::doc_type::{self, DocTypeSpec, Identity};
-use living_docs_core::record::{self, ExtractedRecord};
+use living_docs_core::record::ExtractedRecord;
 use living_docs_core::store::DocStore;
+use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
 use rmcp::model::{ReadResourceResult, Resource, ResourceContents};
 use rmcp::ErrorData;
 use std::path::Path;
@@ -26,24 +29,31 @@ pub(crate) struct Entry {
     pub(crate) contents: String,
 }
 
-fn is_reserved(path: &Path) -> bool {
-    matches!(
-        path.file_name().and_then(|name| name.to_str()),
-        Some("index.md" | "log.md")
-    )
-}
-
-/// Whether the record's type retires its status; an unregistered type or a
-/// missing status is live.
-fn is_in_force(record: &ExtractedRecord) -> bool {
-    let retired = record.status.as_deref().is_some_and(|status| {
-        doc_type::spec_for_frontmatter(&record.doc_type).is_some_and(|spec| spec.is_retired(status))
-    });
-    !retired
-}
+/// What a path segment must percent-encode: controls and the characters a
+/// URI reserves or a client may mangle; every non-ASCII byte is encoded too.
+const SEGMENT: &AsciiSet = &CONTROLS
+    .add(b' ')
+    .add(b'"')
+    .add(b'#')
+    .add(b'%')
+    .add(b'<')
+    .add(b'>')
+    .add(b'?')
+    .add(b'`')
+    .add(b'{')
+    .add(b'}')
+    .add(b'/')
+    .add(b'\\')
+    .add(b'^')
+    .add(b'[')
+    .add(b']')
+    .add(b'|');
 
 fn path_uri(relative: &Path) -> String {
-    let parts: Vec<_> = relative.iter().map(|part| part.to_string_lossy()).collect();
+    let parts: Vec<_> = relative
+        .iter()
+        .map(|part| utf8_percent_encode(&part.to_string_lossy(), SEGMENT).to_string())
+        .collect();
     format!("{SCHEME}{}", parts.join("/"))
 }
 
@@ -65,16 +75,14 @@ fn uri_of(relative: &Path, record: &ExtractedRecord) -> String {
     by_identity.unwrap_or_else(|| path_uri(relative))
 }
 
-fn entry_of(store: &FsStore, docs_dir: &Path, path: &Path) -> Option<Entry> {
-    if is_reserved(path) {
-        return None;
-    }
+fn entry_of(
+    store: &FsStore,
+    docs_dir: &Path,
+    path: &Path,
+    record: ExtractedRecord,
+) -> Option<Entry> {
     let relative = path.strip_prefix(docs_dir).ok()?;
     let contents = store.read(path).ok()?;
-    let record = record::extract_record(path, &contents);
-    if record.doc_type.is_empty() || !is_in_force(&record) {
-        return None;
-    }
     Some(Entry {
         uri: uri_of(relative, &record),
         title: record.title,
@@ -87,10 +95,9 @@ fn entry_of(store: &FsStore, docs_dir: &Path, path: &Path) -> Option<Entry> {
 /// bundle does not exist.
 pub(crate) fn entries(docs_dir: &Path) -> Vec<Entry> {
     let store = FsStore::rooted(docs_dir);
-    let paths = store.list(docs_dir).unwrap_or_default();
-    let mut found: Vec<Entry> = paths
-        .iter()
-        .filter_map(|path| entry_of(&store, docs_dir, path))
+    let mut found: Vec<Entry> = in_force_records(&store, docs_dir)
+        .into_iter()
+        .filter_map(|(path, record)| entry_of(&store, docs_dir, &path, record))
         .collect();
     found.sort_by(|a, b| a.uri.cmp(&b.uri));
     found

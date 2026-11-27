@@ -1,7 +1,8 @@
 //! Records in force served as `record://` resources beside the skill files.
 
-use crate::common::{connect, Client, Era, Scratch};
+use crate::common::{call, connect, data, is_error, message, Client, Era, Scratch};
 use rmcp::model::{ReadResourceRequestParams, ResourceContents};
+use serde_json::json;
 use std::fs;
 use std::path::Path;
 
@@ -185,4 +186,85 @@ async fn record_resources_read_refuses_what_is_not_a_record_in_the_bundle() {
     let uris: Vec<String> = listed(&client).await.into_iter().map(|r| r.uri).collect();
     assert!(!uris.iter().any(|uri| uri.contains("link.md")), "{uris:?}");
     assert!(Path::new(&scratch.bundle().join("../x.md")).exists());
+}
+
+fn record_titles(resources: &[rmcp::model::Resource]) -> Vec<String> {
+    let mut titles: Vec<String> = resources
+        .iter()
+        .filter(|resource| resource.uri.starts_with("record://"))
+        .map(|resource| resource.name.clone())
+        .collect();
+    titles.sort_unstable();
+    titles
+}
+
+#[tokio::test]
+async fn record_resources_list_the_same_records_the_read_tool_returns() {
+    let scratch = fixture();
+    let client = connect(&scratch.bundle(), Era::Initialize).await;
+
+    let result = call(&client, "read", json!({"operation": "records"})).await;
+    assert!(!is_error(&result), "{}", message(&result));
+    let mut from_tool: Vec<String> = data(&result)["records"]
+        .as_array()
+        .expect("records")
+        .iter()
+        .map(|record| record["title"].as_str().expect("title").to_string())
+        .collect();
+    from_tool.sort_unstable();
+
+    assert_eq!(record_titles(&listed(&client).await), from_tool);
+}
+
+#[tokio::test]
+async fn record_resources_skip_an_index_file_that_claims_a_record_type() {
+    let scratch = fixture();
+    write_record(
+        &scratch,
+        "adr/index.md",
+        "ADR",
+        "Index of decisions",
+        "Accepted",
+    );
+    let client = connect(&scratch.bundle(), Era::Initialize).await;
+
+    let resources = listed(&client).await;
+
+    let titles = record_titles(&resources);
+    assert!(
+        !titles.contains(&"Index of decisions".to_string()),
+        "{titles:?}"
+    );
+    assert!(read_text(&client, "record://adr/index.md").await.is_err());
+}
+
+const FATURACAO: &str = "context/faturação/nota fiscal.md";
+const FATURACAO_URI: &str = "record://context/fatura%C3%A7%C3%A3o/nota%20fiscal.md";
+
+#[tokio::test]
+async fn record_resources_encode_the_path_of_a_record_named_with_spaces_or_accents() {
+    let scratch = fixture();
+    write_record(&scratch, FATURACAO, "Context", "Nota fiscal", "");
+    let client = connect(&scratch.bundle(), Era::Initialize).await;
+
+    let uris: Vec<String> = listed(&client).await.into_iter().map(|r| r.uri).collect();
+    assert!(
+        uris.iter().any(|uri| uri == FATURACAO_URI),
+        "the listed uris are percent-encoded: {uris:?}"
+    );
+    let text = read_text(&client, FATURACAO_URI)
+        .await
+        .expect("encoded uri");
+    assert_eq!(text, scratch.read(FATURACAO));
+
+    let refused = [
+        "record://context/faturação/nota fiscal.md",
+        "record://context/%2e%2e/context/fatura%C3%A7%C3%A3o/nota%20fiscal.md",
+    ];
+    for uri in refused {
+        assert!(
+            read_text(&client, uri).await.is_err(),
+            "{uri} must not read"
+        );
+    }
 }

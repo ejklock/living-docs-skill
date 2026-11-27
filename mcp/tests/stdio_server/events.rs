@@ -252,3 +252,6 @@ async fn resource_events_lifecycle_end_the_server_when_the_client_closes() {
     let ended = tokio::time::timeout(SDK_DRAIN, serving).await;
     assert!(ended.expect("the server ends").expect("no panic").is_ok());
 }
+
+#[path = "events/windows.rs"]
+mod windows;

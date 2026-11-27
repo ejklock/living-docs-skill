@@ -12,6 +12,7 @@ path = "src/lib.rs"
 fs-store = { path = "../fs-store" }
 living-docs-core = { path = "../living-docs-core" }
 notify-debouncer-mini = "0.8"
+percent-encoding = "2"
 rmcp = { version = "3.12", features = ["server", "macros", "schemars", "transport-io"] }
 schemars = "1"
 serde = { version = "1", features = ["derive"] }

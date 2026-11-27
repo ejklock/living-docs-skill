@@ -1066,6 +1066,7 @@ dependencies = [
  "fs-store",
  "living-docs-core",
  "notify-debouncer-mini",
+ "percent-encoding",
  "rmcp",
  "schemars",
  "serde",
