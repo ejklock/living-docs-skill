@@ -168,3 +168,4 @@ one slice per fresh context, starting from the skeleton.
 * [0157 — The session-context tests read the host's git configuration](0157-the-session-context-tests-read-the-host-s-git-configuration.md) - open
 * [0158 — manage fmt reports success on a bundle root that is a regular file](0158-manage-fmt-reports-success-on-a-bundle-root-that-is-a-regular-file.md) - open
 * [0159 — The MCP check error on a missing bundle omits the CLI's prefix and hint](0159-the-mcp-check-error-on-a-missing-bundle-omits-the-cli-s-prefix-and-hint.md) - open
+* [0160 — write new does not list the bundle root it wrote](0160-write-new-does-not-list-the-bundle-root-it-wrote.md) - open
