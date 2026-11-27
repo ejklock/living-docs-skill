@@ -282,7 +282,7 @@ make help            # list every target
 
 | Tool | Mechanism | Default location (global · `--project`) | Enforcement |
 |---|---|---|---|
-| **Claude Code** | native `SKILL.md` skills | `~/.claude/skills` · `.claude/skills` | `living-docs manage install hooks` — session teaching + pre-commit doc-gate |
+| **Claude Code** | native `SKILL.md` skills, or the `living-docs` plugin (see below) | `~/.claude/skills` · `.claude/skills` | `living-docs manage install hooks` — session teaching + pre-commit doc-gate; the plugin brings the session teaching only |
 | **OpenCode** | native `SKILL.md` skills (also reads `.claude/skills`) | `~/.config/opencode/skills` · `.opencode/skills` | `living-docs manage install hooks` — pre-commit doc-gate |
 | **Codex** | native `SKILL.md` skills | `~/.codex/skills` · `.codex/skills` | `living-docs manage install hooks` — pre-commit doc-gate |
 | **Pi** | skills dir + `AGENTS.md` pointer | `~/.pi/agent/skills` · `.pi/skills` | `living-docs manage install hooks` — pre-commit doc-gate |
@@ -351,6 +351,18 @@ Copy `skills/living-docs/`, `skills/okf-knowledge-format/`,
 `skills/research-artifacts/`, and `skills/living-docs-drift/` into wherever that tool loads instructions from, or
 just read the `SKILL.md` files — they are plain markdown meant to be read by
 humans and agents alike.
+
+### Install it as a Claude Code plugin
+
+```bash
+claude plugin marketplace add ejklock/living-docs-skill
+claude plugin install living-docs@living-docs
+```
+
+The plugin brings the four skills, the MCP server (started through npx, so Node.js is needed) and
+the session line, which appears only in a project whose `docs/index.md` frontmatter carries
+`okf_version` (`write new` and `manage index` add it). It does not install the `pre-commit` doc-gate or the decision prompt: those still
+come from `living-docs manage install hooks`.
 
 ### Use it from an MCP client
 
