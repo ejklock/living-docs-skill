@@ -24,3 +24,5 @@ mod missing_bundle;
 mod records;
 #[path = "stdio_server/skills.rs"]
 mod skills;
+#[path = "stdio_server/tasks.rs"]
+mod tasks;
