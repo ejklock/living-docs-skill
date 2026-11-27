@@ -161,12 +161,7 @@ fn hostile_empty_root_is_present_and_gains_the_marker_and_the_missing_link() {
 
     assert_new_ok(&docs, "adr", "A");
     let root = root_of(&docs);
-    assert!(
-        root.starts_with("---\nokf_version: \"0.1\"\n---\n"),
-        "got:\n{root}"
-    );
-    assert!(root.ends_with("* [ADRs](adr/)\n"), "got:\n{root}");
-    assert_eq!(root.matches("](").count(), 1, "got:\n{root}");
+    assert_eq!(root, "---\nokf_version: \"0.1\"\n---\n\n* [ADRs](adr/)\n");
 }
 
 #[test]

@@ -5,7 +5,7 @@
 
 use crate::check::{normpath, reachable_index_set};
 use crate::doc_type::{self, DocTypeSpec, Identity};
-use crate::frontmatter::frontmatter_block;
+use crate::frontmatter::{frontmatter_block, has_unparseable_frontmatter};
 use crate::store::{is_refusal, DocStore};
 use std::fs;
 use std::io::{self, ErrorKind};
@@ -122,7 +122,8 @@ fn appended_text(existing: &str, missing: &str) -> String {
 
 /// `existing` with the `okf_version` marker added, `None` when its frontmatter
 /// already holds the key (whatever the value). A file with no closed
-/// frontmatter gets a whole block above its unchanged bytes; one with
+/// frontmatter, or whose `---` block does not parse as a YAML mapping (a
+/// horizontal rule over prose), gets a whole block above its unchanged bytes; one with
 /// frontmatter gets the key as its first line. Inserted lines take the file's
 /// line ending.
 fn with_marker(existing: &str) -> Option<String> {
@@ -132,7 +133,8 @@ fn with_marker(existing: &str) -> Option<String> {
     } else {
         "\n"
     };
-    match frontmatter_block(&plain) {
+    let block = frontmatter_block(&plain).filter(|_| !has_unparseable_frontmatter(&plain));
+    match block {
         Some(block) if block.lines().any(|line| line.starts_with("okf_version:")) => None,
         Some(_) => {
             let at = existing.find('\n')? + 1;

@@ -32,8 +32,9 @@ fn root_text(docs: &Path) -> String {
     fs::read_to_string(docs.join("index.md")).unwrap()
 }
 
-fn root_is_listed(output: &Output) -> bool {
-    String::from_utf8_lossy(&output.stdout).contains("index.md")
+fn root_is_listed(docs: &Path, output: &Output) -> bool {
+    let root = docs.join("index.md");
+    String::from_utf8_lossy(&output.stdout).contains(root.to_str().unwrap())
 }
 
 fn hook_output(project: &Path) -> String {
@@ -64,11 +65,11 @@ fn manage_index_adds_the_marker_to_a_hand_written_root_once() {
         "{}",
         root_text(&docs)
     );
-    assert!(root_is_listed(&first), "{first:?}");
+    assert!(root_is_listed(&docs, &first), "{first:?}");
 
     let second = index(&docs);
     assert!(second.status.success(), "{second:?}");
-    assert!(!root_is_listed(&second), "{second:?}");
+    assert!(!root_is_listed(&docs, &second), "{second:?}");
     let check = run_check(&docs);
     let report = String::from_utf8_lossy(&check.stdout);
     assert!(!report.contains("index.md"), "{report}");
