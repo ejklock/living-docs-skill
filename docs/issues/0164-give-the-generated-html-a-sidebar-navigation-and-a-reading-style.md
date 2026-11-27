@@ -16,6 +16,8 @@ timestamp: 2026-11-27T19:32:22Z
 
 
 
+
+
 - Layout: a sticky sidebar holding the filter and a tree of types, each with its statuses and record counts, linking to anchors in a running page of records on the right; the sidebar marks the group in view (owner, 2026-11-27). Not taken: one record at a time behind hash navigation; three panes (types, list, record).
 - Style: light and dark themes from `prefers-color-scheme`, a readable line length, coloured status badges, metadata as chips, backlinks and the supersede chain in a record footer, and a print stylesheet that hides the sidebar.
 - Zoom: clicking a diagram or an image opens a full-screen overlay with wheel zoom, drag to pan and Escape to close, in a small inline script (owner, 2026-11-27). Not taken: React, which needs its runtime inlined in every page or a Node build and would supersede ADR 0090's no-template-engine, small-script limit.
@@ -34,6 +36,7 @@ timestamp: 2026-11-27T19:32:22Z
 - Prototype for reference: `/Volumes/transfer/living-docs-html-prototipo/` (`en/`, `pt-BR/`, `living-docs.json`), built by a throwaway script from the current single-file output.
 - ADR 0090's limits stay, apart from the single file: one file, byte-identical output for the same bundle, no server, only the small inline filter script plus Mermaid.
 - Diagrams rendered in Rust: `manage html` renders each Mermaid block to SVG at generation with `merman` 0.11, which replaces the `merman-core` =0.7.0 dependency so `check` validates and the render draws with one parser; mermaid.js leaves the output and `manage install mermaid` (ADR 0091) is superseded, so an ADR comes first; a diagram `merman` cannot render shows its source with the error (owner, 2026-11-27). Evidence: a throwaway test over 401 Mermaid blocks from five Klock bundles rendered 397 with `merman-cli` 0.11.0, close to mermaid.js, and 401 with `mermaid-rs-renderer` 0.3.1, whose flowchart edges detour and sequence labels clip; the 4 `merman` failures are unquoted `@` or structural characters in labels (side-by-side page at `/Volumes/transfer/living-docs-html-prototipo/diagramas-rust/`). To measure before the bump: whether `check` with 0.11 starts refusing diagrams that pass today in other bundles. Not taken: keeping mermaid.js in `assets/`; `merman` with a mermaid.js fallback, which keeps two renderers.
+- Diagram colour and text fit: `merman` renders with the Mermaid configuration built from the theme in `docs/living-docs.json` (`theme: base` and its `themeVariables`), and measures every label with the same font file the pages ship in `assets/` (Inter by default, OFL), so a label never overflows its shape; each diagram gets its own SVG id so inline diagrams do not share styles (owner, 2026-11-27, after a label overflowed its box in the comparison page). Evidence: the themed page at `/Volumes/transfer/living-docs-html-prototipo/diagramas-rust/tema-klock/` renders seven samples with `--font-file` Inter and `-c` the Klock palette; the owner viewed it in a browser and accepted it on 2026-11-27.
 
 ## Acceptance
 
