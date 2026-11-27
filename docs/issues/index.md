@@ -164,3 +164,5 @@ one slice per fresh context, starting from the skeleton.
 * [0151 — Living diagrams: stamped generated view regions, splice and stale-view](0151-living-diagrams-stamped-generated-view-regions-splice-and-stale-view.md) - closed
 * [0153 — Measure how often a stale or contradicted decision is caught as the log grows past 60 records](0153-measure-how-often-a-stale-or-contradicted-decision-is-caught-as-the-log-grows-past-60-records.md) - closed
 * [0154 — Make the record lifecycle an explicit transition table and refuse illegal supersede transitions](0154-make-the-record-lifecycle-an-explicit-transition-table-and-refuse-illegal-supersede-transitions.md) - closed
+* [0156 — Ship living-docs as a Claude Code plugin from a marketplace at the repository root](0156-ship-living-docs-as-a-claude-code-plugin-from-a-marketplace-at-the-repository-root.md) - open
+* [0157 — The session-context tests read the host's git configuration](0157-the-session-context-tests-read-the-host-s-git-configuration.md) - open
