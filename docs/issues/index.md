@@ -169,3 +169,4 @@ one slice per fresh context, starting from the skeleton.
 * [0158 — manage fmt reports success on a bundle root that is a regular file](0158-manage-fmt-reports-success-on-a-bundle-root-that-is-a-regular-file.md) - open
 * [0159 — The MCP check error on a missing bundle omits the CLI's prefix and hint](0159-the-mcp-check-error-on-a-missing-bundle-omits-the-cli-s-prefix-and-hint.md) - open
 * [0160 — write new does not list the bundle root it wrote](0160-write-new-does-not-list-the-bundle-root-it-wrote.md) - open
+* [0161 — Initialize-era MCP clients are offered resource subscriptions the server cannot serve them](0161-initialize-era-mcp-clients-are-offered-resource-subscriptions-the-server-cannot-serve-them.md) - open
