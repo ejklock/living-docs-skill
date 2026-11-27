@@ -1,0 +1,58 @@
+name: Bench
+
+# Manual only. Measures on the CI runner the in-force record count at which
+# `living-docs check` takes the cutoff (default 2 s) and uploads the table as the
+# `check-task-threshold` artifact. Never runs on push or pull request.
+
+on:
+  workflow_dispatch:
+    inputs:
+      cutoff:
+        description: Cutoff in seconds for a `check` run
+        required: false
+        type: number
+        default: 2
+
+permissions:
+  contents: read
+
+jobs:
+  check-task-threshold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Install Rust 1.96.0 (rust-toolchain.toml)
+        uses: dtolnay/rust-toolchain@3fc1e40d4c4ce3007de028907c886bc3996ce2ea # 1.96.0
+
+      - name: Cache cargo registry, git deps and target
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-bench-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-bench-
+
+      - name: Build the release binary
+        run: cargo build --release -p living-docs
+
+      - name: Install bc when the runner lacks it
+        run: command -v bc >/dev/null || { sudo apt-get update && sudo apt-get install -y bc; }
+
+      - name: Measure the check task threshold
+        env:
+          CUTOFF: ${{ inputs.cutoff }}
+        run: |
+          set -euo pipefail
+          ./scripts/bench/check-task-threshold.sh target/release/living-docs "${CUTOFF:-2}" | tee check-task-threshold.tsv
+
+      - name: Upload the measurement
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: check-task-threshold
+          path: check-task-threshold.tsv
+          if-no-files-found: error
