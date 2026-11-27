@@ -19,6 +19,7 @@ timestamp: 2026-11-27T19:27:33Z
 
 ## Decision
 
+- Config lives in a `living-docs.json` file at the bundle root (`docs/living-docs.json`), with a published JSON Schema, not in the root `index.md` frontmatter (owner, 2026-11-27); the root index keeps only the `okf_version` marker, and `check` ignores the file because it is not a record. This replaces decision 1 relayed by the se-hub session. Not taken: a `living-docs.json` at the repository root (ambiguous with more than one bundle); the frontmatter key.
 - The default output moves inside the bundle, to `docs/html/index.html` (owner, 2026-11-27), replacing ADR 0090's `.living-docs/html/index.html`; this needs a superseding or amending ADR. Not taken: keeping the default outside the bundle. Open with it: whether that file is ignored by the project's `.gitignore` or committed by the pre-commit hook.
 - With issue 0164's one-file-per-type output, the configured and default output is a directory (`docs/html/`), not a file (owner, 2026-11-27).
 - Open: whether the hook stages the regenerated file when its path is tracked (in se-hub it is gitignored); how the key is validated (contained relative path, no `..`, no absolute path); whether this amends or supersedes ADR 0090's "Output" bullet.
