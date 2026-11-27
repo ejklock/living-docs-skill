@@ -14,7 +14,7 @@ ADR 0109 says a tool that needs a bundle returns the same message the CLI prints
 
 ## Decision
 
-- None yet.
+- One core function builds the missing-bundle message with its guidance (pass the docs directory, or create the bundle with `write new`); the CLI `check` and the MCP tools use it, the CLI keeping its `living-docs check:` prefix (session, 2026-11-27). Not taken: superseding ADR 0109 to say only the path is named.
 
 ## Acceptance
 

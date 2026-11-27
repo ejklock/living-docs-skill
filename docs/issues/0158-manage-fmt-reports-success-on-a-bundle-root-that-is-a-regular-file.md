@@ -14,7 +14,7 @@ timestamp: 2026-11-27T02:53:42Z
 
 ## Decision
 
-- None yet.
+- `manage fmt` refuses a docs path that is not a directory with the same `bundle root not found` text `check` gives; the MCP `manage` tool inherits it through core (session, 2026-11-27). Not taken: an empty success.
 
 ## Acceptance
 

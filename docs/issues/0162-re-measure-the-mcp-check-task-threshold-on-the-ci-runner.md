@@ -14,7 +14,7 @@ ADR 0112 fixes the record count from which the MCP `check` runs as a task where 
 
 ## Decision
 
-- None yet.
+- A separate workflow, `bench.yml`, runs only on `workflow_dispatch` (heavy jobs stay manual), builds the release binary, runs `scripts/bench/check-task-threshold.sh` and uploads its output as an artifact; after it reaches `main`, the session dispatches it, reads the artifact and updates the constant and the measurement file (session, 2026-11-27). Not taken: a step in the `check` job.
 
 ## Acceptance
 

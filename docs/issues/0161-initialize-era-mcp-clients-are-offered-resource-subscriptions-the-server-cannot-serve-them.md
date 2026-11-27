@@ -14,7 +14,7 @@ timestamp: 2026-11-27T05:50:10Z
 
 ## Decision
 
-- None yet.
+- Serve initialize-era clients on the same event path: `resources/subscribe` and `resources/unsubscribe` register a URI for the session, and the server sends `notifications/resources/updated` and `notifications/resources/list_changed` to it (session, 2026-11-27). Not taken: withholding `subscribe` and `listChanged`, because rmcp 3.12 acknowledges a `resourceSubscriptions` listen only when `subscribe` is advertised and `get_info` cannot tell the revisions apart.
 
 ## Acceptance
 
