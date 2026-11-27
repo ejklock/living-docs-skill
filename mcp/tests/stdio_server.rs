@@ -18,3 +18,5 @@ mod export_view;
 mod guide;
 #[path = "stdio_server/missing_bundle.rs"]
 mod missing_bundle;
+#[path = "stdio_server/skills.rs"]
+mod skills;

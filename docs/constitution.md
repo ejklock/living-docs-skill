@@ -19,7 +19,7 @@ timestamp: 2026-07-16T00:00:00Z
 **In scope:**
 
 - The hexagonal `living-docs-core` (domain plus the `DocStore` port) in a Cargo workspace, with `cli` as a thin front over the `fs-store` adapter. — ADR 0002, 0033
-- Four verbs over the `.md` tree, `write` (`new`, `set`, `supersede`), `read` (`records`, `guide`), `manage` (`index`, `fmt`, `html`, `install`, `uninstall`, `completions`) and `check`, plus `mcp`, which serves the same four as tools over stdio. — ADR 0001, 0059, 0076, 0078
+- Four verbs over the `.md` tree, `write` (`new`, `set`, `supersede`), `read` (`records`, `guide`), `manage` (`index`, `fmt`, `html`, `install`, `uninstall`, `completions`) and `check`, plus `mcp`, which serves the same four as tools over stdio and the skills over the MCP skills extension. — ADR 0001, 0059, 0076, 0078, 0110
 - The record taxonomy as one registry: ADR, issue, research, constitution, an optional PRD, architecture views, and domain records (terms and business rules in `docs/context/`, nested in folders by bounded context). — ADR 0026, 0057, 0099
 - The skill corpus served from the binary, with slim harness stubs. — ADR 0014, 0017
 - A local, read-only, single-file HTML render of the bundle (`manage html`), with mermaid.js installed on demand and verified by hash (`manage install mermaid`); never served and never published. — ADR 0090, 0091

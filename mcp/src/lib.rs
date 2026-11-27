@@ -1,16 +1,19 @@
 //! An MCP server over one living-docs bundle: the `write`, `read`, `manage`
 //! and `check` tools, each calling the same `living-docs-core` entry point as
-//! its CLI verb.
+//! its CLI verb, plus the embedded skills through the MCP skills extension
+//! and as `skill://` resources.
 
 mod args;
 mod instructions;
+mod skills;
 mod tools;
 
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::tool::ToolCallContext;
 use rmcp::model::{
-    CallToolRequestParams, CallToolResponse, Implementation, ListToolsResult,
-    PaginatedRequestParams, ServerCapabilities, ServerConfig, Tool,
+    CallToolRequestParams, CallToolResponse, GetSkillRequestParams, GetSkillResult, Implementation,
+    ListResourcesResult, ListSkillsResult, ListToolsResult, PaginatedRequestParams,
+    ReadResourceRequestParams, ReadResourceResponse, ServerCapabilities, ServerConfig, Tool,
 };
 use rmcp::service::RequestContext;
 use rmcp::transport::stdio;
@@ -43,7 +46,12 @@ impl BundleServer {
 
 impl ServerHandler for BundleServer {
     fn get_info(&self) -> ServerConfig {
-        ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
+        let capabilities = ServerCapabilities::builder()
+            .enable_tools()
+            .enable_resources()
+            .enable_skills()
+            .build();
+        ServerConfig::new(capabilities)
             .with_server_info(Implementation::new(
                 "living-docs-mcp",
                 env!("CARGO_PKG_VERSION"),
@@ -70,6 +78,38 @@ impl ServerHandler for BundleServer {
 
     fn get_tool(&self, name: &str) -> Option<Tool> {
         self.tool_router.get(name).cloned()
+    }
+
+    async fn list_skills(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ListSkillsResult, ErrorData> {
+        skills::skills().map(ListSkillsResult::with_all_items)
+    }
+
+    async fn get_skill(
+        &self,
+        request: GetSkillRequestParams,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<GetSkillResult, ErrorData> {
+        skills::skill(&request.uri).map(GetSkillResult::new)
+    }
+
+    async fn list_resources(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ListResourcesResult, ErrorData> {
+        Ok(ListResourcesResult::with_all_items(skills::resources()))
+    }
+
+    async fn read_resource(
+        &self,
+        request: ReadResourceRequestParams,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ReadResourceResponse, ErrorData> {
+        skills::read(&request.uri).map(ReadResourceResponse::Complete)
     }
 }
 

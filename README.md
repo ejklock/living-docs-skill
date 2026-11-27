@@ -25,7 +25,7 @@ The mechanical half of that discipline is owned end-to-end by the bundled
 **rebuilds indexes** (`manage index`, `manage fmt`), **stamps generated diagrams** (`manage view --splice`), **validates the invariants** (`check`),
 **compiles the in-force view an agent reads** (`read records`), and **serves the skill
 corpus and the enforcement hooks** (`read guide`, `manage install`, `manage uninstall`); a fifth command, `mcp`, serves the same
-four to an MCP client over stdio. There is no LLM
+four to an MCP client over stdio, with the skills over the MCP skills extension. There is no LLM
 inside the tool: the agent writes only the judgment prose; everything mechanical is
 deterministic and reproducible.
 
@@ -355,7 +355,8 @@ humans and agents alike.
 ### Use it from an MCP client
 
 `living-docs mcp --docs-dir docs` serves the bundle over stdio as the write, read, manage
-and check tools. Run it from the project root, so `docs` resolves. Add it to Claude Code:
+and check tools, and the four skills over the MCP skills extension, each file also readable
+as a `skill://` resource by a client without the extension. Run it from the project root, so `docs` resolves. Add it to Claude Code:
 
 ```bash
 claude mcp add living-docs -- living-docs mcp --docs-dir docs

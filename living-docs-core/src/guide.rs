@@ -19,6 +19,36 @@ pub const DEFAULT_SKILL: &str = "living-docs";
 #[folder = "../skills/"]
 struct SkillAssets;
 
+/// The files of one skill that `install skills` places on a harness and the
+/// MCP server serves: the slim-stub `SKILL.md` and whatever it links to or
+/// runs by relative path.
+pub struct SkillAssetSpec {
+    /// The skill's directory name under `skills/`.
+    pub skill: &'static str,
+    /// Paths relative to the skill's directory; every one is an embedded asset.
+    pub relative_paths: &'static [&'static str],
+}
+
+/// Every skill with the installable files it ships, in install order.
+pub const SKILL_ASSET_SPECS: [SkillAssetSpec; 4] = [
+    SkillAssetSpec {
+        skill: "living-docs-drift",
+        relative_paths: &["SKILL.md", "scripts/drift.sh", "prompt.md"],
+    },
+    SkillAssetSpec {
+        skill: "living-docs",
+        relative_paths: &["SKILL.md"],
+    },
+    SkillAssetSpec {
+        skill: "okf-knowledge-format",
+        relative_paths: &["SKILL.md", "reference/SPEC.md", "reference/SPEC.source.md"],
+    },
+    SkillAssetSpec {
+        skill: "research-artifacts",
+        relative_paths: &["SKILL.md"],
+    },
+];
+
 const RULES_DIR: &str = "rules";
 const TEMPLATES_DIR: &str = "templates";
 const CONVENTIONS_SUFFIX: &str = "-conventions";
