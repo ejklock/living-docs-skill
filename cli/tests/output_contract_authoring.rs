@@ -1,4 +1,4 @@
-//! JSON-shape coverage for the authoring verbs (ADR 0060): `index`, `fmt`,
+//! JSON-shape coverage for the authoring verbs: `index`, `fmt`,
 //! `new`, `set`, `supersede`. Split out of `cli/tests/output_contract.rs` to
 //! stay under the file-size cap.
 
@@ -113,7 +113,9 @@ fn new_json_matches_the_documented_shape() {
         "got: {}",
         parsed.instruction
     );
-    assert_names_the_adr_index(&parsed.indexed);
+    assert_eq!(parsed.indexed.len(), 2, "got: {:?}", parsed.indexed);
+    assert!(parsed.indexed[0].ends_with("adr/index.md"));
+    assert!(parsed.indexed[1].ends_with("docs/index.md"));
     assert_eq!(stdout.trim_end().lines().count(), 1);
 }
 

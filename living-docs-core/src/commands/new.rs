@@ -65,8 +65,8 @@ pub fn write(
 /// Makes the bundle-root index reach the new record's type index, recording
 /// a failure (the record and its type index are already written) instead of
 /// aborting. A singleton has no type index, so it only gets a link-less root
-/// when none exists. A root written here is not listed in `indexed.written`,
-/// which names only the record's own type index.
+/// when none exists. A root created or changed here is listed in
+/// `indexed.written` after the record's own type index.
 fn reach_from_root(store: &dyn DocStore, docs_dir: &Path, doc_type: &str, indexed: &mut Indexed) {
     let Some(spec) = doc_type::spec_for(doc_type) else {
         return;
@@ -78,11 +78,13 @@ fn reach_from_root(store: &dyn DocStore, docs_dir: &Path, doc_type: &str, indexe
     } else {
         NoTypeIndex::WriteNothing
     };
-    if let Err(error) = ensure_root_index(store, docs_dir, touched, no_type_index) {
-        indexed.failures.push(IndexFailure {
+    match ensure_root_index(store, docs_dir, touched, no_type_index) {
+        Ok(Some(root)) => indexed.written.push(root),
+        Ok(None) => {}
+        Err(error) => indexed.failures.push(IndexFailure {
             doc_type: None,
             error,
-        });
+        }),
     }
 }
 
