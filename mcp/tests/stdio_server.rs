@@ -12,11 +12,15 @@ mod common;
 mod discovery;
 #[path = "stdio_server/empty_topic.rs"]
 mod empty_topic;
+#[path = "stdio_server/events.rs"]
+mod events;
 #[path = "stdio_server/export_view.rs"]
 mod export_view;
 #[path = "stdio_server/guide.rs"]
 mod guide;
 #[path = "stdio_server/missing_bundle.rs"]
 mod missing_bundle;
+#[path = "stdio_server/records.rs"]
+mod records;
 #[path = "stdio_server/skills.rs"]
 mod skills;
