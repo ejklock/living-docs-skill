@@ -1,21 +1,73 @@
 //! The SessionStart hook prints one line that teaches the record reference
 //! form, the `number` key of `set`, and the index repair after a merge.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
-fn hook_output() -> String {
+/// A git command with the host's global and system configuration hidden.
+fn isolated_git() -> Command {
+    let mut cmd = Command::new("git");
+    cmd.env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_CONFIG_NOSYSTEM", "1");
+    cmd
+}
+
+/// A fresh git project under the target temporary directory, named for the
+/// calling test so parallel tests never share one.
+fn fresh_project(name: &str) -> PathBuf {
+    let root = Path::new(env!("CARGO_TARGET_TMPDIR")).join(name);
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).expect("create scratch project");
+    let init = isolated_git()
+        .args(["init", "-q"])
+        .arg(&root)
+        .status()
+        .expect("git init");
+    assert!(init.success());
+    root
+}
+
+/// Runs the hook against `root` with the host git configuration hidden.
+fn run_hook_in(root: &Path) -> std::process::Output {
     let script = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .unwrap()
         .join("skills/living-docs/hooks/session-context.sh");
-    let output = Command::new("bash")
+    Command::new("bash")
         .arg(&script)
-        .env("CLAUDE_PROJECT_DIR", env!("CARGO_MANIFEST_DIR"))
+        .env("CLAUDE_PROJECT_DIR", root)
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_CONFIG_NOSYSTEM", "1")
         .output()
-        .expect("failed to run the session-context script");
+        .expect("failed to run the session-context script")
+}
+
+fn hook_output() -> String {
+    static NEXT: AtomicUsize = AtomicUsize::new(0);
+    let id = NEXT.fetch_add(1, Ordering::Relaxed);
+    let root = fresh_project(&format!("session-context-line-{id}"));
+    let output = run_hook_in(&root);
+    std::fs::remove_dir_all(&root).expect("remove scratch project");
     assert!(output.status.success());
     String::from_utf8(output.stdout).expect("hook output is utf-8")
+}
+
+#[test]
+fn hook_arms_the_githooks_directory_in_the_project_config_only() {
+    let root = fresh_project("session-context-arms-githooks");
+    std::fs::create_dir(root.join(".githooks")).unwrap();
+    let output = run_hook_in(&root);
+    assert!(output.status.success());
+    let local = isolated_git()
+        .arg("-C")
+        .arg(&root)
+        .args(["config", "--local", "core.hooksPath"])
+        .output()
+        .expect("git config");
+    let value = String::from_utf8(local.stdout).unwrap();
+    std::fs::remove_dir_all(&root).expect("remove scratch project");
+    assert_eq!(value.trim(), ".githooks");
 }
 
 #[test]
@@ -79,6 +131,8 @@ fn hook_exits_zero_and_stays_one_line_without_a_cli() {
         .arg(&script)
         .env("CLAUDE_PROJECT_DIR", &root)
         .env("PATH", "/usr/bin:/bin")
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_CONFIG_NOSYSTEM", "1")
         .output()
         .expect("failed to run the session-context script");
     let out = String::from_utf8(output.stdout).expect("hook output is utf-8");
