@@ -5,10 +5,10 @@ use crate::common::BODY;
 use crate::records::fixture;
 use living_docs_mcp::BundleServer;
 use rmcp::model::{
-    CallToolRequestParams, ResourceUpdatedNotificationParam, SubscribeRequestParams,
+    CallToolRequestParams, ErrorCode, ResourceUpdatedNotificationParam, SubscribeRequestParams,
     UnsubscribeRequestParams,
 };
-use rmcp::service::NotificationContext;
+use rmcp::service::{NotificationContext, ServiceError};
 use rmcp::{ClientHandler, RoleClient, ServiceExt};
 use serde_json::{json, Value};
 use std::fs;
@@ -194,5 +194,103 @@ async fn legacy_subscription_never_notifies_a_session_that_did_not_subscribe() {
     let edited = scratch.read(ADR_ONE_FILE) + "\nEdited.\n";
     fs::write(scratch.bundle().join(ADR_ONE_FILE), edited).expect("edit");
 
+    assert_eq!(settled(&mut events).await, vec![]);
+}
+
+#[allow(deprecated)]
+async fn refused_code(client: &Client, uri: &str) -> Option<ErrorCode> {
+    match client.subscribe(SubscribeRequestParams::new(uri)).await {
+        Err(ServiceError::McpError(error)) => Some(error.code),
+        _ => None,
+    }
+}
+
+async fn new_adr(client: &Client) {
+    let arguments = json!({
+        "operation": "new", "type": "adr", "title": "Use redis",
+        "description": "A decision.", "owner": "Eve", "body": BODY
+    });
+    write(client, arguments).await;
+}
+
+#[tokio::test]
+async fn legacy_subscription_refuses_a_uri_that_names_no_record_in_force() {
+    let scratch = fixture();
+    let (client, mut events) = connect(&scratch.bundle()).await;
+    let unknown = ["record://adr/9999", "record://adr/0003", "skill://x", "x y"];
+
+    for uri in unknown {
+        let code = refused_code(&client, uri).await;
+        assert_eq!(code, Some(ErrorCode::RESOURCE_NOT_FOUND), "{uri}");
+    }
+    new_adr(&client).await;
+    set_description(&client, "adr/0001", "Postgres, reworded.").await;
+
+    assert_eq!(settled(&mut events).await, vec![]);
+}
+
+#[tokio::test]
+async fn legacy_unsubscribe_of_a_uri_never_subscribed_succeeds() {
+    let scratch = fixture();
+    let (client, _events) = connect(&scratch.bundle()).await;
+
+    unsubscribe(&client, "record://adr/9999").await;
+    unsubscribe(&client, ADR_ONE).await;
+}
+
+/// Whether the process holds an inotify watch on `dir`, read from `/proc`,
+/// which only Linux offers.
+#[cfg(target_os = "linux")]
+fn watching(dir: &std::path::Path) -> Option<bool> {
+    use std::os::unix::fs::MetadataExt;
+    let inode = format!("ino:{:x} ", fs::metadata(dir).ok()?.ino());
+    let found = fs::read_dir("/proc/self/fdinfo")
+        .ok()?
+        .filter_map(|entry| fs::read_to_string(entry.ok()?.path()).ok())
+        .any(|info| {
+            info.lines()
+                .any(|line| line.starts_with("inotify ") && line.contains(&inode))
+        });
+    Some(found)
+}
+
+/// Polls until `watching` reports `wanted`, for at most `FIRST`.
+#[cfg(target_os = "linux")]
+async fn watch_state_becomes(dir: &std::path::Path, wanted: bool) -> bool {
+    let deadline = tokio::time::Instant::now() + FIRST;
+    while tokio::time::Instant::now() < deadline {
+        if watching(dir) == Some(wanted) {
+            return true;
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    false
+}
+
+#[cfg(target_os = "linux")]
+#[tokio::test]
+async fn legacy_subscription_lifecycle_watches_the_bundle_only_while_one_remains() {
+    let scratch = fixture();
+    let bundle = scratch.bundle();
+    let (client, mut events) = connect(&bundle).await;
+    assert_eq!(
+        watching(&bundle),
+        Some(false),
+        "no subscription, no watcher"
+    );
+
+    subscribe(&client, ADR_ONE).await;
+    subscribe(&client, "record://adr/0002").await;
+    assert!(watch_state_becomes(&bundle, true).await, "first starts it");
+
+    unsubscribe(&client, ADR_ONE).await;
+    assert_eq!(watching(&bundle), Some(true), "one subscription is left");
+    unsubscribe(&client, "record://adr/0002").await;
+    assert!(
+        watch_state_becomes(&bundle, false).await,
+        "last releases it"
+    );
+
+    new_adr(&client).await;
     assert_eq!(settled(&mut events).await, vec![]);
 }

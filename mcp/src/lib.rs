@@ -143,8 +143,8 @@ impl ServerHandler for BundleServer {
         request: SubscribeRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<(), ErrorData> {
-        self.events.subscribe(&context.peer, &request.uri);
-        Ok(())
+        records::read(&self.docs_dir, &request.uri)?;
+        self.events.subscribe(&context.peer, &request.uri)
     }
 
     #[allow(deprecated)]

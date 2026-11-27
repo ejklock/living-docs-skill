@@ -9,7 +9,8 @@
 
 use crate::events::{Events, Listener};
 use rmcp::model::{
-    InitializeRequestParams, RequestId, ResourceUpdatedNotificationParam, SubscriptionFilter,
+    ErrorData, InitializeRequestParams, RequestId, ResourceUpdatedNotificationParam,
+    SubscriptionFilter,
 };
 use rmcp::service::{Peer, SubscriptionSink};
 use rmcp::RoleServer;
@@ -20,23 +21,24 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub(crate) enum Key {
     Listen(RequestId),
-    Session(Option<Arc<InitializeRequestParams>>),
+    Session(Arc<InitializeRequestParams>),
 }
 
 impl PartialEq for Key {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Listen(a), Self::Listen(b)) => a == b,
-            (Self::Session(Some(a)), Self::Session(Some(b))) => Arc::ptr_eq(a, b),
-            (Self::Session(None), Self::Session(None)) => true,
+            (Self::Session(a), Self::Session(b)) => Arc::ptr_eq(a, b),
             _ => false,
         }
     }
 }
 
 impl Key {
-    fn session(peer: &Peer<RoleServer>) -> Self {
-        Self::Session(peer.peer_info())
+    /// The session's key; none for a peer that has not completed the
+    /// handshake, which no other session can be told apart from.
+    fn session(peer: &Peer<RoleServer>) -> Option<Self> {
+        peer.peer_info().map(Self::Session)
     }
 }
 
@@ -74,13 +76,13 @@ impl Channel {
     }
 }
 
-fn session_listener(peer: Peer<RoleServer>, uri: &str) -> Listener {
+fn session_listener(key: Key, peer: Peer<RoleServer>, uri: &str) -> Listener {
     let accepted = SubscriptionFilter::builder()
         .resources_list_changed()
         .resource_subscriptions([uri])
         .build();
     Listener {
-        key: Key::session(&peer),
+        key,
         accepted,
         channel: Channel::Session(peer),
     }
@@ -95,9 +97,15 @@ fn subscribed(listener: &mut Listener) -> &mut Vec<String> {
 
 impl Events {
     /// Subscribes the session behind `peer` to `uri`, starting the watcher if
-    /// this is the first listener of any kind.
-    pub(crate) fn subscribe(&self, peer: &Peer<RoleServer>, uri: &str) {
-        let key = Key::session(peer);
+    /// this is the first listener of any kind. A peer that has not completed
+    /// the handshake is refused: it has no identity to hold a listener by.
+    pub(crate) fn subscribe(&self, peer: &Peer<RoleServer>, uri: &str) -> Result<(), ErrorData> {
+        let Some(key) = Key::session(peer) else {
+            return Err(ErrorData::invalid_request(
+                "subscribe needs a completed initialize handshake",
+                None,
+            ));
+        };
         self.register(|listeners| {
             match listeners.iter_mut().find(|listener| listener.key == key) {
                 Some(listener) => {
@@ -106,15 +114,18 @@ impl Events {
                         uris.push(uri.to_string());
                     }
                 }
-                None => listeners.push(session_listener(peer.clone(), uri)),
+                None => listeners.push(session_listener(key.clone(), peer.clone(), uri)),
             }
         });
+        Ok(())
     }
 
     /// Drops `uri` from the session's subscriptions; the session's listener
     /// ends with its last one, and the last listener stops the watcher.
     pub(crate) fn unsubscribe(&self, peer: &Peer<RoleServer>, uri: &str) {
-        let key = Key::session(peer);
+        let Some(key) = Key::session(peer) else {
+            return;
+        };
         self.depart(|listeners| {
             for listener in listeners.iter_mut().filter(|l| l.key == key) {
                 subscribed(listener).retain(|known| known != uri);
