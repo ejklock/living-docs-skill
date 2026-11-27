@@ -237,7 +237,7 @@ fn run_fmt(docs_dir: &Path, args: &FmtArgs) -> Written {
         owner: git::identity(docs_dir),
         added_at: Some(git::added_at),
     };
-    let outcome = fmt::outcome(&store(docs_dir), docs_dir, args.check_only, &seeds)?;
+    let outcome = fmt::outcome_for_bundle(&store(docs_dir), docs_dir, args.check_only, &seeds)?;
     Ok(match outcome {
         FmtOutcome::Rewritten(paths) => json!({ "files": shown_all(&paths) }),
         FmtOutcome::Pending(paths) => json!({ "pending": shown_all(&paths) }),

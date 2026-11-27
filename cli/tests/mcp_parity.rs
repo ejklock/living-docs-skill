@@ -52,6 +52,7 @@ const MISSING: &[&str] = &[
     r#"check on a missing bundle | check | check | {} | missing,fails"#,
     r#"manage fmt on a missing bundle | manage fmt | manage | {"operation":"fmt"} | missing,fails"#,
     r#"write new adr creates the bundle | write new adr First --owner o --description d | write | {"operation":"new","type":"adr","title":"First","owner":"o","description":"d"} | missing,shows=adr/0001-first.md"#,
+    r#"manage fmt on a bundle root that is a file | manage fmt | manage | {"operation":"fmt"} | fileroot,fails"#,
 ];
 
 #[cfg(unix)]

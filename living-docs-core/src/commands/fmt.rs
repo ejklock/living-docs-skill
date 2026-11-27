@@ -64,6 +64,22 @@ pub fn outcome(
     }
 }
 
+/// [`outcome`] for a bundle root: refuses a root that is not a directory with
+/// the same `bundle root not found` message, instead of treating a regular
+/// file there as a single record. An explicit record path goes through
+/// [`outcome`] instead.
+pub fn outcome_for_bundle(
+    store: &dyn DocStore,
+    bundle: &Path,
+    check_only: bool,
+    seeds: &Seeds,
+) -> Result<Outcome, String> {
+    if !bundle.is_dir() {
+        return Err(format!("bundle root not found: {}", bundle.display()));
+    }
+    outcome(store, bundle, check_only, seeds)
+}
+
 /// One message per record `fmt` refuses: one whose frontmatter does not parse
 /// as a YAML mapping, or whose canonical form would not read back as the
 /// record does. Such a record is never rewritten and is not listed as
@@ -229,6 +245,8 @@ fn has_frontmatter(contents: &str) -> bool {
     contents.lines().next() == Some("---")
 }
 
+#[cfg(test)]
+mod file_root_tests;
 #[cfg(test)]
 mod heading_tests;
 #[cfg(test)]

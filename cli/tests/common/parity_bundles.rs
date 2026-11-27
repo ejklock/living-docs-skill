@@ -18,6 +18,7 @@ pub enum Bundle {
     ReadOnlyIndex,
     Nested,
     Missing,
+    FileRoot,
 }
 
 impl Bundle {
@@ -30,6 +31,7 @@ impl Bundle {
             ("readonly", Bundle::ReadOnlyIndex),
             ("nested", Bundle::Nested),
             ("missing", Bundle::Missing),
+            ("fileroot", Bundle::FileRoot),
         ]
         .into_iter()
         .find(|(flag, _)| flags.contains(flag))
@@ -63,6 +65,12 @@ fn scaffold(docs: &Path, body: &Path) {
     }
 }
 
+/// Leaves a regular file where the bundle's root directory was.
+fn replace_with_file(docs: &Path) {
+    fs::remove_dir_all(docs).unwrap();
+    fs::write(docs, "a regular file, not a bundle\n").unwrap();
+}
+
 pub fn make_bundle(kind: Bundle, docs: &Path, body: &Path) {
     match kind {
         Bundle::Canonical => copy_tree(&common::fixture("09-okf-canonical"), docs),
@@ -74,6 +82,7 @@ pub fn make_bundle(kind: Bundle, docs: &Path, body: &Path) {
             }
         }
         Bundle::Missing => fs::remove_dir_all(docs).unwrap(),
+        Bundle::FileRoot => replace_with_file(docs),
         Bundle::Nested => {
             scaffold(docs, body);
             rewrite_first_record(
@@ -100,6 +109,9 @@ pub fn make_bundle(kind: Bundle, docs: &Path, body: &Path) {
 pub fn copy_bundle(kind: Bundle, from: &Path, to: &Path) {
     if matches!(kind, Bundle::Missing) {
         fs::remove_dir_all(to).unwrap();
+    } else if matches!(kind, Bundle::FileRoot) {
+        fs::remove_dir_all(to).unwrap();
+        fs::copy(from, to).unwrap();
     } else {
         copy_tree(from, to);
     }
@@ -122,7 +134,9 @@ fn snapshot(root: &Path, dir: &Path, into: &mut Files) {
 
 pub fn files_of(root: &Path) -> Files {
     let mut files = Files::new();
-    if root.exists() {
+    if root.is_file() {
+        files.insert(String::new(), fs::read_to_string(root).unwrap());
+    } else if root.exists() {
         snapshot(root, root, &mut files);
     }
     files
