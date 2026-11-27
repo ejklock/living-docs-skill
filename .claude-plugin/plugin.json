@@ -1,13 +1,13 @@
 {
   "name": "living-docs",
-  "version": "0.34.1",
+  "version": "0.35.0",
   "description": "Run a project's engineering decisions as a living log: ADRs, issues, research and architecture views kept current by the living-docs CLI.",
   "author": { "name": "Evaldo Klock" },
   "license": "MIT",
   "mcpServers": {
     "living-docs": {
       "command": "npx",
-      "args": ["-y", "@ejklock/living-docs@0.34.1", "mcp", "--docs-dir", "${CLAUDE_PROJECT_DIR}/docs"]
+      "args": ["-y", "@ejklock/living-docs@0.35.0", "mcp", "--docs-dir", "${CLAUDE_PROJECT_DIR}/docs"]
     }
   },
   "hooks": {
