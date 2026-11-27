@@ -16,6 +16,7 @@ pub enum Bundle {
     StaleIndexes,
     ReadOnlyIndex,
     Nested,
+    Missing,
 }
 
 impl Bundle {
@@ -27,6 +28,7 @@ impl Bundle {
             ("stale", Bundle::StaleIndexes),
             ("readonly", Bundle::ReadOnlyIndex),
             ("nested", Bundle::Nested),
+            ("missing", Bundle::Missing),
         ]
         .into_iter()
         .find(|(flag, _)| flags.contains(flag))
@@ -70,6 +72,7 @@ pub fn make_bundle(kind: Bundle, docs: &Path, body: &Path) {
                 fs::remove_file(docs.join(index)).unwrap();
             }
         }
+        Bundle::Missing => fs::remove_dir_all(docs).unwrap(),
         Bundle::Nested => {
             scaffold(docs, body);
             rewrite_first_record(
@@ -88,6 +91,16 @@ pub fn make_bundle(kind: Bundle, docs: &Path, body: &Path) {
                 "the fixture record must start canonical",
             );
         }
+    }
+}
+
+/// Copies a made bundle into the second path; a missing bundle leaves both
+/// paths absent.
+pub fn copy_bundle(kind: Bundle, from: &Path, to: &Path) {
+    if matches!(kind, Bundle::Missing) {
+        fs::remove_dir_all(to).unwrap();
+    } else {
+        copy_tree(from, to);
     }
 }
 

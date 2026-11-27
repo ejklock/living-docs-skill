@@ -3,8 +3,8 @@
 //! difference in the files left behind or the JSON returned.
 
 use crate::common::mcp_session::Session;
-use crate::common::parity_bundles::{make_bundle, set_index_writable, Bundle, BODY};
-use crate::common::{copy_tree, living_docs, Scratch};
+use crate::common::parity_bundles::{copy_bundle, make_bundle, set_index_writable, Bundle, BODY};
+use crate::common::{living_docs, Scratch};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::fs;
@@ -19,16 +19,17 @@ pub struct Case {
     args: Value,
     fails: bool,
     partial: bool,
+    untouched: bool,
     report: bool,
     shows: Vec<String>,
 }
 
 /// Reads table rows of `name | cli words | tool | tool arguments as JSON |
 /// flags`. Optional, comma-separated flags: `canonical`, `noncanonical`,
-/// `stale`, `nested` (a child under Context) or `readonly` (decision index is
+/// `stale`, `missing` (the docs path does not exist), `nested` (a child under Context) or `readonly` (decision index is
 /// read-only) pick the fixture bundle, `fails` expects both paths to refuse the
 /// call and change no file, `partial` expects both to write the record and fail
-/// the index refresh, `report` expects the CLI to exit non-zero while the tool
+/// the index refresh, `untouched` expects both to leave no file behind, `report` expects the CLI to exit non-zero while the tool
 /// returns its result without an error, `shows=<fragment>` requires that compact
 /// JSON fragment in both results. In `{body}`, a CLI word is the body file's path and a tool argument is its text.
 pub fn parse(table: &[&str]) -> Vec<Case> {
@@ -51,6 +52,7 @@ fn parse_row(row: &str) -> Case {
         args: serde_json::from_str(args).unwrap_or_else(|e| panic!("{name}: {e}")),
         fails: flags.contains(&"fails"),
         partial: flags.contains(&"partial"),
+        untouched: flags.contains(&"untouched"),
         report: flags.contains(&"report"),
         shows: flags
             .iter()
@@ -76,7 +78,9 @@ fn snapshot(root: &Path, dir: &Path, into: &mut Files) {
 
 fn files_of(root: &Path) -> Files {
     let mut files = Files::new();
-    snapshot(root, root, &mut files);
+    if root.exists() {
+        snapshot(root, root, &mut files);
+    }
     files
 }
 
@@ -96,7 +100,7 @@ fn align_to_second() {
 /// Names a copy's root, in its canonical form first because the plain form of
 /// a temp directory is a suffix of it, so one placeholder stands for both.
 fn normalize(value: &Value, docs: &Path) -> Value {
-    let canonical = docs.canonicalize().unwrap();
+    let canonical = docs.canonicalize().unwrap_or_else(|_| docs.to_path_buf());
     let mut text = value.to_string();
     for root in [canonical.display().to_string(), docs.display().to_string()] {
         text = text.replace(root.as_str(), "<root>");
@@ -255,6 +259,9 @@ fn compare(case: &Case, outcome: &Outcome, docs: [&Path; 2], start: &Files) -> V
     let mcp = outcome.mcp.as_ref().map(|v| normalize(v, docs[1]));
     let mut problems = result_problems(case, &cli, &mcp);
     problems.extend(status_problems(case, outcome));
+    if case.untouched && !(cli_files.is_empty() && mcp_files.is_empty()) {
+        problems.push("a read created files".to_string());
+    }
     if cli_files != mcp_files {
         problems.push(format!(
             "files differ\n  cli: {cli_files:#?}\n  mcp: {mcp_files:#?}"
@@ -269,7 +276,7 @@ fn mismatches(case: &Case) -> Vec<String> {
     let body = cli.root().join("body.md");
     fs::write(&body, BODY).unwrap();
     make_bundle(case.bundle, &cli, &body);
-    copy_tree(&cli, &mcp);
+    copy_bundle(case.bundle, &cli, &mcp);
     let start = files_of(&cli);
     let lock = |writable| {
         if matches!(case.bundle, Bundle::ReadOnlyIndex) {
