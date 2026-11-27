@@ -20,6 +20,7 @@ timestamp: 2026-11-27T19:27:33Z
 ## Decision
 
 - The default output moves inside the bundle, to `docs/html/index.html` (owner, 2026-11-27), replacing ADR 0090's `.living-docs/html/index.html`; this needs a superseding or amending ADR. Not taken: keeping the default outside the bundle. Open with it: whether that file is ignored by the project's `.gitignore` or committed by the pre-commit hook.
+- With issue 0164's one-file-per-type output, the configured and default output is a directory (`docs/html/`), not a file (owner, 2026-11-27).
 - Open: whether the hook stages the regenerated file when its path is tracked (in se-hub it is gitignored); how the key is validated (contained relative path, no `..`, no absolute path); whether this amends or supersedes ADR 0090's "Output" bullet.
 
 ## Acceptance
