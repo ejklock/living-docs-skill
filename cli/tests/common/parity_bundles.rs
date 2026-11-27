@@ -2,6 +2,7 @@
 //! writes carry.
 
 use crate::common::{self, copy_tree, living_docs};
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
@@ -102,6 +103,44 @@ pub fn copy_bundle(kind: Bundle, from: &Path, to: &Path) {
     } else {
         copy_tree(from, to);
     }
+}
+
+/// Every file under a bundle's root by relative path; an absent root holds none.
+pub type Files = BTreeMap<String, String>;
+
+fn snapshot(root: &Path, dir: &Path, into: &mut Files) {
+    for entry in fs::read_dir(dir).unwrap() {
+        let path = entry.unwrap().path();
+        if path.is_dir() {
+            snapshot(root, &path, into);
+        } else {
+            let rel = path.strip_prefix(root).unwrap().display().to_string();
+            into.insert(rel, fs::read_to_string(&path).unwrap());
+        }
+    }
+}
+
+pub fn files_of(root: &Path) -> Files {
+    let mut files = Files::new();
+    if root.exists() {
+        snapshot(root, root, &mut files);
+    }
+    files
+}
+
+/// Names each side that created the docs directory of a missing bundle when
+/// the call must leave nothing behind; an empty map of files cannot tell an
+/// absent directory from an empty one.
+pub fn created_dirs(kind: Bundle, must_stay_absent: bool, docs: [&Path; 2]) -> Vec<String> {
+    if !(matches!(kind, Bundle::Missing) && must_stay_absent) {
+        return Vec::new();
+    }
+    ["cli", "mcp"]
+        .into_iter()
+        .zip(docs)
+        .filter(|(_, path)| path.exists())
+        .map(|(side, _)| format!("the {side} side created the docs directory"))
+        .collect()
 }
 
 fn rewrite_first_record(docs: &Path, from: &str, to: &str, expectation: &str) {

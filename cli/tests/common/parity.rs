@@ -3,10 +3,11 @@
 //! difference in the files left behind or the JSON returned.
 
 use crate::common::mcp_session::Session;
-use crate::common::parity_bundles::{copy_bundle, make_bundle, set_index_writable, Bundle, BODY};
+use crate::common::parity_bundles::{
+    copy_bundle, created_dirs, files_of, make_bundle, set_index_writable, Bundle, Files, BODY,
+};
 use crate::common::{living_docs, Scratch};
 use serde_json::{json, Value};
-use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -26,7 +27,7 @@ pub struct Case {
 
 /// Reads table rows of `name | cli words | tool | tool arguments as JSON |
 /// flags`. Optional, comma-separated flags: `canonical`, `noncanonical`,
-/// `stale`, `missing` (the docs path does not exist), `nested` (a child under Context) or `readonly` (decision index is
+/// `stale`, `missing` (the docs path does not exist; with `fails` or `untouched`, neither path may create it), `nested` (a child under Context) or `readonly` (decision index is
 /// read-only) pick the fixture bundle, `fails` expects both paths to refuse the
 /// call and change no file, `partial` expects both to write the record and fail
 /// the index refresh, `untouched` expects both to leave no file behind, `report` expects the CLI to exit non-zero while the tool
@@ -60,28 +61,6 @@ fn parse_row(row: &str) -> Case {
             .map(str::to_string)
             .collect(),
     }
-}
-
-type Files = BTreeMap<String, String>;
-
-fn snapshot(root: &Path, dir: &Path, into: &mut Files) {
-    for entry in fs::read_dir(dir).unwrap() {
-        let path = entry.unwrap().path();
-        if path.is_dir() {
-            snapshot(root, &path, into);
-        } else {
-            let rel = path.strip_prefix(root).unwrap().display().to_string();
-            into.insert(rel, fs::read_to_string(&path).unwrap());
-        }
-    }
-}
-
-fn files_of(root: &Path) -> Files {
-    let mut files = Files::new();
-    if root.exists() {
-        snapshot(root, root, &mut files);
-    }
-    files
 }
 
 /// Waits for a fresh second when the current one is nearly spent, so both
@@ -260,7 +239,7 @@ fn compare(case: &Case, outcome: &Outcome, docs: [&Path; 2], start: &Files) -> V
     let mut problems = result_problems(case, &cli, &mcp);
     problems.extend(status_problems(case, outcome));
     if case.untouched && !(cli_files.is_empty() && mcp_files.is_empty()) {
-        problems.push("a read created files".to_string());
+        problems.push("a call that must leave no files created files".to_string());
     }
     if cli_files != mcp_files {
         problems.push(format!(
@@ -286,7 +265,13 @@ fn mismatches(case: &Case) -> Vec<String> {
     lock(false);
     let outcome = run_both(case, &cli, &mcp, &body);
     lock(true);
-    compare(case, &outcome, [&cli, &mcp], &start)
+    let mut problems = compare(case, &outcome, [&cli, &mcp], &start);
+    problems.extend(created_dirs(
+        case.bundle,
+        case.fails || case.untouched,
+        [&cli, &mcp],
+    ));
+    problems
         .into_iter()
         .map(|problem| format!("{}: {problem}", case.name))
         .collect()
