@@ -198,7 +198,14 @@ mod tests {
         fn run(&self, cancel: &AtomicBool, passes: &[Pass]) -> Result<usize, Stopped> {
             let mut reporter = Reporter::new();
             let options = (false, true);
-            run_passes(&self.store(), &self.0, &mut reporter, options, cancel, passes)
+            run_passes(
+                &self.store(),
+                &self.0,
+                &mut reporter,
+                options,
+                cancel,
+                passes,
+            )
         }
     }
 

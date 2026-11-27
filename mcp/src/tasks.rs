@@ -3,9 +3,9 @@
 //! declared the tasks extension; every other call answers inline.
 
 use crate::args::CheckArgs;
+use crate::tools::shaped;
 use crate::BundleServer;
 use fs_store::FsStore;
-use crate::tools::shaped;
 use living_docs_core::check::{compile_cancellable, Checked};
 use living_docs_core::commands::in_force::in_force_records;
 use rmcp::handler::server::wrapper::Parameters;
@@ -215,4 +215,3 @@ mod tests {
         assert!(json(&result).to_string().contains("bundle root not found"));
     }
 }
-
