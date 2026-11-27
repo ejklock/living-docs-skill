@@ -93,8 +93,15 @@ fn tracked(pathspec: &str) -> String {
         .arg("-C")
         .arg(repo_root())
         .args(["ls-files", "--", pathspec])
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_CONFIG_NOSYSTEM", "1")
         .output()
         .expect("git ls-files");
+    assert!(
+        output.status.success(),
+        "git ls-files failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     String::from_utf8(output.stdout).unwrap()
 }
 
