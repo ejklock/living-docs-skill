@@ -108,3 +108,15 @@ fn asset_returns_the_raw_bytes_of_an_embedded_hook_script() {
 fn asset_returns_none_for_an_unknown_path() {
     assert!(asset("living-docs/hooks/no-such-script.sh").is_none());
 }
+
+#[test]
+fn skill_frontmatter_returns_the_entry_name_and_description() {
+    let value = skill_frontmatter("living-docs").expect("living-docs has frontmatter");
+    assert_eq!(value["name"], "living-docs");
+    assert!(value["description"].as_str().is_some_and(|d| !d.is_empty()));
+}
+
+#[test]
+fn skill_frontmatter_is_none_for_an_unknown_skill() {
+    assert!(skill_frontmatter("no-such-skill").is_none());
+}

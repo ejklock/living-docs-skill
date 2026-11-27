@@ -159,6 +159,9 @@ async fn skills_get_rejects_unknown_non_installable_and_malformed_uris() {
         "skill://nope/SKILL.md",
         "skill://living-docs/rules/adr-conventions.md",
         "skill://living-docs/scripts/drift.sh",
+        "skill://living-docs-drift/prompt.md",
+        "skill://living-docs-drift/scripts/drift.sh",
+        "skill://okf-knowledge-format/reference/SPEC.md",
         "skill://",
         "skill://../x",
         "skill://%2e%2e/SKILL.md",
@@ -179,12 +182,29 @@ async fn skills_get_rejects_unknown_non_installable_and_malformed_uris() {
     }
 }
 
+fn assert_mime_types(resources: &[rmcp::model::Resource]) {
+    for resource in resources {
+        let want = if resource.uri.ends_with(".sh") {
+            "text/x-shellscript"
+        } else {
+            "text/markdown"
+        };
+        assert_eq!(
+            resource.mime_type.as_deref(),
+            Some(want),
+            "{}",
+            resource.uri
+        );
+    }
+}
+
 #[tokio::test]
 async fn skill_resources_list_every_skill_file_and_read_it_byte_for_byte() {
     let scratch = Scratch::new();
     let client = connect(&scratch.bundle(), Era::Initialize).await;
     let resources = client.list_all_resources().await.expect("resources/list");
     let uris: Vec<&str> = resources.iter().map(|r| r.uri.as_str()).collect();
+    assert_mime_types(&resources);
     for (name, paths) in INSTALLABLE {
         for path in paths {
             let want = uri(name, path);
@@ -204,8 +224,14 @@ async fn skill_resources_list_every_skill_file_and_read_it_byte_for_byte() {
 
 #[tokio::test]
 async fn skill_resources_reject_uris_outside_the_installable_set() {
+    for (era, want) in [(Era::Initialize, -32002), (Era::Discover, -32602)] {
+        reject_outside_the_installable_set(era, want).await;
+    }
+}
+
+async fn reject_outside_the_installable_set(era: Era, want: i32) {
     let scratch = Scratch::new();
-    let client = connect(&scratch.bundle(), Era::Initialize).await;
+    let client = connect(&scratch.bundle(), era).await;
     for bad in [
         "skill://living-docs/rules/adr-conventions.md",
         "skill://living-docs/../living-docs-drift/SKILL.md",
@@ -218,7 +244,8 @@ async fn skill_resources_reject_uris_outside_the_installable_set() {
         let result = client
             .read_resource(ReadResourceRequestParams::new(bad))
             .await;
-        assert!(result.is_err(), "{bad} was served: {result:?}");
+        let error = result.expect_err(bad);
+        assert_eq!(code(error), want, "{bad}");
     }
     assert!(client.list_skills(None).await.is_ok(), "still answering");
 }

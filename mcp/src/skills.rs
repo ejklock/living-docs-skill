@@ -5,7 +5,7 @@
 //! closed table, never turned into a path, so a `..` segment, an encoded
 //! escape or a foreign scheme can only miss.
 
-use living_docs_core::guide::{asset, SkillAssetSpec, SKILL_ASSET_SPECS};
+use living_docs_core::guide::{asset, skill_frontmatter, SkillAssetSpec, SKILL_ASSET_SPECS};
 use rmcp::model::{
     ReadResourceResult, Resource, ResourceContents, Skill, SkillFrontmatter, SkillResource,
     SkillResources,
@@ -15,7 +15,6 @@ use std::borrow::Cow;
 
 const SCHEME: &str = "skill://";
 const ENTRY: &str = "SKILL.md";
-const FRONTMATTER_FENCE: &str = "---\n";
 
 fn file_uri(skill: &str, path: &str) -> String {
     format!("{SCHEME}{skill}/{path}")
@@ -41,15 +40,9 @@ fn bytes(spec: &SkillAssetSpec, path: &str) -> Result<Cow<'static, [u8]>, ErrorD
 
 fn frontmatter(spec: &SkillAssetSpec) -> Result<SkillFrontmatter, ErrorData> {
     let internal = |reason: String| ErrorData::internal_error(reason, None);
-    let markdown = bytes(spec, ENTRY)?;
-    let markdown = std::str::from_utf8(&markdown)
-        .map_err(|_| internal(format!("{} {ENTRY} is not UTF-8", spec.skill)))?;
-    let block = markdown
-        .strip_prefix(FRONTMATTER_FENCE)
-        .and_then(|rest| rest.split_once("\n---"))
-        .map(|(block, _)| block)
+    let value = skill_frontmatter(spec.skill)
         .ok_or_else(|| internal(format!("{} {ENTRY} has no frontmatter", spec.skill)))?;
-    serde_yaml::from_str(block)
+    serde_json::from_value(value)
         .map_err(|error| internal(format!("{} frontmatter: {error}", spec.skill)))
 }
 
@@ -111,6 +104,8 @@ pub(crate) fn resources() -> Vec<Resource> {
 fn mime_type(path: &str) -> &'static str {
     if path.ends_with(".md") {
         "text/markdown"
+    } else if path.ends_with(".sh") {
+        "text/x-shellscript"
     } else {
         "text/plain"
     }

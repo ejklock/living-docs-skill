@@ -201,6 +201,15 @@ pub fn asset(path: &str) -> Option<Cow<'static, [u8]>> {
     SkillAssets::get(path).map(|file| file.data)
 }
 
+/// The frontmatter of the embedded `SKILL.md` of skill `name` as a JSON value.
+/// None when the skill is unknown or its entry has no frontmatter mapping.
+pub fn skill_frontmatter(name: &str) -> Option<serde_json::Value> {
+    let entry = read_asset(&format!("{name}/SKILL.md")).ok()?;
+    let block = crate::frontmatter::frontmatter_block(&entry)?;
+    let parsed = crate::frontmatter::parse_frontmatter(block)?;
+    serde_json::to_value(parsed).ok()
+}
+
 /// The names of every embedded skill, sorted.
 pub fn skill_names() -> BTreeSet<String> {
     SkillAssets::iter()
