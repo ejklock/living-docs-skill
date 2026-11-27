@@ -1,6 +1,8 @@
 //! Change events for resource subscribers.
 //!
-//! While a listener asks for a resource notification, one task keeps the
+//! While a listener (a `subscriptions/listen` stream or, through
+//! `legacy_subscriptions`, a `resources/subscribe` session) asks for a
+//! resource notification, one task keeps the
 //! fingerprints of the records in force. Two things wake it: a server write
 //! (`Events::wrote`) and a file watcher on the bundle. Both coalesce over
 //! [`WINDOW`]: the debouncer for the watcher, a wait in the task for a write.
@@ -9,11 +11,12 @@
 //! record reports nothing. With no such listener there is no task and no
 //! watcher.
 
+use crate::legacy_subscriptions::{Channel, Key};
 use crate::records;
 use notify_debouncer_mini::notify::{RecommendedWatcher, RecursiveMode};
 use notify_debouncer_mini::{new_debouncer, DebounceEventResult, Debouncer};
-use rmcp::model::{RequestId, SubscriptionFilter};
-use rmcp::service::{SubscriptionContext, SubscriptionSink};
+use rmcp::model::SubscriptionFilter;
+use rmcp::service::SubscriptionContext;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::BTreeMap;
 use std::hash::{Hash, Hasher};
@@ -67,30 +70,30 @@ fn wants_resources(filter: &SubscriptionFilter) -> bool {
 }
 
 #[derive(Clone)]
-struct Listener {
-    id: RequestId,
-    accepted: SubscriptionFilter,
-    sink: SubscriptionSink,
+pub(crate) struct Listener {
+    pub(crate) key: Key,
+    pub(crate) accepted: SubscriptionFilter,
+    pub(crate) channel: Channel,
 }
 
 impl Listener {
-    async fn tell(&self, changes: &Changes) {
+    /// Sends what this listener asked for; false once its channel has closed.
+    async fn tell(&self, changes: &Changes) -> bool {
         let list = changes.list && self.accepted.resources_list_changed == Some(true);
         let subscribed = self
             .accepted
             .resource_subscriptions
             .as_deref()
             .unwrap_or(&[]);
-        if list {
-            let _ = self.sink.notify_resource_list_changed().await;
-        }
+        let mut open = !list || self.channel.list_changed().await;
         for uri in changes
             .updated
             .iter()
             .filter(|uri| subscribed.contains(uri))
         {
-            let _ = self.sink.notify_resource_updated(uri.as_str()).await;
+            open &= self.channel.updated(uri).await;
         }
+        open
     }
 }
 
@@ -128,18 +131,25 @@ pub(crate) struct Events {
 /// Keeps a listener registered; dropping it ends the listener, and the last
 /// one stops the watcher.
 struct Registration {
-    id: RequestId,
+    key: Key,
     shared: Arc<Mutex<Shared>>,
 }
 
 impl Drop for Registration {
     fn drop(&mut self) {
-        let mut shared = locked(&self.shared);
-        shared.listeners.retain(|listener| listener.id != self.id);
-        if shared.listeners.is_empty() {
-            if let Some(running) = shared.running.take() {
-                running.task.abort();
-            }
+        depart(&self.shared, |listeners| {
+            listeners.retain(|listener| listener.key != self.key);
+        });
+    }
+}
+
+/// Removes listeners with `leave`; the last one out stops the task.
+fn depart(shared: &Mutex<Shared>, leave: impl FnOnce(&mut Vec<Listener>)) {
+    let mut shared = locked(shared);
+    leave(&mut shared.listeners);
+    if shared.listeners.is_empty() {
+        if let Some(running) = shared.running.take() {
+            running.task.abort();
         }
     }
 }
@@ -156,13 +166,24 @@ impl Events {
     /// ends, delivering what it asked for while it lasts.
     pub(crate) async fn attend(&self, context: SubscriptionContext) {
         let _registration = wants_resources(context.accepted()).then(|| {
-            self.join(Listener {
-                id: context.sink().id().clone(),
+            let key = Key::Listen(context.sink().id().clone());
+            let listener = Listener {
+                key: key.clone(),
                 accepted: context.accepted().clone(),
-                sink: context.sink().clone(),
-            })
+                channel: Channel::Listen(context.sink().clone()),
+            };
+            self.register(|listeners| listeners.push(listener));
+            Registration {
+                key,
+                shared: self.shared.clone(),
+            }
         });
         context.cancelled().await;
+    }
+
+    /// Ends the listeners `leave` removes, and the task with the last one.
+    pub(crate) fn depart(&self, leave: impl FnOnce(&mut Vec<Listener>)) {
+        depart(&self.shared, leave);
     }
 
     /// Wakes the task after a call that may have written to the bundle.
@@ -172,16 +193,15 @@ impl Events {
         }
     }
 
-    /// Registers the listener and, for the first one, starts the task. The
+    /// Adds listeners with `add` and, for the first one, starts the task. The
     /// first scan runs with the lock released, so a second listener never
     /// waits on it, and without yielding, so the baseline is taken before the
     /// client's next request is served; a blocking-pool scan would race an
     /// edit made right after the listen is acknowledged and miss it.
-    fn join(&self, listener: Listener) -> Registration {
-        let id = listener.id.clone();
+    pub(crate) fn register(&self, add: impl FnOnce(&mut Vec<Listener>)) {
         let first = {
             let mut shared = locked(&self.shared);
-            shared.listeners.push(listener);
+            add(&mut shared.listeners);
             shared.running.is_none()
         };
         if first {
@@ -191,10 +211,6 @@ impl Events {
                 None => shared.running = Some(running),
                 Some(_) => running.task.abort(),
             }
-        }
-        Registration {
-            id,
-            shared: self.shared.clone(),
         }
     }
 
@@ -260,10 +276,21 @@ impl Watch {
             };
             let changes = changes(&self.seen, &now);
             self.seen = now;
-            let listeners = locked(&self.shared).listeners.clone();
-            for listener in &listeners {
-                listener.tell(&changes).await;
+            self.tell_all(&changes).await;
+        }
+    }
+
+    /// Tells every listener, then drops those whose channel has closed.
+    async fn tell_all(&self, changes: &Changes) {
+        let listeners = locked(&self.shared).listeners.clone();
+        let mut closed = Vec::new();
+        for listener in &listeners {
+            if !listener.tell(changes).await {
+                closed.push(listener.key.clone());
             }
+        }
+        if !closed.is_empty() {
+            depart(&self.shared, |all| all.retain(|l| !closed.contains(&l.key)));
         }
     }
 }
