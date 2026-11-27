@@ -118,3 +118,25 @@ async fn instructions_teach_recording_a_mid_work_decision_and_the_adr_materialit
         );
     }
 }
+
+#[tokio::test]
+async fn instructions_say_the_bundle_may_not_exist_and_write_new_creates_it() {
+    let scratch = Scratch::new();
+    let client = connect(&scratch.bundle(), Era::Discover).await;
+    let instructions = client
+        .peer_info()
+        .expect("discover result retained")
+        .instructions
+        .clone()
+        .expect("instructions")
+        .to_lowercase();
+    for phrase in [
+        "bundle may not exist yet",
+        "`write` with operation `new` creates it",
+    ] {
+        assert!(
+            instructions.contains(phrase),
+            "no {phrase} in: {instructions}"
+        );
+    }
+}

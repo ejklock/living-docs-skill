@@ -16,3 +16,5 @@ mod empty_topic;
 mod export_view;
 #[path = "stdio_server/guide.rs"]
 mod guide;
+#[path = "stdio_server/missing_bundle.rs"]
+mod missing_bundle;

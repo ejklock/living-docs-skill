@@ -9,7 +9,7 @@ pub fn instructions(docs_dir: &Path) -> String {
 \n\
 Four tools, each grouping operations by an `operation` argument:\n\
 - `read` (records, guide): `records` is the in-force view of the bundle; filter with `topic`, or ask `links_to` / `impact` for the records that depend on one. `guide` is the authoring guide: `list` shows the skills and topics, `skill` and `topic` read one.\n\
-- `write` (new, set, supersede): the only way to create or change a record.\n\
+- `write` (new, set, supersede): the only way to create or change a record. The bundle may not exist yet: `write` with operation `new` creates it.\n\
 - `manage` (index, fmt, view, export_view): regenerate indexes, canonicalize frontmatter, splice a Mermaid diagram into an architecture view's stamped generated region, or export a flat state view as a TLA+ module.\n\
 - `check`: the gate. It reports violations as data; run it after writing.\n\
 \n\
