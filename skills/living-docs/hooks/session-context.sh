@@ -41,7 +41,7 @@ has_okf_marker() {
   [ -f "$1" ] || return 1
   head -n 50 "$1" 2>/dev/null | awk '
     { sub(/\r$/, "") }
-    NR == 1 { sub(/^\xef\xbb\xbf/, "") }
+    NR == 1 { sub(/^\357\273\277/, "") }
     NR == 1 { if ($0 != "---") exit; next }
     $0 == "---" { exit }
     /^okf_version:/ { found = 1; exit }

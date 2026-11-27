@@ -159,3 +159,14 @@ fn bom_root_with_crlf_frontmatter_takes_the_key_with_a_crlf_line() {
     );
     let _ = fs::remove_dir_all(&docs);
 }
+
+#[test]
+fn root_with_two_byte_order_marks_keeps_the_second_as_content() {
+    let (docs, after) = migrate("bom-double", &format!("{BOM}{BOM}# Docs\n"));
+
+    assert_eq!(after, format!("{BOM}{BLOCK}{BOM}# Docs\n"));
+    let again = ensure_root_index(&DiskStore, &docs, &[], NoTypeIndex::WriteNothing).unwrap();
+    assert_eq!(again, None);
+    assert_eq!(fs::read_to_string(docs.join("index.md")).unwrap(), after);
+    let _ = fs::remove_dir_all(&docs);
+}

@@ -243,3 +243,43 @@ fn plugin_mode_is_silent_when_okf_version_is_outside_the_frontmatter_behind_a_by
     );
     assert_silent(&root, None);
 }
+
+#[test]
+fn plugin_mode_accepts_a_byte_order_mark_marker_under_posix_awk() {
+    let root = fresh_project("plugin-bom-posix");
+    write_marked_bundle(&root, "docs", &format!("\u{feff}{MARKER}"));
+    let script = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join("skills/living-docs/hooks/session-context.sh");
+    let output = Command::new("bash")
+        .arg(&script)
+        .env("LIVING_DOCS_PLUGIN", "1")
+        .env("POSIXLY_CORRECT", "1")
+        .env("CLAUDE_PROJECT_DIR", &root)
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .output()
+        .expect("failed to run the session-context script");
+    let out = String::from_utf8(output.stdout).expect("hook output is utf-8");
+    assert!(output.status.success());
+    assert!(out.contains("living-docs: "), "{out}");
+}
+
+#[test]
+fn plugin_mode_is_silent_for_two_byte_order_marks_before_the_frontmatter() {
+    let root = fresh_project("plugin-bom-double");
+    write_marked_bundle(&root, "docs", &format!("\u{feff}\u{feff}{MARKER}"));
+    assert_silent(&root, None);
+}
+
+#[test]
+fn plugin_mode_is_silent_for_a_byte_order_mark_inside_the_frontmatter() {
+    let root = fresh_project("plugin-bom-line-two");
+    write_marked_bundle(
+        &root,
+        "docs",
+        "---\n\u{feff}okf_version: \"0.1\"\n---\n\n# Docs\n",
+    );
+    assert_silent(&root, None);
+}
