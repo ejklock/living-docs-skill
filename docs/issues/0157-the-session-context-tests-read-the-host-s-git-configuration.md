@@ -2,7 +2,7 @@
 type: Issue
 title: The session-context tests read the host's git configuration
 description: hook_output runs the session hook against cli/ without hiding the host's global and system git config.
-status: open
+status: closed
 timestamp: 2026-11-27T01:50:02Z
 ---
 

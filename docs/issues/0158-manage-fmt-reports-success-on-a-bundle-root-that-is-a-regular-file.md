@@ -2,7 +2,7 @@
 type: Issue
 title: manage fmt reports success on a bundle root that is a regular file
 description: manage fmt on a docs path that is a regular file returns an empty success, while check refuses the same path as bundle root not found.
-status: open
+status: closed
 timestamp: 2026-11-27T02:53:42Z
 ---
 

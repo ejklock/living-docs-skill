@@ -2,7 +2,7 @@
 type: Issue
 title: Initialize-era MCP clients are offered resource subscriptions the server cannot serve them
 description: living-docs mcp advertises resources subscribe and listChanged on the initialize revision, where resources/subscribe is refused and no list change is sent.
-status: open
+status: closed
 timestamp: 2026-11-27T05:50:10Z
 ---
 

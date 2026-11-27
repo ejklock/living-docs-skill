@@ -2,7 +2,7 @@
 type: Issue
 title: The MCP check error on a missing bundle omits the CLI's prefix and hint
 description: Over MCP, check on a missing bundle returns only bundle root not found with the path, while the CLI adds its verb prefix and a hint line.
-status: open
+status: closed
 timestamp: 2026-11-27T02:53:56Z
 ---
 

@@ -2,7 +2,7 @@
 type: Issue
 title: write new does not list the bundle root it wrote
 description: write new creates or migrates the bundle-root index.md without listing it among the files it wrote.
-status: open
+status: closed
 timestamp: 2026-11-27T03:33:40Z
 ---
 

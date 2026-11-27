@@ -13,11 +13,6 @@ one slice per fresh context, starting from the skeleton.
 * [0132 — The HTML renderer duplicates the record reader and link graph of read records](0132-the-html-renderer-duplicates-the-record-reader-and-link-graph-of-read-records.md) - open
 * [0144 — Engineering-docs roadmap: domain language and rules, decision capture, issue waves, generated diagrams and a local HTML export](0144-engineering-docs-roadmap-domain-language-and-rules-decision-capture-issue-waves-generated-diagrams-and-a-local-html-export.md) - open
 * [0152 — Formal proofs of state and decision artifacts, model-checker export, and bounded model checking of the CLI](0152-formal-proofs-of-state-and-decision-artifacts-model-checker-export-and-bounded-model-checking-of-the-cli.md) - open
-* [0157 — The session-context tests read the host's git configuration](0157-the-session-context-tests-read-the-host-s-git-configuration.md) - open
-* [0158 — manage fmt reports success on a bundle root that is a regular file](0158-manage-fmt-reports-success-on-a-bundle-root-that-is-a-regular-file.md) - open
-* [0159 — The MCP check error on a missing bundle omits the CLI's prefix and hint](0159-the-mcp-check-error-on-a-missing-bundle-omits-the-cli-s-prefix-and-hint.md) - open
-* [0160 — write new does not list the bundle root it wrote](0160-write-new-does-not-list-the-bundle-root-it-wrote.md) - open
-* [0161 — Initialize-era MCP clients are offered resource subscriptions the server cannot serve them](0161-initialize-era-mcp-clients-are-offered-resource-subscriptions-the-server-cannot-serve-them.md) - open
 * [0162 — Re-measure the MCP check task threshold on the CI runner](0162-re-measure-the-mcp-check-task-threshold-on-the-ci-runner.md) - open
 * [0163 — Configure the manage html output path in the bundle root and refresh it from the pre-commit hook](0163-configure-the-manage-html-output-path-in-the-bundle-root-and-refresh-it-from-the-pre-commit-hook.md) - open
 * [0164 — Give the generated HTML a sidebar navigation and a reading style](0164-give-the-generated-html-a-sidebar-navigation-and-a-reading-style.md) - open
@@ -176,3 +171,8 @@ one slice per fresh context, starting from the skeleton.
 * [0153 — Measure how often a stale or contradicted decision is caught as the log grows past 60 records](0153-measure-how-often-a-stale-or-contradicted-decision-is-caught-as-the-log-grows-past-60-records.md) - closed
 * [0154 — Make the record lifecycle an explicit transition table and refuse illegal supersede transitions](0154-make-the-record-lifecycle-an-explicit-transition-table-and-refuse-illegal-supersede-transitions.md) - closed
 * [0156 — Ship living-docs as a Claude Code plugin from a marketplace at the repository root](0156-ship-living-docs-as-a-claude-code-plugin-from-a-marketplace-at-the-repository-root.md) - closed
+* [0157 — The session-context tests read the host's git configuration](0157-the-session-context-tests-read-the-host-s-git-configuration.md) - closed
+* [0158 — manage fmt reports success on a bundle root that is a regular file](0158-manage-fmt-reports-success-on-a-bundle-root-that-is-a-regular-file.md) - closed
+* [0159 — The MCP check error on a missing bundle omits the CLI's prefix and hint](0159-the-mcp-check-error-on-a-missing-bundle-omits-the-cli-s-prefix-and-hint.md) - closed
+* [0160 — write new does not list the bundle root it wrote](0160-write-new-does-not-list-the-bundle-root-it-wrote.md) - closed
+* [0161 — Initialize-era MCP clients are offered resource subscriptions the server cannot serve them](0161-initialize-era-mcp-clients-are-offered-resource-subscriptions-the-server-cannot-serve-them.md) - closed
