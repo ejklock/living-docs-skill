@@ -22,6 +22,8 @@ one slice per fresh context, starting from the skeleton.
 * [0163 — Configure the manage html output path in the bundle root and refresh it from the pre-commit hook](0163-configure-the-manage-html-output-path-in-the-bundle-root-and-refresh-it-from-the-pre-commit-hook.md) - open
 * [0164 — Give the generated HTML a sidebar navigation and a reading style](0164-give-the-generated-html-a-sidebar-navigation-and-a-reading-style.md) - open
 * [0165 — Teach when each optional record type fits and advise on missing coverage in check](0165-teach-when-each-optional-record-type-fits-and-advise-on-missing-coverage-in-check.md) - open
+* [0166 — check names a missing bundle by its bare name and ignores paths after the first](0166-check-names-a-missing-bundle-by-its-bare-name-and-ignores-paths-after-the-first.md) - open
+* [0167 — A session line test leaves its scratch directory behind](0167-a-session-line-test-leaves-its-scratch-directory-behind.md) - open
 
 ## Closed
 
