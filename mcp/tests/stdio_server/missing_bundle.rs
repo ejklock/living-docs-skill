@@ -24,6 +24,31 @@ async fn a_missing_bundle_lists_tools_and_check_names_the_path() {
 }
 
 #[tokio::test]
+async fn check_and_fmt_on_a_missing_bundle_tell_a_tool_caller_how_to_get_one() {
+    let scratch = Scratch::new();
+    let missing = scratch.outside().join("nowhere");
+    let client = connect(&missing, Era::Initialize).await;
+    let named = format!("bundle root not found: {}", missing.display());
+
+    let calls = [
+        ("check", json!({})),
+        ("manage", json!({"operation": "fmt"})),
+    ];
+    for (tool, args) in calls {
+        let result = call(&client, tool, args).await;
+        assert!(is_error(&result), "{tool}: {result:?}");
+        let text = message(&result);
+        assert!(text.starts_with(&named), "{tool}: {text}");
+        assert!(text.contains("--docs-dir"), "{tool}: {text}");
+        assert!(
+            text.contains("`write`") && text.contains("`new`"),
+            "{tool}: {text}"
+        );
+    }
+    assert!(!missing.exists(), "a refused call must not create it");
+}
+
+#[tokio::test]
 async fn a_missing_bundle_reads_zero_records_in_force_as_the_cli_does() {
     let scratch = Scratch::new();
     let missing = scratch.outside().join("nowhere");

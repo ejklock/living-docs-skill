@@ -1,5 +1,6 @@
 //! `fmt` verb wrapper: reuses `check::check_bundle` for bundle resolution
-//! and renders `living_docs_core::commands::fmt::outcome` as colored text
+//! and renders `living_docs_core::commands::fmt::outcome` (an explicit
+//! record path) or `outcome_for_bundle` (a bundle root) as colored text
 //! or JSON, with the git-derived timestamp and owner seeds it computes. The
 //! owner is the git identity of the bundle being formatted.
 
