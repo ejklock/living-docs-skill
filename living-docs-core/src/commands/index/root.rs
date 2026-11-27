@@ -125,23 +125,26 @@ fn appended_text(existing: &str, missing: &str) -> String {
 /// frontmatter, or whose `---` block does not parse as a YAML mapping (a
 /// horizontal rule over prose), gets a whole block above its unchanged bytes; one with
 /// frontmatter gets the key as its first line. Inserted lines take the file's
-/// line ending.
+/// line ending. One leading byte order mark is set aside before deciding and
+/// stays the file's first bytes.
 fn with_marker(existing: &str) -> Option<String> {
-    let plain = existing.replace("\r\n", "\n");
-    let eol = if existing.contains("\r\n") {
-        "\r\n"
-    } else {
-        "\n"
+    let (bom, text) = match existing.strip_prefix('\u{feff}') {
+        Some(rest) => ("\u{feff}", rest),
+        None => ("", existing),
     };
+    let plain = text.replace("\r\n", "\n");
+    let eol = if text.contains("\r\n") { "\r\n" } else { "\n" };
     let block = frontmatter_block(&plain).filter(|_| !has_unparseable_frontmatter(&plain));
     match block {
         Some(block) if block.lines().any(|line| line.starts_with("okf_version:")) => None,
         Some(_) => {
-            let at = existing.find('\n')? + 1;
-            let (fence, rest) = existing.split_at(at);
-            Some(format!("{fence}{MARKER_LINE}{eol}{rest}"))
+            let at = text.find('\n')? + 1;
+            let (fence, rest) = text.split_at(at);
+            Some(format!("{bom}{fence}{MARKER_LINE}{eol}{rest}"))
         }
-        None => Some(format!("---{eol}{MARKER_LINE}{eol}---{eol}{eol}{existing}")),
+        None => Some(format!(
+            "{bom}---{eol}{MARKER_LINE}{eol}---{eol}{eol}{text}"
+        )),
     }
 }
 

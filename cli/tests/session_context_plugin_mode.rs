@@ -215,3 +215,31 @@ fn outside_plugin_mode_without_a_cli_still_names_make_build() {
     assert!(out.contains("make build"), "{out}");
     assert!(!out.contains("npm install -g"), "{out}");
 }
+
+#[test]
+fn plugin_mode_accepts_a_marker_file_behind_a_byte_order_mark() {
+    for (name, contents) in [
+        ("plugin-bom-marker", format!("\u{feff}{MARKER}")),
+        (
+            "plugin-bom-crlf-marker",
+            format!("\u{feff}{}", MARKER.replace('\n', "\r\n")),
+        ),
+    ] {
+        let root = fresh_project(name);
+        write_marked_bundle(&root, "docs", &contents);
+        let (out, ok) = run_hook(&root, Some("1"), None, None);
+        assert!(ok);
+        assert!(out.contains("living-docs: "), "{name}: {out}");
+    }
+}
+
+#[test]
+fn plugin_mode_is_silent_when_okf_version_is_outside_the_frontmatter_behind_a_byte_order_mark() {
+    let root = fresh_project("plugin-bom-marker-in-body");
+    write_marked_bundle(
+        &root,
+        "docs",
+        "\u{feff}---\ntitle: Notes\n---\n\nokf_version: \"0.1\"\n",
+    );
+    assert_silent(&root, None);
+}

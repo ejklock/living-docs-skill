@@ -35,11 +35,13 @@ arm_githooks() {
 }
 
 # True when $1 starts with a --- frontmatter block holding an okf_version: line
-# before the closing ---. Reads only the first lines; tolerates CRLF.
+# before the closing ---. Reads only the first lines; tolerates CRLF and one
+# leading UTF-8 byte order mark.
 has_okf_marker() {
   [ -f "$1" ] || return 1
   head -n 50 "$1" 2>/dev/null | awk '
     { sub(/\r$/, "") }
+    NR == 1 { sub(/^\xef\xbb\xbf/, "") }
     NR == 1 { if ($0 != "---") exit; next }
     $0 == "---" { exit }
     /^okf_version:/ { found = 1; exit }

@@ -103,3 +103,59 @@ fn crlf_rule_and_prose_root_gets_a_crlf_block_above() {
     assert_eq!(after, format!("{}{crlf}", BLOCK.replace('\n', "\r\n")));
     let _ = fs::remove_dir_all(&docs);
 }
+
+const BOM: &str = "\u{feff}";
+
+#[test]
+fn marked_root_behind_a_bom_is_left_untouched() {
+    let root = format!("{BOM}---\nokf_version: \"0.1\"\n---\n\n# Docs\n");
+    let docs = bundle_with_root("bom-marked", &root);
+
+    let written = ensure_root_index(&DiskStore, &docs, &[], NoTypeIndex::WriteNothing).unwrap();
+
+    assert_eq!(written, None);
+    assert_eq!(fs::read_to_string(docs.join("index.md")).unwrap(), root);
+    let _ = fs::remove_dir_all(&docs);
+}
+
+#[test]
+fn bom_root_without_frontmatter_gets_the_block_after_the_bom() {
+    let (docs, after) = migrate("bom-plain", &format!("{BOM}# Docs\n"));
+
+    assert_eq!(after, format!("{BOM}{BLOCK}# Docs\n"));
+    let _ = fs::remove_dir_all(&docs);
+}
+
+#[test]
+fn bom_root_with_frontmatter_takes_the_key_inside_it() {
+    let (docs, after) = migrate("bom-mapping", &format!("{BOM}---\ntitle: Docs\n---\n"));
+
+    assert_eq!(
+        after,
+        format!("{BOM}---\nokf_version: \"0.1\"\ntitle: Docs\n---\n")
+    );
+    let _ = fs::remove_dir_all(&docs);
+}
+
+#[test]
+fn bom_root_with_crlf_endings_gets_crlf_lines_after_the_bom() {
+    let (docs, after) = migrate("bom-crlf", &format!("{BOM}# Docs\r\n"));
+
+    let block = BLOCK.replace('\n', "\r\n");
+    assert_eq!(after, format!("{BOM}{block}# Docs\r\n"));
+    let _ = fs::remove_dir_all(&docs);
+}
+
+#[test]
+fn bom_root_with_crlf_frontmatter_takes_the_key_with_a_crlf_line() {
+    let (docs, after) = migrate(
+        "bom-crlf-mapping",
+        &format!("{BOM}---\r\ntitle: D\r\n---\r\n"),
+    );
+
+    assert_eq!(
+        after,
+        format!("{BOM}---\r\nokf_version: \"0.1\"\r\ntitle: D\r\n---\r\n")
+    );
+    let _ = fs::remove_dir_all(&docs);
+}
