@@ -16,6 +16,7 @@ mod repair;
 
 use crate::callout;
 use crate::check::is_retired_record;
+use crate::commands::missing_bundle;
 use crate::commands::set::retitle::number_prefix;
 use crate::commands::supersede::guard::{refusal_message, unwritable_key};
 use crate::frontmatter::read_scalar_from_str as frontmatter_scalar;
@@ -45,7 +46,7 @@ pub fn outcome(
     seeds: &Seeds,
 ) -> Result<Outcome, String> {
     let Some(paths) = resolve_targets(store, target) else {
-        return Err(format!("bundle root not found: {}", target.display()));
+        return Err(missing_bundle::message(target));
     };
     refuse_unreadable(store, &paths)?;
     refuse_mixed_endings(store, &paths)?;
@@ -62,6 +63,22 @@ pub fn outcome(
     } else {
         Err(refused.join("\n"))
     }
+}
+
+/// [`outcome`] for a bundle root: refuses a root that is not a directory with
+/// the same `bundle root not found` message, instead of treating a regular
+/// file there as a single record. An explicit record path goes through
+/// [`outcome`] instead.
+pub fn outcome_for_bundle(
+    store: &dyn DocStore,
+    bundle: &Path,
+    check_only: bool,
+    seeds: &Seeds,
+) -> Result<Outcome, String> {
+    if !bundle.is_dir() {
+        return Err(missing_bundle::message(bundle));
+    }
+    outcome(store, bundle, check_only, seeds)
 }
 
 /// One message per record `fmt` refuses: one whose frontmatter does not parse
@@ -229,6 +246,8 @@ fn has_frontmatter(contents: &str) -> bool {
     contents.lines().next() == Some("---")
 }
 
+#[cfg(test)]
+mod file_root_tests;
 #[cfg(test)]
 mod heading_tests;
 #[cfg(test)]

@@ -145,8 +145,22 @@ fn failed_problem(outcome: &Outcome) -> Option<String> {
     })
 }
 
-fn refusal_problems(outcome: &Outcome, files: [&Files; 3]) -> Vec<String> {
+/// The first line of the tool's error text, with its docs path swapped for the
+/// CLI's, must appear in the CLI's stderr: both refuse for the same reason.
+fn shared_refusal_problem(outcome: &Outcome, docs: [&Path; 2]) -> Option<String> {
+    let mcp = outcome.mcp.as_ref()?;
+    let Some(text) = mcp["content"][0]["text"].as_str() else {
+        return Some("the tool's error carried no text".to_string());
+    };
+    let first = text.lines().next().unwrap_or_default();
+    let expected = first.replace(docs[1].to_str().unwrap(), docs[0].to_str().unwrap());
+    (!outcome.cli_err.contains(&expected))
+        .then(|| format!("the cli did not refuse with the tool's reason {expected:?}"))
+}
+
+fn refusal_problems(outcome: &Outcome, files: [&Files; 3], docs: [&Path; 2]) -> Vec<String> {
     let mut problems: Vec<String> = failed_problem(outcome).into_iter().collect();
+    problems.extend(shared_refusal_problem(outcome, docs));
     let [start, cli, mcp] = files;
     if cli != start || mcp != start {
         problems.push("a failed call changed files".to_string());
@@ -229,7 +243,7 @@ fn status_problems(case: &Case, outcome: &Outcome) -> Option<String> {
 fn compare(case: &Case, outcome: &Outcome, docs: [&Path; 2], start: &Files) -> Vec<String> {
     let (cli_files, mcp_files) = (files_of(docs[0]), files_of(docs[1]));
     if case.fails {
-        return refusal_problems(outcome, [start, &cli_files, &mcp_files]);
+        return refusal_problems(outcome, [start, &cli_files, &mcp_files], docs);
     }
     if case.partial {
         return partial_problems(outcome, docs, [start, &cli_files, &mcp_files]);

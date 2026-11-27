@@ -14,7 +14,7 @@ timestamp: 2026-11-27T01:50:02Z
 
 ## Decision
 
-- None yet.
+- `hook_output` builds a temporary git project and runs the script there with `GIT_CONFIG_GLOBAL=/dev/null` and `GIT_CONFIG_NOSYSTEM=1`, as the plugin-mode tests do (session, 2026-11-27). Not taken: keeping `cli/` as the project root.
 
 ## Acceptance
 

@@ -3,6 +3,7 @@ pub mod fmt;
 pub mod in_force;
 pub mod index;
 pub(crate) mod journal;
+pub mod missing_bundle;
 pub mod new;
 pub mod next;
 pub(crate) mod reference;

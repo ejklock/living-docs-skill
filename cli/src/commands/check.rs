@@ -7,6 +7,7 @@ mod render;
 use crate::output::{self, ColorMode, OutputMode, Style};
 use crate::store::build_store;
 use living_docs_core::check::{self, MermaidReport, Report};
+use living_docs_core::commands::missing_bundle;
 use living_docs_core::doc_type::{self, Identity};
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -62,10 +63,7 @@ pub(crate) fn run_check(
 
 /// Tells the user where to run `check` from, and exits with the usage code.
 fn exit_bundle_root_not_found(bundle: &Path) -> ExitCode {
-    eprintln!(
-        "living-docs check: bundle root not found: {}",
-        bundle.display()
-    );
+    eprintln!("living-docs check: {}", missing_bundle::message(bundle));
     eprintln!(
         "       run from the repo root, or pass the docs directory: living-docs check path/to/docs"
     );

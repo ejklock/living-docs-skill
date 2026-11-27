@@ -2,11 +2,13 @@
 //! and `check` tools, each calling the same `living-docs-core` entry point as
 //! its CLI verb, plus the embedded skills through the MCP skills extension
 //! and as `skill://` resources, plus the records in force as `record://`
-//! resources whose changes reach `subscriptions/listen` listeners.
+//! resources whose changes reach `subscriptions/listen` listeners and, on the
+//! `initialize` protocol revision, `resources/subscribe` subscribers.
 
 mod args;
 mod events;
 mod instructions;
+mod legacy_subscriptions;
 mod records;
 mod skills;
 mod tasks;
@@ -18,7 +20,8 @@ use rmcp::model::{
     CallToolRequestParams, CallToolResponse, CancelTaskParams, GetSkillRequestParams,
     GetSkillResult, GetTaskParams, GetTaskResult, Implementation, ListResourcesResult,
     ListSkillsResult, ListToolsResult, PaginatedRequestParams, ReadResourceRequestParams,
-    ReadResourceResponse, ServerCapabilities, ServerConfig, SubscriptionFilter, Tool,
+    ReadResourceResponse, ServerCapabilities, ServerConfig, SubscribeRequestParams,
+    SubscriptionFilter, Tool, UnsubscribeRequestParams,
 };
 use rmcp::service::{RequestContext, SubscriptionContext};
 use rmcp::transport::stdio;
@@ -131,6 +134,26 @@ impl ServerHandler for BundleServer {
 
     async fn listen(&self, context: SubscriptionContext) -> Result<(), ErrorData> {
         self.events.attend(context).await;
+        Ok(())
+    }
+
+    #[allow(deprecated)]
+    async fn subscribe(
+        &self,
+        request: SubscribeRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<(), ErrorData> {
+        records::read(&self.docs_dir, &request.uri)?;
+        self.events.subscribe(&context.peer, &request.uri)
+    }
+
+    #[allow(deprecated)]
+    async fn unsubscribe(
+        &self,
+        request: UnsubscribeRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<(), ErrorData> {
+        self.events.unsubscribe(&context.peer, &request.uri);
         Ok(())
     }
 

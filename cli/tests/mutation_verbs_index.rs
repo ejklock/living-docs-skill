@@ -114,7 +114,17 @@ fn new_constitution_writes_no_index_and_succeeds() {
     );
     assert!(output.status.success(), "stderr: {}", stderr_of(&output));
     assert!(docs.join("constitution.md").is_file());
-    assert!(!stderr_of(&output).contains("indexed"));
+    let root = docs.join("index.md");
+    assert_eq!(
+        stderr_of(&output)
+            .lines()
+            .filter(|line| line.contains("indexed"))
+            .collect::<Vec<_>>(),
+        [format!(
+            "living-docs write new: indexed {}",
+            root.to_str().unwrap()
+        )]
+    );
     let type_dirs = fs::read_dir(&docs)
         .unwrap()
         .filter_map(Result::ok)
@@ -213,9 +223,10 @@ fn output_json_lists_the_written_index_and_an_empty_list_when_nothing_changed() 
     let docs = bundle("output-json", ROOT_WITH_ADRS);
     let created = json_verb(&docs, &["write", "new", "adr", "Old"]);
     let index = docs.join("adr/index.md");
+    let root = docs.join("index.md");
     assert_eq!(
         created["indexed"],
-        serde_json::json!([index.to_str().unwrap()])
+        serde_json::json!([index.to_str().unwrap(), root.to_str().unwrap()])
     );
 
     let unchanged = json_verb(&docs, &["write", "set", "0001", "status", "Proposed"]);

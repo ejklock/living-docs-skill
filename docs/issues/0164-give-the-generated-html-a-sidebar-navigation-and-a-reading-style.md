@@ -1,0 +1,50 @@
+---
+type: Issue
+title: Give the generated HTML a sidebar navigation and a reading style
+description: manage html renders a sticky sidebar of types and statuses beside the running page of records, with light and dark themes, status badges and a print style, still one deterministic offline file.
+status: open
+timestamp: 2026-11-27T19:32:22Z
+---
+
+## 0164. Give the generated HTML a sidebar navigation and a reading style
+
+## Context
+
+`living-docs manage html` (ADR 0090) writes one self-contained page: a heading, a filter box and every record stacked in groups by type and status (`living-docs-core/src/html/page.rs`). The owner asked on 2026-11-27 for a side menu and a better style.
+
+## Decision
+
+
+
+
+
+- Layout: a sticky sidebar holding the filter and a tree of types, each with its statuses and record counts, linking to anchors in a running page of records on the right; the sidebar marks the group in view (owner, 2026-11-27). Not taken: one record at a time behind hash navigation; three panes (types, list, record).
+- Style: light and dark themes from `prefers-color-scheme`, a readable line length, coloured status badges, metadata as chips, backlinks and the supersede chain in a record footer, and a print stylesheet that hides the sidebar.
+- Zoom: clicking a diagram or an image opens a full-screen overlay with wheel zoom, drag to pan and Escape to close, in a small inline script (owner, 2026-11-27). Not taken: React, which needs its runtime inlined in every page or a Node build and would supersede ADR 0090's no-template-engine, small-script limit.
+- Output: one HTML file per record type plus an `index.html` and a shared `assets/` folder (style, script, data), each page carrying the same sidebar (owner, 2026-11-27); this supersedes ADR 0090's single self-contained file, so an ADR comes first. Not taken: one page per record; one single file, with plain JavaScript or with an inlined framework such as Preact with htm or petite-vue (the owner asked again on 2026-11-27 and kept the pages per type, since a single file must inline Mermaid to work offline, over 7 MB rewritten in git at every generation, and a framework adds nothing the plain script does not already do). The interface language does not split the output: one generation writes one folder in the configured locale.
+- Data: the record metadata the pages share (type, status, title, links, backlinks) is written once as `assets/data.js` (`window.LIVING_DOCS = {...}`) rather than `data.json`, because a page opened from `file://` cannot `fetch` a local JSON in Chromium (owner asked for JSON data, 2026-11-27); its content is the JSON `read records --json` already produces.
+- Script: plain JavaScript in `assets/app.js` reads `assets/data.js` for the sidebar, the filter, the counts and the zoom (owner, 2026-11-27, asked again after React). Not taken: React 18's UMD build with `data.js` (React 19 ships no UMD build, and its ES modules do not load from `file://` in Chromium), about 140 KB pinned for a menu and a filter the Rust renderer does not need it for.
+- Width: the record pages fill the screen beside the sidebar, with no fixed content width and no reading-width cap on record text (the owner rejected a 78ch cap on 2026-11-27) (owner, 2026-11-27, after viewing the prototype in `/Volumes/transfer/living-docs-html-prototipo/`).
+- Theme: every colour and the font come from one generated `assets/theme.css` (light and dark sets of variables: sidebar, sidebar text, paper, card, text, muted, accent, accent soft, and the three status colours), which the bundle configures (owner, 2026-11-27). The theme lives in `docs/living-docs.json` beside the HTML output setting (issue 0163; owner, 2026-11-27). Default values: the Klock Tecnologia palette (`#0a0a0a` sidebar, `#f7f7f5` paper, `#1e56d6` accent, Inter), from `klock-tecnologia-langing/css/style.css`.
+- Logo: a product SVG mark for Living Docs (a page with a pulse line), inlined in each page so it takes the theme's accent and sidebar text colours (owner, 2026-11-27).
+- Visual direction, after the owner judged the first prototype generic (2026-11-27): editorial, not card-based. Records are document sections with a monospace identifier (`ADR 0108`), the title, a readable text column and a right rail with status, file and backlinks; status is a coloured dot and its word; hairlines instead of shadows; a quiet sidebar whose current item carries one accent bar; a product mark of an accent square with three page lines.
+- Each type page opens on an index table (ID, title, status, grouped by status); following a link shows that one record, through the URL fragment and CSS `:target`, with a link back to the index (owner, 2026-11-27).
+- Every registry type is listed, an empty one with the command that creates its first record; the domain type is shown as the domain glossary (owner, 2026-11-27).
+- Interface language: English by default, with `locale` in `docs/living-docs.json` selecting another (pt-BR first); record content is never translated (owner, 2026-11-27).
+- Search: suggestions under the box as you type (icon, title, type and status), arrow keys and Enter, `/` to focus; the sidebar collapses to an icon rail on wide screens and becomes an off-canvas menu with a top bar on narrow ones; diagrams use the theme's colours and the full width (owner, 2026-11-27).
+- Defect found in the prototype: the renderer breaks every `<!--` so a comment cannot end the inline Mermaid script, which turns the generated-view stamps (`<!-- generated by … -->`) into visible text; diagrams rendered at generation (below) remove the inline Mermaid script, so record bodies keep their comments out of the page by dropping them.
+- Prototype for reference: `/Volumes/transfer/living-docs-html-prototipo/` (`en/`, `pt-BR/`, `living-docs.json`), built by a throwaway script from the current single-file output.
+- ADR 0090's limits stay, apart from the single file: one file, byte-identical output for the same bundle, no server, only the small inline filter script plus Mermaid.
+- Diagrams rendered in Rust: `manage html` renders each Mermaid block to SVG at generation with `merman` 0.11, which replaces the `merman-core` =0.7.0 dependency so `check` validates and the render draws with one parser; mermaid.js leaves the output and `manage install mermaid` (ADR 0091) is superseded, so an ADR comes first; a diagram `merman` cannot render shows its source with the error (owner, 2026-11-27). Evidence: a throwaway test over 401 Mermaid blocks from five Klock bundles rendered 397 with `merman-cli` 0.11.0, close to mermaid.js, and 401 with `mermaid-rs-renderer` 0.3.1, whose flowchart edges detour and sequence labels clip; the 4 `merman` failures are unquoted `@` or structural characters in labels (side-by-side page at `/Volumes/transfer/living-docs-html-prototipo/diagramas-rust/`). To measure before the bump: whether `check` with 0.11 starts refusing diagrams that pass today in other bundles. Not taken: keeping mermaid.js in `assets/`; `merman` with a mermaid.js fallback, which keeps two renderers.
+- Diagram colour and text fit: `merman` renders with the Mermaid configuration built from the theme in `docs/living-docs.json` (`theme: base` and its `themeVariables`), and measures every label with the same font file the pages ship in `assets/` (Inter by default, OFL), so a label never overflows its shape; each diagram gets its own SVG id so inline diagrams do not share styles (owner, 2026-11-27, after a label overflowed its box in the comparison page). Evidence: the themed page at `/Volumes/transfer/living-docs-html-prototipo/diagramas-rust/tema-klock/` renders seven samples with `--font-file` Inter and `-c` the Klock palette; the owner viewed it in a browser and accepted it on 2026-11-27.
+
+## Acceptance
+
+- The page renders the sidebar tree with counts that equal the records rendered, and each entry links to an anchor that exists.
+- Output stays byte-identical for an unchanged bundle; the page works offline from `file://`.
+- Clicking a Mermaid diagram or an image opens the zoom overlay; wheel, drag and Escape work offline.
+- The filter still hides non-matching records and empties groups, and the sidebar counts follow it or the sidebar marks hidden groups.
+
+## Scope
+
+In: `living-docs-core/src/html/` markup, style and script. Out: a server, search index or multi-page site.

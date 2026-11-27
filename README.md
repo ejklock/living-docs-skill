@@ -371,8 +371,8 @@ and check tools, and the four skills over the MCP skills extension, each file al
 as a `skill://` resource by a client without the extension. Every record in force is a `record://` resource
 (`record://adr/0108`, `record://view/crates`, `record://constitution`), and a client that sends
 `subscriptions/listen` (MCP 2026-07-28) is told when the record list changes or a subscribed record changes,
-whether through the tools or by an edit to the files. A client on the earlier `initialize` revision reads the
-resources but receives no change events, and its `resources/subscribe` call is refused. A client that declares
+whether through the tools or by an edit to the files. A client on the earlier `initialize` revision subscribes
+with `resources/subscribe` and gets the same `updated` and `list_changed` notifications. A client that declares
 the MCP Tasks extension gets `check` as a pollable, cancellable task on a bundle of 2670 or more records in force,
 the size at which `check` takes 2 s on the measuring host (`scripts/bench/check-task-threshold.md`). Run it from the project root, so `docs` resolves. Add it to Claude Code:
 

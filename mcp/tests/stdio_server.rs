@@ -18,6 +18,8 @@ mod events;
 mod export_view;
 #[path = "stdio_server/guide.rs"]
 mod guide;
+#[path = "stdio_server/legacy_subscriptions.rs"]
+mod legacy_subscriptions;
 #[path = "stdio_server/missing_bundle.rs"]
 mod missing_bundle;
 #[path = "stdio_server/records.rs"]

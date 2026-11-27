@@ -8,9 +8,8 @@ use living_docs_core::check;
 use living_docs_core::commands::effective::{self, Dependents};
 use living_docs_core::commands::fmt::{self, Outcome as FmtOutcome, Seeds};
 use living_docs_core::commands::index::Indexed;
-use living_docs_core::commands::{index, new, set, splice, supersede};
-use living_docs_core::guide;
-use living_docs_core::tla_export;
+use living_docs_core::commands::{index, missing_bundle, new, set, splice, supersede};
+use living_docs_core::{guide, tla_export};
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{CallToolResult, ContentBlock};
 use rmcp::{tool, tool_router};
@@ -237,7 +236,8 @@ fn run_fmt(docs_dir: &Path, args: &FmtArgs) -> Written {
         owner: git::identity(docs_dir),
         added_at: Some(git::added_at),
     };
-    let outcome = fmt::outcome(&store(docs_dir), docs_dir, args.check_only, &seeds)?;
+    missing_bundle::require_dir_for_tool(docs_dir)?;
+    let outcome = fmt::outcome_for_bundle(&store(docs_dir), docs_dir, args.check_only, &seeds)?;
     Ok(match outcome {
         FmtOutcome::Rewritten(paths) => json!({ "files": shown_all(&paths) }),
         FmtOutcome::Pending(paths) => json!({ "pending": shown_all(&paths) }),
@@ -246,7 +246,7 @@ fn run_fmt(docs_dir: &Path, args: &FmtArgs) -> Written {
 
 fn run_check(docs_dir: &Path, args: &CheckArgs) -> Answer {
     let report = check::compile(&store(docs_dir), docs_dir, args.require_owner)
-        .ok_or_else(|| format!("bundle root not found: {}", docs_dir.display()))?;
+        .ok_or_else(|| missing_bundle::for_tool(docs_dir))?;
     serde_json::to_value(&report).map_err(|error| error.to_string())
 }
 

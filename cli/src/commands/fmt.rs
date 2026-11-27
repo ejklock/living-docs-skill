@@ -1,5 +1,6 @@
 //! `fmt` verb wrapper: reuses `check::check_bundle` for bundle resolution
-//! and renders `living_docs_core::commands::fmt::outcome` as colored text
+//! and renders `living_docs_core::commands::fmt::outcome` (an explicit
+//! record path) or `outcome_for_bundle` (a bundle root) as colored text
 //! or JSON, with the git-derived timestamp and owner seeds it computes. The
 //! owner is the git identity of the bundle being formatted.
 
@@ -28,6 +29,7 @@ pub(crate) fn run_fmt(
     check_only: bool,
     mode: OutputMode,
 ) -> ExitCode {
+    let paths_given = !paths.is_empty();
     let target = check_bundle(docs_dir, paths);
     let root = store_root(&target, docs_dir);
     let seeds = Seeds {
@@ -35,7 +37,12 @@ pub(crate) fn run_fmt(
         added_at: Some(git::added_at),
     };
     let store = build_store(&root);
-    match fmt::outcome(store.as_ref(), &target, check_only, &seeds) {
+    let result = if paths_given {
+        fmt::outcome(store.as_ref(), &target, check_only, &seeds)
+    } else {
+        fmt::outcome_for_bundle(store.as_ref(), &target, check_only, &seeds)
+    };
+    match result {
         Ok(outcome) => render(&outcome, mode),
         Err(message) => {
             eprintln!("living-docs manage fmt: {message}");

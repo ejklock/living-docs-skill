@@ -14,7 +14,7 @@ timestamp: 2026-11-27T03:33:40Z
 
 ## Decision
 
-- None yet.
+- `write new` reports the bundle-root `index.md` among the files it wrote whenever `ensure_root_index` creates or changes it, in text, JSON and over MCP (session, 2026-11-27). Not taken: reporting it only from `manage index`.
 
 ## Acceptance
 
