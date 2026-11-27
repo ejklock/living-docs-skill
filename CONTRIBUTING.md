@@ -156,7 +156,8 @@ fails if the copies disagree. To cut a release:
 
 ```bash
 # 1. bump the version everywhere, in one commit
-#    edit VERSION and the four skills/*/SKILL.md `version:` lines to X.Y.Z
+#    edit VERSION and the four skills/*/SKILL.md `version:` lines to X.Y.Z, and in
+#    .claude-plugin/plugin.json both the `version` and the @ejklock/living-docs@X.Y.Z npx pin
 ./scripts/check-version.sh X.Y.Z        # must print "Version OK"
 make check                              # full local gate
 

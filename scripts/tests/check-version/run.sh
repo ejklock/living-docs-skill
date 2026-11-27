@@ -66,6 +66,26 @@ set_all_versions() { # set_all_versions <dir> <version>
   write_frontmatter "$dir/skills/foo/SKILL.md" "version: \"$version\""
   write_cargo "$dir" "$version"
   write_npm_package "$dir" "$version"
+  write_plugin "$dir" "$version" "$version"
+}
+
+write_plugin() { # write_plugin <dir> <plugin-version-or-empty> <npx-pin-version-or-empty> -> an empty argument drops that declaration
+  local version_line="" pin_arg='"--version"'
+  [[ -n "$2" ]] && version_line="  \"version\": \"$2\","
+  [[ -n "$3" ]] && pin_arg="\"@ejklock/living-docs@$3\""
+  mkdir -p "$1/.claude-plugin"
+  {
+    echo '{'
+    echo '  "name": "fixture",'
+    [[ -n "$version_line" ]] && echo "$version_line"
+    echo '  "mcpServers": {'
+    echo '    "living-docs": {'
+    echo '      "command": "npx",'
+    echo "      \"args\": [\"-y\", $pin_arg, \"mcp\"]"
+    echo '    }'
+    echo '  }'
+    echo '}'
+  } >"$1/.claude-plugin/plugin.json"
 }
 
 write_npm_package() { # write_npm_package <dir> <version>
@@ -233,6 +253,58 @@ rm "$repo/mcp/Cargo.toml"
 invoke "$repo"
 assert_exit    "20-exit-1"     1
 assert_out_has "20-names-file" "mcp/Cargo.toml"
+
+echo "case 21: plugin version drifted"
+repo="$(new_repo case21)"
+write_plugin "$repo" "0.0.1" "0.9.0"
+invoke "$repo"
+assert_exit    "21-exit-1"     1
+assert_out_has "21-names-file" "MISMATCH: .claude-plugin/plugin.json"
+
+echo "case 22: plugin npx pin drifted"
+repo="$(new_repo case22)"
+write_plugin "$repo" "0.9.0" "0.0.1"
+invoke "$repo"
+assert_exit    "22-exit-1"    1
+assert_out_has "22-names-pin" "@ejklock/living-docs@ pin"
+
+echo "case 23: plugin with no version key"
+repo="$(new_repo case23)"
+write_plugin "$repo" "" "0.9.0"
+invoke "$repo"
+assert_exit    "23-exit-1"     1
+assert_out_has "23-names-file" ".claude-plugin/plugin.json"
+
+echo "case 24: plugin args hold no npx pin"
+repo="$(new_repo case24)"
+write_plugin "$repo" "0.9.0" ""
+invoke "$repo"
+assert_exit    "24-exit-1"    1
+assert_out_has "24-names-pin" "@ejklock/living-docs@ pin"
+
+echo "case 25: plugin manifest missing"
+repo="$(new_repo case25)"
+rm "$repo/.claude-plugin/plugin.json"
+invoke "$repo"
+assert_exit    "25-exit-1"     1
+assert_out_has "25-names-file" ".claude-plugin/plugin.json"
+
+echo "case 26: plugin version and pin both agree"
+repo="$(new_repo case26)"
+write_plugin "$repo" "0.9.0" "0.9.0"
+invoke "$repo"
+assert_exit    "26-exit-0"     0
+assert_out_has "26-version-ok" "Version OK"
+
+echo "case 27: tag argument ahead of a plugin still at the baseline"
+repo="$(new_repo case27)"
+write_cargo "$repo" "0.9.1"
+write_npm_package "$repo" "0.9.1"
+write_frontmatter "$repo/skills/foo/SKILL.md" 'version: "0.9.1"'
+printf '%s' "0.9.1" >"$repo/VERSION"
+invoke "$repo" v0.9.1
+assert_exit    "27-exit-1"     1
+assert_out_has "27-names-file" "MISMATCH: .claude-plugin/plugin.json"
 
 echo
 if ((fail == 0)); then
