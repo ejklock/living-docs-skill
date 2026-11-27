@@ -2,7 +2,7 @@
 type: Issue
 title: Ship living-docs as a Claude Code plugin from a marketplace at the repository root
 description: "Implement ADR 0108: marketplace and plugin manifests at the root, MCP through npx, a SessionStart hook that never touches git config, and a version gate."
-status: open
+status: closed
 timestamp: 2026-11-27T01:08:34Z
 ---
 
