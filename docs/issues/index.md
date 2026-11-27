@@ -166,3 +166,5 @@ one slice per fresh context, starting from the skeleton.
 * [0154 — Make the record lifecycle an explicit transition table and refuse illegal supersede transitions](0154-make-the-record-lifecycle-an-explicit-transition-table-and-refuse-illegal-supersede-transitions.md) - closed
 * [0156 — Ship living-docs as a Claude Code plugin from a marketplace at the repository root](0156-ship-living-docs-as-a-claude-code-plugin-from-a-marketplace-at-the-repository-root.md) - open
 * [0157 — The session-context tests read the host's git configuration](0157-the-session-context-tests-read-the-host-s-git-configuration.md) - open
+* [0158 — manage fmt reports success on a bundle root that is a regular file](0158-manage-fmt-reports-success-on-a-bundle-root-that-is-a-regular-file.md) - open
+* [0159 — The MCP check error on a missing bundle omits the CLI's prefix and hint](0159-the-mcp-check-error-on-a-missing-bundle-omits-the-cli-s-prefix-and-hint.md) - open
