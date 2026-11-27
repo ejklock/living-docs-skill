@@ -91,7 +91,11 @@ fn link_less_root_is_created_only_when_asked() {
 #[test]
 fn crlf_root_ending_in_a_newline_gets_the_line_with_no_blank_line_inserted() {
     let docs = bundle_with_type_indexes("crlf-final", &["adr", "issues"]);
-    fs::write(docs.join("index.md"), "# Mine\r\n\r\n* [ADRs](adr/)\r\n").unwrap();
+    fs::write(
+        docs.join("index.md"),
+        "---\r\nokf_version: \"0.1\"\r\n---\r\n\r\n# Mine\r\n\r\n* [ADRs](adr/)\r\n",
+    )
+    .unwrap();
 
     ensure_root_index(
         &DiskStore,
@@ -104,7 +108,7 @@ fn crlf_root_ending_in_a_newline_gets_the_line_with_no_blank_line_inserted() {
     let root = fs::read_to_string(docs.join("index.md")).unwrap();
     assert_eq!(
         root,
-        "# Mine\r\n\r\n* [ADRs](adr/)\r\n* [Issues](issues/)\r\n"
+        "---\r\nokf_version: \"0.1\"\r\n---\r\n\r\n# Mine\r\n\r\n* [ADRs](adr/)\r\n* [Issues](issues/)\r\n"
     );
     let _ = fs::remove_dir_all(&docs);
 }
@@ -131,7 +135,11 @@ fn mixed_ending_root_without_a_final_newline_gets_a_crlf_separator_and_line() {
 #[test]
 fn crlf_root_gets_its_appended_line_with_a_crlf_ending() {
     let docs = bundle_with_type_indexes("crlf", &["adr", "issues"]);
-    fs::write(docs.join("index.md"), "# Mine\r\n\r\n* [ADRs](adr/)").unwrap();
+    fs::write(
+        docs.join("index.md"),
+        "---\r\nokf_version: \"0.1\"\r\n---\r\n\r\n# Mine\r\n\r\n* [ADRs](adr/)",
+    )
+    .unwrap();
 
     ensure_root_index(
         &DiskStore,
@@ -144,7 +152,7 @@ fn crlf_root_gets_its_appended_line_with_a_crlf_ending() {
     let root = fs::read_to_string(docs.join("index.md")).unwrap();
     assert_eq!(
         root,
-        "# Mine\r\n\r\n* [ADRs](adr/)\r\n* [Issues](issues/)\r\n"
+        "---\r\nokf_version: \"0.1\"\r\n---\r\n\r\n# Mine\r\n\r\n* [ADRs](adr/)\r\n* [Issues](issues/)\r\n"
     );
     let _ = fs::remove_dir_all(&docs);
 }
@@ -152,7 +160,11 @@ fn crlf_root_gets_its_appended_line_with_a_crlf_ending() {
 #[test]
 fn present_root_gets_a_newline_then_one_line_for_each_unreached_touched_index() {
     let docs = bundle_with_type_indexes("append", &["adr", "issues"]);
-    fs::write(docs.join("index.md"), "# Mine\n\n* [ADRs](adr/)").unwrap();
+    fs::write(
+        docs.join("index.md"),
+        "---\nokf_version: \"0.1\"\n---\n\n# Mine\n\n* [ADRs](adr/)",
+    )
+    .unwrap();
 
     ensure_root_index(
         &DiskStore,
@@ -163,14 +175,21 @@ fn present_root_gets_a_newline_then_one_line_for_each_unreached_touched_index() 
     .unwrap();
 
     let root = fs::read_to_string(docs.join("index.md")).unwrap();
-    assert_eq!(root, "# Mine\n\n* [ADRs](adr/)\n* [Issues](issues/)\n");
+    assert_eq!(
+        root,
+        "---\nokf_version: \"0.1\"\n---\n\n# Mine\n\n* [ADRs](adr/)\n* [Issues](issues/)\n"
+    );
     let _ = fs::remove_dir_all(&docs);
 }
 
 #[test]
 fn present_root_reaching_an_index_through_another_index_is_left_alone() {
     let docs = bundle_with_type_indexes("transitive", &["adr", "issues"]);
-    fs::write(docs.join("index.md"), "* [Work](issues/)\n").unwrap();
+    fs::write(
+        docs.join("index.md"),
+        "---\nokf_version: \"0.1\"\n---\n\n* [Work](issues/)\n",
+    )
+    .unwrap();
     fs::write(docs.join("issues/index.md"), "* [ADRs](../adr/index.md)\n").unwrap();
 
     assert_eq!(
@@ -185,7 +204,7 @@ fn present_root_reaching_an_index_through_another_index_is_left_alone() {
     );
     assert_eq!(
         fs::read_to_string(docs.join("index.md")).unwrap(),
-        "* [Work](issues/)\n"
+        "---\nokf_version: \"0.1\"\n---\n\n* [Work](issues/)\n"
     );
     let _ = fs::remove_dir_all(&docs);
 }
@@ -201,4 +220,81 @@ fn root_that_is_a_directory_is_an_error_naming_it() {
     assert!(error.contains("index.md"), "{error}");
     assert!(docs.join("index.md").is_dir());
     let _ = fs::remove_dir_all(&docs);
+}
+
+/// The root after one `ensure_root_index` run over `original`, and whether it wrote.
+fn run_over(label: &str, original: &str, touched: &[&str]) -> (String, bool) {
+    let docs = bundle_with_type_indexes(label, &["adr"]);
+    fs::write(docs.join("index.md"), original).unwrap();
+    let written = ensure_root_index(&DiskStore, &docs, touched, NoTypeIndex::WriteNothing).unwrap();
+    let root = fs::read_to_string(docs.join("index.md")).unwrap();
+    let _ = fs::remove_dir_all(&docs);
+    (root, written.is_some())
+}
+
+/// Roots lacking the marker, each with the text it must become.
+const MARKER_CASES: [(&str, &str); 7] = [
+    (
+        "# Index\n\n* [x](y.md)\n",
+        "---\nokf_version: \"0.1\"\n---\n\n# Index\n\n* [x](y.md)\n",
+    ),
+    (
+        "---\ntitle: x\n---\n\n# I\n",
+        "---\nokf_version: \"0.1\"\ntitle: x\n---\n\n# I\n",
+    ),
+    (
+        "# Index\r\n",
+        "---\r\nokf_version: \"0.1\"\r\n---\r\n\r\n# Index\r\n",
+    ),
+    (
+        "---\r\ntitle: x\r\n---\r\n\r\nB\r\n",
+        "---\r\nokf_version: \"0.1\"\r\ntitle: x\r\n---\r\n\r\nB\r\n",
+    ),
+    ("", "---\nokf_version: \"0.1\"\n---\n\n"),
+    (
+        "---\ntitle: x\n# I\n",
+        "---\nokf_version: \"0.1\"\n---\n\n---\ntitle: x\n# I\n",
+    ),
+    (
+        "# I\nokf_version: \"0.1\"\n",
+        "---\nokf_version: \"0.1\"\n---\n\n# I\nokf_version: \"0.1\"\n",
+    ),
+];
+
+#[test]
+fn root_without_the_marker_gains_it_and_keeps_every_original_byte() {
+    for (n, (original, expected)) in MARKER_CASES.iter().enumerate() {
+        let (root, written) = run_over(&format!("marker-{n}"), original, &[]);
+        assert_eq!(&root, expected, "case {n}");
+        assert!(written, "case {n}");
+    }
+}
+
+#[test]
+fn root_already_holding_a_marker_is_unchanged_whatever_its_value() {
+    for (n, original) in [
+        "---\nokf_version: \"9\"\n---\n\n# I\n",
+        "---\r\nokf_version: \"0.1\"\r\n---\r\n\r\nB\r\n",
+    ]
+    .iter()
+    .enumerate()
+    {
+        let (root, written) = run_over(&format!("kept-{n}"), original, &[]);
+        assert_eq!(&root, original);
+        assert!(!written);
+    }
+}
+
+#[test]
+fn missing_marker_and_missing_link_are_fixed_in_one_write_then_nothing_more() {
+    let (root, written) = run_over("marker-both", "# Mine\n", &["adr"]);
+    assert_eq!(
+        root,
+        "---\nokf_version: \"0.1\"\n---\n\n# Mine\n* [ADRs](adr/)\n"
+    );
+    assert!(written);
+
+    let (again, written) = run_over("marker-twice", &root, &["adr"]);
+    assert_eq!(again, root);
+    assert!(!written);
 }

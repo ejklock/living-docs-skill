@@ -14,7 +14,8 @@ const GAMMA: &str =
 /// What the binary wrote for the all-LF bundle below before CRLF support.
 const ADR_INDEX: &str = "# ADRs\n\n## Active\n\n* [0001 — Alpha](0001-alpha.md) - accepted\n* [0002 — Beta](0002-beta.md) - proposed\n";
 const ISSUES_INDEX: &str = "# Issues\n\n## Open\n\n* [0001 — Gamma](0001-gamma.md) - open\n";
-const ROOT_INDEX: &str = "# Docs\n* [ADRs](adr/)\n* [Issues](issues/)\n";
+const ROOT_INDEX: &str =
+    "---\nokf_version: \"0.1\"\n---\n\n# Docs\n* [ADRs](adr/)\n* [Issues](issues/)\n";
 
 fn bundle(label: &str, crlf: bool) -> common::Scratch {
     let docs = temp_bundle("index-crlf", label);

@@ -105,7 +105,7 @@ fn plugin_mode_is_silent_for_a_bundle_directory_without_an_index() {
 #[test]
 fn plugin_mode_is_silent_for_an_index_without_frontmatter() {
     let root = fresh_project("plugin-index-no-frontmatter");
-    write_marked_bundle(&root, "docs", "# Welcome\n\nSee okf_version: below.\n");
+    write_marked_bundle(&root, "docs", "# Welcome\nokf_version: \"0.1\"\n");
     assert_silent(&root, None);
 }
 
