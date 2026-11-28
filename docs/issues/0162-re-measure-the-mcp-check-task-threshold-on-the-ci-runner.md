@@ -2,7 +2,7 @@
 type: Issue
 title: Re-measure the MCP check task threshold on the CI runner
 description: Measure on a GitHub-hosted runner the record count where check takes 2 s and update the task threshold that issue 0156 measured on the development host.
-status: open
+status: closed
 timestamp: 2026-11-27T15:52:15Z
 ---
 
@@ -15,6 +15,7 @@ ADR 0112 fixes the record count from which the MCP `check` runs as a task where 
 ## Decision
 
 - A separate workflow, `bench.yml`, runs only on `workflow_dispatch` (heavy jobs stay manual), builds the release binary, runs `scripts/bench/check-task-threshold.sh` and uploads its output as an artifact; after it reaches `main`, the session dispatches it, reads the artifact and updates the constant and the measurement file (session, 2026-11-27). Not taken: a step in the `check` job.
+- The runner measured 3140 in-force records (run 46085371879, Xeon Platinum 8573C, living-docs 0.35.0) against 2670 on the desktop host; `CHECK_TASK_THRESHOLD` keeps 2670, because the lower count gives a slower machine a task sooner and costs a faster one at most one extra poll; both tables are in `scripts/bench/check-task-threshold.md` (session, 2026-11-28). Not taken: 3140, which would let a check run past 2 s inline on a machine slower than the runner.
 
 ## Acceptance
 
